@@ -33,11 +33,11 @@
   </head>
   <body class="font-poppins bg-white">
     <main id="app" class="min-h-screen">
-      <section class="relative min-h-screen flex flex-col overflow-hidden bg-white">
+      <section class="relative min-h-screen flex flex-col overflow-hidden bg-[#F2F3F1]">
         <div class="hero-watermark" aria-hidden="true">WAS</div>
         
         <!-- Header stays on white background -->
-        <header class="relative z-20 flex items-center justify-between px-6 pt-6 pb-4 lg:px-12 lg:pt-8 bg-white">
+        <header class="relative z-20 flex items-center justify-between bg-[#F2F3F1] px-6 pb-4 pt-6 lg:px-12 lg:pt-8 lg:pr-[32%]">
           <div class="text-ink">
             <p class="text-[24px] font-extrabold leading-none tracking-tight lg:text-[32px]">RENT A CAR</p>
             <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[9px]">
@@ -65,7 +65,7 @@
         </header>
 
         <!-- Teal panel background on right (starts below header) -->
-        <div class="absolute right-0 top-[120px] bottom-0 w-[35%] bg-panel lg:top-[100px]"></div>
+        <div class="absolute bottom-0 right-0 top-[112px] w-[34%] bg-panel lg:top-[96px]"></div>
 
         <!-- Main content container -->
         <div class="relative z-10 flex-1 flex items-center px-6 lg:px-12 py-8">
@@ -102,7 +102,7 @@
                 </label>
 
                 <label class="block">
-                  <span class="text-[16px] font-medium text-[#2D3337] lg:text-[18px]">Date of Pick Up/Time</span>
+                  <span class="text-[17px] font-semibold text-[#2D3337] lg:text-[19px]">Date of Pick Up/Time</span>
                   <input
                     type="text"
                     value="11-March-2023, 11:00 AM"
@@ -129,11 +129,11 @@
             </div>
 
           <!-- Car image - right side (visible on lg screens) -->
-          <div class="hidden lg:flex lg:w-[40%] items-end justify-end pr-4 h-full absolute right-0 bottom-8">
+          <div class="absolute bottom-6 right-0 hidden h-full items-end justify-end pr-1 lg:flex lg:w-[41%]">
             <img
               src="assets/images/car.jpg"
               alt="Black jeep car"
-              class="h-[80%] object-contain opacity-95"
+              class="car-hero-image h-[82%] object-contain"
             />
           </div>
         </div>
