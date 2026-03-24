@@ -33,55 +33,53 @@
   </head>
   <body class="font-poppins bg-white">
     <main id="app" class="min-h-screen">
-      <section class="relative min-h-screen flex flex-col overflow-hidden">
+      <section class="relative min-h-screen flex flex-col overflow-hidden bg-white">
         <div class="hero-watermark" aria-hidden="true">WAS</div>
         
-        <!-- Teal panel background on right (31% width) -->
-        <div class="absolute right-0 inset-y-0 w-[35%] bg-panel"></div>
+        <!-- Header stays on white background -->
+        <header class="relative z-20 flex items-center justify-between px-6 pt-6 pb-4 lg:px-12 lg:pt-8 bg-white">
+          <div class="text-ink">
+            <p class="text-[24px] font-extrabold leading-none tracking-tight lg:text-[32px]">RENT A CAR</p>
+            <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[9px]">
+              Luxury Car Service
+            </p>
+          </div>
+
+          <nav class="hidden items-center gap-8 text-[16px] font-medium text-[#2F3336] lg:flex">
+            <a class="text-accent" href="#">Home</a>
+            <a href="#">How It Work</a>
+            <a href="#">Rental Deal</a>
+            <a href="#">Why Choose Us</a>
+            <a href="#">Contact Us</a>
+          </nav>
+
+          <div class="hidden items-center gap-6 text-[16px] text-[#2F3336] lg:flex">
+            <a href="#">Sign In</a>
+            <button
+              type="button"
+              class="rounded-full bg-accent px-6 py-2 text-[16px] font-medium text-white leading-none hover:opacity-90"
+            >
+              Sign Up
+            </button>
+          </div>
+        </header>
+
+        <!-- Teal panel background on right (starts below header) -->
+        <div class="absolute right-0 top-[120px] bottom-0 w-[35%] bg-panel lg:top-[100px]"></div>
 
         <!-- Main content container -->
-        <div class="relative z-10 flex-1 flex flex-col">
-          <!-- Header -->
-          <header class="flex items-center justify-between px-6 pt-6 pb-4 lg:px-12 lg:pt-8">
-            <div class="text-ink">
-              <p class="text-[24px] font-extrabold leading-none tracking-tight lg:text-[32px]">RENT A CAR</p>
-              <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[9px]">
-                Luxury Car Service
+        <div class="relative z-10 flex-1 flex items-center px-6 lg:px-12 py-8">
+          <div class="w-full lg:w-[60%] pr-4">
+            <!-- Hero heading panel -->
+            <div class="bg-[#FBFBF9] p-8 lg:p-10 rounded-xl">
+              <h1 class="text-[48px] font-black leading-[1.1] tracking-[-0.03em] text-ink lg:text-[68px]">
+                Fast And Easy Way To Rent A Car
+              </h1>
+              <p class="mt-6 text-[15px] leading-[1.65] text-[#4A4F52] lg:text-[18px]">
+                Sed volutpat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium.
+                Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
               </p>
             </div>
-
-            <nav class="hidden items-center gap-8 text-[16px] font-medium text-[#2F3336] lg:flex">
-              <a class="text-accent" href="#">Home</a>
-              <a href="#">How It Work</a>
-              <a href="#">Rental Deal</a>
-              <a href="#">Why Choose Us</a>
-              <a href="#">Contact Us</a>
-            </nav>
-
-            <div class="hidden items-center gap-6 text-[16px] text-white lg:flex">
-              <a href="#">Sign In</a>
-              <button
-                type="button"
-                class="rounded-full bg-accent px-6 py-2 text-[16px] font-medium leading-none hover:opacity-90"
-              >
-                Sign Up
-              </button>
-            </div>
-          </header>
-
-          <!-- Content wrapper with flex layout -->
-          <div class="relative flex-1 flex items-center px-6 lg:px-12">
-            <div class="w-full lg:w-[60%] pr-4">
-              <!-- Hero heading panel -->
-              <div class="bg-[#FBFBF9] p-8 lg:p-10 rounded-xl">
-                <h1 class="text-[48px] font-black leading-[1.1] tracking-[-0.03em] text-ink lg:text-[68px]">
-                  Fast And Easy Way To Rent A Car
-                </h1>
-                <p class="mt-6 text-[15px] leading-[1.65] text-[#4A4F52] lg:text-[18px]">
-                  Sed volutpat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium.
-                  Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
-                </p>
-              </div>
 
               <!-- Booking form -->
               <form class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-7">
@@ -130,24 +128,23 @@
               </form>
             </div>
 
-            <!-- Car image - right side (visible on lg screens) -->
-            <div class="hidden lg:flex lg:w-[40%] items-center justify-end pr-8 h-full absolute right-0 bottom-0">
-              <img
-                src="assets/images/car.jpg"
-                alt="Black jeep car"
-                class="h-[85%] object-contain drop-shadow-sm"
-              />
-            </div>
-          </div>
-
-          <!-- Mobile car image (below form on small screens) -->
-          <div class="lg:hidden px-6 pb-6">
+          <!-- Car image - right side (visible on lg screens) -->
+          <div class="hidden lg:flex lg:w-[40%] items-end justify-end pr-4 h-full absolute right-0 bottom-8">
             <img
               src="assets/images/car.jpg"
               alt="Black jeep car"
-              class="w-full h-auto object-contain rounded-lg"
+              class="h-[80%] object-contain opacity-95"
             />
           </div>
+        </div>
+
+        <!-- Mobile car image (below form on small screens) -->
+        <div class="lg:hidden px-6 pb-6">
+          <img
+            src="assets/images/car.jpg"
+            alt="Black jeep car"
+            class="w-full h-auto object-contain rounded-lg"
+          />
         </div>
       </section>
     </main>
