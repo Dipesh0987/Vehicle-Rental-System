@@ -5,3 +5,25 @@
 body {
   margin: 0;
 }
+
+.hero-watermark {
+    position: absolute;
+    left: -40px;
+    bottom: -160px;
+    z-index: 0;
+    font-size: 520px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: rgba(11, 22, 28, 0.04);
+    line-height: 0.8;
+    user-select: none;
+    pointer-events: none;
+}
+
+@media (max-width: 1024px) {
+    .hero-watermark {
+        font-size: 260px;
+        left: -20px;
+        bottom: -60px;
+    }
+}
