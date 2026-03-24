@@ -2,28 +2,32 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+padding: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .hero-watermark {
-    position: absolute;
-    left: -40px;
-    bottom: -160px;
-    z-index: 0;
-    font-size: 520px;
+position: absolute;
+left: -80px;
+    bottom: -200px;
+    z-index: 1;
+    font-size: 580px;
     font-weight: 800;
     letter-spacing: 0.04em;
-    color: rgba(11, 22, 28, 0.04);
+color: rgba(11, 22, 28, 0.03);
     line-height: 0.8;
     user-select: none;
     pointer-events: none;
 }
 
 @media (max-width: 1024px) {
-    .hero-watermark {
-        font-size: 260px;
-        left: -20px;
-        bottom: -60px;
+.hero-watermark {
+    font-size: 200px;
+        left: -60px;
+        bottom: -100px;
     }
 }
