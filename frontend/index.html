@@ -32,6 +32,43 @@
     <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
   <body class="font-poppins bg-white">
-    <main id="app" class="min-h-screen"></main>
+    <main id="app" class="min-h-screen bg-paper">
+      <section class="relative min-h-screen overflow-hidden">
+        <div class="absolute inset-y-0 right-0 w-[31%] bg-panel"></div>
+
+        <div class="relative z-10 mx-auto w-[92%] max-w-[1300px] pt-6 pb-10 lg:pt-8">
+          <header class="flex items-center justify-between">
+            <div class="text-ink">
+              <p class="text-[40px] font-extrabold leading-none tracking-tight">RENT A CAR</p>
+              <p class="-mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F]">
+                Luxury Car Service
+              </p>
+            </div>
+
+            <nav class="hidden items-center gap-12 text-[28px] font-medium text-[#2F3336] lg:flex">
+              <a class="text-accent" href="#">Home</a>
+              <a href="#">How It Work</a>
+              <a href="#">Rental Deal</a>
+              <a href="#">Why Choose Us</a>
+              <a href="#">Contact Us</a>
+            </nav>
+
+            <div class="hidden items-center gap-10 pr-4 text-[32px] text-white lg:flex">
+              <a href="#">Sign In</a>
+              <button
+                type="button"
+                class="rounded-full bg-accent px-10 py-4 text-[32px] font-medium leading-none"
+              >
+                Sign Up
+              </button>
+            </div>
+          </header>
+
+          <div class="mt-16 lg:mt-20">
+            <div class="h-64 w-full"></div>
+          </div>
+        </div>
+      </section>
+    </main>
   </body>
 </html>
