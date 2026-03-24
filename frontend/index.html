@@ -33,118 +33,111 @@
   </head>
   <body class="font-poppins bg-white">
     <main id="app" class="min-h-screen">
-      <section class="relative min-h-screen flex flex-col overflow-hidden bg-[#F2F3F1]">
+      <section class="relative min-h-screen overflow-hidden bg-[#F2F3F1]">
         <div class="hero-watermark" aria-hidden="true">WAS</div>
-        
-        <!-- Header stays on white background -->
-        <header class="relative z-20 flex items-center justify-between bg-[#F2F3F1] px-6 pb-4 pt-6 lg:px-12 lg:pt-8 lg:pr-[32%]">
-          <div class="text-ink">
-            <p class="text-[24px] font-extrabold leading-none tracking-tight lg:text-[32px]">RENT A CAR</p>
-            <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[9px]">
+
+        <div class="absolute inset-y-0 right-0 w-[31.5%] bg-panel"></div>
+
+        <div class="relative z-20 mx-auto w-[95%] max-w-[1390px] pb-8 pt-6 lg:pt-8">
+          <header class="grid grid-cols-[auto,1fr,auto] items-center gap-6">
+            <div class="text-ink">
+              <p class="text-[24px] font-extrabold leading-none tracking-tight lg:text-[32px]">RENT A CAR</p>
+              <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
               Luxury Car Service
-            </p>
-          </div>
-
-          <nav class="hidden items-center gap-8 text-[16px] font-medium text-[#2F3336] lg:flex">
-            <a class="text-accent" href="#">Home</a>
-            <a href="#">How It Work</a>
-            <a href="#">Rental Deal</a>
-            <a href="#">Why Choose Us</a>
-            <a href="#">Contact Us</a>
-          </nav>
-
-          <div class="hidden items-center gap-6 text-[16px] text-[#2F3336] lg:flex">
-            <a href="#">Sign In</a>
-            <button
-              type="button"
-              class="rounded-full bg-accent px-6 py-2 text-[16px] font-medium text-white leading-none hover:opacity-90"
-            >
-              Sign Up
-            </button>
-          </div>
-        </header>
-
-        <!-- Teal panel background on right (starts below header) -->
-        <div class="absolute bottom-0 right-0 top-[112px] w-[34%] bg-panel lg:top-[96px]"></div>
-
-        <!-- Main content container -->
-        <div class="relative z-10 flex-1 flex items-center px-6 lg:px-12 py-8">
-          <div class="w-full lg:w-[60%] pr-4">
-            <!-- Hero heading panel -->
-            <div class="bg-[#FBFBF9] p-8 lg:p-10 rounded-xl">
-              <h1 class="text-[48px] font-black leading-[1.1] tracking-[-0.03em] text-ink lg:text-[68px]">
-                Fast And Easy Way To Rent A Car
-              </h1>
-              <p class="mt-6 text-[15px] leading-[1.65] text-[#4A4F52] lg:text-[18px]">
-                Sed volutpat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium.
-                Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
               </p>
             </div>
 
-              <!-- Booking form -->
-              <form class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-7">
+            <nav class="hidden items-center justify-start gap-10 pl-6 text-[16px] font-medium text-[#2F3336] lg:flex">
+              <a class="text-accent" href="#">Home</a>
+              <a href="#">How It Work</a>
+              <a href="#">Rental Deal</a>
+              <a href="#">Why Choose Us</a>
+              <a href="#">Contact Us</a>
+            </nav>
+
+            <div class="hidden items-center gap-8 pr-8 text-[16px] text-white lg:flex">
+              <a href="#">Sign In</a>
+              <button
+                type="button"
+                class="rounded-full bg-accent px-8 py-3 text-[16px] font-medium leading-none"
+              >
+                Sign Up
+              </button>
+            </div>
+          </header>
+
+          <div class="relative mt-8 min-h-[780px] lg:mt-10">
+            <div class="w-full lg:w-[58%]">
+              <div class="rounded-md bg-[#F5F6F4] p-8 lg:p-10">
+                <h1 class="max-w-[760px] text-[52px] font-bold leading-[1.12] tracking-[-0.02em] text-ink lg:text-[74px]">
+                  Fast And Easy Way To Rent A Car
+                </h1>
+                <p class="mt-6 max-w-[790px] text-[16px] leading-[1.65] text-[#3E4448] lg:text-[18px]">
+                  Sed volutpat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium.
+                  Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
+                </p>
+              </div>
+
+              <form class="mt-8 grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <label class="block">
-                  <span class="text-[17px] font-semibold text-[#2D3337] lg:text-[19px]">Select Your a Car Type</span>
+                  <span class="text-[20px] font-medium text-[#2D3337] lg:text-[18px]">Select Your a Car Type</span>
                   <input
                     type="text"
                     value="Jeep-Diesel-Model-2021"
-                    class="mt-2 h-[48px] w-full rounded-full border-0 bg-white px-6 text-[15px] text-[#B7BBC0] placeholder-[#B7BBC0] outline-none focus:ring-2 focus:ring-accent lg:h-[56px] lg:text-[16px]"
+                    class="mt-3 h-[52px] w-full rounded-full border-0 bg-white px-7 text-[17px] text-[#B7BBC0] outline-none lg:h-[52px] lg:text-[16px]"
                   />
                 </label>
 
                 <label class="block">
-                  <span class="text-[17px] font-semibold text-[#2D3337] lg:text-[19px]">Where to Pick-Up</span>
+                  <span class="text-[20px] font-medium text-[#2D3337] lg:text-[18px]">Where to Pick-Up</span>
                   <input
                     type="text"
                     value="201 S Clinton St #166, Iowa City"
-                    class="mt-2 h-[48px] w-full rounded-full border-0 bg-white px-6 text-[15px] text-[#B7BBC0] placeholder-[#B7BBC0] outline-none focus:ring-2 focus:ring-accent lg:h-[56px] lg:text-[16px]"
+                    class="mt-3 h-[52px] w-full rounded-full border-0 bg-white px-7 text-[17px] text-[#B7BBC0] outline-none lg:h-[52px] lg:text-[16px]"
                   />
                 </label>
 
                 <label class="block">
-                  <span class="text-[17px] font-semibold text-[#2D3337] lg:text-[19px]">Date of Pick Up/Time</span>
+                  <span class="text-[20px] font-medium text-[#2D3337] lg:text-[18px]">Date of Pick Up/Time</span>
                   <input
                     type="text"
                     value="11-March-2023, 11:00 AM"
-                    class="mt-2 h-[48px] w-full rounded-full border-0 bg-white px-6 text-[15px] text-[#B7BBC0] placeholder-[#B7BBC0] outline-none focus:ring-2 focus:ring-accent lg:h-[56px] lg:text-[16px]"
+                    class="mt-3 h-[52px] w-full rounded-full border-0 bg-white px-7 text-[17px] text-[#B7BBC0] outline-none lg:h-[52px] lg:text-[16px]"
                   />
                 </label>
 
                 <label class="block">
-                  <span class="text-[17px] font-semibold text-[#2D3337] lg:text-[19px]">Date of Drop off/Time</span>
+                  <span class="text-[20px] font-medium text-[#2D3337] lg:text-[18px]">Date of Drop off/Time</span>
                   <input
                     type="text"
                     value="15-March-2023, 12:00 PM"
-                    class="mt-2 h-[48px] w-full rounded-full border-0 bg-white px-6 text-[15px] text-[#B7BBC0] placeholder-[#B7BBC0] outline-none focus:ring-2 focus:ring-accent lg:h-[56px] lg:text-[16px]"
+                    class="mt-3 h-[52px] w-full rounded-full border-0 bg-white px-7 text-[17px] text-[#B7BBC0] outline-none lg:h-[52px] lg:text-[16px]"
                   />
                 </label>
 
                 <button
                   type="button"
-                  class="mt-4 h-[52px] rounded-full bg-accent text-[19px] font-semibold text-white hover:opacity-90 transition-opacity lg:h-[62px] lg:text-[22px]"
+                  class="mt-3 h-[56px] rounded-full bg-accent text-[24px] font-medium text-white lg:col-span-1 lg:h-[56px] lg:text-[18px]"
                 >
                   Search
                 </button>
               </form>
             </div>
 
-          <!-- Car image - right side (visible on lg screens) -->
-          <div class="absolute bottom-6 right-0 hidden h-full items-end justify-end pr-1 lg:flex lg:w-[41%]">
             <img
               src="assets/images/car.jpg"
               alt="Black jeep car"
-              class="car-hero-image h-[82%] object-contain"
+              class="car-hero-image absolute bottom-5 right-[-3%] z-10 hidden w-[62%] max-w-[970px] lg:block"
             />
           </div>
-        </div>
 
-        <!-- Mobile car image (below form on small screens) -->
-        <div class="lg:hidden px-6 pb-6">
-          <img
-            src="assets/images/car.jpg"
-            alt="Black jeep car"
-            class="w-full h-auto object-contain rounded-lg"
-          />
+          <div class="px-2 pt-6 lg:hidden">
+            <img
+              src="assets/images/car.jpg"
+              alt="Black jeep car"
+              class="car-hero-image w-full"
+            />
+          </div>
         </div>
       </section>
     </main>

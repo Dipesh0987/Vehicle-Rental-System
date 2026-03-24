@@ -12,7 +12,7 @@ body {
 
 .hero-watermark {
     position: absolute;
-        left: -80px;
+    left: -80px;
     bottom: -200px;
     z-index: 1;
     font-size: 580px;
@@ -27,12 +27,17 @@ body {
 /* JPG has a light backdrop; multiply blending helps mimic transparency against panel. */
 .car-hero-image {
     mix-blend-mode: multiply;
-    filter: contrast(1.05) saturate(0.98);
+    filter: contrast(1.08) saturate(0.95);
+        clip-path: polygon(4% 59%, 11% 42%, 23% 31%, 45% 27%, 70% 31%, 86% 39%, 95% 53%, 98% 66%, 95% 77%, 87% 84%, 76% 87%, 63% 88%, 47% 90%, 32% 91%, 20% 90%, 9% 83%, 4% 72%);
 }
+
 @media (max-width: 1024px) {
     .hero-watermark {
     font-size: 200px;
         left: -60px;
         bottom: -100px;
     }
+.car-hero-image {
+    clip-path: none;
+}
 }
