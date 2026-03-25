@@ -55,7 +55,7 @@
               <a href="#">Contact Us</a>
             </nav>
 
-            <div class="hidden items-center gap-8 pr-8 text-[16px] text-white lg:flex">
+            <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-white lg:flex fade-up delay-1">
               <a href="login.html">Sign In</a>
               <button
                 type="button"
@@ -64,21 +64,64 @@
                 Sign Up
               </button>
             </div>
+
+            <div data-auth-user class="nav-profile-wrap hidden items-center pr-8 text-white lg:flex">
+              <button type="button" data-profile-trigger class="profile-chip">
+                <span data-profile-avatar class="profile-avatar">GU</span>
+                <span data-profile-name class="text-[15px] font-semibold">Guest User</span>
+              </button>
+
+              <div data-profile-panel class="profile-panel">
+                <p class="text-[16px] font-semibold">Edit Profile</p>
+                <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
+
+                <div class="mt-3 space-y-3">
+                  <label class="block text-[12px] text-white/85" for="profileName">Username</label>
+                  <input
+                    id="profileName"
+                    type="text"
+                    class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[14px] text-white outline-none"
+                    placeholder="Enter username"
+                  />
+
+                  <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
+                  <input
+                    id="profilePhoto"
+                    type="file"
+                    accept="image/*"
+                    class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white"
+                  />
+
+                  <div id="profileNote" class="profile-note rounded-lg px-3 py-2 text-[12px] text-white/90">
+                    Changes are stored locally (dummy UI flow).
+                  </div>
+
+                  <div class="flex gap-2">
+                    <button id="saveProfile" type="button" class="cta-btn rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white">
+                      Save
+                    </button>
+                    <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white">
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </header>
 
           <div class="relative mt-4 h-[calc(100vh-112px)] lg:mt-5">
-            <div class="relative z-20 w-full lg:w-[60%]">
-              <div class="rounded-md bg-[#F5F6F4] p-7 lg:p-8">
+            <div class="relative z-20 w-full lg:w-[60%] float-in">
+              <div class="rounded-md bg-[#F5F6F4] p-7 lg:p-8 fade-up">
                 <h1 class="max-w-[760px] text-[48px] font-bold leading-[1.1] tracking-[-0.02em] text-ink lg:text-[66px]">
                   Fast And Easy Way To Rent A Vechicle
                 </h1>
-                <p class="mt-4 max-w-[790px] text-[15px] leading-[1.55] text-[#3E4448] lg:text-[16px]">
+                <p class="mt-4 max-w-[790px] text-[15px] leading-[1.55] text-[#3E4448] lg:text-[16px] fade-up delay-1">
                   Sed volutpat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium.
                   Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
                 </p>
               </div>
 
-              <form class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 lg:grid-cols-2 lg:gap-x-2">
+              <form class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 lg:grid-cols-2 lg:gap-x-2 fade-up delay-2">
                 <label class="block">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Select Your a Vechicle Type</span>
                   <input
@@ -127,7 +170,7 @@
             <img
               src="assets/images/car-transparent.png"
               alt="Black jeep vechicle"
-              class="car-hero-image absolute bottom-0 right-[-3%] z-0 hidden w-[50%] max-w-[780px] lg:block"
+              class="car-hero-image absolute bottom-0 right-[-3%] z-0 hidden w-[50%] max-w-[780px] lg:block float-in"
             />
           </div>
 
