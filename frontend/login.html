@@ -31,58 +31,71 @@
     </script>
     <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
-  <body class="min-h-screen bg-[#F2F3F1] font-poppins text-ink">
-    <main class="mx-auto flex min-h-screen w-[95%] max-w-[1240px] items-center justify-center py-8">
-      <section class="w-full max-w-[500px] rounded-3xl border border-[#dde2de] bg-white p-6 shadow-[0_22px_42px_rgba(12,35,38,0.12)] sm:p-8">
-        <a href="index.html" class="text-[13px] font-semibold text-[#355154]">← Back to Home</a>
-        <h1 class="mt-4 text-[31px] font-bold leading-tight">Sign in to your account</h1>
-        <p class="mt-2 text-[14px] text-[#526366]">
-          Continue with email/password or Google. This page is UI-only and uses dummy local state.
-        </p>
+  <body class="min-h-screen bg-paper font-poppins auth-bg text-ink">
+    <main class="relative mx-auto flex min-h-screen w-[95%] max-w-[1250px] items-center justify-center py-8">
+      <section class="glass-card float-in w-full max-w-[480px] rounded-3xl p-6 sm:p-8">
+        <a href="index.html" class="fade-up text-[13px] font-semibold text-[#3f5557] hover:text-panel">← Back to Home</a>
+
+        <div class="mt-4 fade-up delay-1">
+          <p class="text-[12px] uppercase tracking-[0.2em] text-panel">Secure Access</p>
+          <h1 class="mt-2 text-[30px] font-bold leading-tight text-ink">Sign in to your account</h1>
+          <p class="mt-2 text-[14px] text-[#415255]">
+            Use your email and password or continue with Google. This is a UI-only dummy login flow to home dashboard.
+          </p>
+        </div>
 
         <div id="loginBanner" class="mt-4 hidden rounded-xl px-3 py-2 text-[13px]"></div>
 
-        <form id="loginForm" class="mt-4 space-y-4" novalidate>
+        <form id="loginForm" class="mt-5 space-y-4 fade-up delay-2" novalidate>
           <label class="block" for="email">
-            <span class="mb-2 block text-[14px] font-semibold text-[#2d4244]">Email</span>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autocomplete="email"
-              class="w-full rounded-xl border border-[#d4ddda] px-4 py-3 text-[14px] outline-none"
-              placeholder="you@example.com"
-            />
+            <span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Email</span>
+            <div class="input-shell rounded-xl px-3 py-2">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autocomplete="email"
+                class="w-full border-0 bg-transparent text-[14px] text-ink outline-none"
+                placeholder="you@example.com"
+              />
+            </div>
           </label>
 
           <label class="block" for="password">
-            <span class="mb-2 block text-[14px] font-semibold text-[#2d4244]">Password</span>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minlength="6"
-              autocomplete="current-password"
-              class="w-full rounded-xl border border-[#d4ddda] px-4 py-3 text-[14px] outline-none"
-              placeholder="Minimum 6 characters"
-            />
+            <span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Password</span>
+            <div class="input-shell rounded-xl px-3 py-2">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                minlength="6"
+                autocomplete="current-password"
+                class="w-full border-0 bg-transparent text-[14px] text-ink outline-none"
+                placeholder="Minimum 6 characters"
+              />
+            </div>
           </label>
 
           <div class="flex items-center justify-between text-[13px]">
-            <button id="forgotPassword" type="button" class="font-semibold text-panel">Forgot password?</button>
-            <span class="text-[#677577]">Required fields*</span>
+            <button id="forgotPassword" class="font-semibold text-panel hover:underline" type="button">
+              Forgot password?
+            </button>
+            <span class="text-[#576668]">Required fields*</span>
           </div>
 
-          <button type="submit" class="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white">
-            Login to Dashboard
+          <button
+            type="submit"
+            class="cta-btn w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white"
+          >
+            Login to Home Dashboard
           </button>
 
           <button
             id="googleSignIn"
             type="button"
-            class="w-full rounded-full border border-[#d4ddda] bg-white px-5 py-3 text-[14px] font-semibold text-[#243d40]"
+            class="w-full rounded-full border border-[#d8dfdb] bg-white px-5 py-3 text-[14px] font-semibold text-[#23393b] transition hover:bg-[#f7f8f7]"
           >
             Continue with Google
           </button>
