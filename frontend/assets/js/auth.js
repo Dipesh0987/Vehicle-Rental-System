@@ -107,7 +107,10 @@
     var guest = document.querySelector("[data-auth-guest]");
     var user = document.querySelector("[data-auth-user]");
 
+    document.body.classList.remove("auth-logged-in", "auth-guest");
+
     if (session) {
+      document.body.classList.add("auth-logged-in");
       if (guest) {
         guest.classList.add("hidden");
       }
@@ -115,6 +118,7 @@
         user.classList.remove("hidden");
       }
     } else {
+      document.body.classList.add("auth-guest");
       if (guest) {
         guest.classList.remove("hidden");
       }

@@ -205,6 +205,17 @@ body {
     background: rgba(255, 255, 255, 0.08);
 }
 
+body.auth-logged-in [data-auth-guest] {
+    display: none !important;
+}
+
+body.auth-logged-in [data-auth-user] {
+    display: inline-flex !important;
+}
+
+body.auth-guest [data-auth-user] {
+    display: none !important;
+}
 .error-banner {
     background: rgba(190, 59, 59, 0.12);
     border: 1px solid rgba(190, 59, 59, 0.4);
@@ -270,7 +281,7 @@ body {
 }
 @media (max-width: 1024px) {
     .hero-watermark {
-            font-size: 200px;
+        font-size: 200px;
             left: -60px;
             bottom: -100px;
     
