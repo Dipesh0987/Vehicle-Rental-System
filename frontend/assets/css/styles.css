@@ -5,13 +5,13 @@
 html,
 body {
   margin: 0;
-    padding: 0;
+padding: 0;
     width: 100%;
     height: 100%;
 }
 
 .hero-watermark {
-    position: absolute;
+position: absolute;
     left: -80px;
     bottom: -200px;
     z-index: 1;
@@ -24,18 +24,18 @@ body {
     pointer-events: none;
 }
 
-/* Keep the replaced car image fully visible without artificial clipping. */
+/* The source image has checker squares baked in; blend mode helps hide them on page backgrounds. */
 .car-hero-image {
-    mix-blend-mode: normal;
-        filter: none;
-        clip-path: none;
-        opacity: 1;
+mix-blend-mode: multiply;
+    filter: contrast(1.08) saturate(0.98);
+    clip-path: none;
+    opacity: 1;
 }
 
 @media (max-width: 1024px) {
-    .hero-watermark {
+.hero-watermark {
     font-size: 200px;
-        left: -60px;
+    left: -60px;
         bottom: -100px;
-    
+
 }
