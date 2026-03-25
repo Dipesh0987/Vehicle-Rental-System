@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | Rent A Vechicle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              poppins: ["Poppins", "sans-serif"],
+            },
+            colors: {
+              accent: "#E58C4E",
+              panel: "#2C766E",
+              ink: "#0E2528",
+              muted: "#6C7074",
+              paper: "#F2F3F1",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body class="min-h-screen bg-[#F2F3F1] font-poppins text-ink">
+    <main class="mx-auto flex min-h-screen w-[95%] max-w-[1240px] items-center justify-center py-8">
+      <section class="w-full max-w-[500px] rounded-3xl border border-[#dde2de] bg-white p-6 shadow-[0_22px_42px_rgba(12,35,38,0.12)] sm:p-8">
+        <a href="index.html" class="text-[13px] font-semibold text-[#355154]">← Back to Home</a>
+        <h1 class="mt-4 text-[31px] font-bold leading-tight">Sign in to your account</h1>
+        <p class="mt-2 text-[14px] text-[#526366]">
+          Continue with email/password or Google. This page is UI-only and uses dummy local state.
+        </p>
+
+        <div id="loginBanner" class="mt-4 hidden rounded-xl px-3 py-2 text-[13px]"></div>
+
+        <form id="loginForm" class="mt-4 space-y-4" novalidate>
+          <label class="block" for="email">
+            <span class="mb-2 block text-[14px] font-semibold text-[#2d4244]">Email</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autocomplete="email"
+              class="w-full rounded-xl border border-[#d4ddda] px-4 py-3 text-[14px] outline-none"
+              placeholder="you@example.com"
+            />
+          </label>
+
+          <label class="block" for="password">
+            <span class="mb-2 block text-[14px] font-semibold text-[#2d4244]">Password</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minlength="6"
+              autocomplete="current-password"
+              class="w-full rounded-xl border border-[#d4ddda] px-4 py-3 text-[14px] outline-none"
+              placeholder="Minimum 6 characters"
+            />
+          </label>
+
+          <div class="flex items-center justify-between text-[13px]">
+            <button id="forgotPassword" type="button" class="font-semibold text-panel">Forgot password?</button>
+            <span class="text-[#677577]">Required fields*</span>
+          </div>
+
+          <button type="submit" class="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white">
+            Login to Dashboard
+          </button>
+
+          <button
+            id="googleSignIn"
+            type="button"
+            class="w-full rounded-full border border-[#d4ddda] bg-white px-5 py-3 text-[14px] font-semibold text-[#243d40]"
+          >
+            Continue with Google
+          </button>
+        </form>
+      </section>
+    </main>
+
+    <script src="assets/js/auth.js"></script>
+    <script>
+      window.VehicleAuthUI.init("login");
+    </script>
+  </body>
+</html>
