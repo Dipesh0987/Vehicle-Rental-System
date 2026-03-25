@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rent A Vechicle</title>
+    <title>Rent A Vehicle</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,53 +25,120 @@
               muted: '#6C7074',
               paper: '#F2F3F1',
             },
+            keyframes: {
+              fadeUp: {
+                to: {
+                  opacity: '1',
+                  transform: 'translateY(0)',
+                },
+              },
+              floatIn: {
+                from: {
+                  opacity: '0',
+                  transform: 'translateY(16px) scale(0.98)',
+                },
+                to: {
+                  opacity: '1',
+                  transform: 'translateY(0) scale(1)',
+                },
+              },
+              panelReveal: {
+                from: {
+                  opacity: '0.5',
+                  transform: 'translateX(30px)',
+                },
+                to: {
+                  opacity: '1',
+                  transform: 'translateX(0)',
+                },
+              },
+              logoIn: {
+                from: {
+                  opacity: '0',
+                  transform: 'translateY(10px)',
+                  filter: 'blur(4px)',
+                },
+                to: {
+                  opacity: '1',
+                  transform: 'translateY(0)',
+                  filter: 'blur(0)',
+                },
+              },
+              logoGlow: {
+                '0%, 100%': {
+                  opacity: '0.72',
+                },
+                '50%': {
+                  opacity: '1',
+                },
+              },
+              carDrift: {
+                '0%, 100%': {
+                  transform: 'translateY(0)',
+                },
+                '50%': {
+                  transform: 'translateY(-6px)',
+                },
+              },
+            },
+            animation: {
+              fadeUp: 'fadeUp 620ms ease forwards',
+              floatIn: 'floatIn 620ms cubic-bezier(0.19, 1, 0.22, 1) forwards',
+              panelReveal: 'panelReveal 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+              logoIn: 'logoIn 760ms cubic-bezier(0.19, 1, 0.22, 1) forwards',
+              logoGlow: 'logoGlow 3.6s ease-in-out infinite',
+              carDrift: 'carDrift 6s ease-in-out 800ms infinite',
+              carEntry: 'floatIn 620ms cubic-bezier(0.19, 1, 0.22, 1) forwards, carDrift 6s ease-in-out 800ms infinite',
+            },
           },
         },
       };
     </script>
-    <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
   <body class="h-screen overflow-hidden bg-white font-poppins">
     <main id="app" class="h-screen">
       <section class="relative h-screen overflow-hidden bg-[#F2F3F1]">
-        <div class="hero-watermark" aria-hidden="true">WAS</div>
+        <div class="pointer-events-none absolute bottom-[-200px] left-[-80px] z-[1] select-none text-[580px] font-extrabold leading-[0.8] tracking-[0.04em] text-[rgba(11,22,28,0.03)]" aria-hidden="true">WAS</div>
 
-        <div class="absolute inset-y-0 right-0 w-[31.5%] bg-panel"></div>
+        <div class="absolute inset-y-0 right-0 w-[31.5%] bg-panel opacity-75 animate-panelReveal"></div>
 
         <div class="relative z-20 mx-auto h-full w-[95%] max-w-[1390px] pb-4 pt-4 lg:pt-5">
-          <header class="grid grid-cols-[auto,1fr,auto] items-center gap-6">
-            <div class="text-ink">
-              <p class="text-[24px] font-extrabold leading-none tracking-tight lg:text-[32px]">RENT A VECHICLE</p>
-              <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
-              Luxury Vechicle Service
+          <header class="relative z-[90] grid grid-cols-[auto,1fr,auto] items-center gap-6 opacity-0 animate-fadeUp">
+            <div class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
+              <p class="bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent opacity-0 drop-shadow-[0_6px_18px_rgba(11,37,40,0.16)] animate-logoIn lg:text-[34px]">
+                RENT A VEHICLE
               </p>
+              <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
+                Luxury Vehicle Service
+              </p>
+              <span class="mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-logoGlow"></span>
             </div>
 
             <nav class="hidden items-center justify-start gap-10 pl-6 text-[16px] font-medium text-[#2F3336] lg:flex">
               <a class="text-accent" href="#">Home</a>
-              <a href="#">How It Work</a>
-              <a href="#">Rental Deal</a>
-              <a href="#">Why Choose Us</a>
-              <a href="#">Contact Us</a>
+              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">How It Works</a>
+              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Rental Deal</a>
+              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Why Choose Us</a>
+              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Contact Us</a>
             </nav>
 
-            <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-white lg:flex fade-up delay-1">
-              <a href="login.html">Sign In</a>
+            <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-white opacity-0 translate-y-5 animate-fadeUp lg:flex [animation-delay:90ms]">
+              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="login.html">Sign In</a>
               <button
                 type="button"
-                class="rounded-full bg-accent px-8 py-3 text-[16px] font-medium leading-none"
+                class="rounded-full bg-accent px-8 py-3 text-[16px] font-medium leading-none text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]"
               >
                 Sign Up
               </button>
             </div>
 
-            <div data-auth-user class="nav-profile-wrap hidden items-center pr-8 text-white lg:flex">
-              <button type="button" data-profile-trigger class="profile-chip">
-                <span data-profile-avatar class="profile-avatar">GU</span>
+            <div data-auth-user class="relative hidden items-center pr-8 text-white lg:flex">
+              <button type="button" data-profile-trigger class="inline-flex cursor-pointer items-center gap-[0.65rem] transition duration-200 hover:-translate-y-[1px] hover:brightness-105">
+                <span data-profile-avatar class="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-white/55 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.95rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.22)]">GU</span>
                 <span data-profile-name class="text-[15px] font-semibold">Guest User</span>
               </button>
 
-              <div data-profile-panel class="profile-panel">
+              <div data-profile-panel class="absolute right-0 top-[calc(100%+14px)] z-[130] w-[320px] max-h-[72vh] origin-top-right overflow-y-auto rounded-[18px] border border-white/25 bg-[linear-gradient(160deg,rgba(21,52,56,0.96),rgba(17,41,44,0.96))] p-4 text-white shadow-[0_20px_45px_rgba(2,14,16,0.36)] opacity-0 -translate-y-2 scale-95 pointer-events-none transition duration-200 max-[1024px]:fixed max-[1024px]:left-1/2 max-[1024px]:right-auto max-[1024px]:top-[90px] max-[1024px]:w-[min(92vw,360px)] max-[1024px]:-translate-x-1/2">
                 <p class="text-[16px] font-semibold">Edit Profile</p>
                 <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
 
@@ -92,15 +159,15 @@
                     class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white"
                   />
 
-                  <div id="profileNote" class="profile-note rounded-lg px-3 py-2 text-[12px] text-white/90">
+                  <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90 transition duration-200 hover:-translate-y-[1px]">
                     Changes are stored locally (dummy UI flow).
                   </div>
 
                   <div class="flex gap-2">
-                    <button id="saveProfile" type="button" class="cta-btn rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white">
+                    <button id="saveProfile" type="button" class="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
                       Save
                     </button>
-                    <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white">
+                    <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">
                       Logout
                     </button>
                   </div>
@@ -110,20 +177,20 @@
           </header>
 
           <div class="relative mt-4 h-[calc(100vh-112px)] lg:mt-5">
-            <div class="relative z-20 w-full lg:w-[60%] float-in">
-              <div class="rounded-md bg-[#F5F6F4] p-7 lg:p-8 fade-up">
+            <div class="relative z-20 w-full opacity-0 animate-floatIn lg:w-[60%]">
+              <div class="rounded-md bg-[#F5F6F4] p-7 opacity-0 translate-y-5 transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_18px_34px_rgba(12,35,38,0.1)] animate-fadeUp lg:p-8">
                 <h1 class="max-w-[760px] text-[48px] font-bold leading-[1.1] tracking-[-0.02em] text-ink lg:text-[66px]">
-                  Fast And Easy Way To Rent A Vechicle
+                  Fast and Easy Way to Rent a Vehicle
                 </h1>
-                <p class="mt-4 max-w-[790px] text-[15px] leading-[1.55] text-[#3E4448] lg:text-[16px] fade-up delay-1">
-                  Sed volutpat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium.
-                  Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere
+                <p class="mt-4 max-w-[790px] text-[15px] leading-[1.55] text-[#3E4448] opacity-0 translate-y-5 animate-fadeUp lg:text-[16px] [animation-delay:90ms]">
+                  Choose from a trusted fleet, compare prices instantly, and book in minutes.
+                  Get transparent rates, flexible pickup options, and dependable support for every trip.
                 </p>
               </div>
 
-              <form class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 lg:grid-cols-2 lg:gap-x-2 fade-up delay-2">
-                <label class="block">
-                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Select Your a Vechicle Type</span>
+              <form class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 opacity-0 translate-y-5 animate-fadeUp lg:grid-cols-2 lg:gap-x-2 [animation-delay:180ms]">
+                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Select Your Vehicle Type</span>
                   <input
                     type="text"
                     value="Jeep-Diesel-Model-2021"
@@ -131,7 +198,7 @@
                   />
                 </label>
 
-                <label class="block">
+                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Where to Pick-Up</span>
                   <input
                     type="text"
@@ -140,7 +207,7 @@
                   />
                 </label>
 
-                <label class="block">
+                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Pick Up/Time</span>
                   <input
                     type="text"
@@ -149,8 +216,8 @@
                   />
                 </label>
 
-                <label class="block">
-                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Drop off/Time</span>
+                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Drop-off/Time</span>
                   <input
                     type="text"
                     value="15-March-2023, 12:00 PM"
@@ -160,7 +227,7 @@
 
                 <button
                   type="button"
-                  class="mt-2 h-[44px] w-[80%] rounded-full bg-accent text-[18px] font-medium text-white lg:col-span-1 lg:h-[44px] lg:w-[78%] lg:text-[15px]"
+                  class="mt-2 h-[44px] w-[80%] rounded-full bg-accent text-[18px] font-medium text-white transition duration-200 hover:-translate-y-[2px] hover:brightness-105 hover:shadow-[0_12px_24px_rgba(229,140,78,0.34)] lg:col-span-1 lg:h-[44px] lg:w-[78%] lg:text-[15px]"
                 >
                   Search
                 </button>
@@ -169,22 +236,22 @@
 
             <img
               src="assets/images/car-transparent.png"
-              alt="Black jeep vechicle"
-              class="car-hero-image absolute bottom-0 right-[-3%] z-0 hidden w-[50%] max-w-[780px] lg:block float-in"
+              alt="Black jeep vehicle"
+              class="absolute bottom-0 right-[-3%] z-0 hidden w-[50%] max-w-[780px] opacity-0 [filter:contrast(1.08)_saturate(0.98)_drop-shadow(0_20px_40px_rgba(9,24,26,0.24))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
             />
           </div>
 
           <div class="px-2 pt-6 lg:hidden">
             <img
               src="assets/images/car-transparent.png"
-              alt="Black jeep vechicle"
-              class="car-hero-image w-full"
+              alt="Black jeep vehicle"
+              class="w-full mix-blend-multiply [filter:contrast(1.08)_saturate(0.98)]"
             />
           </div>
         </div>
       </section>
     </main>
-    <script src="assets/js/auth.js"></script>
+    <script src="../backend/js/auth.js"></script>
     <script>
       window.VehicleAuthUI.init("home");
     </script>

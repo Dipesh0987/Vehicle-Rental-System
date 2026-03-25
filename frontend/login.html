@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login | Rent A Vechicle</title>
+    <title>Login | Rent A Vehicle</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,44 +25,128 @@
               muted: "#6C7074",
               paper: "#F2F3F1",
             },
+            keyframes: {
+              drift: {
+                "0%, 100%": { transform: "translate3d(0, 0, 0)" },
+                "50%": { transform: "translate3d(0, -8px, 0)" },
+              },
+              loginStageIn: {
+                to: {
+                  opacity: "1",
+                  transform: "translateY(0) scale(1)",
+                },
+              },
+              loginSectionIn: {
+                from: {
+                  opacity: "0",
+                  transform: "translateY(14px)",
+                },
+                to: {
+                  opacity: "1",
+                  transform: "translateY(0)",
+                },
+              },
+              vehicleReveal: {
+                from: {
+                  opacity: "0",
+                  transform: "translateY(16px) scale(0.985)",
+                },
+                to: {
+                  opacity: "1",
+                  transform: "translateY(0) scale(1)",
+                },
+              },
+              vehicleFloat: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-4px)" },
+              },
+              accentPulse: {
+                "0%, 100%": { opacity: "0.5", transform: "scaleX(1)" },
+                "50%": { opacity: "1", transform: "scaleX(1.08)" },
+              },
+            },
+            animation: {
+              drift: "drift 8s ease-in-out infinite",
+              loginStageIn: "loginStageIn 720ms cubic-bezier(0.19, 1, 0.22, 1) forwards",
+              loginSectionIn: "loginSectionIn 640ms ease forwards",
+              vehicleReveal: "vehicleReveal 760ms cubic-bezier(0.18, 0.88, 0.2, 1) 260ms both",
+              vehicleFloat: "vehicleFloat 6.2s ease-in-out 900ms infinite",
+              accentPulse: "accentPulse 3s ease-in-out infinite",
+            },
           },
         },
       };
     </script>
-    <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
-  <body class="min-h-screen bg-paper font-poppins auth-bg text-ink">
-    <main class="relative mx-auto flex min-h-screen w-[95%] max-w-[1250px] items-center justify-center py-8">
-      <div class="login-hero-orb one" aria-hidden="true"></div>
-      <div class="login-hero-orb two" aria-hidden="true"></div>
+  <body
+    class="min-h-screen overflow-hidden bg-paper font-poppins text-ink"
+    style="background: radial-gradient(circle at 88% 8%, rgba(19, 87, 81, 0.34), transparent 42%), radial-gradient(circle at 10% 88%, rgba(229, 140, 78, 0.24), transparent 36%), linear-gradient(148deg, #f8faf8 0%, #eef3ef 50%, #e7edeb 100%);"
+  >
+    <main class="relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8">
+      <div class="pointer-events-none absolute right-[-100px] top-[-95px] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle_at_32%_28%,rgba(229,140,78,0.78),rgba(229,140,78,0.12))] opacity-75 blur-[12px] animate-drift" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute bottom-[-95px] left-[-85px] h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(44,118,110,0.62),rgba(44,118,110,0.16))] opacity-75 blur-[12px] [animation-delay:600ms] animate-drift" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute right-[-36px] top-[-55px] h-[210px] w-[210px] rounded-full bg-[rgba(44,118,110,0.14)] blur-[5px]" aria-hidden="true"></div>
 
-      <section class="glass-card float-in relative w-full max-w-[920px] overflow-hidden rounded-3xl p-6 sm:p-8">
-        <div class="grid gap-7 lg:grid-cols-[1fr,1.05fr] lg:items-center">
-          <aside class="space-y-4 fade-up">
-            <a href="index.html" class="text-[13px] font-semibold text-[#3f5557] hover:text-panel">← Back to Home</a>
-            <p class="inline-block rounded-full bg-[#e8f2ef] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-panel">
+      <section class="relative w-full max-w-[1040px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-6 opacity-0 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] animate-loginStageIn sm:p-8">
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-[linear-gradient(90deg,rgba(229,140,78,0.2),rgba(44,118,110,0.75),rgba(229,140,78,0.2))]"></div>
+        <div class="grid gap-8 lg:grid-cols-[1.06fr,0.94fr] lg:items-center">
+          <aside class="space-y-4 opacity-0 animate-loginSectionIn [animation-delay:120ms]">
+            <a href="index.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#3f5557] transition hover:text-panel">← Back to Home</a>
+            <p class="inline-block rounded-full border border-[rgba(44,118,110,0.2)] bg-[#e8f2ef] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-panel">
               Secure Access
             </p>
-            <h1 class="text-[34px] font-bold leading-tight text-ink sm:text-[40px]">
-              Welcome back to your ride dashboard
+            <div class="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2b6a64]">
+              <span class="h-[1px] w-10 origin-left bg-gradient-to-r from-panel to-transparent animate-accentPulse"></span>
+              Executive Member Portal
+            </div>
+            <h1 class="max-w-[520px] text-[34px] font-bold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[44px]">
+              Welcome Back to Your Rental Command Center
             </h1>
-            <p class="text-[14px] leading-relaxed text-[#415255]">
-              Sign in quickly and continue managing bookings, profile settings, and upcoming rentals.
+            <p class="max-w-[560px] text-[14px] leading-relaxed text-[#405457] sm:text-[15px]">
+              Access bookings, manage profile details, and control upcoming trips with enterprise-grade account security.
             </p>
 
-            <div class="grid gap-2 sm:grid-cols-2 fade-up delay-1">
-              <div class="login-badge rounded-2xl px-4 py-3 text-[12px] text-[#2b4346]">Fast Email Access</div>
-              <div class="login-badge rounded-2xl px-4 py-3 text-[12px] text-[#2b4346]">Google Sign In</div>
+            <div class="grid grid-cols-3 gap-2.5 opacity-0 animate-loginSectionIn [animation-delay:180ms] sm:gap-3">
+              <div class="rounded-2xl border border-[rgba(23,57,60,0.12)] bg-white/75 px-3 py-2">
+                <p class="text-[18px] font-bold text-[#173d40]">24/7</p>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Support</p>
+              </div>
+              <div class="rounded-2xl border border-[rgba(23,57,60,0.12)] bg-white/75 px-3 py-2">
+                <p class="text-[18px] font-bold text-[#173d40]">99.9%</p>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Uptime</p>
+              </div>
+              <div class="rounded-2xl border border-[rgba(23,57,60,0.12)] bg-white/75 px-3 py-2">
+                <p class="text-[18px] font-bold text-[#173d40]">AES</p>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Encrypted</p>
+              </div>
             </div>
+
+            <figure class="mt-2 overflow-hidden rounded-[22px] border border-[rgba(23,57,60,0.16)] bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(234,242,239,0.78))] shadow-[0_18px_34px_rgba(12,35,38,0.16)] animate-vehicleReveal">
+              <div class="border-b border-[rgba(23,57,60,0.12)] bg-[radial-gradient(circle_at_80%_26%,rgba(255,255,255,0.94),rgba(255,255,255,0)_48%),linear-gradient(145deg,#eef4f0_0%,#dce8e4_100%)]">
+                <img
+                  src="assets/images/car-transparent.png"
+                  alt="Premium rental car"
+                  class="block h-[188px] w-full object-contain object-[center_70%] px-2 pb-1 pt-1 [filter:contrast(1.08)_saturate(1.03)_drop-shadow(0_16px_24px_rgba(8,25,27,0.28))] animate-vehicleFloat"
+                />
+              </div>
+              <figcaption class="px-4 pb-4 pt-3 text-[13px] text-[#1e3b3e]">
+                <span class="inline-block rounded-full border border-[rgba(44,118,110,0.26)] bg-[rgba(44,118,110,0.12)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#255753]">Premium Fleet</span>
+                <p class="mt-1 text-[15px] font-semibold leading-[1.35]">Drive in comfort with verified vehicles.</p>
+              </figcaption>
+            </figure>
           </aside>
 
-          <div class="rounded-2xl bg-white/80 p-4 shadow-[0_15px_30px_rgba(12,35,38,0.12)] sm:p-5 fade-up delay-1">
+          <div class="rounded-[24px] border border-white/70 bg-white/90 p-4 opacity-0 shadow-[0_20px_42px_rgba(10,31,34,0.14)] animate-loginSectionIn [animation-delay:220ms] sm:p-6">
+            <div class="mb-3 rounded-2xl bg-[linear-gradient(110deg,rgba(15,70,67,0.08),rgba(229,140,78,0.08))] px-4 py-3">
+              <p class="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2f6a66]">Account Sign In</p>
+              <p class="mt-1 text-[13px] text-[#345154]">Use your registered credentials to continue.</p>
+            </div>
             <div id="loginBanner" class="hidden rounded-xl px-3 py-2 text-[13px]"></div>
 
-            <form id="loginForm" class="mt-1 space-y-4 fade-up delay-2" novalidate>
+            <form id="loginForm" class="mt-1 space-y-4" novalidate>
           <label class="block" for="email">
             <span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Email</span>
-            <div class="input-shell rounded-xl px-3 py-2">
+            <div class="rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2 transition focus-within:border-[rgba(44,118,110,0.58)] focus-within:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]">
               <input
                 id="email"
                 name="email"
@@ -77,7 +161,7 @@
 
           <label class="block" for="password">
             <span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Password</span>
-            <div class="input-shell rounded-xl px-3 py-2">
+            <div class="relative rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2 transition focus-within:border-[rgba(44,118,110,0.58)] focus-within:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]">
               <input
                 id="password"
                 name="password"
@@ -85,30 +169,70 @@
                 required
                 minlength="6"
                 autocomplete="current-password"
-                class="w-full border-0 bg-transparent text-[14px] text-ink outline-none"
+                class="w-full border-0 bg-transparent pr-10 text-[14px] text-ink outline-none"
                 placeholder="Minimum 6 characters"
               />
+              <button
+                id="passwordToggle"
+                type="button"
+                aria-label="Show password"
+                class="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-[#4a6062] transition hover:bg-[#eef3f1]"
+              >
+                <svg id="eyeOpenIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4">
+                  <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg id="eyeOffIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="hidden h-4 w-4">
+                  <path d="M2 12s3.8-6 10-6c2.2 0 4 .7 5.5 1.6"></path>
+                  <path d="M22 12s-3.8 6-10 6c-2.2 0-4-.7-5.5-1.6"></path>
+                  <path d="M3 3l18 18"></path>
+                </svg>
+              </button>
             </div>
           </label>
 
           <div class="flex items-center justify-between text-[13px]">
-            <button id="forgotPassword" class="font-semibold text-panel hover:underline" type="button">
+            <label for="rememberMe" class="inline-flex cursor-pointer items-center gap-2 font-medium text-[#3b5356]">
+              <input id="rememberMe" type="checkbox" class="h-4 w-4 rounded border border-[#9ab0ac] text-panel focus:ring-panel/30" checked />
+              Remember me
+            </label>
+            <button id="forgotPassword" class="font-semibold text-panel hover:underline" type="button" aria-expanded="false" aria-controls="forgotPanel">
               Forgot password?
             </button>
-            <span class="text-[#576668]">Required fields*</span>
+          </div>
+
+          <div id="forgotPanel" class="mt-[-0.25rem] max-h-0 -translate-y-2 overflow-hidden rounded-xl border border-[rgba(44,118,110,0.25)] bg-[rgba(228,240,236,0.65)] p-3 text-[13px] opacity-0 pointer-events-none transition-all duration-300 ease-out" aria-hidden="true">
+            <p class="text-[#234043]">Enter your email and we will send a reset link.</p>
+            <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                id="resetEmail"
+                type="email"
+                autocomplete="email"
+                class="w-full rounded-lg border border-[rgba(23,57,60,0.16)] bg-white px-3 py-2 text-[13px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.12)]"
+                placeholder="you@example.com"
+              />
+              <div class="flex gap-2">
+                <button id="sendResetLink" type="button" class="rounded-lg bg-panel px-3 py-2 font-semibold text-white">
+                  Send Link
+                </button>
+                <button id="cancelReset" type="button" class="rounded-lg border border-[#c8d3cf] px-3 py-2 font-semibold text-[#2a4446]">
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
 
               <button
                 type="submit"
-                class="cta-btn w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white"
+                class="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]"
               >
-                Login to Home Dashboard
+                Sign In to Dashboard
               </button>
 
               <button
                 id="googleSignIn"
                 type="button"
-                class="w-full rounded-full border border-[#d8dfdb] bg-white px-5 py-3 text-[14px] font-semibold text-[#23393b] transition hover:bg-[#f7f8f7]"
+                class="w-full rounded-full border border-[#cfd9d5] bg-white px-5 py-3 text-[14px] font-semibold text-[#23393b] transition hover:-translate-y-[1px] hover:bg-[#f7f8f7] hover:shadow-[0_10px_20px_rgba(12,35,38,0.08)]"
               >
                 Continue with Google
               </button>
@@ -118,7 +242,7 @@
       </section>
     </main>
 
-    <script src="assets/js/auth.js"></script>
+    <script src="../backend/js/auth.js"></script>
     <script>
       window.VehicleAuthUI.init("login");
     </script>
