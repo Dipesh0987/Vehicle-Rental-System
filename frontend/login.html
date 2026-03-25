@@ -33,20 +33,33 @@
   </head>
   <body class="min-h-screen bg-paper font-poppins auth-bg text-ink">
     <main class="relative mx-auto flex min-h-screen w-[95%] max-w-[1250px] items-center justify-center py-8">
-      <section class="glass-card float-in w-full max-w-[480px] rounded-3xl p-6 sm:p-8">
-        <a href="index.html" class="fade-up text-[13px] font-semibold text-[#3f5557] hover:text-panel">← Back to Home</a>
+      <div class="login-hero-orb one" aria-hidden="true"></div>
+      <div class="login-hero-orb two" aria-hidden="true"></div>
 
-        <div class="mt-4 fade-up delay-1">
-          <p class="text-[12px] uppercase tracking-[0.2em] text-panel">Secure Access</p>
-          <h1 class="mt-2 text-[30px] font-bold leading-tight text-ink">Sign in to your account</h1>
-          <p class="mt-2 text-[14px] text-[#415255]">
-            Use your email and password or continue with Google. This is a UI-only dummy login flow to home dashboard.
-          </p>
-        </div>
+      <section class="glass-card float-in relative w-full max-w-[920px] overflow-hidden rounded-3xl p-6 sm:p-8">
+        <div class="grid gap-7 lg:grid-cols-[1fr,1.05fr] lg:items-center">
+          <aside class="space-y-4 fade-up">
+            <a href="index.html" class="text-[13px] font-semibold text-[#3f5557] hover:text-panel">← Back to Home</a>
+            <p class="inline-block rounded-full bg-[#e8f2ef] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-panel">
+              Secure Access
+            </p>
+            <h1 class="text-[34px] font-bold leading-tight text-ink sm:text-[40px]">
+              Welcome back to your ride dashboard
+            </h1>
+            <p class="text-[14px] leading-relaxed text-[#415255]">
+              Sign in quickly and continue managing bookings, profile settings, and upcoming rentals.
+            </p>
 
-        <div id="loginBanner" class="mt-4 hidden rounded-xl px-3 py-2 text-[13px]"></div>
+            <div class="grid gap-2 sm:grid-cols-2 fade-up delay-1">
+              <div class="login-badge rounded-2xl px-4 py-3 text-[12px] text-[#2b4346]">Fast Email Access</div>
+              <div class="login-badge rounded-2xl px-4 py-3 text-[12px] text-[#2b4346]">Google Sign In</div>
+            </div>
+          </aside>
 
-        <form id="loginForm" class="mt-5 space-y-4 fade-up delay-2" novalidate>
+          <div class="rounded-2xl bg-white/80 p-4 shadow-[0_15px_30px_rgba(12,35,38,0.12)] sm:p-5 fade-up delay-1">
+            <div id="loginBanner" class="hidden rounded-xl px-3 py-2 text-[13px]"></div>
+
+            <form id="loginForm" class="mt-1 space-y-4 fade-up delay-2" novalidate>
           <label class="block" for="email">
             <span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Email</span>
             <div class="input-shell rounded-xl px-3 py-2">
@@ -85,21 +98,23 @@
             <span class="text-[#576668]">Required fields*</span>
           </div>
 
-          <button
-            type="submit"
-            class="cta-btn w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white"
-          >
-            Login to Home Dashboard
-          </button>
+              <button
+                type="submit"
+                class="cta-btn w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white"
+              >
+                Login to Home Dashboard
+              </button>
 
-          <button
-            id="googleSignIn"
-            type="button"
-            class="w-full rounded-full border border-[#d8dfdb] bg-white px-5 py-3 text-[14px] font-semibold text-[#23393b] transition hover:bg-[#f7f8f7]"
-          >
-            Continue with Google
-          </button>
-        </form>
+              <button
+                id="googleSignIn"
+                type="button"
+                class="w-full rounded-full border border-[#d8dfdb] bg-white px-5 py-3 text-[14px] font-semibold text-[#23393b] transition hover:bg-[#f7f8f7]"
+              >
+                Continue with Google
+              </button>
+            </form>
+          </div>
+        </div>
       </section>
     </main>
 
