@@ -155,8 +155,95 @@
     return VEHICLES[id] || VEHICLES["camry-hybrid"];
   }
 
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.textContent = value;
+    }
+  }
+
+  function renderIdentity(vehicle) {
+    var hero = document.getElementById("vehicleDetailHero");
+
+    setText("vehicleDetailMeta", vehicle.meta);
+    setText("vehicleBrand", vehicle.brand);
+    setText("vehicleName", vehicle.name);
+    setText("vehicleTagline", vehicle.tagline);
+
+    if (hero) {
+      hero.src = vehicle.heroImage;
+      hero.alt = vehicle.name;
+    }
+  }
+
+  function renderBadges(vehicle) {
+    var target = document.getElementById("vehicleBadges");
+    if (!target) {
+      return;
+    }
+
+    target.innerHTML = vehicle.badges.map(function (badge) {
+      return '<span class="rounded-full border border-[#d2dfd9] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#355255]">' + badge + '</span>';
+    }).join("");
+  }
+
+  function renderQuickSpecs(vehicle) {
+    var target = document.getElementById("vehicleQuickSpecs");
+    if (!target) {
+      return;
+    }
+
+    target.innerHTML = Object.keys(vehicle.quickSpecs).map(function (key) {
+      return '<div class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-3 py-2">' +
+        '<p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#597175]">' + key + '</p>' +
+        '<p class="mt-1 text-[14px] font-semibold text-[#244447]">' + vehicle.quickSpecs[key] + '</p>' +
+        '</div>';
+    }).join("");
+  }
+
+  function renderIncluded(vehicle) {
+    var target = document.getElementById("vehicleIncluded");
+    if (!target) {
+      return;
+    }
+
+    target.innerHTML = vehicle.included.map(function (item) {
+      return '<div class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#2f4d50]">' + item + '</div>';
+    }).join("");
+  }
+
+  function renderPricing(vehicle) {
+    var target = document.getElementById("vehiclePricing");
+    if (!target) {
+      return;
+    }
+
+    var rows = [
+      ["Daily Rate", vehicle.pricing.dailyRate],
+      ["Security Deposit", vehicle.pricing.securityDeposit],
+      ["Extra Kilometer", vehicle.pricing.extraKm],
+      ["Estimated Total", vehicle.pricing.estimatedTotal]
+    ];
+
+    target.innerHTML = rows.map(function (row, index) {
+      var tone = index === rows.length - 1
+        ? "border-[#f2c8ab] bg-[#fff6ef]"
+        : "border-[#d8e3de] bg-[#fbfdfc]";
+
+      return '<div class="flex items-center justify-between rounded-2xl border px-4 py-3 ' + tone + '">' +
+        '<p class="text-[13px] font-medium text-[#385356]">' + row[0] + '</p>' +
+        '<p class="text-[13px] font-semibold text-[#1f4043]">' + row[1] + '</p>' +
+        '</div>';
+    }).join("");
+  }
+
   function init() {
-    getVehicleFromQuery();
+    var vehicle = getVehicleFromQuery();
+    renderIdentity(vehicle);
+    renderBadges(vehicle);
+    renderQuickSpecs(vehicle);
+    renderIncluded(vehicle);
+    renderPricing(vehicle);
   }
 
   window.VehicleDetailsPage = {
