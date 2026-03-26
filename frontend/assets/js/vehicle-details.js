@@ -146,6 +146,335 @@
         { name: "Kabir V.", rating: 4.7, text: "Pickup process was fast, car was exactly as expected." }
       ],
       similar: ["BMW 3 Series", "Mercedes C 300", "Audi Q5 Premium"]
+    },
+    bmw-3-series: {
+      id: "bmw-3-series",
+      brand: "BMW",
+      name: "3 Series",
+      meta: "Luxury Sedan | Automatic | 5 Seats | Petrol",
+      tagline: "Business-class luxury sedan with sharp handling and premium cabin comfort.",
+      heroImage: "assets/images/car.jpg",
+      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
+      badges: ["Executive", "Airport Friendly", "Luxury Segment"],
+      quickSpecs: {
+        "Fuel Type": "Petrol",
+        Transmission: "Automatic",
+        Mileage: "13 km/l",
+        Seats: "5",
+        Luggage: "2 Large + 2 Cabin",
+        Year: "2023"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Priority support line"
+      ],
+      pricing: {
+        dailyRate: "$132 / day",
+        securityDeposit: "$600 refundable",
+        extraKm: "$0.72 / km",
+        estimatedTotal: "$396 for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 2 years old)",
+        "Government photo ID or passport",
+        "Minimum age: 25 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 24 hours before pickup",
+        "Late return fee applies after 20 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Shreya T.", rating: 4.9, text: "Premium finish and a very smooth long-drive experience." },
+        { name: "Daniel R.", rating: 4.8, text: "Perfect for client meetings and executive city travel." }
+      ],
+      similar: ["Mercedes C 300", "Audi Q5 Premium", "Toyota Camry Hybrid"]
+    },
+    tucson-n-line: {
+      id: "tucson-n-line",
+      brand: "Hyundai",
+      name: "Tucson N Line",
+      meta: "SUV | Automatic | 5 Seats | Petrol",
+      tagline: "Modern SUV package with sporty styling and practical daily usability.",
+      heroImage: "assets/images/car-transparent.png",
+      gallery: ["assets/images/car-transparent.png", "assets/images/car.jpg", "assets/images/car-transparent.png"],
+      badges: ["Urban SUV", "Comfort Ride", "Sport Design"],
+      quickSpecs: {
+        "Fuel Type": "Petrol",
+        Transmission: "Automatic",
+        Mileage: "14 km/l",
+        Seats: "5",
+        Luggage: "3 Large + 1 Cabin",
+        Year: "2022"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Wireless charging support"
+      ],
+      pricing: {
+        dailyRate: "$104 / day",
+        securityDeposit: "$460 refundable",
+        extraKm: "$0.58 / km",
+        estimatedTotal: "$312 for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 1 year old)",
+        "Government photo ID or passport",
+        "Minimum age: 24 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 24 hours before pickup",
+        "Late return fee applies after 30 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Aniket G.", rating: 4.8, text: "Great SUV for family use and comfortable over rough roads." },
+        { name: "Priya N.", rating: 4.7, text: "Loved the interiors and pickup service was right on time." }
+      ],
+      similar: ["Honda CR-V Touring", "Kia Seltos X-Line", "Jeep Wrangler Sahara"]
+    },
+    seltos-x-line: {
+      id: "seltos-x-line",
+      brand: "Kia",
+      name: "Seltos X-Line",
+      meta: "Compact SUV | Automatic | 5 Seats | Petrol",
+      tagline: "Compact and connected SUV tailored for city-first rental demand.",
+      heroImage: "assets/images/car.jpg",
+      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
+      badges: ["City Ready", "Connected Tech", "Compact SUV"],
+      quickSpecs: {
+        "Fuel Type": "Petrol",
+        Transmission: "Automatic",
+        Mileage: "16 km/l",
+        Seats: "5",
+        Luggage: "2 Large + 2 Cabin",
+        Year: "2023"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Smart navigation package"
+      ],
+      pricing: {
+        dailyRate: "$94 / day",
+        securityDeposit: "$430 refundable",
+        extraKm: "$0.52 / km",
+        estimatedTotal: "$282 for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 1 year old)",
+        "Government photo ID or passport",
+        "Minimum age: 23 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 24 hours before pickup",
+        "Late return fee applies after 30 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Meera S.", rating: 4.8, text: "Good city mileage and really comfortable for traffic commutes." },
+        { name: "Ritesh J.", rating: 4.6, text: "Neat condition and easy pickup-drop process." }
+      ],
+      similar: ["Hyundai Tucson N Line", "Honda CR-V Touring", "Toyota Camry Hybrid"]
+    },
+    altima-sv: {
+      id: "altima-sv",
+      brand: "Nissan",
+      name: "Altima SV",
+      meta: "Sedan | Automatic | 5 Seats | Petrol",
+      tagline: "Reliable comfort sedan with balanced performance and highway stability.",
+      heroImage: "assets/images/car-transparent.png",
+      gallery: ["assets/images/car-transparent.png", "assets/images/car.jpg", "assets/images/car-transparent.png"],
+      badges: ["Value Choice", "Highway Friendly", "Comfort Cabin"],
+      quickSpecs: {
+        "Fuel Type": "Petrol",
+        Transmission: "Automatic",
+        Mileage: "14 km/l",
+        Seats: "5",
+        Luggage: "2 Large + 2 Cabin",
+        Year: "2022"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Standard toll support tag"
+      ],
+      pricing: {
+        dailyRate: "$89 / day",
+        securityDeposit: "$390 refundable",
+        extraKm: "$0.48 / km",
+        estimatedTotal: "$267 for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 1 year old)",
+        "Government photo ID or passport",
+        "Minimum age: 23 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 24 hours before pickup",
+        "Late return fee applies after 30 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Kunal H.", rating: 4.7, text: "Smooth sedan and very practical for office commute rentals." },
+        { name: "Elena B.", rating: 4.6, text: "Clean interiors and responsive customer support." }
+      ],
+      similar: ["Toyota Camry Hybrid", "BMW 3 Series", "Mercedes C 300"]
+    },
+    mercedes-c-300: {
+      id: "mercedes-c-300",
+      brand: "Mercedes-Benz",
+      name: "C 300",
+      meta: "Luxury Sedan | Automatic | 5 Seats | Petrol",
+      tagline: "Premium German sedan experience for high-end and executive bookings.",
+      heroImage: "assets/images/car.jpg",
+      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
+      badges: ["Premium", "Executive Class", "Luxury Ride"],
+      quickSpecs: {
+        "Fuel Type": "Petrol",
+        Transmission: "Automatic",
+        Mileage: "12 km/l",
+        Seats: "5",
+        Luggage: "2 Large + 2 Cabin",
+        Year: "2023"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Concierge-level support"
+      ],
+      pricing: {
+        dailyRate: "$138 / day",
+        securityDeposit: "$650 refundable",
+        extraKm: "$0.75 / km",
+        estimatedTotal: "$414 for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 2 years old)",
+        "Government photo ID or passport",
+        "Minimum age: 26 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 48 hours before pickup",
+        "Late return fee applies after 20 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Ishaan P.", rating: 4.9, text: "Luxury feel throughout and very professional service team." },
+        { name: "Marta L.", rating: 4.8, text: "Excellent condition, exactly what I expect from premium rentals." }
+      ],
+      similar: ["BMW 3 Series", "Audi Q5 Premium", "Ford Mustang GT"]
+    },
+    audi-q5-premium: {
+      id: "audi-q5-premium",
+      brand: "Audi",
+      name: "Q5 Premium",
+      meta: "Luxury SUV | Automatic | 5 Seats | Petrol",
+      tagline: "Luxury SUV comfort with practical cargo and premium drive quality.",
+      heroImage: "assets/images/car-transparent.png",
+      gallery: ["assets/images/car-transparent.png", "assets/images/car.jpg", "assets/images/car-transparent.png"],
+      badges: ["Luxury SUV", "Family Premium", "Long Drive"],
+      quickSpecs: {
+        "Fuel Type": "Petrol",
+        Transmission: "Automatic",
+        Mileage: "11 km/l",
+        Seats: "5",
+        Luggage: "3 Large + 2 Cabin",
+        Year: "2022"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Premium cabin package"
+      ],
+      pricing: {
+        dailyRate: "$142 / day",
+        securityDeposit: "$680 refundable",
+        extraKm: "$0.82 / km",
+        estimatedTotal: "$426 for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 2 years old)",
+        "Government photo ID or passport",
+        "Minimum age: 26 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 48 hours before pickup",
+        "Late return fee applies after 20 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Haruto N.", rating: 4.9, text: "Top-tier SUV comfort and great stability at highway speed." },
+        { name: "Devika M.", rating: 4.8, text: "Premium service and very smooth pickup/return flow." }
+      ],
+      similar: ["Mercedes C 300", "Honda CR-V Touring", "Jeep Wrangler Sahara"]
+    },
+    wrangler-sahara: {
+      id: "wrangler-sahara",
+      brand: "Jeep",
+      name: "Wrangler Sahara",
+      meta: "Off-Road SUV | Automatic | 5 Seats | Petrol",
+      tagline: "Adventure-ready SUV for rugged terrains and experience-focused trips.",
+      heroImage: "assets/images/car.jpg",
+      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
+      badges: ["Off-Road", "Adventure", "Weekend Escape"],
+      quickSpecs: {
+        "Fuel Type": "Petrol",
+        Transmission: "Automatic",
+        Mileage: "10 km/l",
+        Seats: "5",
+        Luggage: "2 Large + 2 Cabin",
+        Year: "2021"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Terrain support checklist"
+      ],
+      pricing: {
+        dailyRate: "$126 / day",
+        securityDeposit: "$550 refundable",
+        extraKm: "$0.7 / km",
+        estimatedTotal: "$378 for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 2 years old)",
+        "Government photo ID or passport",
+        "Minimum age: 25 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 24 hours before pickup",
+        "Late return fee applies after 20 minute grace period",
+        "No smoking policy inside vehicle",
+        "Off-road damage policy applies"
+      ],
+      reviews: [
+        { name: "Arjun F.", rating: 4.8, text: "Perfect for hilly routes and overall a fun drive." },
+        { name: "Lina W.", rating: 4.7, text: "Strong road presence and the support team was very responsive." }
+      ],
+      similar: ["Audi Q5 Premium", "Hyundai Tucson N Line", "Honda CR-V Touring"]
     }
   };
 
