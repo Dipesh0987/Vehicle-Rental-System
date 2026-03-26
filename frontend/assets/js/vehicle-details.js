@@ -641,6 +641,58 @@
     }).join("");
   }
 
+  function getAvailability(vehicle) {
+    return vehicle.availability || [
+      "Today: Available for immediate pickup after 2 hours notice",
+      "Tomorrow: High demand window, reserve early",
+      "Weekend: Limited slots for premium time bands"
+    ];
+  }
+
+  function getOperationalNotes(vehicle) {
+    return vehicle.operationalNotes || [
+      "Vehicle handover checklist is completed digitally at pickup.",
+      "Dedicated support is active throughout the rental duration.",
+      "Incident reporting is handled via 24/7 fleet assistance desk."
+    ];
+  }
+
+  function renderAvailability(vehicle) {
+    renderBulletList("vehicleAvailability", getAvailability(vehicle));
+    renderBulletList("vehicleOperationalNotes", getOperationalNotes(vehicle));
+  }
+
+  function wireRevealAnimations() {
+    var nodes = document.querySelectorAll("[data-reveal]");
+    if (!nodes.length) {
+      return;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      nodes.forEach(function (node) {
+        node.classList.add("animate-cardIn");
+      });
+      return;
+    }
+
+    var observer = new IntersectionObserver(function (entries, currentObserver) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        entry.target.classList.add("animate-cardIn");
+        currentObserver.unobserve(entry.target);
+      });
+    }, {
+      threshold: 0.12
+    });
+
+    nodes.forEach(function (node) {
+      observer.observe(node);
+    });
+  }
+
   function init() {
     var vehicle = getVehicleFromQuery();
     renderIdentity(vehicle);
@@ -653,6 +705,8 @@
     renderBulletList("vehiclePolicies", vehicle.policies);
     renderReviews(vehicle);
     renderSimilar(vehicle);
+    renderAvailability(vehicle);
+    wireRevealAnimations();
   }
 
   window.VehicleDetailsPage = {

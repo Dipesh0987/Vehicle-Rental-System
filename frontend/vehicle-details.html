@@ -31,14 +31,31 @@
                   transform: "translateY(0)",
                 },
               },
+              cardIn: {
+                from: {
+                  opacity: "0",
+                  transform: "translateY(14px)",
+                },
+                to: {
+                  opacity: "1",
+                  transform: "translateY(0)",
+                },
+              },
             },
             animation: {
               fadeUp: "fadeUp 600ms ease forwards",
+              cardIn: "cardIn 640ms cubic-bezier(0.22, 1, 0.36, 1) forwards",
             },
           },
         },
       };
     </script>
+    <style>
+      [data-reveal] {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+    </style>
   </head>
   <body class="min-h-screen bg-paper font-poppins text-ink">
     <main class="relative min-h-screen overflow-hidden pb-12">
@@ -107,14 +124,14 @@
         </div>
 
         <div class="grid gap-5 lg:grid-cols-[1.5fr,1fr]">
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/90 p-4">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-4">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eef4f1,#dde8e4)]">
               <img id="vehicleDetailHero" src="assets/images/car-transparent.png" alt="Vehicle" class="h-[240px] w-full object-contain p-3 sm:h-[300px]" />
             </div>
             <div id="vehicleThumbnailRail" class="mt-3 grid grid-cols-3 gap-2"></div>
           </article>
 
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/95 p-5">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/95 p-5">
             <p id="vehicleBrand" class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Brand</p>
             <h1 id="vehicleName" class="mt-2 text-[30px] font-bold leading-[1.1] text-ink">Vehicle Name</h1>
             <p id="vehicleTagline" class="mt-3 text-[14px] leading-relaxed text-[#3f5c5f]">Tagline and short value proposition.</p>
@@ -131,38 +148,50 @@
         </div>
 
         <div class="grid gap-4 lg:grid-cols-[1.3fr,1fr]">
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
             <h2 class="text-[19px] font-bold text-ink">What Is Included</h2>
             <div id="vehicleIncluded" class="mt-3 grid gap-2 sm:grid-cols-2"></div>
           </article>
 
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
             <h2 class="text-[19px] font-bold text-ink">Pricing Breakdown</h2>
             <div id="vehiclePricing" class="mt-3 space-y-2"></div>
           </article>
         </div>
 
         <div class="grid gap-4 lg:grid-cols-2">
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
             <h2 class="text-[19px] font-bold text-ink">Rental Requirements</h2>
             <ul id="vehicleRequirements" class="mt-3 space-y-2"></ul>
           </article>
 
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
             <h2 class="text-[19px] font-bold text-ink">Policy & Terms Snapshot</h2>
             <ul id="vehiclePolicies" class="mt-3 space-y-2"></ul>
           </article>
         </div>
 
         <div class="grid gap-4 lg:grid-cols-2">
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
             <h2 class="text-[19px] font-bold text-ink">Customer Reviews</h2>
             <div id="vehicleReviews" class="mt-3 space-y-2"></div>
           </article>
 
-          <article class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
             <h2 class="text-[19px] font-bold text-ink">Recommended Similar Vehicles</h2>
             <div id="vehicleSimilar" class="mt-3 space-y-2"></div>
+          </article>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+            <h2 class="text-[19px] font-bold text-ink">Availability Timeline</h2>
+            <ul id="vehicleAvailability" class="mt-3 space-y-2"></ul>
+          </article>
+
+          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+            <h2 class="text-[19px] font-bold text-ink">Operational Notes</h2>
+            <ul id="vehicleOperationalNotes" class="mt-3 space-y-2"></ul>
           </article>
         </div>
       </section>
