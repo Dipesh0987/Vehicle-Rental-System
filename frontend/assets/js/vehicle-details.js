@@ -628,6 +628,12 @@
     }).join("");
   }
 
+  function getVehicleIdByName(name) {
+    return Object.keys(VEHICLES).find(function (id) {
+      return VEHICLES[id].name === name;
+    });
+  }
+
   function renderSimilar(vehicle) {
     var target = document.getElementById("vehicleSimilar");
     if (!target) {
@@ -635,8 +641,11 @@
     }
 
     target.innerHTML = vehicle.similar.map(function (name) {
-      return '<a href="vehicles.html" class="flex items-center justify-between rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-semibold text-[#29494c] transition hover:-translate-y-[1px]">' +
-        '<span>' + name + '</span><span class="text-[12px] text-[#5a7376]">View in Fleet</span>' +
+      var id = getVehicleIdByName(name);
+      var href = id ? "vehicle-details.html?id=" + id : "vehicles.html";
+
+      return '<a href="' + href + '" class="flex items-center justify-between rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-semibold text-[#29494c] transition hover:-translate-y-[1px]">' +
+        '<span>' + name + '</span><span class="text-[12px] text-[#5a7376]">View Details</span>' +
         '</a>';
     }).join("");
   }
