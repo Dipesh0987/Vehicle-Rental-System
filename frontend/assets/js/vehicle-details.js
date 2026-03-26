@@ -176,6 +176,40 @@
     }
   }
 
+  function renderGallery(vehicle) {
+    var hero = document.getElementById("vehicleDetailHero");
+    var rail = document.getElementById("vehicleThumbnailRail");
+    if (!hero || !rail) {
+      return;
+    }
+
+    rail.innerHTML = vehicle.gallery.map(function (src, index) {
+      var active = index === 0
+        ? "border-[#2c766e] bg-[#edf6f3]"
+        : "border-[#d3dfda] bg-white";
+
+      return '<button type="button" data-thumb-index="' + index + '" class="vehicle-thumb rounded-xl border p-1 transition hover:-translate-y-[1px] ' + active + '">' +
+        '<img src="' + src + '" alt="' + vehicle.name + ' view ' + (index + 1) + '" class="h-[76px] w-full rounded-lg object-cover" />' +
+        '</button>';
+    }).join("");
+
+    rail.querySelectorAll(".vehicle-thumb").forEach(function (thumb) {
+      thumb.addEventListener("click", function () {
+        var idx = Number(thumb.getAttribute("data-thumb-index") || "0");
+        var selected = vehicle.gallery[idx] || vehicle.gallery[0];
+        hero.src = selected;
+
+        rail.querySelectorAll(".vehicle-thumb").forEach(function (node) {
+          node.classList.remove("border-[#2c766e]", "bg-[#edf6f3]");
+          node.classList.add("border-[#d3dfda]", "bg-white");
+        });
+
+        thumb.classList.remove("border-[#d3dfda]", "bg-white");
+        thumb.classList.add("border-[#2c766e]", "bg-[#edf6f3]");
+      });
+    });
+  }
+
   function renderBadges(vehicle) {
     var target = document.getElementById("vehicleBadges");
     if (!target) {
@@ -281,6 +315,7 @@
   function init() {
     var vehicle = getVehicleFromQuery();
     renderIdentity(vehicle);
+    renderGallery(vehicle);
     renderBadges(vehicle);
     renderQuickSpecs(vehicle);
     renderIncluded(vehicle);
