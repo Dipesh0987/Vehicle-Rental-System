@@ -60,6 +60,33 @@
         },
       };
     </script>
+    <style>
+      .fleet-grid article {
+        position: relative;
+      }
+
+      .fleet-grid article::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        pointer-events: none;
+        border: 1px solid rgba(44, 118, 110, 0);
+        transition: border-color 240ms ease;
+      }
+
+      .fleet-grid article:hover::after {
+        border-color: rgba(44, 118, 110, 0.28);
+      }
+
+      .fleet-grid article:nth-child(2n) {
+        animation-delay: 110ms;
+      }
+
+      .fleet-grid article:nth-child(3n) {
+        animation-delay: 170ms;
+      }
+    </style>
   </head>
   <body class="min-h-screen bg-paper font-poppins text-ink">
     <main class="relative min-h-screen overflow-hidden">
@@ -167,7 +194,7 @@
           <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Fuel Efficient</button>
         </div>
 
-        <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="fleet-grid mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eef3f1,#dde8e4)]">
               <img src="assets/images/car-transparent.png" alt="Toyota Camry" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
@@ -177,8 +204,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">Camry Hybrid</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Sedan • Automatic • 5 Seats • Hybrid</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -192,8 +219,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">CR-V Touring</h3>
               <p class="mt-1 text-[13px] text-[#436164]">SUV • Automatic • 5 Seats • Petrol</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -207,8 +234,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">Mustang GT</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Sport • Automatic • 4 Seats • Petrol</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -222,8 +249,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">3 Series</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Luxury Sedan • Automatic • 5 Seats</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -237,8 +264,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">Tucson N Line</h3>
               <p class="mt-1 text-[13px] text-[#436164]">SUV • Automatic • 5 Seats • Petrol</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -252,8 +279,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">Seltos X-Line</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Compact SUV • Automatic • 5 Seats</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -267,8 +294,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">Altima SV</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Sedan • Automatic • 5 Seats • Petrol</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -282,8 +309,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">C 300</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Luxury Sedan • Automatic • 5 Seats</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -297,8 +324,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">Q5 Premium</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Luxury SUV • Automatic • 5 Seats</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
@@ -312,8 +339,8 @@
               <h3 class="mt-1 text-[20px] font-bold text-ink">Wrangler Sahara</h3>
               <p class="mt-1 text-[13px] text-[#436164]">Off-Road SUV • Automatic • 5 Seats</p>
               <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white">Book Now</button>
+                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
               </div>
             </div>
           </article>
