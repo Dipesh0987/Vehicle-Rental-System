@@ -5,6 +5,74 @@
   var STORAGE_PROFILE = "vrs_profile";
   var STORAGE_ATTEMPTS = "vrs_login_attempts";
   var MAX_ATTEMPTS_WARNING = 3;
+  var STATIC_BOOKINGS = [
+    {
+      id: "bk-24003",
+      reference: "VRS-2026-24003",
+      vehicle: "Toyota Camry Hybrid",
+      category: "Sedan",
+      pickupDate: "2026-03-28",
+      pickupTime: "10:00",
+      dropoffDate: "2026-03-31",
+      dropoffTime: "09:30",
+      pickupLocation: "Downtown Vehicle Hub",
+      dropoffLocation: "Airport Return Bay",
+      driverName: "Alex Morgan",
+      paymentMethod: "Visa ending 4421",
+      addOns: ["Child Seat", "Basic Insurance"],
+      status: "Upcoming",
+      amount: "$186.00",
+      baseAmount: "$150.00",
+      serviceFee: "$18.00",
+      tax: "$18.00",
+      discount: "-$0.00",
+      lastUpdated: "2026-03-26",
+    },
+    {
+      id: "bk-24002",
+      reference: "VRS-2026-24002",
+      vehicle: "Honda CR-V Touring",
+      category: "SUV",
+      pickupDate: "2026-03-12",
+      pickupTime: "09:30",
+      dropoffDate: "2026-03-15",
+      dropoffTime: "11:15",
+      pickupLocation: "City Center Parking",
+      dropoffLocation: "City Center Parking",
+      driverName: "Alex Morgan",
+      paymentMethod: "Visa ending 4421",
+      addOns: ["Premium Insurance"],
+      status: "Completed",
+      amount: "$264.00",
+      baseAmount: "$220.00",
+      serviceFee: "$22.00",
+      tax: "$26.00",
+      discount: "-$4.00",
+      lastUpdated: "2026-03-16",
+    },
+    {
+      id: "bk-24001",
+      reference: "VRS-2026-24001",
+      vehicle: "Ford Mustang GT",
+      category: "Sport",
+      pickupDate: "2026-02-20",
+      pickupTime: "13:00",
+      dropoffDate: "2026-02-22",
+      dropoffTime: "12:45",
+      pickupLocation: "North Business District",
+      dropoffLocation: "North Business District",
+      driverName: "Alex Morgan",
+      paymentMethod: "Mastercard ending 1197",
+      addOns: ["Roadside Assistance", "Additional Driver"],
+      status: "Completed",
+      amount: "$310.00",
+      baseAmount: "$260.00",
+      serviceFee: "$24.00",
+      tax: "$30.00",
+      discount: "-$4.00",
+      lastUpdated: "2026-02-23",
+    },
+  ];
 
   function safeParse(raw, fallback) {
     try {
@@ -96,6 +164,289 @@
     });
   }
 
+  function getStaticBookingHistory() {
+    return STATIC_BOOKINGS.slice();
+  }
+
+  function bookingStatusPillClass(status) {
+    return String(status).toLowerCase() === "upcoming"
+      ? "rounded-full border border-[#f5c7a5] bg-[rgba(229,140,78,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd7ba]"
+      : "rounded-full border border-[#95d6ae] bg-[rgba(86,170,117,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#d2f0dd]";
+  }
+
+  function renderBookingDetail(detail, booking) {
+    if (!detail || !booking) {
+      return;
+    }
+
+    detail.innerHTML = "";
+
+    var top = document.createElement("div");
+    top.className = "flex flex-wrap items-start justify-between gap-2";
+
+    var titleWrap = document.createElement("div");
+    var title = document.createElement("h3");
+    title.className = "text-[20px] font-bold leading-tight text-white";
+    title.textContent = booking.vehicle;
+    var sub = document.createElement("p");
+    sub.className = "mt-1 text-[12px] text-white/72";
+    sub.textContent = booking.reference + " • " + booking.category;
+    titleWrap.appendChild(title);
+    titleWrap.appendChild(sub);
+
+    var status = document.createElement("span");
+    status.className = bookingStatusPillClass(booking.status);
+    status.textContent = booking.status;
+
+    top.appendChild(titleWrap);
+    top.appendChild(status);
+
+    var timeline = document.createElement("div");
+    timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-white/15 bg-white/5 p-3 text-[12px] text-white/85 sm:grid-cols-2";
+    timeline.innerHTML =
+      "<p><span class=\"block text-white/65\">Pick-up</span>" + booking.pickupDate + " at " + booking.pickupTime + "</p>" +
+      "<p><span class=\"block text-white/65\">Drop-off</span>" + booking.dropoffDate + " at " + booking.dropoffTime + "</p>" +
+      "<p><span class=\"block text-white/65\">From</span>" + booking.pickupLocation + "</p>" +
+      "<p><span class=\"block text-white/65\">To</span>" + booking.dropoffLocation + "</p>";
+
+    var money = document.createElement("div");
+    money.className = "mt-3 rounded-2xl border border-[#f2c8aa]/35 bg-[rgba(229,140,78,0.08)] p-3 text-[12px]";
+    money.innerHTML =
+      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-white/72\">Total Paid</span><strong class=\"text-[16px] text-[#ffd8bd]\">" + booking.amount + "</strong></div>" +
+      "<div class=\"space-y-1 text-white/78\">" +
+      "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + booking.baseAmount + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + booking.serviceFee + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Tax</span><span>" + booking.tax + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Discount</span><span>" + booking.discount + "</span></p>" +
+      "</div>";
+
+    var extra = document.createElement("div");
+    extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-white/82 sm:grid-cols-2";
+    extra.innerHTML =
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Driver</span>" + booking.driverName + "</p>" +
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Payment Method</span>" + booking.paymentMethod + "</p>" +
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Add-ons</span>" + booking.addOns.join(", ") + "</p>" +
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Last Updated</span>" + booking.lastUpdated + "</p>";
+
+    detail.appendChild(top);
+    detail.appendChild(timeline);
+    detail.appendChild(money);
+    detail.appendChild(extra);
+  }
+
+  function renderBookingsWorkspace(modalRoot) {
+    var list = modalRoot.querySelector("[data-bookings-modal-list]");
+    var detail = modalRoot.querySelector("[data-bookings-modal-detail]");
+    var total = modalRoot.querySelector("[data-bookings-total]");
+    var upcoming = modalRoot.querySelector("[data-bookings-upcoming]");
+    var completed = modalRoot.querySelector("[data-bookings-completed]");
+    var bookings = getStaticBookingHistory();
+
+    if (!list || !detail) {
+      return;
+    }
+
+    list.innerHTML = "";
+    if (total) {
+      total.textContent = String(bookings.length);
+    }
+    if (upcoming) {
+      upcoming.textContent = String(bookings.filter(function (booking) {
+        return String(booking.status).toLowerCase() === "upcoming";
+      }).length);
+    }
+    if (completed) {
+      completed.textContent = String(bookings.filter(function (booking) {
+        return String(booking.status).toLowerCase() === "completed";
+      }).length);
+    }
+
+    if (!bookings.length) {
+      detail.innerHTML = "<p class=\"rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-[13px] text-white/75\">No bookings yet. Once you reserve a vehicle, details will appear here.</p>";
+      return;
+    }
+
+    var activeId = bookings[0].id;
+    var rowLookup = {};
+
+    function setActive(id) {
+      activeId = id;
+      bookings.forEach(function (booking) {
+        var row = rowLookup[booking.id];
+        if (!row) {
+          return;
+        }
+
+        var isActive = booking.id === activeId;
+        row.className = isActive
+          ? "w-full rounded-2xl border border-[#f3c9ab] bg-[rgba(229,140,78,0.12)] px-3 py-3 text-left transition"
+          : "w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:bg-white/10";
+      });
+
+      var selected = bookings.find(function (booking) {
+        return booking.id === activeId;
+      }) || bookings[0];
+
+      renderBookingDetail(detail, selected);
+    }
+
+    bookings.forEach(function (booking) {
+      var row = document.createElement("button");
+      row.type = "button";
+      row.setAttribute("data-booking-id", booking.id);
+
+      var top = document.createElement("div");
+      top.className = "flex items-center justify-between gap-2";
+
+      var title = document.createElement("p");
+      title.className = "text-[13px] font-semibold text-white";
+      title.textContent = booking.vehicle;
+
+      var status = document.createElement("span");
+      status.className = bookingStatusPillClass(booking.status);
+      status.textContent = booking.status;
+
+      var meta = document.createElement("p");
+      meta.className = "mt-1 text-[11px] text-white/74";
+      meta.textContent = booking.pickupDate + " to " + booking.dropoffDate + " • " + booking.amount;
+
+      top.appendChild(title);
+      top.appendChild(status);
+      row.appendChild(top);
+      row.appendChild(meta);
+      list.appendChild(row);
+
+      rowLookup[booking.id] = row;
+      row.addEventListener("click", function () {
+        setActive(booking.id);
+      });
+    });
+
+    setActive(activeId);
+  }
+
+  function ensureBookingsModal() {
+    var existingOverlay = document.querySelector("[data-bookings-modal-overlay]");
+    if (existingOverlay) {
+      return existingOverlay;
+    }
+
+    var overlay = document.createElement("div");
+    overlay.setAttribute("data-bookings-modal-overlay", "true");
+    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(5,18,20,0.58)] opacity-0 transition duration-200";
+
+    var card = document.createElement("section");
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-modal", "true");
+    card.className = "mx-4 w-full max-w-[1060px] rounded-3xl border border-white/20 bg-[linear-gradient(160deg,rgba(23,56,60,0.98),rgba(16,38,42,0.98))] p-5 text-white shadow-[0_28px_70px_rgba(0,0,0,0.42)] sm:p-6";
+
+    var top = document.createElement("div");
+    top.className = "flex items-start justify-between gap-3";
+
+    var titleWrap = document.createElement("div");
+    var heading = document.createElement("h2");
+    heading.className = "text-[22px] font-bold tracking-[-0.01em]";
+    heading.textContent = "Your Bookings";
+    var subtitle = document.createElement("p");
+    subtitle.className = "mt-1 text-[13px] text-white/75";
+    subtitle.textContent = "Recent and upcoming reservations in one place.";
+    titleWrap.appendChild(heading);
+    titleWrap.appendChild(subtitle);
+
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.setAttribute("data-bookings-modal-close", "true");
+    closeBtn.className = "rounded-full border border-white/25 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:-translate-y-[1px] hover:bg-white/10";
+    closeBtn.textContent = "Close";
+
+    top.appendChild(titleWrap);
+    top.appendChild(closeBtn);
+
+    var summary = document.createElement("div");
+    summary.className = "mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold text-white/88";
+    summary.innerHTML =
+      "<p class=\"rounded-xl border border-white/15 bg-white/5 px-3 py-2\">Total <span data-bookings-total class=\"ml-1 text-white\">0</span></p>" +
+      "<p class=\"rounded-xl border border-[#f2c9ac]/35 bg-[rgba(229,140,78,0.1)] px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"ml-1 text-[#ffd8bd]\">0</span></p>" +
+      "<p class=\"rounded-xl border border-[#9ad8b2]/30 bg-[rgba(86,170,117,0.1)] px-3 py-2\">Completed <span data-bookings-completed class=\"ml-1 text-[#d2f0dd]\">0</span></p>";
+
+    var workspace = document.createElement("div");
+    workspace.className = "mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[0.95fr,1.35fr]";
+
+    var list = document.createElement("div");
+    list.setAttribute("data-bookings-modal-list", "true");
+    list.className = "max-h-[58vh] space-y-2 overflow-y-auto pr-1";
+
+    var detail = document.createElement("div");
+    detail.setAttribute("data-bookings-modal-detail", "true");
+    detail.className = "max-h-[58vh] overflow-y-auto rounded-2xl border border-white/15 bg-white/6 p-4";
+
+    card.appendChild(top);
+    card.appendChild(summary);
+    workspace.appendChild(list);
+    workspace.appendChild(detail);
+    card.appendChild(workspace);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    return overlay;
+  }
+
+  function openBookingsModal() {
+    var overlay = ensureBookingsModal();
+    renderBookingsWorkspace(overlay);
+
+    overlay.classList.remove("opacity-0", "pointer-events-none");
+    overlay.classList.add("opacity-100", "pointer-events-auto");
+    document.body.classList.add("overflow-hidden");
+  }
+
+  function closeBookingsModal() {
+    var overlay = document.querySelector("[data-bookings-modal-overlay]");
+    if (!overlay) {
+      return;
+    }
+
+    overlay.classList.remove("opacity-100", "pointer-events-auto");
+    overlay.classList.add("opacity-0", "pointer-events-none");
+    document.body.classList.remove("overflow-hidden");
+  }
+
+  function wireBookingsModal() {
+    var bookingsNavLinks = document.querySelectorAll("[data-open-bookings-panel]");
+    if (!bookingsNavLinks.length) {
+      return;
+    }
+
+    var overlay = ensureBookingsModal();
+    var closeBtn = overlay.querySelector("[data-bookings-modal-close]");
+    var card = overlay.firstElementChild;
+
+    bookingsNavLinks.forEach(function (link) {
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+        openBookingsModal();
+      });
+    });
+
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        closeBookingsModal();
+      });
+    }
+
+    overlay.addEventListener("click", function (event) {
+      if (card && !card.contains(event.target)) {
+        closeBookingsModal();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeBookingsModal();
+      }
+    });
+  }
+
   function setBanner(el, message, mode) {
     if (!el) {
       return;
@@ -137,6 +488,7 @@
     var session = getSession();
     var guest = document.querySelector("[data-auth-guest]");
     var user = document.querySelector("[data-auth-user]");
+    var bookingsLinks = document.querySelectorAll("[data-auth-bookings-link]");
 
     document.body.classList.remove("auth-logged-in", "auth-guest");
 
@@ -150,6 +502,9 @@
         user.classList.remove("hidden");
         user.classList.add("lg:flex");
       }
+      bookingsLinks.forEach(function (link) {
+        link.classList.remove("hidden");
+      });
     } else {
       document.body.classList.add("auth-guest");
       if (guest) {
@@ -160,6 +515,9 @@
         user.classList.add("hidden");
         user.classList.remove("lg:flex");
       }
+      bookingsLinks.forEach(function (link) {
+        link.classList.add("hidden");
+      });
     }
 
     renderProfileChip();
@@ -460,6 +818,7 @@
 
     renderNavbarAuth();
     wireProfilePanel();
+    wireBookingsModal();
 
     if (pageType === "login") {
       runLoginFlow();
