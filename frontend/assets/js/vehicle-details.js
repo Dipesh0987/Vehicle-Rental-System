@@ -237,6 +237,47 @@
     }).join("");
   }
 
+  function renderBulletList(targetId, items) {
+    var target = document.getElementById(targetId);
+    if (!target) {
+      return;
+    }
+
+    target.innerHTML = items.map(function (item) {
+      return '<li class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#2f4d50]">' + item + '</li>';
+    }).join("");
+  }
+
+  function renderReviews(vehicle) {
+    var target = document.getElementById("vehicleReviews");
+    if (!target) {
+      return;
+    }
+
+    target.innerHTML = vehicle.reviews.map(function (review) {
+      return '<article class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3">' +
+        '<div class="flex items-center justify-between gap-3">' +
+        '<p class="text-[13px] font-semibold text-[#1f4043]">' + review.name + '</p>' +
+        '<p class="rounded-full border border-[#f2c8ab] bg-[#fff6ef] px-2 py-1 text-[11px] font-semibold text-[#985424]">' + review.rating.toFixed(1) + ' / 5</p>' +
+        '</div>' +
+        '<p class="mt-2 text-[13px] text-[#3d5a5d]">' + review.text + '</p>' +
+        '</article>';
+    }).join("");
+  }
+
+  function renderSimilar(vehicle) {
+    var target = document.getElementById("vehicleSimilar");
+    if (!target) {
+      return;
+    }
+
+    target.innerHTML = vehicle.similar.map(function (name) {
+      return '<a href="vehicles.html" class="flex items-center justify-between rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-semibold text-[#29494c] transition hover:-translate-y-[1px]">' +
+        '<span>' + name + '</span><span class="text-[12px] text-[#5a7376]">View in Fleet</span>' +
+        '</a>';
+    }).join("");
+  }
+
   function init() {
     var vehicle = getVehicleFromQuery();
     renderIdentity(vehicle);
@@ -244,6 +285,10 @@
     renderQuickSpecs(vehicle);
     renderIncluded(vehicle);
     renderPricing(vehicle);
+    renderBulletList("vehicleRequirements", vehicle.requirements);
+    renderBulletList("vehiclePolicies", vehicle.policies);
+    renderReviews(vehicle);
+    renderSimilar(vehicle);
   }
 
   window.VehicleDetailsPage = {
