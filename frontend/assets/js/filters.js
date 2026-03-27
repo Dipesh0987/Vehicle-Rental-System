@@ -4,19 +4,23 @@
   // Filter state management
   const FilterState = {
     search: "",
+    brand: "",
     type: "",
     fuel: "",
     transmission: "",
     availability: "",
+    minSeats: null,
     minPrice: null,
     maxPrice: null,
 
     reset() {
       this.search = "";
+      this.brand = "";
       this.type = "";
       this.fuel = "";
       this.transmission = "";
       this.availability = "";
+      this.minSeats = null;
       this.minPrice = null;
       this.maxPrice = null;
     },
@@ -24,10 +28,12 @@
     hasActiveFilters() {
       return (
         this.search ||
+        this.brand ||
         this.type ||
         this.fuel ||
         this.transmission ||
         this.availability ||
+        this.minSeats !== null ||
         this.minPrice !== null ||
         this.maxPrice !== null
       );
@@ -36,10 +42,12 @@
     getActiveFilterTags() {
       const tags = [];
       if (this.search) tags.push({ label: `Search: "${this.search}"`, key: "search" });
+      if (this.brand) tags.push({ label: `Brand: ${this.capitalize(this.brand)}`, key: "brand" });
       if (this.type) tags.push({ label: `Type: ${this.capitalize(this.type)}`, key: "type" });
       if (this.fuel) tags.push({ label: `Fuel: ${this.capitalize(this.fuel)}`, key: "fuel" });
       if (this.transmission) tags.push({ label: `${this.capitalize(this.transmission)}`, key: "transmission" });
       if (this.availability) tags.push({ label: `${this.availability === 'available' ? 'Available Now' : 'Limited Stock'}`, key: "availability" });
+      if (this.minSeats !== null) tags.push({ label: `Seats: ${this.minSeats}+`, key: "minSeats" });
       if (this.minPrice !== null) tags.push({ label: `Min: $${this.minPrice}`, key: "minPrice" });
       if (this.maxPrice !== null) tags.push({ label: `Max: $${this.maxPrice}`, key: "maxPrice" });
       return tags;
@@ -85,6 +93,12 @@
     return "";
   }
 
+  // Extract seating capacity from vehicle metadata
+  function getSeats(meta) {
+    const match = String(meta || "").match(/(\d+)\s*Seats?/i);
+    return match ? parseInt(match[1], 10) : 0;
+  }
+
   // Check vehicle availability (dummy logic)
   function getAvailability(vehicleData) {
     if (!vehicleData || !vehicleData.pricing) return "limited";
@@ -110,6 +124,12 @@
       if (!inBrand && !inName && !inMeta && !inBadges && !inTagline) return false;
     }
 
+    // Brand filter
+    if (FilterState.brand && FilterState.brand.trim()) {
+      const brand = String(vehicle.brand || "").toLowerCase();
+      if (!brand.includes(FilterState.brand.toLowerCase())) return false;
+    }
+
     // Type filter - validate value before comparing
     if (FilterState.type && FilterState.type.trim()) {
       const vehicleType = getVehicleType(vehicle.meta);
@@ -132,6 +152,15 @@
     if (FilterState.availability && FilterState.availability.trim()) {
       const availability = getAvailability(vehicle);
       if (availability !== FilterState.availability) return false;
+    }
+
+    // Minimum seats filter
+    if (FilterState.minSeats !== null) {
+      const minSeats = parseInt(FilterState.minSeats, 10);
+      if (!isNaN(minSeats)) {
+        const seats = getSeats(vehicle.meta);
+        if (seats < minSeats) return false;
+      }
     }
 
     // Price filter - validate numeric values
@@ -205,10 +234,12 @@
   // Remove specific filter
   function removeFilter(key) {
     const searchInput = document.getElementById("searchInput");
+    const brandFilter = document.getElementById("brandFilter");
     const typeFilter = document.getElementById("typeFilter");
     const fuelFilter = document.getElementById("fuelFilter");
     const transmissionFilter = document.getElementById("transmissionFilter");
     const availabilityFilter = document.getElementById("availabilityFilter");
+    const seatsFilter = document.getElementById("seatsFilter");
     const minPrice = document.getElementById("minPrice");
     const maxPrice = document.getElementById("maxPrice");
 
@@ -216,6 +247,10 @@
       case "search":
         FilterState.search = "";
         if (searchInput) searchInput.value = "";
+        break;
+      case "brand":
+        FilterState.brand = "";
+        if (brandFilter) brandFilter.value = "";
         break;
       case "type":
         FilterState.type = "";
@@ -232,6 +267,10 @@
       case "availability":
         FilterState.availability = "";
         if (availabilityFilter) availabilityFilter.value = "";
+        break;
+      case "minSeats":
+        FilterState.minSeats = null;
+        if (seatsFilter) seatsFilter.value = "";
         break;
       case "minPrice":
         FilterState.minPrice = null;
@@ -279,10 +318,12 @@
     restoreFilterState();
 
     const searchInput = document.getElementById("searchInput");
+    const brandFilter = document.getElementById("brandFilter");
     const typeFilter = document.getElementById("typeFilter");
     const fuelFilter = document.getElementById("fuelFilter");
     const transmissionFilter = document.getElementById("transmissionFilter");
     const availabilityFilter = document.getElementById("availabilityFilter");
+    const seatsFilter = document.getElementById("seatsFilter");
     const minPrice = document.getElementById("minPrice");
     const maxPrice = document.getElementById("maxPrice");
     const applyBtn = document.getElementById("applyFilters");
@@ -294,6 +335,14 @@
         FilterState.search = e.target.value;
         saveFilterState();
         applyFilters(); // Real-time filter for search
+      });
+    }
+
+    if (brandFilter) {
+      brandFilter.addEventListener("change", e => {
+        FilterState.brand = e.target.value;
+        saveFilterState();
+        applyFilters();
       });
     }
 
@@ -326,6 +375,15 @@
         FilterState.availability = e.target.value;
         saveFilterState();
         applyFilters(); // Real-time filter for availability
+      });
+    }
+
+    if (seatsFilter) {
+      seatsFilter.addEventListener("change", e => {
+        const value = e.target.value.trim();
+        FilterState.minSeats = value ? parseInt(value, 10) : null;
+        saveFilterState();
+        applyFilters();
       });
     }
 
@@ -384,10 +442,12 @@
       clearBtn.addEventListener("click", () => {
         FilterState.reset();
         if (searchInput) searchInput.value = "";
+        if (brandFilter) brandFilter.value = "";
         if (typeFilter) typeFilter.value = "";
         if (fuelFilter) fuelFilter.value = "";
         if (transmissionFilter) transmissionFilter.value = "";
         if (availabilityFilter) availabilityFilter.value = "";
+        if (seatsFilter) seatsFilter.value = "";
         if (minPrice) minPrice.value = "";
         if (maxPrice) maxPrice.value = "";
         saveFilterState();
@@ -400,10 +460,12 @@
   function saveFilterState() {
     const state = {
       search: FilterState.search,
+      brand: FilterState.brand,
       type: FilterState.type,
       fuel: FilterState.fuel,
       transmission: FilterState.transmission,
       availability: FilterState.availability,
+      minSeats: FilterState.minSeats,
       minPrice: FilterState.minPrice,
       maxPrice: FilterState.maxPrice
     };
@@ -421,27 +483,33 @@
       if (saved) {
         const state = JSON.parse(saved);
         FilterState.search = state.search || "";
+        FilterState.brand = state.brand || "";
         FilterState.type = state.type || "";
         FilterState.fuel = state.fuel || "";
         FilterState.transmission = state.transmission || "";
         FilterState.availability = state.availability || "";
+        FilterState.minSeats = state.minSeats;
         FilterState.minPrice = state.minPrice;
         FilterState.maxPrice = state.maxPrice;
 
         // Update UI with restored values
         const searchInput = document.getElementById("searchInput");
+        const brandFilter = document.getElementById("brandFilter");
         const typeFilter = document.getElementById("typeFilter");
         const fuelFilter = document.getElementById("fuelFilter");
         const transmissionFilter = document.getElementById("transmissionFilter");
         const availabilityFilter = document.getElementById("availabilityFilter");
+        const seatsFilter = document.getElementById("seatsFilter");
         const minPrice = document.getElementById("minPrice");
         const maxPrice = document.getElementById("maxPrice");
 
         if (searchInput) searchInput.value = FilterState.search;
+        if (brandFilter) brandFilter.value = FilterState.brand;
         if (typeFilter) typeFilter.value = FilterState.type;
         if (fuelFilter) fuelFilter.value = FilterState.fuel;
         if (transmissionFilter) transmissionFilter.value = FilterState.transmission;
         if (availabilityFilter) availabilityFilter.value = FilterState.availability;
+        if (seatsFilter) seatsFilter.value = FilterState.minSeats || "";
         if (minPrice) minPrice.value = FilterState.minPrice || "";
         if (maxPrice) maxPrice.value = FilterState.maxPrice || "";
 
@@ -459,6 +527,7 @@
     getVehicleType,
     getFuelType,
     getTransmission,
+    getSeats,
     getAvailability,
     saveFilterState,
     restoreFilterState,
