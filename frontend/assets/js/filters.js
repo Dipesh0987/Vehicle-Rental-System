@@ -98,7 +98,7 @@
 
     // Search filter - match brand, name, meta, or badges
     if (FilterState.search) {
-      const searchLower = FilterState.search.toLowerCase();
+      const searchLower = FilterState.search.toLowerCase().trim();
       const inBrand = String(vehicle.brand || "").toLowerCase().includes(searchLower);
       const inName = String(vehicle.name || "").toLowerCase().includes(searchLower);
       const inMeta = String(vehicle.meta || "").toLowerCase().includes(searchLower);
@@ -110,35 +110,45 @@
       if (!inBrand && !inName && !inMeta && !inBadges && !inTagline) return false;
     }
 
-    // Type filter
-    if (FilterState.type) {
+    // Type filter - validate value before comparing
+    if (FilterState.type && FilterState.type.trim()) {
       const vehicleType = getVehicleType(vehicle.meta);
       if (vehicleType !== FilterState.type) return false;
     }
 
-    // Fuel filter
-    if (FilterState.fuel) {
+    // Fuel filter - validate value before comparing
+    if (FilterState.fuel && FilterState.fuel.trim()) {
       const fuelType = getFuelType(vehicle.meta);
       if (fuelType !== FilterState.fuel) return false;
     }
 
-    // Transmission filter
-    if (FilterState.transmission) {
+    // Transmission filter - validate value before comparing
+    if (FilterState.transmission && FilterState.transmission.trim()) {
       const transmission = getTransmission(vehicle.meta);
       if (transmission !== FilterState.transmission) return false;
     }
 
-    // Availability filter
-    if (FilterState.availability) {
+    // Availability filter - validate value before comparing
+    if (FilterState.availability && FilterState.availability.trim()) {
       const availability = getAvailability(vehicle);
       if (availability !== FilterState.availability) return false;
     }
 
-    // Price filter
+    // Price filter - validate numeric values
     if (FilterState.minPrice !== null || FilterState.maxPrice !== null) {
       const price = extractPrice(vehicle.pricing && vehicle.pricing.dailyRate);
-      if (FilterState.minPrice !== null && price < FilterState.minPrice) return false;
-      if (FilterState.maxPrice !== null && price > FilterState.maxPrice) return false;
+      
+      // Validate minPrice
+      if (FilterState.minPrice !== null) {
+        const minPrice = parseInt(FilterState.minPrice, 10);
+        if (!isNaN(minPrice) && price < minPrice) return false;
+      }
+      
+      // Validate maxPrice
+      if (FilterState.maxPrice !== null) {
+        const maxPrice = parseInt(FilterState.maxPrice, 10);
+        if (!isNaN(maxPrice) && price > maxPrice) return false;
+      }
     }
 
     return true;
@@ -293,15 +303,41 @@
 
     if (minPrice) {
       minPrice.addEventListener("change", e => {
-        FilterState.minPrice = e.target.value ? parseInt(e.target.value, 10) : null;
-        applyFilters(); // Real-time filter for min price
+        const value = e.target.value.trim();
+        const numValue = value ? parseInt(value, 10) : null;
+        
+        // Validate: must be a positive number
+        if (numValue !== null && isNaN(numValue)) {
+          console.warn("Invalid minimum price value");
+          minPrice.value = "";
+          FilterState.minPrice = null;
+        } else if (numValue !== null && numValue < 0) {
+          console.warn("Minimum price cannot be negative");
+          minPrice.value = FilterState.minPrice || "";
+        } else {
+          FilterState.minPrice = numValue;
+        }
+        applyFilters();
       });
     }
 
     if (maxPrice) {
       maxPrice.addEventListener("change", e => {
-        FilterState.maxPrice = e.target.value ? parseInt(e.target.value, 10) : null;
-        applyFilters(); // Real-time filter for max price
+        const value = e.target.value.trim();
+        const numValue = value ? parseInt(value, 10) : null;
+        
+        // Validate: must be a positive number
+        if (numValue !== null && isNaN(numValue)) {
+          console.warn("Invalid maximum price value");
+          maxPrice.value = "";
+          FilterState.maxPrice = null;
+        } else if (numValue !== null && numValue < 0) {
+          console.warn("Maximum price cannot be negative");
+          maxPrice.value = FilterState.maxPrice || "";
+        } else {
+          FilterState.maxPrice = numValue;
+        }
+        applyFilters();
       });
     }
 
