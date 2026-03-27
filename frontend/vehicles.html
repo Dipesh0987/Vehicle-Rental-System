@@ -189,12 +189,121 @@
           </div>
         </div>
 
-        <div class="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
-          <button type="button" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[#9f5825]">Featured</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Top Rated</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Budget Friendly</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Luxury Class</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Fuel Efficient</button>
+        <!-- Advanced Filter Panel -->
+        <div class="mt-7 rounded-2xl border border-white/60 bg-[linear-gradient(160deg,rgba(255,255,255,0.95),rgba(240,248,245,0.88))] p-6 shadow-[0_12px_30px_rgba(10,31,34,0.06)]">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-[18px] font-bold text-ink flex items-center gap-2">
+              <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+              </svg>
+              Smart Filters
+            </h2>
+            <button id="clearFilters" type="button" class="text-[12px] font-semibold text-[#E58C4E] transition duration-200 hover:text-[#d67a3e] hover:underline">Clear All</button>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <!-- Search Filter -->
+            <div class="lg:col-span-2">
+              <label class="block text-[12px] font-semibold text-panel mb-2">🔍 Search Vehicle</label>
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="Brand, model, or tag..."
+                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-4 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
+              />
+            </div>
+
+            <!-- Vehicle Type Filter -->
+            <div>
+              <label class="block text-[12px] font-semibold text-panel mb-2">🚗 Vehicle Type</label>
+              <select
+                id="typeFilter"
+                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
+              >
+                <option value="">All Types</option>
+                <option value="sedan">Sedan</option>
+                <option value="suv">SUV</option>
+                <option value="sport">Sport</option>
+                <option value="luxury">Luxury</option>
+                <option value="off-road">Off-Road</option>
+              </select>
+            </div>
+
+            <!-- Fuel Type Filter -->
+            <div>
+              <label class="block text-[12px] font-semibold text-panel mb-2">⛽ Fuel Type</label>
+              <select
+                id="fuelFilter"
+                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
+              >
+                <option value="">All Fuels</option>
+                <option value="petrol">Petrol</option>
+                <option value="diesel">Diesel</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="electric">Electric</option>
+              </select>
+            </div>
+
+            <!-- Transmission Filter -->
+            <div>
+              <label class="block text-[12px] font-semibold text-panel mb-2">⚙️ Transmission</label>
+              <select
+                id="transmissionFilter"
+                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
+              >
+                <option value="">All Types</option>
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+
+            <!-- Availability Filter -->
+            <div>
+              <label class="block text-[12px] font-semibold text-panel mb-2">✅ Availability</label>
+              <select
+                id="availabilityFilter"
+                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
+              >
+                <option value="">All Status</option>
+                <option value="available">Available Now</option>
+                <option value="limited">Limited Stock</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Price Range Filter -->
+          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+            <div class="lg:col-span-2">
+              <label class="block text-[12px] font-semibold text-panel mb-2">Min Price ($/day)</label>
+              <input
+                id="minPrice"
+                type="number"
+                placeholder="0"
+                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
+              />
+            </div>
+            <div class="lg:col-span-2">
+              <label class="block text-[12px] font-semibold text-panel mb-2">Max Price ($/day)</label>
+              <input
+                id="maxPrice"
+                type="number"
+                placeholder="999"
+                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
+              />
+            </div>
+            <div class="lg:col-span-2 flex items-end gap-2">
+              <button
+                id="applyFilters"
+                type="button"
+                class="w-full rounded-xl bg-accent px-5 py-2.5 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_8px_16px_rgba(229,140,78,0.32)]"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Filter Tags -->
+          <div id="activeTags" class="mt-4 flex flex-wrap gap-2"></div>
         </div>
 
         <div class="fleet-grid mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
