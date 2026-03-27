@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Vehicle Search | Rent A Vehicle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        poppins: ["Poppins", "sans-serif"],
+                    },
+                    colors: {
+                        accent: "#E58C4E",
+                        panel: "#2C766E",
+                        ink: "#0E2528",
+                        muted: "#6C7074",
+                        paper: "#F2F3F1",
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            "0%": { opacity: "0", transform: "translateY(10px)" },
+                            "100%": { opacity: "1", transform: "translateY(0)" },
+                        },
+                        slideInRight: {
+                            "0%": { opacity: "0", transform: "translateX(400px)" },
+                            "100%": { opacity: "1", transform: "translateX(0)" },
+                        },
+                    },
+                    animation: {
+                        fadeIn: "fadeIn 300ms ease-out",
+                        slideInRight: "slideInRight 300ms ease-out",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+        }
+
+        .search-header {
+            background: linear-gradient(135deg, #2C766E 0%, #1f5659 100%);
+        }
+
+        .search-bar-container {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .filter-sidebar {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .filter-sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .filter-sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .filter-sidebar::-webkit-scrollbar-thumb {
+            background: #E58C4E;
+            border-radius: 10px;
+        }
+
+        .filter-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #d67a3e;
+        }
+
+        .vehicle-card {
+            transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .vehicle-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .filter-modal {
+            animation: slideInRight 300ms ease-out;
+        }
+
+        .quick-filter-btn {
+            transition: all 200ms ease;
+        }
+
+        .quick-filter-btn.active {
+            background-color: #E58C4E;
+            color: white;
+        }
+
+        .rating-star {
+            color: #FDB913;
+        }
+
+        .availability-badge {
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .price-badge {
+            background: #fff3cd;
+            color: #856404;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .checkbox-custom {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d4ded9;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 200ms ease;
+            position: relative;
+        }
+
+        .checkbox-custom:checked {
+            background-color: #E58C4E;
+            border-color: #E58C4E;
+        }
+
+        .checkbox-custom:checked::after {
+            content: "✓";
+            position: absolute;
+            top: -2px;
+            left: 3px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .range-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #d4ded9;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #E58C4E;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .range-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #E58C4E;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .wishlist-icon {
+            transition: all 200ms ease;
+        }
+
+        .wishlist-icon.favorited {
+            color: #e74c3c;
+        }
+
+        @media (max-width: 1024px) {
+            .filter-sidebar {
+                display: none;
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 40;
+                background: rgba(0, 0, 0, 0.5);
+            }
+
+            .filter-sidebar.active {
+                display: flex;
+            }
+
+            .filter-modal {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 400px;
+                height: 100%;
+                background: white;
+                z-index: 50;
+                overflow-y: auto;
+            }
+        }
+
+        .no-results-animation {
+            animation: fadeIn 500ms ease-out;
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-paper">
+    <!-- Navigation Header -->
+    <header class="search-header text-white">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="index.html" class="text-2xl font-bold">
+                <i class="fas fa-car"></i> Rent A Vehicle
+            </a>
+            <nav class="hidden md:flex gap-8">
+                <a href="index.html" class="hover:text-accent transition">Home</a>
+                <a href="vehicles.html" class="hover:text-accent transition">Vehicles</a>
+                <a href="#" class="hover:text-accent transition">About</a>
+                <a href="#" class="hover:text-accent transition">Contact</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <button id="wishlistBtn" class="relative hover:text-accent transition">
+                    <i class="fas fa-heart"></i>
+                    <span id="wishlistCount" class="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                </button>
+                <button class="bg-accent px-6 py-2 rounded-full hover:brightness-110 transition">Sign In</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Top Search Bar -->
+        <div class="search-bar-container rounded-2xl shadow-lg p-6 mb-8 sticky top-0 z-30">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Pickup Location -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-map-marker-alt text-accent mr-2"></i>Pickup Location
+                    </label>
+                    <input
+                        type="text"
+                        id="pickupLocation"
+                        placeholder="Enter city or airport"
+                        class="w-full px-4 py-3 border border-[#d4ded9] rounded-xl focus:outline-none focus:ring-2 focus:ring-accent transition"
+                    />
+                </div>
+
+                <!-- Pickup Date/Time -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-calendar-check text-accent mr-2"></i>Pickup Date
+                    </label>
+                    <input
+                        type="datetime-local"
+                        id="pickupDateTime"
+                        class="w-full px-4 py-3 border border-[#d4ded9] rounded-xl focus:outline-none focus:ring-2 focus:ring-accent transition"
+                    />
+                </div>
+
+                <!-- Dropoff Location -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-map-marker-alt text-accent mr-2"></i>Return Location
+                    </label>
+                    <input
+                        type="text"
+                        id="dropoffLocation"
+                        placeholder="Enter city or airport"
+                        class="w-full px-4 py-3 border border-[#d4ded9] rounded-xl focus:outline-none focus:ring-2 focus:ring-accent transition"
+                    />
+                </div>
+
+                <!-- Return Date/Time -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-calendar-times text-accent mr-2"></i>Return Date
+                    </label>
+                    <input
+                        type="datetime-local"
+                        id="dropoffDateTime"
+                        class="w-full px-4 py-3 border border-[#d4ded9] rounded-xl focus:outline-none focus:ring-2 focus:ring-accent transition"
+                    />
+                </div>
+
+                <!-- Search Button -->
+                <div class="flex items-end">
+                    <button
+                        id="searchBtn"
+                        class="w-full bg-accent text-white py-3 rounded-xl font-semibold hover:brightness-110 transition flex items-center justify-center gap-2"
+                    >
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Filters -->
+            <div class="mt-6 flex flex-wrap gap-3">
+                <span class="text-sm font-semibold text-muted">Quick Filters:</span>
+                <button class="quick-filter-btn px-4 py-2 border border-[#d4ded9] rounded-full text-sm font-semibold hover:border-accent transition" data-preset="budget">
+                    <i class="fas fa-wallet mr-1"></i>Budget
+                </button>
+                <button class="quick-filter-btn px-4 py-2 border border-[#d4ded9] rounded-full text-sm font-semibold hover:border-accent transition" data-preset="family">
+                    <i class="fas fa-users mr-1"></i>Family
+                </button>
+                <button class="quick-filter-btn px-4 py-2 border border-[#d4ded9] rounded-full text-sm font-semibold hover:border-accent transition" data-preset="luxury">
+                    <i class="fas fa-crown mr-1"></i>Luxury
+                </button>
+                <button class="quick-filter-btn px-4 py-2 border border-[#d4ded9] rounded-full text-sm font-semibold hover:border-accent transition" data-preset="eco">
+                    <i class="fas fa-leaf mr-1"></i>Eco-Friendly
+                </button>
+            </div>
+        </div>
+
+        <div class="flex gap-8">
+            <!-- Desktop Sidebar Filters -->
+            <aside class="hidden lg:block w-80 flex-shrink-0">
+                <div id="filterPanel" class="filter-sidebar bg-white rounded-2xl p-6 shadow-lg border border-[#d4ded9]">
+                    <!-- Filter Content Will Be Injected Here -->
+                </div>
+            </aside>
+
+            <!-- Mobile Filter Modal Trigger -->
+            <button
+                id="mobileFilterBtn"
+                class="lg:hidden fixed bottom-8 right-8 bg-accent text-white p-4 rounded-full shadow-lg hover:brightness-110 transition z-20"
+                title="Open Filters"
+            >
+                <i class="fas fa-sliders-h text-xl"></i>
+            </button>
+
+            <!-- Main Content -->
+            <div class="flex-1 min-w-0">
+                <!-- Sorting and View Options -->
+                <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm">
+                    <div class="text-sm font-semibold text-muted">
+                        <span id="resultCount">0</span> vehicles found
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <select
+                            id="sortBy"
+                            class="px-4 py-2 border border-[#d4ded9] rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                        >
+                            <option value="relevance">Sort by: Relevance</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="newest">Newest</option>
+                        </select>
+                        <button id="clearFiltersBtn" class="text-sm font-semibold text-accent hover:underline transition flex items-center gap-2">
+                            <i class="fas fa-times-circle"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Filters Display -->
+                <div id="activeFilters" class="mb-6 flex flex-wrap gap-2">
+                    <!-- Filter tags will be displayed here -->
+                </div>
+
+                <!-- Vehicle Results Grid -->
+                <div id="vehicleResults" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Vehicle cards will be injected here -->
+                </div>
+
+                <!-- No Results Message -->
+                <div id="noResults" class="no-results-animation hidden text-center py-16">
+                    <i class="fas fa-search text-6xl text-muted mb-4"></i>
+                    <h3 class="text-2xl font-bold text-ink mb-2">No vehicles found</h3>
+                    <p class="text-muted mb-6">Try adjusting your search criteria or filters</p>
+                    <button id="resetSearchBtn" class="bg-accent text-white px-6 py-3 rounded-full font-semibold hover:brightness-110 transition">
+                        Reset Search
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="assets/js/search-api-client.js"></script>
+    <script src="assets/js/search-filter-manager.js"></script>
+    <script src="assets/js/search-ui-manager.js"></script>
+    <script src="assets/js/search-wishlist.js"></script>
+    <script src="assets/js/advanced-search.js"></script>
+</body>
+</html>
