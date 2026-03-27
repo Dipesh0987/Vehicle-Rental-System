@@ -8,6 +8,9 @@ class AdvancedSearchSystem {
         this.apiClient = new SearchAPIClient();
         this.filterManager = new SearchFilterManager();
         this.uiManager = new SearchUIManager(this.filterManager, this.apiClient);
+        this.analytics = new window.SearchAnalytics();
+        this.locationAutocomplete = new window.LocationAutocomplete(this.apiClient);
+        this.pricingCalculator = new window.PricingCalculator();
         this.vehicles = [];
         this.isInitialized = false;
 
@@ -214,15 +217,25 @@ class AdvancedSearchSystem {
     setupQuickFilters() {
         const quickFilterBtns = document.querySelectorAll(".quick-filter-btn");
 
+        const setQuickFilterButtonState = (btn, isActive) => {
+            btn.classList.toggle("bg-accent", isActive);
+            btn.classList.toggle("text-white", isActive);
+            btn.classList.toggle("border-accent", isActive);
+            btn.classList.toggle("shadow-[0_8px_16px_rgba(229,140,78,0.28)]", isActive);
+            btn.classList.toggle("text-ink", !isActive);
+            btn.classList.toggle("bg-white", !isActive);
+            btn.classList.toggle("border-[#d4ded9]", !isActive);
+        };
+
         quickFilterBtns.forEach((btn) => {
             btn.addEventListener("click", () => {
                 const preset = btn.dataset.preset;
 
                 // Remove active state from all buttons
-                quickFilterBtns.forEach((b) => b.classList.remove("active"));
+                quickFilterBtns.forEach((b) => setQuickFilterButtonState(b, false));
 
                 // Add active state to clicked button
-                btn.classList.add("active");
+                setQuickFilterButtonState(btn, true);
 
                 // Apply preset filters
                 this.applyQuickFilter(preset);
@@ -301,7 +314,8 @@ class AdvancedSearchSystem {
 
                 // Remove quick filter active state
                 document.querySelectorAll(".quick-filter-btn").forEach((btn) => {
-                    btn.classList.remove("active");
+                    btn.classList.remove("bg-accent", "text-white", "border-accent", "shadow-[0_8px_16px_rgba(229,140,78,0.28)]");
+                    btn.classList.add("bg-white", "text-ink", "border-[#d4ded9]");
                 });
 
                 // Filter with empty criteria
@@ -315,23 +329,7 @@ class AdvancedSearchSystem {
      * Setup mobile filter toggle
      */
     setupMobileFilters() {
-        const mobileFilterBtn = document.getElementById("mobileFilterBtn");
-        const filterPanel = document.getElementById("filterPanel");
-
-        if (mobileFilterBtn && filterPanel) {
-            mobileFilterBtn.addEventListener("click", () => {
-                // On mobile, we need to create a modal filter panel
-                const isVisible = filterPanel.style.display !== "none";
-                filterPanel.style.display = isVisible ? "none" : "block";
-
-                // Change button appearance
-                if (isVisible) {
-                    mobileFilterBtn.style.opacity = "0.7";
-                } else {
-                    mobileFilterBtn.style.opacity = "1";
-                }
-            });
-        }
+        // Mobile filter modal interactions are handled in mobile-filter-modal.js.
     }
 
     /**
