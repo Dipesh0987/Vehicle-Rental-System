@@ -275,6 +275,9 @@
 
   // Initialize event listeners
   function init() {
+    // Restore saved filter state if available
+    restoreFilterState();
+
     const searchInput = document.getElementById("searchInput");
     const typeFilter = document.getElementById("typeFilter");
     const fuelFilter = document.getElementById("fuelFilter");
@@ -289,6 +292,7 @@
     if (searchInput) {
       searchInput.addEventListener("input", e => {
         FilterState.search = e.target.value;
+        saveFilterState();
         applyFilters(); // Real-time filter for search
       });
     }
@@ -296,6 +300,7 @@
     if (typeFilter) {
       typeFilter.addEventListener("change", e => {
         FilterState.type = e.target.value;
+        saveFilterState();
         applyFilters(); // Real-time filter for type
       });
     }
@@ -303,6 +308,7 @@
     if (fuelFilter) {
       fuelFilter.addEventListener("change", e => {
         FilterState.fuel = e.target.value;
+        saveFilterState();
         applyFilters(); // Real-time filter for fuel
       });
     }
@@ -310,6 +316,7 @@
     if (transmissionFilter) {
       transmissionFilter.addEventListener("change", e => {
         FilterState.transmission = e.target.value;
+        saveFilterState();
         applyFilters(); // Real-time filter for transmission
       });
     }
@@ -317,6 +324,7 @@
     if (availabilityFilter) {
       availabilityFilter.addEventListener("change", e => {
         FilterState.availability = e.target.value;
+        saveFilterState();
         applyFilters(); // Real-time filter for availability
       });
     }
@@ -337,7 +345,8 @@
         } else {
           FilterState.minPrice = numValue;
         }
-        applyFilters();
+        saveFilterState();
+        applyFilters(); // Real-time filter for min price
       });
     }
 
@@ -357,13 +366,17 @@
         } else {
           FilterState.maxPrice = numValue;
         }
-        applyFilters();
+        saveFilterState();
+        applyFilters(); // Real-time filter for max price
       });
     }
 
     // Apply filters button - kept for explicit apply action
     if (applyBtn) {
-      applyBtn.addEventListener("click", applyFilters);
+      applyBtn.addEventListener("click", () => {
+        saveFilterState();
+        applyFilters();
+      });
     }
 
     // Clear all filters
@@ -377,12 +390,67 @@
         if (availabilityFilter) availabilityFilter.value = "";
         if (minPrice) minPrice.value = "";
         if (maxPrice) maxPrice.value = "";
+        saveFilterState();
         applyFilters();
       });
     }
   }
 
-  // Expose public API
+  // Save filter state to localStorage
+  function saveFilterState() {
+    const state = {
+      search: FilterState.search,
+      type: FilterState.type,
+      fuel: FilterState.fuel,
+      transmission: FilterState.transmission,
+      availability: FilterState.availability,
+      minPrice: FilterState.minPrice,
+      maxPrice: FilterState.maxPrice
+    };
+    try {
+      localStorage.setItem("vehicleFilters", JSON.stringify(state));
+    } catch (e) {
+      console.warn("Could not save filter state to localStorage", e);
+    }
+  }
+
+  // Restore filter state from localStorage
+  function restoreFilterState() {
+    try {
+      const saved = localStorage.getItem("vehicleFilters");
+      if (saved) {
+        const state = JSON.parse(saved);
+        FilterState.search = state.search || "";
+        FilterState.type = state.type || "";
+        FilterState.fuel = state.fuel || "";
+        FilterState.transmission = state.transmission || "";
+        FilterState.availability = state.availability || "";
+        FilterState.minPrice = state.minPrice;
+        FilterState.maxPrice = state.maxPrice;
+
+        // Update UI with restored values
+        const searchInput = document.getElementById("searchInput");
+        const typeFilter = document.getElementById("typeFilter");
+        const fuelFilter = document.getElementById("fuelFilter");
+        const transmissionFilter = document.getElementById("transmissionFilter");
+        const availabilityFilter = document.getElementById("availabilityFilter");
+        const minPrice = document.getElementById("minPrice");
+        const maxPrice = document.getElementById("maxPrice");
+
+        if (searchInput) searchInput.value = FilterState.search;
+        if (typeFilter) typeFilter.value = FilterState.type;
+        if (fuelFilter) fuelFilter.value = FilterState.fuel;
+        if (transmissionFilter) transmissionFilter.value = FilterState.transmission;
+        if (availabilityFilter) availabilityFilter.value = FilterState.availability;
+        if (minPrice) minPrice.value = FilterState.minPrice || "";
+        if (maxPrice) maxPrice.value = FilterState.maxPrice || "";
+
+        applyFilters();
+      }
+    } catch (e) {
+      console.warn("Could not restore filter state from localStorage", e);
+    }
+  }
   window.VehicleFilters = {
     FilterState,
     applyFilters,
@@ -392,6 +460,8 @@
     getFuelType,
     getTransmission,
     getAvailability,
+    saveFilterState,
+    restoreFilterState,
     init
   };
 
