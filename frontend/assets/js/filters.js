@@ -255,50 +255,57 @@
     const applyBtn = document.getElementById("applyFilters");
     const clearBtn = document.getElementById("clearFilters");
 
-    // Update filter state on input change
+    // Update filter state on input change - with real-time updates
     if (searchInput) {
       searchInput.addEventListener("input", e => {
         FilterState.search = e.target.value;
+        applyFilters(); // Real-time filter for search
       });
     }
 
     if (typeFilter) {
       typeFilter.addEventListener("change", e => {
         FilterState.type = e.target.value;
+        applyFilters(); // Real-time filter for type
       });
     }
 
     if (fuelFilter) {
       fuelFilter.addEventListener("change", e => {
         FilterState.fuel = e.target.value;
+        applyFilters(); // Real-time filter for fuel
       });
     }
 
     if (transmissionFilter) {
       transmissionFilter.addEventListener("change", e => {
         FilterState.transmission = e.target.value;
+        applyFilters(); // Real-time filter for transmission
       });
     }
 
     if (availabilityFilter) {
       availabilityFilter.addEventListener("change", e => {
         FilterState.availability = e.target.value;
+        applyFilters(); // Real-time filter for availability
       });
     }
 
     if (minPrice) {
       minPrice.addEventListener("change", e => {
         FilterState.minPrice = e.target.value ? parseInt(e.target.value, 10) : null;
+        applyFilters(); // Real-time filter for min price
       });
     }
 
     if (maxPrice) {
       maxPrice.addEventListener("change", e => {
         FilterState.maxPrice = e.target.value ? parseInt(e.target.value, 10) : null;
+        applyFilters(); // Real-time filter for max price
       });
     }
 
-    // Apply filters button
+    // Apply filters button - kept for explicit apply action
     if (applyBtn) {
       applyBtn.addEventListener("click", applyFilters);
     }
