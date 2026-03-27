@@ -216,20 +216,20 @@
         </div>
 
         <!-- Advanced Filter Panel -->
-        <div class="mt-7 rounded-2xl border border-white/60 bg-[linear-gradient(160deg,rgba(255,255,255,0.95),rgba(240,248,245,0.88))] p-6 shadow-[0_12px_30px_rgba(10,31,34,0.06)]">
-          <div class="flex items-center justify-between mb-5">
+        <div class="mt-7 rounded-2xl border border-white/60 bg-[linear-gradient(160deg,rgba(255,255,255,0.95),rgba(240,248,245,0.88))] p-5 shadow-[0_12px_30px_rgba(10,31,34,0.06)] sm:p-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
             <h2 class="text-[18px] font-bold text-ink flex items-center gap-2">
               <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
               </svg>
               Smart Filters
             </h2>
-            <button id="clearFilters" type="button" class="text-[12px] font-semibold text-[#E58C4E] transition duration-200 hover:text-[#d67a3e] hover:underline">Clear All</button>
+            <button id="clearFilters" type="button" class="text-[12px] font-semibold text-[#E58C4E] transition duration-200 hover:text-[#d67a3e] hover:underline text-left sm:text-right">Clear All</button>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4">
             <!-- Search Filter -->
-            <div class="lg:col-span-2">
+            <div class="sm:col-span-2">
               <label class="block text-[12px] font-semibold text-panel mb-2">🔍 Search Vehicle</label>
               <input
                 id="searchInput"
@@ -298,8 +298,8 @@
           </div>
 
           <!-- Price Range Filter -->
-          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-            <div class="lg:col-span-2">
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:gap-4">
+            <div class="sm:col-span-1">
               <label class="block text-[12px] font-semibold text-panel mb-2">Min Price ($/day)</label>
               <input
                 id="minPrice"
@@ -308,7 +308,7 @@
                 class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
               />
             </div>
-            <div class="lg:col-span-2">
+            <div class="sm:col-span-1">
               <label class="block text-[12px] font-semibold text-panel mb-2">Max Price ($/day)</label>
               <input
                 id="maxPrice"
@@ -317,11 +317,11 @@
                 class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
               />
             </div>
-            <div class="lg:col-span-2 flex items-end gap-2">
+            <div class="sm:col-span-2 lg:col-span-4 flex items-end gap-2">
               <button
                 id="applyFilters"
                 type="button"
-                class="w-full rounded-xl bg-accent px-5 py-2.5 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_8px_16px_rgba(229,140,78,0.32)]"
+                class="flex-1 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_8px_16px_rgba(229,140,78,0.32)]"
               >
                 Apply Filters
               </button>
