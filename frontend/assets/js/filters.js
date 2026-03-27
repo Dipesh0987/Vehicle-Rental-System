@@ -247,9 +247,29 @@
 
   // Update result counter
   function updateResultCount(visibleCount, totalCount) {
-    // Can be extended to show result count if needed
-    if (visibleCount === 0) {
-      console.log("No vehicles match the applied filters");
+    const resultsDiv = document.getElementById("filterResults");
+    const visibleCountEl = document.getElementById("visibleCount");
+    
+    if (!resultsDiv) return;
+
+    if (visibleCount === 0 && FilterState.hasActiveFilters()) {
+      // Show "no results" message
+      resultsDiv.innerHTML = `
+        <div class="text-center">
+          <p class="text-[13px] font-semibold text-[#c05823]">No vehicles match your filters</p>
+          <p class="text-[12px] text-[#6C7074] mt-1">Try adjusting your search criteria or <button class="text-accent font-semibold hover:underline" onclick="document.getElementById('clearFilters').click()">clear filters</button></p>
+        </div>
+      `;
+      resultsDiv.classList.remove("hidden");
+    } else if (FilterState.hasActiveFilters()) {
+      // Show result count
+      resultsDiv.classList.remove("hidden");
+      if (visibleCountEl) {
+        visibleCountEl.textContent = visibleCount;
+      }
+    } else {
+      // Hide when no filters applied
+      resultsDiv.classList.add("hidden");
     }
   }
 
