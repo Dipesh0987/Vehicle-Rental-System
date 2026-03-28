@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard | Vehicle Rental System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Manrope', 'sans-serif'],
+              mono: ['IBM Plex Mono', 'monospace'],
+            },
+            colors: {
+              brand: {
+                50: '#f2f7f5',
+                100: '#dcece7',
+                500: '#1f7668',
+                600: '#185e53',
+                700: '#12453d',
+                900: '#0a211d',
+              },
+              sand: '#f5f1e8',
+              slate: '#182227',
+              peach: '#f08f5f',
+            },
+            boxShadow: {
+              soft: '0 10px 30px rgba(16, 26, 31, 0.08)',
+              panel: '0 20px 45px rgba(9, 19, 23, 0.12)',
+            },
+            keyframes: {
+              fadeUp: {
+                '0%': { opacity: '0', transform: 'translateY(8px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              pulseDot: {
+                '0%, 100%': { transform: 'scale(0.9)', opacity: '0.55' },
+                '50%': { transform: 'scale(1)', opacity: '1' },
+              },
+            },
+            animation: {
+              fadeUp: 'fadeUp 320ms ease-out forwards',
+              pulseDot: 'pulseDot 2.6s ease-in-out infinite',
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="assets/css/admin.css" />
+  </head>
+  <body class="h-full bg-sand text-slate antialiased dark:bg-[#0f1418] dark:text-slate-100">
+    <div class="relative min-h-full bg-[radial-gradient(circle_at_top_left,#ffffff_0%,#f5f1e8_55%,#ece7dc_100%)] dark:bg-[radial-gradient(circle_at_top_left,#1f2b31_0%,#11181d_52%,#0b1014_100%)]">
+      <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div class="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,#f08f5f42,transparent_68%)]"></div>
+        <div class="absolute right-0 top-20 h-80 w-80 rounded-full bg-[radial-gradient(circle,#1f766833,transparent_70%)]"></div>
+      </div>
+
+      <div id="adminApp" class="mx-auto flex min-h-screen w-full max-w-[1700px]"></div>
+    </div>
+
+    <script type="module" src="assets/js/app.js"></script>
+  </body>
+</html>
