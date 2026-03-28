@@ -82,25 +82,14 @@ export function renderShell() {
   return `
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
   <aside id="sidebar" class="sticky top-0 hidden h-screen w-[300px] flex-col border-r border-black/10 bg-white/75 p-5 backdrop-blur-xl lg:flex dark:border-white/10 dark:bg-black/20">
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Control Center</p>
-        <h1 class="text-xl font-extrabold tracking-[-0.03em]">Fleet Admin</h1>
-      </div>
-      <button id="collapseSidebar" class="rounded-lg p-2 text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-white/10">
-        <span class="material-symbols-outlined text-[20px]">left_panel_close</span>
-      </button>
+    <div class="mb-6">
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Control Center</p>
+      <h1 class="text-xl font-extrabold tracking-[-0.03em]">Vehicle Rental Admin</h1>
     </div>
 
     <nav class="scroll-thin flex-1 space-y-2 overflow-y-auto">
       ${renderNavLinks(navItems)}
     </nav>
-
-    <div class="mt-4 rounded-xl border border-brand-100/90 bg-brand-50/80 p-4 dark:border-brand-500/20 dark:bg-brand-900/30">
-      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700 dark:text-brand-100">Live System</p>
-      <p class="mt-1 text-sm font-semibold">Realtime Booking Sync</p>
-      <p class="mt-2 text-xs text-slate-600 dark:text-slate-300">Latency <span class="font-mono font-bold">41ms</span> <span class="ml-1 inline-block h-2 w-2 animate-pulseDot rounded-full bg-emerald-500"></span></p>
-    </div>
   </aside>
 
   <div class="min-w-0 flex-1">

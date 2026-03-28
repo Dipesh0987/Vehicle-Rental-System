@@ -21,7 +21,7 @@ export const classMap = {
 };
 
 export const quickActions = [
-  { id: 'newBooking', label: 'Create Booking', icon: 'calendar_plus_app' },
+  { id: 'newBooking', label: 'Create Booking', icon: 'event_available' },
   { id: 'addVehicle', label: 'Add Vehicle', icon: 'directions_car' },
-  { id: 'markMaintenance', label: 'Report Damage', icon: 'build_circle' },
+  { id: 'markMaintenance', label: 'Report Damage', icon: 'car_repair' },
 ];

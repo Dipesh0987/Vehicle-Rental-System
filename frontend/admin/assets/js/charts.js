@@ -5,6 +5,10 @@ export function renderLineChart(canvasId, labels, datasetLabel, data, color = '#
   const existing = Chart.getChart(canvasId);
   if (existing) existing.destroy();
 
+  const isDark = document.documentElement.classList.contains('dark');
+  const axisColor = isDark ? '#cbd5e1' : '#64748b';
+  const gridColor = isDark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(100, 116, 139, 0.22)';
+
   new Chart(canvas, {
     type: 'line',
     data: {
@@ -33,11 +37,11 @@ export function renderLineChart(canvasId, labels, datasetLabel, data, color = '#
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: '#64748b' },
+          ticks: { color: axisColor },
         },
         y: {
-          grid: { color: 'rgba(100, 116, 139, 0.22)' },
-          ticks: { color: '#64748b' },
+          grid: { color: gridColor },
+          ticks: { color: axisColor },
         },
       },
     },
@@ -50,6 +54,10 @@ export function renderBarChart(canvasId, labels, data) {
 
   const existing = Chart.getChart(canvasId);
   if (existing) existing.destroy();
+
+  const isDark = document.documentElement.classList.contains('dark');
+  const axisColor = isDark ? '#cbd5e1' : '#64748b';
+  const gridColor = isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(100, 116, 139, 0.2)';
 
   new Chart(canvas, {
     type: 'bar',
@@ -72,11 +80,11 @@ export function renderBarChart(canvasId, labels, data) {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: '#64748b' },
+          ticks: { color: axisColor },
         },
         y: {
-          grid: { color: 'rgba(100, 116, 139, 0.2)' },
-          ticks: { color: '#64748b' },
+          grid: { color: gridColor },
+          ticks: { color: axisColor },
         },
       },
     },
@@ -89,6 +97,9 @@ export function renderPieChart(canvasId, labels, data) {
 
   const existing = Chart.getChart(canvasId);
   if (existing) existing.destroy();
+
+  const isDark = document.documentElement.classList.contains('dark');
+  const legendColor = isDark ? '#cbd5e1' : '#64748b';
 
   new Chart(canvas, {
     type: 'pie',
@@ -109,7 +120,7 @@ export function renderPieChart(canvasId, labels, data) {
         legend: {
           position: 'bottom',
           labels: {
-            color: '#64748b',
+            color: legendColor,
             usePointStyle: true,
             boxWidth: 8,
           },
