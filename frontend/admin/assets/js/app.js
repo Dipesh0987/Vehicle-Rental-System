@@ -13,7 +13,6 @@ import { renderReviewsModule } from './modules/reviews.js';
 import { renderAdminsModule } from './modules/admins.js';
 import { renderNotificationsModule } from './modules/notifications.js';
 import { renderReportsModule } from './modules/reports.js';
-import { openDrawer } from './ui.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -54,26 +53,22 @@ function renderActiveModule() {
   if (!moduleHost) return;
 
   const renderer = modules[appState.activeModule] || modules.overview;
-  moduleHost.innerHTML = `<section class="rounded-2xl border border-slate-200 bg-white/80 p-5 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">Loading ${appState.activeModule} module...</section>`;
+  try {
+    moduleHost.innerHTML = '';
+    const section = renderer({
+      data: appState.data,
+      query: appState.globalSearch,
+      notify: pushToast,
+    });
 
-  window.setTimeout(() => {
-    try {
-      moduleHost.innerHTML = '';
-      const section = renderer({
-        data: appState.data,
-        query: appState.globalSearch,
-        notify: pushToast,
-      });
-
-      if (typeof section === 'string') {
-        moduleHost.innerHTML = section;
-      } else if (section instanceof HTMLElement) {
-        moduleHost.appendChild(section);
-      }
-    } catch (error) {
-      moduleHost.innerHTML = `<section class="rounded-2xl border border-rose-300 bg-rose-50 p-5 text-sm font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300">Unable to render module: ${error.message}</section>`;
+    if (typeof section === 'string') {
+      moduleHost.innerHTML = section;
+    } else if (section instanceof HTMLElement) {
+      moduleHost.appendChild(section);
     }
-  }, 80);
+  } catch (error) {
+    moduleHost.innerHTML = `<section class="rounded-2xl border border-rose-300 bg-rose-50 p-5 text-sm font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300">Unable to render module: ${error.message}</section>`;
+  }
 }
 
 function handleNavigate(id) {
@@ -93,10 +88,6 @@ function handleQuickAction(id) {
   appState.activeModule = target;
   setActiveNav(target);
   renderActiveModule();
-  openDrawer({
-    title: 'Quick Action',
-    content: `<p class="font-semibold">${id.replace(/([A-Z])/g, ' $1').trim()} is prefilled and ready.</p><p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Use this drawer pattern for creating records without leaving context.</p>`,
-  });
   pushToast(`${id.replace(/([A-Z])/g, ' $1')} ready`, 'success');
 }
 
@@ -115,6 +106,7 @@ function initTheme() {
     const next = current === 'dark' ? 'light' : 'dark';
     applyTheme(next);
     window.localStorage.setItem(appConfig.storageKeys.theme, next);
+    renderActiveModule();
   });
 }
 
