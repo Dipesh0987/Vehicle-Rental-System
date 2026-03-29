@@ -1,45 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register</title>
-<script src="https://cdn.tailwindcss.com"></script>
-</head>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Register | Rent A Vehicle</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+			rel="stylesheet"
+		/>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script>
+			tailwind.config = {
+				theme: {
+					extend: {
+						fontFamily: {
+							poppins: ["Poppins", "sans-serif"],
+						},
+						colors: {
+							accent: "#E58C4E",
+							panel: "#2C766E",
+							ink: "#0E2528",
+							muted: "#6C7074",
+							paper: "#F2F3F1",
+						},
+						keyframes: {
+							sectionIn: {
+								to: {
+									opacity: "1",
+									transform: "translateY(0)",
+								},
+							},
+						},
+						animation: {
+							sectionIn: "sectionIn 700ms cubic-bezier(0.19, 1, 0.22, 1) forwards",
+						},
+					},
+				},
+			};
+		</script>
+	</head>
+	<body
+		class="min-h-screen overflow-hidden bg-paper font-poppins text-ink"
+		style="background: radial-gradient(circle at 86% 12%, rgba(19, 87, 81, 0.34), transparent 42%), radial-gradient(circle at 10% 88%, rgba(229, 140, 78, 0.24), transparent 36%), linear-gradient(148deg, #f8faf8 0%, #eef3ef 50%, #e7edeb 100%);"
+	>
+		<main class="relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8">
+			<div class="pointer-events-none absolute right-[-100px] top-[-95px] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle_at_32%_28%,rgba(229,140,78,0.78),rgba(229,140,78,0.12))] opacity-75 blur-[12px]" aria-hidden="true"></div>
+			<div class="pointer-events-none absolute bottom-[-95px] left-[-85px] h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(44,118,110,0.62),rgba(44,118,110,0.16))] opacity-75 blur-[12px]" aria-hidden="true"></div>
 
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+			<section class="relative w-full max-w-[1080px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-6 opacity-0 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] animate-sectionIn sm:p-8">
+				<div class="grid gap-8 lg:grid-cols-[1.04fr,0.96fr] lg:items-center">
+					<aside class="space-y-4">
+						<a href="index.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#3f5557] transition hover:text-panel">← Back to Home</a>
+						<p class="inline-block rounded-full border border-[rgba(44,118,110,0.2)] bg-[#e8f2ef] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-panel">
+							New Customer Onboarding
+						</p>
+						<h1 class="max-w-[520px] text-[34px] font-bold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[44px]">
+							Create Your Account and Start Booking Premium Vehicles
+						</h1>
+						<p class="max-w-[560px] text-[14px] leading-relaxed text-[#405457] sm:text-[15px]">
+							Secure sign-up with email verification and modern authentication powered by Supabase.
+						</p>
 
-<div class="bg-white p-8 rounded-xl shadow-md w-96">
-<h2 class="text-2xl font-bold mb-6 text-center">Register</h2>
+						<div class="grid grid-cols-3 gap-2.5 sm:gap-3">
+							<div class="rounded-2xl border border-[rgba(23,57,60,0.12)] bg-white/75 px-3 py-2">
+								<p class="text-[18px] font-bold text-[#173d40]">Real</p>
+								<p class="text-[10px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Auth</p>
+							</div>
+							<div class="rounded-2xl border border-[rgba(23,57,60,0.12)] bg-white/75 px-3 py-2">
+								<p class="text-[18px] font-bold text-[#173d40]">Secure</p>
+								<p class="text-[10px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Passwords</p>
+							</div>
+							<div class="rounded-2xl border border-[rgba(23,57,60,0.12)] bg-white/75 px-3 py-2">
+								<p class="text-[18px] font-bold text-[#173d40]">Email</p>
+								<p class="text-[10px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Verification</p>
+							</div>
+						</div>
+					</aside>
 
-<div id="message" class="text-sm mb-4 text-center text-red-500"></div>
+					<div class="rounded-[24px] border border-white/70 bg-white/90 p-4 shadow-[0_20px_42px_rgba(10,31,34,0.14)] sm:p-6">
+						<div class="mb-3 rounded-2xl bg-[linear-gradient(110deg,rgba(15,70,67,0.08),rgba(229,140,78,0.08))] px-4 py-3">
+							<p class="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2f6a66]">Account Registration</p>
+							<p class="mt-1 text-[13px] text-[#345154]">Use your full name, email, and a secure password.</p>
+						</div>
 
-<form id="registerForm">
+						<div id="message" class="hidden rounded-xl px-3 py-2 text-[13px]"></div>
 
-<input type="text" id="name" placeholder="Full Name"
-class="w-full mb-4 p-2 border rounded" required>
+						<form id="registerForm" class="mt-1 space-y-4" novalidate>
+							<label class="block" for="name">
+								<span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Full Name (Username)</span>
+								<input
+									id="name"
+									name="name"
+									type="text"
+									required
+									autocomplete="name"
+									placeholder="Enter your full name"
+									class="w-full rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2 text-[14px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]"
+								/>
+							</label>
 
-<input type="email" id="email" placeholder="Email"
-class="w-full mb-4 p-2 border rounded" required>
+							<label class="block" for="email">
+								<span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Email</span>
+								<input
+									id="email"
+									name="email"
+									type="email"
+									required
+									autocomplete="email"
+									placeholder="you@example.com"
+									class="w-full rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2 text-[14px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]"
+								/>
+							</label>
 
-<input type="password" id="password" placeholder="Password (min 8 chars)"
-class="w-full mb-4 p-2 border rounded" required>
+							<label class="block" for="password">
+								<span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Password</span>
+								<input
+									id="password"
+									name="password"
+									type="password"
+									required
+									autocomplete="new-password"
+									placeholder="At least 8 chars, 1 special character"
+									class="w-full rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2 text-[14px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]"
+								/>
+							</label>
 
-<button type="submit"
-class="w-full bg-orange-500 text-white p-2 rounded">
-Register
-</button>
+							<label class="block" for="confirmPassword">
+								<span class="mb-2 block text-[14px] font-semibold text-[#2b4144]">Confirm Password</span>
+								<input
+									id="confirmPassword"
+									name="confirmPassword"
+									type="password"
+									required
+									autocomplete="new-password"
+									placeholder="Re-enter password"
+									class="w-full rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2 text-[14px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]"
+								/>
+							</label>
 
-</form>
+							<div class="rounded-xl border border-[rgba(44,118,110,0.24)] bg-[rgba(228,240,236,0.65)] px-3 py-2 text-[12px] text-[#264d4f]">
+								Password policy: minimum 8 characters and at least one special character.
+							</div>
 
-<p class="text-sm mt-4 text-center">
-Already have an account?
-<a href="login.html" class="text-blue-500">Login</a>
-</p>
+							<button
+								type="submit"
+								class="w-full rounded-full bg-accent px-5 py-3 text-[15px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]"
+							>
+								Create Account
+							</button>
+						</form>
 
-</div>
+						<p class="mt-4 text-center text-[13px] text-[#3f575a]">
+							Already have an account?
+							<a href="login.html" class="font-semibold text-panel hover:underline">Sign In</a>
+						</p>
+					</div>
+				</div>
+			</section>
+		</main>
 
-<script src="register.js"></script>
-
-</body>
+		<script src="assets/js/supabase.config.js"></script>
+		<script src="assets/js/supabase.client.js"></script>
+		<script src="assets/js/auth.supabase.js"></script>
+		<script src="assets/js/register.js"></script>
+	</body>
 </html>
