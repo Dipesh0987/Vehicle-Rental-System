@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -32,324 +32,370 @@
                   transform: "translateY(0)",
                 },
               },
-              cardLift: {
+              cardIn: {
                 from: {
                   opacity: "0",
-                  transform: "translateY(18px)",
+                  transform: "translateY(22px) scale(0.985)",
                 },
                 to: {
                   opacity: "1",
-                  transform: "translateY(0)",
+                  transform: "translateY(0) scale(1)",
                 },
               },
               glowPulse: {
-                "0%, 100%": {
-                  opacity: "0.65",
-                },
-                "50%": {
-                  opacity: "1",
-                },
+                "0%,100%": { opacity: "0.7" },
+                "50%": { opacity: "1" },
+              },
+              driftOrb: {
+                "0%,100%": { transform: "translate3d(0,0,0)" },
+                "50%": { transform: "translate3d(0,-10px,0)" },
               },
             },
             animation: {
               fadeUp: "fadeUp 640ms ease forwards",
-              cardLift: "cardLift 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards",
-              glowPulse: "glowPulse 3.8s ease-in-out infinite",
+              cardIn: "cardIn 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards",
+              glowPulse: "glowPulse 3.6s ease-in-out infinite",
+              driftOrb: "driftOrb 8s ease-in-out infinite",
             },
           },
         },
       };
     </script>
     <style>
-      .fleet-grid article {
-        position: relative;
+      @keyframes cardIn {
+        from {
+          opacity: 0;
+          transform: translateY(22px) scale(0.985);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
 
-      .fleet-grid article::after {
+      .fleet-card {
+        position: relative;
+        opacity: 0;
+        animation: cardIn 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation-delay: calc(var(--idx, 0) * 70ms);
+      }
+
+      .fleet-card::after {
         content: "";
         position: absolute;
         inset: 0;
-        border-radius: 22px;
-        pointer-events: none;
+        border-radius: 24px;
         border: 1px solid rgba(44, 118, 110, 0);
-        transition: border-color 240ms ease;
+        pointer-events: none;
+        transition: border-color 220ms ease;
       }
 
-      .fleet-grid article:hover::after {
-        border-color: rgba(44, 118, 110, 0.28);
+      .fleet-card:hover::after {
+        border-color: rgba(44, 118, 110, 0.26);
       }
 
-      .fleet-grid article:nth-child(2n) {
-        animation-delay: 110ms;
+      .hero-grid::before {
+        content: "";
+        position: absolute;
+        right: -90px;
+        top: -80px;
+        width: 250px;
+        height: 250px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 30%, rgba(229, 140, 78, 0.35), rgba(229, 140, 78, 0));
+        filter: blur(8px);
+        pointer-events: none;
       }
 
-      .fleet-grid article:nth-child(3n) {
-        animation-delay: 170ms;
+      .hero-grid::after {
+        content: "";
+        position: absolute;
+        left: -80px;
+        bottom: -90px;
+        width: 280px;
+        height: 280px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 30%, rgba(44, 118, 110, 0.34), rgba(44, 118, 110, 0));
+        filter: blur(8px);
+        pointer-events: none;
       }
     </style>
   </head>
-  <body class="min-h-screen bg-paper font-poppins text-ink">
-    <main class="relative min-h-screen overflow-hidden">
-      <div class="pointer-events-none absolute left-[-80px] top-[-80px] h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(229,140,78,0.52),rgba(229,140,78,0.08))] blur-[8px]"></div>
-      <div class="pointer-events-none absolute bottom-[-90px] right-[-60px] h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle_at_38%_35%,rgba(44,118,110,0.58),rgba(44,118,110,0.12))] blur-[8px]"></div>
+  <body
+    class="min-h-screen bg-paper font-poppins text-ink"
+    style="background: radial-gradient(circle at 90% 7%, rgba(229, 140, 78, 0.18), transparent 35%), radial-gradient(circle at 8% 88%, rgba(44, 118, 110, 0.18), transparent 32%), linear-gradient(145deg, #f9fbf9 0%, #edf3ef 52%, #e7eeeb 100%);"
+  >
+    <main class="relative min-h-screen overflow-hidden pb-10">
+      <div class="pointer-events-none absolute right-[-80px] top-[-70px] h-[220px] w-[220px] rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(44,118,110,0.48),rgba(44,118,110,0.1))] blur-[10px] animate-driftOrb"></div>
 
-      <header class="relative z-20 mx-auto flex w-[95%] max-w-[1320px] items-center justify-between gap-4 py-4 opacity-0 animate-fadeUp">
-        <a href="index.html" class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
-          <span class="block bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[22px] font-extrabold leading-none tracking-tight text-transparent lg:text-[30px]">
-            RENT A VEHICLE
-          </span>
-          <span class="mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-glowPulse"></span>
-        </a>
+      <header class="relative z-30 mx-auto w-[95%] max-w-[1340px] py-4">
+        <div class="flex items-center justify-between gap-4 rounded-2xl border border-white/60 bg-white/70 px-4 py-3 shadow-[0_14px_30px_rgba(10,31,34,0.08)] backdrop-blur-[8px] lg:px-6">
+          <a href="index.html" class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
+            <p class="bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[21px] font-extrabold leading-none tracking-tight text-transparent lg:text-[30px]">
+              RENT A VEHICLE
+            </p>
+            <span class="mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-glowPulse"></span>
+          </a>
 
-        <nav class="hidden items-center gap-8 text-[15px] font-semibold text-[#2F3336] lg:flex">
-          <a class="transition hover:text-panel" href="index.html">Home</a>
-          <a class="text-accent" href="vehicles.html">Vehicles</a>
-          <a class="transition hover:text-panel" href="#">Pricing</a>
-          <a class="transition hover:text-panel" href="#">Deals</a>
-          <a class="transition hover:text-panel" href="#">Support</a>
-        </nav>
+          <nav class="hidden items-center gap-8 text-[15px] font-semibold text-[#2F3336] lg:flex">
+            <a class="transition hover:text-panel" href="index.html">Home</a>
+            <a class="text-accent" href="vehicles.html">Vehicles</a>
+            <a class="transition hover:text-panel" href="#">Pricing</a>
+            <a class="transition hover:text-panel" href="#">Deals</a>
+            <a class="transition hover:text-panel" href="#">Support</a>
+          </nav>
 
-        <div data-auth-guest class="hidden items-center gap-4 text-[14px] text-[#204144] lg:flex">
-          <a class="font-semibold transition hover:text-panel" href="login.html">Sign In</a>
-          <button type="button" class="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
-            Sign Up
-          </button>
-        </div>
+          <div data-auth-guest class="hidden items-center gap-4 text-[14px] text-[#204144] lg:flex">
+            <a class="font-semibold transition hover:text-panel" href="login.html">Sign In</a>
+            <button
+              type="button"
+              class="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_20px_rgba(229,140,78,0.32)]"
+            >
+              Sign Up
+            </button>
+          </div>
 
-        <div data-auth-user class="relative hidden items-center text-[#143236] lg:flex">
-          <button type="button" data-profile-trigger class="inline-flex cursor-pointer items-center gap-[0.65rem] transition duration-200 hover:-translate-y-[1px] hover:brightness-105">
-            <span data-profile-avatar class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#1b5d5f]/40 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.9rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)]">GU</span>
-            <span data-profile-name class="text-[14px] font-semibold">Guest User</span>
-          </button>
+          <div data-auth-user class="relative hidden items-center text-[#143236] lg:flex">
+            <button type="button" data-profile-trigger class="inline-flex cursor-pointer items-center gap-[0.65rem] transition duration-200 hover:-translate-y-[1px] hover:brightness-105">
+              <span data-profile-avatar class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#1b5d5f]/40 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.9rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)]">GU</span>
+              <span data-profile-name class="text-[14px] font-semibold">Guest User</span>
+            </button>
 
-          <div data-profile-panel class="absolute right-0 top-[calc(100%+14px)] z-[130] w-[320px] max-h-[72vh] origin-top-right overflow-y-auto rounded-[18px] border border-white/25 bg-[linear-gradient(160deg,rgba(21,52,56,0.96),rgba(17,41,44,0.96))] p-4 text-white shadow-[0_20px_45px_rgba(2,14,16,0.36)] opacity-0 -translate-y-2 scale-95 pointer-events-none transition duration-200 max-[1024px]:fixed max-[1024px]:left-1/2 max-[1024px]:right-auto max-[1024px]:top-[90px] max-[1024px]:w-[min(92vw,360px)] max-[1024px]:-translate-x-1/2">
-            <p class="text-[16px] font-semibold">Edit Profile</p>
-            <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
+            <div data-profile-panel class="absolute right-0 top-[calc(100%+14px)] z-[130] w-[320px] max-h-[72vh] origin-top-right overflow-y-auto rounded-[18px] border border-white/25 bg-[linear-gradient(160deg,rgba(21,52,56,0.96),rgba(17,41,44,0.96))] p-4 text-white shadow-[0_20px_45px_rgba(2,14,16,0.36)] opacity-0 -translate-y-2 scale-95 pointer-events-none transition duration-200 max-[1024px]:fixed max-[1024px]:left-1/2 max-[1024px]:right-auto max-[1024px]:top-[90px] max-[1024px]:w-[min(92vw,360px)] max-[1024px]:-translate-x-1/2">
+              <p class="text-[16px] font-semibold">Edit Profile</p>
+              <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
 
-            <div class="mt-3 space-y-3">
-              <label class="block text-[12px] text-white/85" for="profileName">Username</label>
-              <input
-                id="profileName"
-                type="text"
-                class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[14px] text-white outline-none"
-                placeholder="Enter username"
-              />
+              <div class="mt-3 space-y-3">
+                <label class="block text-[12px] text-white/85" for="profileName">Username</label>
+                <input
+                  id="profileName"
+                  type="text"
+                  class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[14px] text-white outline-none"
+                  placeholder="Enter username"
+                />
 
-              <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
-              <input
-                id="profilePhoto"
-                type="file"
-                accept="image/*"
-                class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white"
-              />
+                <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
+                <input
+                  id="profilePhoto"
+                  type="file"
+                  accept="image/*"
+                  class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white"
+                />
 
-              <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90 transition duration-200 hover:-translate-y-[1px]">
-                Changes are stored locally (dummy UI flow).
-              </div>
+                <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90 transition duration-200 hover:-translate-y-[1px]">
+                  Changes are stored locally (dummy UI flow).
+                </div>
 
-              <div class="flex gap-2">
-                <button id="saveProfile" type="button" class="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
-                  Save
-                </button>
-                <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">
-                  Logout
-                </button>
+                <div class="flex gap-2">
+                  <button id="saveProfile" type="button" class="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
+                    Save
+                  </button>
+                  <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-2 lg:hidden">
+          <a href="index.html" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Home</a>
+          <a href="vehicles.html" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[12px] font-semibold text-[#9f5825]">Vehicles</a>
+          <a href="#" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Pricing</a>
+          <a href="#" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Deals</a>
         </div>
       </header>
 
-      <div class="relative z-20 mx-auto flex w-[95%] max-w-[1320px] flex-wrap gap-2 pb-2 lg:hidden">
-        <a href="index.html" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Home</a>
-        <a href="vehicles.html" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[12px] font-semibold text-[#9f5825]">Vehicles</a>
-        <a href="#" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Pricing</a>
-        <a href="#" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Deals</a>
-      </div>
-
-      <section class="relative z-10 mx-auto w-[95%] max-w-[1320px] rounded-[28px] border border-white/65 bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(240,246,243,0.82))] p-5 shadow-[0_28px_60px_rgba(10,31,34,0.14)] sm:p-7 lg:p-8">
-        <div class="grid gap-5 lg:grid-cols-[1fr,auto] lg:items-end">
-          <div>
-            <p class="inline-flex rounded-full border border-[rgba(44,118,110,0.22)] bg-[rgba(44,118,110,0.1)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-panel">
-              Professional Vehicle Catalog
+      <section class="hero-grid relative z-20 mx-auto w-[95%] max-w-[1340px] overflow-hidden rounded-[30px] border border-white/60 bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(240,246,243,0.8))] p-5 shadow-[0_30px_70px_rgba(10,31,34,0.13)] sm:p-7 lg:p-8">
+        <div class="relative z-10 grid gap-6 lg:grid-cols-[1.12fr,0.88fr] lg:items-end">
+          <div class="opacity-0 animate-fadeUp">
+            <p class="inline-flex rounded-full border border-[rgba(44,118,110,0.24)] bg-[rgba(44,118,110,0.1)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-panel">
+              Connected Fleet Experience
             </p>
-            <h1 class="mt-3 text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink sm:text-[46px]">Premium Fleet Listing</h1>
-            <p class="mt-3 max-w-[760px] text-[15px] leading-relaxed text-[#355053] sm:text-[16px]">
-              Organized by brand and class for a production-style rental experience. Listings below are dummy vehicles, ready for backend integration later.
+            <h1 class="mt-3 text-[34px] font-bold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[48px]">
+              Browse Vehicles by Brand with a Professional Listing Flow
+            </h1>
+            <p class="mt-3 max-w-[780px] text-[15px] leading-relaxed text-[#355053] sm:text-[16px]">
+              Same visual system as your homepage, now extended into a production-style catalog. Dummy inventory is sorted by brand and category with premium card interactions.
             </p>
+
+            <div class="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
+              <span class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[#9f5825]">10 Brands</span>
+              <span class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Sedan / SUV / Sport</span>
+              <span class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Daily Pricing Layout</span>
+              <span class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Responsive & Animated</span>
+            </div>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-[12px] font-semibold text-[#2d4f52] sm:grid-cols-4 lg:gap-3">
-            <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">12 Brands</div>
-            <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">Sedan to SUV</div>
-            <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">Daily Pricing</div>
-            <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">Verified Fleet</div>
+
+          <div class="grid grid-cols-2 gap-3 opacity-0 animate-fadeUp [animation-delay:120ms]">
+            <div class="rounded-2xl border border-[#d6dfdb] bg-white/85 px-4 py-3 text-center">
+              <p class="text-[21px] font-bold text-[#173d40]">28+</p>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Vehicle Models</p>
+            </div>
+            <div class="rounded-2xl border border-[#d6dfdb] bg-white/85 px-4 py-3 text-center">
+              <p class="text-[21px] font-bold text-[#173d40]">4.9</p>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Rating Ready</p>
+            </div>
+            <div class="rounded-2xl border border-[#d6dfdb] bg-white/85 px-4 py-3 text-center">
+              <p class="text-[21px] font-bold text-[#173d40]">24/7</p>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Support UX</p>
+            </div>
+            <div class="rounded-2xl border border-[#d6dfdb] bg-white/85 px-4 py-3 text-center">
+              <p class="text-[21px] font-bold text-[#173d40]">Fast</p>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.11em] text-[#4b6668]">Booking Flow</p>
+            </div>
           </div>
-        </div>
-
-        <div class="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
-          <button type="button" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[#9f5825]">Featured</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Top Rated</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Budget Friendly</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Luxury Class</button>
-          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Fuel Efficient</button>
-        </div>
-
-        <div class="fleet-grid mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eef3f1,#dde8e4)]">
-              <img src="assets/images/car-transparent.png" alt="Toyota Camry" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Toyota</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">Camry Hybrid</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Sedan • Automatic • 5 Seats • Hybrid</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:90ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eff3f5,#dce8ee)]">
-              <img src="assets/images/car.jpg" alt="Honda CR-V" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Honda</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">CR-V Touring</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">SUV • Automatic • 5 Seats • Petrol</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:160ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eff4ef,#d8e8dd)]">
-              <img src="assets/images/car-transparent.png" alt="Ford Mustang" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Ford</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">Mustang GT</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Sport • Automatic • 4 Seats • Petrol</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:220ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f4f2ef,#e8ddd8)]">
-              <img src="assets/images/car.jpg" alt="BMW 3 Series" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">BMW</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">3 Series</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Luxury Sedan • Automatic • 5 Seats</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:280ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#edf3f5,#dae6ea)]">
-              <img src="assets/images/car-transparent.png" alt="Hyundai Tucson" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Hyundai</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">Tucson N Line</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">SUV • Automatic • 5 Seats • Petrol</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:340ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f2f4f0,#dde5da)]">
-              <img src="assets/images/car.jpg" alt="Kia Seltos" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Kia</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">Seltos X-Line</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Compact SUV • Automatic • 5 Seats</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:400ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#edf4f6,#d8e6eb)]">
-              <img src="assets/images/car-transparent.png" alt="Nissan Altima" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Nissan</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">Altima SV</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Sedan • Automatic • 5 Seats • Petrol</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:460ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f2f2f4,#e0dfe8)]">
-              <img src="assets/images/car.jpg" alt="Mercedes C-Class" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Mercedes-Benz</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">C 300</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Luxury Sedan • Automatic • 5 Seats</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:520ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f1f4f2,#dde8e3)]">
-              <img src="assets/images/car-transparent.png" alt="Audi Q5" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Audi</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">Q5 Premium</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Luxury SUV • Automatic • 5 Seats</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
-
-          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:580ms]">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f4f3ef,#e9e0d7)]">
-              <img src="assets/images/car.jpg" alt="Jeep Wrangler" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-            </div>
-            <div class="pt-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Jeep</p>
-              <h3 class="mt-1 text-[20px] font-bold text-ink">Wrangler Sahara</h3>
-              <p class="mt-1 text-[13px] text-[#436164]">Off-Road SUV • Automatic • 5 Seats</p>
-              <div class="mt-3 flex items-center justify-between">
-                <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
-                <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
-              </div>
-            </div>
-          </article>
         </div>
       </section>
+
+      <section class="relative z-20 mx-auto mt-5 w-[95%] max-w-[1340px]">
+        <div class="mb-3 flex justify-end">
+          <p data-db-status data-state="idle" class="rounded-full border border-[#d5dfda] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2d4f52]">
+            Database not initialized.
+          </p>
+        </div>
+        <div id="fleetGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+      </section>
     </main>
+
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/db.bootstrap.js"></script>
     <script src="../backend/js/auth.js"></script>
     <script>
       window.VehicleAuthUI.init("home");
+      window.DatabaseBootstrap.init();
+
+      const vehicles = [
+        {
+          brand: "Audi",
+          model: "Q5 Premium",
+          category: "Luxury SUV",
+          seats: 5,
+          fuel: "Petrol",
+          price: 118,
+          image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "BMW",
+          model: "3 Series",
+          category: "Luxury Sedan",
+          seats: 5,
+          fuel: "Petrol",
+          price: 124,
+          image: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Ford",
+          model: "Mustang GT",
+          category: "Sport",
+          seats: 4,
+          fuel: "Petrol",
+          price: 139,
+          image: "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Honda",
+          model: "CR-V Touring",
+          category: "SUV",
+          seats: 5,
+          fuel: "Petrol",
+          price: 96,
+          image: "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Hyundai",
+          model: "Tucson N Line",
+          category: "SUV",
+          seats: 5,
+          fuel: "Petrol",
+          price: 88,
+          image: "https://images.unsplash.com/photo-1614200187524-dc4b892acf16?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Jeep",
+          model: "Wrangler Sahara",
+          category: "Off-Road SUV",
+          seats: 5,
+          fuel: "Petrol",
+          price: 132,
+          image: "https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Kia",
+          model: "Seltos X-Line",
+          category: "Compact SUV",
+          seats: 5,
+          fuel: "Petrol",
+          price: 82,
+          image: "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Mercedes-Benz",
+          model: "C 300",
+          category: "Luxury Sedan",
+          seats: 5,
+          fuel: "Petrol",
+          price: 145,
+          image: "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Nissan",
+          model: "Altima SV",
+          category: "Sedan",
+          seats: 5,
+          fuel: "Petrol",
+          price: 79,
+          image: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          brand: "Toyota",
+          model: "Camry Hybrid",
+          category: "Sedan",
+          seats: 5,
+          fuel: "Hybrid",
+          price: 91,
+          image: "https://images.unsplash.com/photo-1620891549027-942fdc95d3f5?auto=format&fit=crop&w=1200&q=80",
+        },
+      ];
+
+      const sortedVehicles = [...vehicles].sort((a, b) => {
+        if (a.brand === b.brand) {
+          return a.price - b.price;
+        }
+        return a.brand.localeCompare(b.brand);
+      });
+
+      const fleetGrid = document.getElementById("fleetGrid");
+
+      fleetGrid.innerHTML = sortedVehicles
+        .map(
+          (vehicle, index) => `
+            <article class="fleet-card group rounded-[24px] border border-[#d8e2de] bg-white/92 p-3 shadow-[0_16px_34px_rgba(10,31,34,0.09)] transition duration-300 hover:-translate-y-[3px] hover:shadow-[0_24px_42px_rgba(10,31,34,0.16)]" style="--idx:${index}">
+              <div class="overflow-hidden rounded-[18px] bg-[linear-gradient(155deg,#eef4f1,#dbe7e2)]">
+                <img src="${vehicle.image}" alt="${vehicle.brand} ${vehicle.model}" class="h-[190px] w-full object-cover transition duration-700 group-hover:scale-[1.04]" loading="lazy" />
+              </div>
+              <div class="pt-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">${vehicle.brand}</p>
+                    <h3 class="mt-1 text-[20px] font-bold leading-tight text-ink">${vehicle.model}</h3>
+                  </div>
+                  <p class="rounded-full border border-[#d7e2de] bg-[#f7fbf9] px-3 py-1 text-[12px] font-semibold text-[#2f5558]">$${vehicle.price}/day</p>
+                </div>
+
+                <p class="mt-2 text-[13px] text-[#436164]">${vehicle.category} | Automatic | ${vehicle.seats} Seats | ${vehicle.fuel}</p>
+
+                <div class="mt-4 flex items-center justify-between">
+                  <button type="button" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</button>
+                  <button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>
+                </div>
+              </div>
+            </article>
+          `
+        )
+        .join("");
     </script>
   </body>
 </html>
