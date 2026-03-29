@@ -50,11 +50,48 @@
       return "This email is already registered. Please sign in instead.";
     }
 
+    if (
+      message.indexOf("redirect") >= 0 &&
+      (
+        message.indexOf("not allowed") >= 0 ||
+        message.indexOf("allowlist") >= 0 ||
+        message.indexOf("allow list") >= 0 ||
+        message.indexOf("invalid") >= 0
+      )
+    ) {
+      return "Registration blocked by Supabase redirect URL settings. Add your local login URL in Authentication > URL Configuration.";
+    }
+
+    if (message.indexOf("captcha") >= 0) {
+      return "Registration blocked by CAPTCHA verification. Disable CAPTCHA for local development or configure CAPTCHA token flow.";
+    }
+
+    if (
+      message.indexOf("signup is disabled") >= 0 ||
+      message.indexOf("signups not allowed") >= 0 ||
+      message.indexOf("email signups are disabled") >= 0
+    ) {
+      return "Email registration is disabled in Supabase Authentication settings.";
+    }
+
     if (message.indexOf("password") >= 0 && message.indexOf("weak") >= 0) {
       return "Password is too weak. Use at least 8 characters and one special character.";
     }
 
     return fallbackMessage;
+  }
+
+  function isRedirectUrlError(error) {
+    var message = String(error && error.message ? error.message : "").toLowerCase();
+    return (
+      message.indexOf("redirect") >= 0 &&
+      (
+        message.indexOf("not allowed") >= 0 ||
+        message.indexOf("allowlist") >= 0 ||
+        message.indexOf("allow list") >= 0 ||
+        message.indexOf("invalid") >= 0
+      )
+    );
   }
 
   function getEmailRedirectUrl(pathname) {
@@ -108,17 +145,28 @@
       throw new Error(policy.message);
     }
 
-    var result = await client.auth.signUp({
+    var signUpPayload = {
       email: email,
       password: password,
       options: {
-        emailRedirectTo: redirectTo,
         data: {
           full_name: fullName,
           display_name: fullName,
         },
       },
-    });
+    };
+
+    if (redirectTo) {
+      signUpPayload.options.emailRedirectTo = redirectTo;
+    }
+
+    var result = await client.auth.signUp(signUpPayload);
+
+    // Fallback: if redirect URL is not allow-listed, retry without custom redirect.
+    if (result.error && isRedirectUrlError(result.error)) {
+      delete signUpPayload.options.emailRedirectTo;
+      result = await client.auth.signUp(signUpPayload);
+    }
 
     if (result.error) {
       throw result.error;
