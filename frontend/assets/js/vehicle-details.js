@@ -871,4 +871,7 @@
   window.VehicleDetailsPage = {
     init: init
   };
+
+  // Export vehicle data for filter module
+  window.VehicleDetailsData = VEHICLES;
 })();
