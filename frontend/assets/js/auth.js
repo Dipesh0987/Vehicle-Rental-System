@@ -332,6 +332,14 @@
     }
 
     form.addEventListener("submit", function (event) {
+      var users = JSON.parse(localStorage.getItem("users")) || [];
+
+var foundUser = users.find(user => user.email === email && user.password === password);
+
+if(!foundUser){
+    setBanner(banner, "Invalid email or password", "error");
+    return;
+}
       event.preventDefault();
       setBanner(banner, "", "error");
 
