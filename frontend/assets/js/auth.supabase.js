@@ -8,6 +8,51 @@
     return String(value || "").trim();
   }
 
+  function getErrorMessage(error) {
+    return String(error && error.message ? error.message : "").toLowerCase();
+  }
+
+  function parseRetryAfterSeconds(error) {
+    var message = String(error && error.message ? error.message : "");
+    var match = message.match(/after\s+(\d+)\s*(second|seconds|minute|minutes)/i);
+
+    if (match) {
+      var count = Number(match[1]);
+      if (Number.isFinite(count) && count > 0) {
+        var unit = String(match[2] || "").toLowerCase();
+        if (unit.indexOf("minute") >= 0) {
+          return count * 60;
+        }
+        return count;
+      }
+    }
+
+    var retryHeader = Number(
+      error && (
+        error.retry_after ||
+        error.retryAfter ||
+        error.retry_after_seconds
+      )
+    );
+
+    if (Number.isFinite(retryHeader) && retryHeader > 0) {
+      return Math.round(retryHeader);
+    }
+
+    return 0;
+  }
+
+  function isRateLimitError(error) {
+    var message = getErrorMessage(error);
+    var status = Number(error && (error.status || error.statusCode));
+    return (
+      status === 429 ||
+      message.indexOf("too many requests") >= 0 ||
+      message.indexOf("rate limit") >= 0 ||
+      message.indexOf("over request rate") >= 0
+    );
+  }
+
   function validatePassword(password) {
     var raw = String(password || "");
 
@@ -36,7 +81,15 @@
       return fallbackMessage;
     }
 
-    var message = String(error.message || "").toLowerCase();
+    var message = getErrorMessage(error);
+
+    if (isRateLimitError(error)) {
+      var waitSeconds = parseRetryAfterSeconds(error);
+      if (waitSeconds > 0) {
+        return "Too many requests. Please wait " + waitSeconds + " seconds and try again.";
+      }
+      return "Too many requests. Please wait a minute and try again.";
+    }
 
     if (message.indexOf("invalid login credentials") >= 0) {
       return "Invalid email or password.";
@@ -82,7 +135,7 @@
   }
 
   function isRedirectUrlError(error) {
-    var message = String(error && error.message ? error.message : "").toLowerCase();
+    var message = getErrorMessage(error);
     return (
       message.indexOf("redirect") >= 0 &&
       (
@@ -163,12 +216,15 @@
     var result = await client.auth.signUp(signUpPayload);
 
     // Fallback: if redirect URL is not allow-listed, retry without custom redirect.
-    if (result.error && isRedirectUrlError(result.error)) {
+    if (result.error && isRedirectUrlError(result.error) && !isRateLimitError(result.error)) {
       delete signUpPayload.options.emailRedirectTo;
       result = await client.auth.signUp(signUpPayload);
     }
 
     if (result.error) {
+      if (isRateLimitError(result.error)) {
+        result.error.waitSeconds = parseRetryAfterSeconds(result.error);
+      }
       throw result.error;
     }
 
