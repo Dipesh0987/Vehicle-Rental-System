@@ -14,12 +14,15 @@
 
   function parseRetryAfterSeconds(error) {
     var message = String(error && error.message ? error.message : "");
-    var match = message.match(/after\s+(\d+)\s*(second|seconds|minute|minutes)/i);
+    var match = message.match(/after\s+(\d+)\s*(second|seconds|minute|minutes|hour|hours)/i);
 
     if (match) {
       var count = Number(match[1]);
       if (Number.isFinite(count) && count > 0) {
         var unit = String(match[2] || "").toLowerCase();
+        if (unit.indexOf("hour") >= 0) {
+          return count * 3600;
+        }
         if (unit.indexOf("minute") >= 0) {
           return count * 60;
         }
@@ -50,6 +53,18 @@
       message.indexOf("too many requests") >= 0 ||
       message.indexOf("rate limit") >= 0 ||
       message.indexOf("over request rate") >= 0
+    );
+  }
+
+  function isEmailProviderQuotaError(error) {
+    var message = getErrorMessage(error);
+    var code = String(error && (error.code || error.error_code) ? (error.code || error.error_code) : "").toLowerCase();
+
+    return (
+      code.indexOf("over_email_send_rate_limit") >= 0 ||
+      message.indexOf("email rate limit") >= 0 ||
+      message.indexOf("email send") >= 0 ||
+      message.indexOf("too many email") >= 0
     );
   }
 
@@ -84,11 +99,11 @@
     var message = getErrorMessage(error);
 
     if (isRateLimitError(error)) {
-      var waitSeconds = parseRetryAfterSeconds(error);
-      if (waitSeconds > 0) {
-        return "Too many requests. Please wait " + waitSeconds + " seconds and try again.";
+      if (isEmailProviderQuotaError(error)) {
+        return "Supabase email quota reached. Built-in email has strict limits; configure custom SMTP in Authentication > Email to remove this bottleneck.";
       }
-      return "Too many requests. Please wait a minute and try again.";
+
+      return "Signup is temporarily rate-limited by Supabase. Please retry shortly; for production, increase Auth rate limits in the Supabase dashboard.";
     }
 
     if (message.indexOf("invalid login credentials") >= 0) {
@@ -319,6 +334,9 @@
     upsertProfile: upsertProfile,
     validatePassword: validatePassword,
     toPublicError: toPublicError,
+    isRateLimitError: isRateLimitError,
+    isEmailProviderQuotaError: isEmailProviderQuotaError,
+    parseRetryAfterSeconds: parseRetryAfterSeconds,
     getEmailRedirectUrl: getEmailRedirectUrl,
   };
 })();
