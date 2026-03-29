@@ -59,6 +59,41 @@
         button.classList.remove("opacity-80", "cursor-not-allowed");
     }
 
+    async function handleConfirmationEmailFailure(auth, email, password, fullName) {
+        // If sign-in works, signup likely created the user even though the email dispatch failed.
+        try {
+            await auth.signIn({
+                email: email,
+                password: password,
+            });
+
+            await auth.upsertProfile(fullName);
+            await auth.signOut();
+
+            return {
+                recovered: true,
+                message:
+                    "Account was created. Email verification could not be sent, but you can sign in now. Redirecting to sign in...",
+            };
+        } catch (recoveryError) {
+            if (
+                typeof auth.isEmailNotConfirmedError === "function" &&
+                auth.isEmailNotConfirmedError(recoveryError)
+            ) {
+                return {
+                    recovered: false,
+                    message:
+                        "Account may be pending, but confirmation email delivery failed. In Supabase Authentication > Providers > Email, temporarily disable Confirm email and retry signup once; then enable it again after SMTP is fixed.",
+                };
+            }
+
+            return {
+                recovered: false,
+                message: null,
+            };
+        }
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
 
@@ -112,6 +147,14 @@
 
             await auth.upsertProfile(fullName);
 
+            if (typeof auth.signOut === "function") {
+                try {
+                    await auth.signOut();
+                } catch (_signOutError) {
+                    // Continue to login page even if explicit sign-out fails.
+                }
+            }
+
             setMessage(
                 "success",
                 "Registration successful. We sent a verification link to your email. Redirecting to sign in..."
@@ -122,6 +165,33 @@
                     "login.html?registered=1&email=" + encodeURIComponent(email);
             }, 1600);
         } catch (error) {
+            var isConfirmationFailure =
+                typeof auth.isConfirmationEmailDeliveryError === "function" &&
+                auth.isConfirmationEmailDeliveryError(error);
+
+            if (isConfirmationFailure) {
+                var recovery = await handleConfirmationEmailFailure(
+                    auth,
+                    email,
+                    password,
+                    fullName
+                );
+
+                if (recovery.recovered) {
+                    setMessage("success", recovery.message);
+                    window.setTimeout(function () {
+                        window.location.href =
+                            "login.html?registered=1&email=" + encodeURIComponent(email);
+                    }, 1600);
+                    return;
+                }
+
+                if (recovery.message) {
+                    setMessage("error", recovery.message);
+                    return;
+                }
+            }
+
             var humanMessage = auth.toPublicError(
                 error,
                 "Registration failed. Please try again."
