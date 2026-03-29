@@ -4,6 +4,7 @@
   var STORAGE_SESSION = "vrs_auth_session";
   var STORAGE_PROFILE = "vrs_profile";
   var STORAGE_ATTEMPTS = "vrs_login_attempts";
+  var PROFILE_UPDATED_EVENT = "vrs:profile-updated";
   var MAX_ATTEMPTS_WARNING = 3;
   var STATIC_BOOKINGS = [
     {
@@ -116,7 +117,21 @@
   }
 
   function setProfile(profile) {
-    localStorage.setItem(STORAGE_PROFILE, JSON.stringify(profile));
+    var nextProfile = profile || {
+      username: "Guest User",
+      avatarDataUrl: "",
+      email: "",
+    };
+
+    localStorage.setItem(STORAGE_PROFILE, JSON.stringify(nextProfile));
+
+    try {
+      window.dispatchEvent(new CustomEvent(PROFILE_UPDATED_EVENT, {
+        detail: nextProfile,
+      }));
+    } catch (_eventError) {
+      window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
+    }
   }
 
   function isValidEmail(email) {
@@ -183,6 +198,28 @@
     return getDisplayNameFromEmail(user.email);
   }
 
+  function mapRemoteProfileToLocal(remoteProfile, fallbackProfile) {
+    var fallback = fallbackProfile || {};
+
+    return {
+      username: String(
+        (remoteProfile && remoteProfile.full_name) ||
+        fallback.username ||
+        "User"
+      ),
+      avatarDataUrl: String(
+        (remoteProfile && remoteProfile.avatar_url) ||
+        fallback.avatarDataUrl ||
+        ""
+      ),
+      email: String(
+        (remoteProfile && remoteProfile.email) ||
+        fallback.email ||
+        ""
+      ),
+    };
+  }
+
   function mapSupabaseSession(sessionData) {
     if (!sessionData || !sessionData.user) {
       return null;
@@ -205,7 +242,7 @@
     }
 
     return auth.getSession()
-      .then(function (sessionData) {
+      .then(async function (sessionData) {
         if (!sessionData || !sessionData.user) {
           return getSession();
         }
@@ -215,15 +252,32 @@
           setSession(mapped, true);
 
           var existingProfile = getProfile();
-          var syncedName = getDisplayNameFromUser(sessionData.user);
-          setProfile({
-            username: syncedName,
+          var fallbackProfile = {
+            username: getDisplayNameFromUser(sessionData.user),
             avatarDataUrl: existingProfile.avatarDataUrl || "",
             email: sessionData.user.email || existingProfile.email || "",
-          });
+          };
 
-          if (typeof auth.upsertProfile === "function") {
-            auth.upsertProfile(syncedName).catch(function () {
+          var remoteProfile = null;
+          if (typeof auth.getProfile === "function") {
+            try {
+              remoteProfile = await auth.getProfile();
+            } catch (_readError) {
+              remoteProfile = null;
+            }
+          }
+
+          var syncedProfile = remoteProfile
+            ? mapRemoteProfileToLocal(remoteProfile, fallbackProfile)
+            : fallbackProfile;
+
+          setProfile(syncedProfile);
+
+          if (!remoteProfile && typeof auth.upsertProfile === "function") {
+            auth.upsertProfile({
+              fullName: syncedProfile.username,
+              avatarUrl: syncedProfile.avatarDataUrl,
+            }).catch(function () {
               // Keep UI functional even if profile table migration is not applied yet.
             });
           }
@@ -657,6 +711,33 @@
     }
   }
 
+  function wireRealtimeProfileRefresh() {
+    if (window.__vrsRealtimeProfileWired) {
+      return;
+    }
+
+    window.__vrsRealtimeProfileWired = true;
+
+    window.addEventListener(PROFILE_UPDATED_EVENT, function () {
+      renderProfileChip();
+    });
+
+    window.addEventListener("storage", function (event) {
+      if (!event) {
+        return;
+      }
+
+      if (event.key === STORAGE_PROFILE) {
+        renderProfileChip();
+        return;
+      }
+
+      if (event.key === STORAGE_SESSION) {
+        renderNavbarAuth();
+      }
+    });
+  }
+
   function wireProfilePanel() {
     var trigger = document.querySelector("[data-profile-trigger]");
     var panel = document.querySelector("[data-profile-panel]");
@@ -715,8 +796,17 @@
       var cloudSynced = false;
       if (auth && typeof auth.upsertProfile === "function") {
         try {
-          await auth.upsertProfile(nextProfile.username);
-          cloudSynced = true;
+          var syncResult = await auth.upsertProfile({
+            fullName: nextProfile.username,
+            avatarUrl: nextProfile.avatarDataUrl,
+          });
+
+          cloudSynced = Boolean(syncResult && syncResult.success);
+
+          if (cloudSynced && syncResult.data) {
+            setProfile(mapRemoteProfileToLocal(syncResult.data, nextProfile));
+            renderProfileChip();
+          }
         } catch (_err) {
           cloudSynced = false;
         }
@@ -727,6 +817,29 @@
           ? "Profile updated and synced to Supabase."
           : "Profile updated locally.";
       }
+    }
+
+    function previewSelectedImage(file, previousProfile) {
+      var reader = new FileReader();
+      reader.onload = function (event) {
+        var previewDataUrl = String(event && event.target && event.target.result ? event.target.result : "");
+        if (!previewDataUrl) {
+          return;
+        }
+
+        setProfile({
+          username: (nameInput && nameInput.value.trim()) || previousProfile.username || "User",
+          avatarDataUrl: previewDataUrl,
+          email: readCurrentProfileEmail(),
+        });
+        renderProfileChip();
+      };
+
+      reader.onerror = function () {
+        // Keep upload flow moving even if preview cannot be generated.
+      };
+
+      reader.readAsDataURL(file);
     }
 
     if (saveBtn) {
@@ -742,6 +855,47 @@
       photoInput.addEventListener("change", function () {
         var file = photoInput.files && photoInput.files[0];
         if (!file) {
+          return;
+        }
+
+        var auth = getAuthService();
+        if (auth && typeof auth.uploadProfileImage === "function") {
+          var previousProfile = getProfile();
+
+          previewSelectedImage(file, previousProfile);
+
+          if (note) {
+            note.textContent = "Uploading and optimizing profile image...";
+          }
+
+          auth.uploadProfileImage(file)
+            .then(function (avatarUrl) {
+              return saveProfileData(avatarUrl);
+            })
+            .catch(function (error) {
+              setProfile(previousProfile);
+              renderProfileChip();
+
+              if (!note) {
+                return;
+              }
+
+              if (auth && typeof auth.toPublicError === "function") {
+                note.textContent = auth.toPublicError(error, "Profile image upload failed.");
+              } else {
+                note.textContent = String(
+                  error && error.message ? error.message : "Profile image upload failed."
+                );
+              }
+            });
+          return;
+        }
+
+        var fallbackMaxBytes = 1024 * 1024 * 5;
+        if (file.size > fallbackMaxBytes) {
+          if (note) {
+            note.textContent = "Image is too large. Please choose a file under 5 MB.";
+          }
           return;
         }
 
@@ -780,6 +934,23 @@
     var eyeOffIcon = document.getElementById("eyeOffIcon");
     var google = document.getElementById("googleSignIn");
     var auth = getAuthService();
+    var submitBtn = form.querySelector('button[type="submit"]');
+    var submitDefaultText = submitBtn
+      ? String(submitBtn.textContent || "Sign In to Dashboard").trim()
+      : "Sign In to Dashboard";
+
+    function setSubmitState(isLoading, loadingText) {
+      if (!submitBtn) {
+        return;
+      }
+
+      submitBtn.disabled = Boolean(isLoading);
+      submitBtn.classList.toggle("opacity-80", Boolean(isLoading));
+      submitBtn.classList.toggle("cursor-not-allowed", Boolean(isLoading));
+      submitBtn.textContent = isLoading
+        ? String(loadingText || "Signing in...")
+        : submitDefaultText;
+    }
 
     try {
       var params = new URLSearchParams(window.location.search);
@@ -915,17 +1086,20 @@
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
       setBanner(banner, "", "error");
+      setSubmitState(true, "Signing in...");
 
       var email = String(form.email.value || "").trim();
       var password = String(form.password.value || "");
 
       if (!isValidEmail(email)) {
+        setSubmitState(false);
         setAttempts(attemptsValue() + 1);
         setBanner(banner, "Please enter a valid email address.", "error");
         return;
       }
 
       if (password.length < 8) {
+        setSubmitState(false);
         var badAttempts = attemptsValue() + 1;
         setAttempts(badAttempts);
         var base = "Invalid login attempt. Password must be at least 8 characters.";
@@ -937,6 +1111,7 @@
       }
 
       if (!auth || typeof auth.signIn !== "function") {
+        setSubmitState(false);
         setBanner(banner, "Authentication service unavailable. Please refresh and try again.", "error");
         return;
       }
@@ -954,19 +1129,20 @@
 
         setSession(mappedSession, rememberMe ? rememberMe.checked : true);
         var profileName = getDisplayNameFromUser((result.session && result.session.user) || result.user);
-        setProfile({
+        var existingLocalProfile = getProfile();
+        var profileDraft = {
           username: profileName,
-          avatarDataUrl: getProfile().avatarDataUrl || "",
+          avatarDataUrl: existingLocalProfile.avatarDataUrl || "",
           email: email,
-        });
+        };
 
-        if (typeof auth.upsertProfile === "function") {
-          await auth.upsertProfile(profileName);
-        }
+        setProfile(profileDraft);
 
         resetAttempts();
-        window.location.href = "index.html";
+        setSubmitState(true, "Opening dashboard...");
+        window.location.assign("index.html");
       } catch (error) {
+        setSubmitState(false);
         var badAttemptsAfterFailure = attemptsValue() + 1;
         setAttempts(badAttemptsAfterFailure);
         setBanner(
@@ -994,6 +1170,7 @@
       return;
     }
 
+    wireRealtimeProfileRefresh();
     renderNavbarAuth();
     wireProfilePanel();
     wireBookingsModal();
