@@ -167,10 +167,10 @@
                 name="password"
                 type="password"
                 required
-                minlength="6"
+                minlength="8"
                 autocomplete="current-password"
                 class="w-full border-0 bg-transparent pr-10 text-[14px] text-ink outline-none"
-                placeholder="Minimum 6 characters"
+                placeholder="Minimum 8 characters"
               />
               <button
                 id="passwordToggle"
@@ -236,12 +236,20 @@
               >
                 Continue with Google
               </button>
+
+              <p class="text-center text-[13px] text-[#3b5356]">
+                New customer?
+                <a href="registration.html" class="font-semibold text-panel hover:underline">Create your account</a>
+              </p>
             </form>
           </div>
         </div>
       </section>
     </main>
 
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/auth.supabase.js"></script>
     <script src="../backend/js/auth.js"></script>
     <script>
       window.VehicleAuthUI.init("login");
