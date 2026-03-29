@@ -60,42 +60,66 @@
         },
       };
     </script>
+    <style>
+      .fleet-grid article {
+        position: relative;
+      }
+
+      .fleet-grid article::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        pointer-events: none;
+        border: 1px solid rgba(44, 118, 110, 0);
+        transition: border-color 240ms ease;
+      }
+
+      .fleet-grid article:hover::after {
+        border-color: rgba(44, 118, 110, 0.28);
+      }
+
+      .fleet-grid article:nth-child(2n) {
+        animation-delay: 110ms;
+      }
+
+      .fleet-grid article:nth-child(3n) {
+        animation-delay: 170ms;
+      }
+    </style>
   </head>
-  <body class="min-h-screen bg-paper font-poppins text-ink antialiased">
+  <body class="min-h-screen bg-paper font-poppins text-ink">
     <main class="relative min-h-screen overflow-hidden">
       <div class="pointer-events-none absolute left-[-80px] top-[-80px] h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(229,140,78,0.52),rgba(229,140,78,0.08))] blur-[8px]"></div>
       <div class="pointer-events-none absolute bottom-[-90px] right-[-60px] h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle_at_38%_35%,rgba(44,118,110,0.58),rgba(44,118,110,0.12))] blur-[8px]"></div>
 
-      <header class="relative z-20 mx-auto grid w-[95%] max-w-[1320px] grid-cols-[auto,1fr,auto] items-center gap-6 py-4 opacity-0 animate-fadeUp">
+      <header class="relative z-20 mx-auto flex w-[95%] max-w-[1320px] items-center justify-between gap-4 py-4 opacity-0 animate-fadeUp">
         <a href="index.html" class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
-          <span class="block bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent lg:text-[34px]">
+          <span class="block bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[22px] font-extrabold leading-none tracking-tight text-transparent lg:text-[30px]">
             RENT A VEHICLE
-          </span>
-          <span class="-mt-1 block text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
-            Luxury Vehicle Service
           </span>
           <span class="mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-glowPulse"></span>
         </a>
 
-        <nav class="hidden items-center justify-start gap-10 pl-6 text-[16px] font-medium text-[#2F3336] lg:flex">
-          <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="index.html">Home</a>
+        <nav class="hidden items-center gap-8 text-[15px] font-semibold text-[#2F3336] lg:flex">
+          <a class="transition hover:text-panel" href="index.html">Home</a>
           <a class="text-accent" href="vehicles.html">Vehicles</a>
-          <a data-auth-bookings-link data-open-bookings-panel class="hidden bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Your Bookings</a>
-          <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Pricing</a>
-          <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Support</a>
+          <a class="transition hover:text-panel" href="#">Pricing</a>
+          <a class="transition hover:text-panel" href="#">Deals</a>
+          <a class="transition hover:text-panel" href="#">Support</a>
         </nav>
 
-        <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-[#204144] lg:flex">
-          <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="login.html">Sign In</a>
-          <button type="button" class="rounded-full bg-accent px-8 py-3 text-[16px] font-medium leading-none text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
+        <div data-auth-guest class="hidden items-center gap-4 text-[14px] text-[#204144] lg:flex">
+          <a class="font-semibold transition hover:text-panel" href="login.html">Sign In</a>
+          <button type="button" class="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
             Sign Up
           </button>
         </div>
 
-        <div data-auth-user class="relative hidden items-center pr-8 text-[#143236] lg:flex">
+        <div data-auth-user class="relative hidden items-center text-[#143236] lg:flex">
           <button type="button" data-profile-trigger class="inline-flex cursor-pointer items-center gap-[0.65rem] transition duration-200 hover:-translate-y-[1px] hover:brightness-105">
-            <span data-profile-avatar class="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-[#1b5d5f]/40 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.95rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)]">GU</span>
-            <span data-profile-name class="text-[15px] font-semibold">Guest User</span>
+            <span data-profile-avatar class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#1b5d5f]/40 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.9rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)]">GU</span>
+            <span data-profile-name class="text-[14px] font-semibold">Guest User</span>
           </button>
 
           <div data-profile-panel class="absolute right-0 top-[calc(100%+14px)] z-[130] w-[320px] max-h-[72vh] origin-top-right overflow-y-auto rounded-[18px] border border-white/25 bg-[linear-gradient(160deg,rgba(21,52,56,0.96),rgba(17,41,44,0.96))] p-4 text-white shadow-[0_20px_45px_rgba(2,14,16,0.36)] opacity-0 -translate-y-2 scale-95 pointer-events-none transition duration-200 max-[1024px]:fixed max-[1024px]:left-1/2 max-[1024px]:right-auto max-[1024px]:top-[90px] max-[1024px]:w-[min(92vw,360px)] max-[1024px]:-translate-x-1/2">
@@ -139,8 +163,8 @@
       <div class="relative z-20 mx-auto flex w-[95%] max-w-[1320px] flex-wrap gap-2 pb-2 lg:hidden">
         <a href="index.html" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Home</a>
         <a href="vehicles.html" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[12px] font-semibold text-[#9f5825]">Vehicles</a>
-        <a data-auth-bookings-link data-open-bookings-panel href="#" class="hidden rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Your Bookings</a>
         <a href="#" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Pricing</a>
+        <a href="#" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Deals</a>
       </div>
 
       <section class="relative z-10 mx-auto w-[95%] max-w-[1320px] rounded-[28px] border border-white/65 bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(240,246,243,0.82))] p-5 shadow-[0_28px_60px_rgba(10,31,34,0.14)] sm:p-7 lg:p-8">
@@ -149,7 +173,7 @@
             <p class="inline-flex rounded-full border border-[rgba(44,118,110,0.22)] bg-[rgba(44,118,110,0.1)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-panel">
               Professional Vehicle Catalog
             </p>
-            <h1 class="mt-3 text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink sm:text-[46px]">Premium Vehicle Collection</h1>
+            <h1 class="mt-3 text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink sm:text-[46px]">Premium Fleet Listing</h1>
             <p class="mt-3 max-w-[760px] text-[15px] leading-relaxed text-[#355053] sm:text-[16px]">
               Organized by brand and class for a production-style rental experience. Listings below are dummy vehicles, ready for backend integration later.
             </p>
@@ -158,189 +182,20 @@
             <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">12 Brands</div>
             <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">Sedan to SUV</div>
             <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">Daily Pricing</div>
-            <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">Verified Vehicles</div>
+            <div class="rounded-xl border border-[#d6dfdb] bg-white/85 px-3 py-2 text-center">Verified Fleet</div>
           </div>
         </div>
 
-        <div class="mt-7 grid gap-6 xl:grid-cols-[320px,minmax(0,1fr)] xl:items-start">
-          <!-- Left Sidebar Filter Panel -->
-          <aside class="xl:sticky xl:top-6">
-            <div class="rounded-3xl border border-white/70 bg-[linear-gradient(160deg,rgba(255,255,255,0.95),rgba(240,248,245,0.9))] p-5 shadow-[0_18px_36px_rgba(10,31,34,0.09)] sm:p-6">
-              <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between xl:flex-col xl:items-start">
-                <h2 class="flex cursor-pointer items-center gap-2 text-[18px] font-bold text-ink sm:cursor-default" id="filterToggle">
-                  <svg class="h-5 w-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                  </svg>
-                  <span>Smart Filters</span>
-                  <span class="hidden text-[14px] text-[#6C7074] sm:inline" id="filterBadge"></span>
-                </h2>
-                <div class="flex items-center gap-2">
-                  <button id="clearFilters" type="button" class="rounded-full border border-[#f2cfb4] bg-[#fff4eb] px-3 py-1.5 text-[12px] font-semibold text-[#E58C4E] transition duration-200 hover:-translate-y-[1px] hover:text-[#d67a3e]">Clear All</button>
-                  <button id="filterToggleMobile" type="button" class="rounded-full border border-[#d6dfdb] bg-white px-3 py-1 text-[14px] font-semibold text-panel transition duration-200 hover:text-accent sm:hidden">▼</button>
-                </div>
-              </div>
+        <div class="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
+          <button type="button" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[#9f5825]">Featured</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Top Rated</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Budget Friendly</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Luxury Class</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Fuel Efficient</button>
+        </div>
 
-              <div id="filterContent" class="filter-content hidden space-y-4 rounded-2xl border border-[#dfe7e3] bg-white/70 p-4 sm:block">
-                <!-- Search Filter -->
-                <div>
-                  <label for="searchInput" class="mb-2 block text-[12px] font-semibold text-panel">Search Vehicle</label>
-                  <input
-                    id="searchInput"
-                    type="text"
-                    placeholder="Brand, model, or tag..."
-                    aria-label="Search vehicles"
-                    aria-describedby="searchHelp"
-                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-4 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-2 focus:ring-accent/25"
-                  />
-                  <span id="searchHelp" class="sr-only">Search by brand name, model name, or vehicle tag</span>
-                </div>
-
-                <div>
-                  <label for="brandFilter" class="mb-2 block text-[12px] font-semibold text-panel">Brand</label>
-                  <select
-                    id="brandFilter"
-                    aria-label="Filter by brand"
-                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                  >
-                    <option value="">All Brands</option>
-                    <option value="toyota">Toyota</option>
-                    <option value="honda">Honda</option>
-                    <option value="ford">Ford</option>
-                    <option value="bmw">BMW</option>
-                    <option value="hyundai">Hyundai</option>
-                    <option value="kia">Kia</option>
-                    <option value="nissan">Nissan</option>
-                    <option value="mercedes">Mercedes-Benz</option>
-                    <option value="audi">Audi</option>
-                    <option value="jeep">Jeep</option>
-                  </select>
-                </div>
-
-                <!-- Vehicle Type Filter -->
-                <div>
-                  <label for="typeFilter" class="mb-2 block text-[12px] font-semibold text-panel">Vehicle Type</label>
-                  <select
-                    id="typeFilter"
-                    aria-label="Filter by vehicle type"
-                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                  >
-                    <option value="">All Types</option>
-                    <option value="sedan">Sedan</option>
-                    <option value="suv">SUV</option>
-                    <option value="sport">Sport</option>
-                    <option value="luxury">Luxury</option>
-                    <option value="off-road">Off-Road</option>
-                  </select>
-                </div>
-
-                <!-- Fuel Type Filter -->
-                <div>
-                  <label for="fuelFilter" class="mb-2 block text-[12px] font-semibold text-panel">Fuel Type</label>
-                  <select
-                    id="fuelFilter"
-                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                  >
-                    <option value="">All Fuels</option>
-                    <option value="petrol">Petrol</option>
-                    <option value="diesel">Diesel</option>
-                    <option value="hybrid">Hybrid</option>
-                    <option value="electric">Electric</option>
-                  </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                  <!-- Transmission Filter -->
-                  <div>
-                    <label for="transmissionFilter" class="mb-2 block text-[12px] font-semibold text-panel">Transmission</label>
-                    <select
-                      id="transmissionFilter"
-                      class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                    >
-                      <option value="">All</option>
-                      <option value="automatic">Automatic</option>
-                      <option value="manual">Manual</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label for="seatsFilter" class="mb-2 block text-[12px] font-semibold text-panel">Min Seats</label>
-                    <select
-                      id="seatsFilter"
-                      class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                    >
-                      <option value="">Any</option>
-                      <option value="4">4+</option>
-                      <option value="5">5+</option>
-                      <option value="6">6+</option>
-                      <option value="7">7+</option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Availability Filter -->
-                <div>
-                  <label for="availabilityFilter" class="mb-2 block text-[12px] font-semibold text-panel">Availability</label>
-                  <select
-                    id="availabilityFilter"
-                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
-                  >
-                    <option value="">All Status</option>
-                    <option value="available">Available Now</option>
-                    <option value="limited">Limited Stock</option>
-                  </select>
-                </div>
-
-                <!-- Price Range Filter -->
-                <div class="space-y-3 rounded-2xl border border-[#dfe7e3] bg-white/75 p-3">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="mb-2 block text-[12px] font-semibold text-panel">Min Price ($/day)</label>
-                      <input
-                        id="minPrice"
-                        type="number"
-                        placeholder="0"
-                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-2 focus:ring-accent/25"
-                      />
-                    </div>
-                    <div>
-                      <label class="mb-2 block text-[12px] font-semibold text-panel">Max Price ($/day)</label>
-                      <input
-                        id="maxPrice"
-                        type="number"
-                        placeholder="999"
-                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-2 focus:ring-accent/25"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    id="applyFilters"
-                    type="button"
-                    class="w-full rounded-2xl bg-accent px-5 py-2.5 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_12px_22px_rgba(229,140,78,0.34)]"
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-
-                <!-- Active Filter Tags -->
-                <div id="activeTags" class="mt-1 flex flex-wrap gap-2"></div>
-
-                <!-- Result Counter -->
-                <div id="filterResults" class="hidden rounded-xl border border-[#d4ded9] bg-white/80 px-4 py-3 text-[13px] font-medium text-[#385356]">
-                  Showing <span id="visibleCount" class="font-bold text-accent">0</span> vehicles
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          <!-- Vehicle Results -->
-          <div>
-            <div class="mb-4 flex items-center justify-between rounded-2xl border border-[#d4ded9] bg-white/80 px-4 py-3 text-[13px] font-semibold text-[#355255]">
-              <p>Showing curated vehicles based on your selected filters.</p>
-              <p class="hidden text-[12px] text-muted sm:block">Tip: combine brand, type, seats, and price for fastest narrowing.</p>
-            </div>
-
-            <div class="fleet-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <article data-detail-url="vehicle-details.html?id=camry-hybrid" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift">
+        <div class="fleet-grid mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eef3f1,#dde8e4)]">
               <img src="assets/images/car-transparent.png" alt="Toyota Camry" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -355,7 +210,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=crv-touring" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:90ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:90ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eff3f5,#dce8ee)]">
               <img src="assets/images/car.jpg" alt="Honda CR-V" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -370,7 +225,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=mustang-gt" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:160ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:160ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eff4ef,#d8e8dd)]">
               <img src="assets/images/car-transparent.png" alt="Ford Mustang" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -385,7 +240,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=bmw-3-series" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:220ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:220ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f4f2ef,#e8ddd8)]">
               <img src="assets/images/car.jpg" alt="BMW 3 Series" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -400,7 +255,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=tucson-n-line" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:280ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:280ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#edf3f5,#dae6ea)]">
               <img src="assets/images/car-transparent.png" alt="Hyundai Tucson" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -415,7 +270,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=seltos-x-line" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:340ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:340ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f2f4f0,#dde5da)]">
               <img src="assets/images/car.jpg" alt="Kia Seltos" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -430,7 +285,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=altima-sv" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:400ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:400ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#edf4f6,#d8e6eb)]">
               <img src="assets/images/car-transparent.png" alt="Nissan Altima" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -445,7 +300,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=mercedes-c-300" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:460ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:460ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f2f2f4,#e0dfe8)]">
               <img src="assets/images/car.jpg" alt="Mercedes C-Class" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -460,7 +315,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=audi-q5-premium" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:520ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:520ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f1f4f2,#dde8e3)]">
               <img src="assets/images/car-transparent.png" alt="Audi Q5" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -475,7 +330,7 @@
             </div>
           </article>
 
-          <article data-detail-url="vehicle-details.html?id=wrangler-sahara" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:580ms]">
+          <article class="group rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift [animation-delay:580ms]">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#f4f3ef,#e9e0d7)]">
               <img src="assets/images/car.jpg" alt="Jeep Wrangler" class="h-[170px] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
             </div>
@@ -489,93 +344,11 @@
               </div>
             </div>
           </article>
-            </div>
-          </div>
         </div>
       </section>
     </main>
     <script src="../backend/js/auth.js"></script>
-    <script src="assets/js/vehicle-details.js"></script>
-    <script src="assets/js/filters.js"></script>
     <script>
-      // Mobile filter toggle
-      (function () {
-        var filterToggleMobile = document.getElementById("filterToggleMobile");
-        var filterContent = document.getElementById("filterContent");
-        var isOpen = false;
-
-        if (filterToggleMobile) {
-          filterToggleMobile.addEventListener("click", function (e) {
-            e.preventDefault();
-            isOpen = !isOpen;
-            filterContent.classList.toggle("hidden", !isOpen);
-            filterToggleMobile.textContent = isOpen ? "▲" : "▼";
-          });
-        }
-
-        // Show filter badge count on desktop
-        function updateFilterBadge() {
-          var badge = document.getElementById("filterBadge");
-          var filters = window.VehicleFilters?.FilterState;
-          if (!badge || !filters) return;
-
-          var count = 0;
-          if (filters.search) count++;
-          if (filters.brand) count++;
-          if (filters.type) count++;
-          if (filters.fuel) count++;
-          if (filters.transmission) count++;
-          if (filters.availability) count++;
-          if (filters.minSeats !== null) count++;
-          if (filters.minPrice !== null) count++;
-          if (filters.maxPrice !== null) count++;
-
-          if (count > 0) {
-            badge.textContent = "(" + count + " active)";
-            badge.style.display = "inline";
-          } else {
-            badge.style.display = "none";
-          }
-        }
-
-        // Update badge when filters change
-        var origApplyFilters = window.VehicleFilters?.applyFilters;
-        if (origApplyFilters) {
-          window.VehicleFilters.applyFilters = function () {
-            origApplyFilters();
-            updateFilterBadge();
-          };
-        }
-      })();
-    </script>
-    <script>
-      (function () {
-        var cards = document.querySelectorAll("[data-detail-url]");
-
-        function navigate(card) {
-          var href = card.getAttribute("data-detail-url");
-          if (href) {
-            window.location.href = href;
-          }
-        }
-
-        cards.forEach(function (card) {
-          card.addEventListener("click", function (event) {
-            if (event.target.closest("a, button, input, select, textarea, label")) {
-              return;
-            }
-            navigate(card);
-          });
-
-          card.addEventListener("keydown", function (event) {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              navigate(card);
-            }
-          });
-        });
-      })();
-
       window.VehicleAuthUI.init("home");
     </script>
   </body>
