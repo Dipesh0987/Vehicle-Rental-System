@@ -60,102 +60,8 @@
         },
       };
     </script>
-    <style>
-      .fleet-grid article {
-        position: relative;
-      }
-
-      .fleet-grid article::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 22px;
-        pointer-events: none;
-        border: 1px solid rgba(44, 118, 110, 0);
-        transition: border-color 240ms ease;
-      }
-
-      .fleet-grid article:hover::after {
-        border-color: rgba(44, 118, 110, 0.28);
-      }
-
-      .fleet-grid article:nth-child(2n) {
-        animation-delay: 110ms;
-      }
-
-      .fleet-grid article:nth-child(3n) {
-        animation-delay: 170ms;
-      }
-
-      /* Filter animations */
-      #activeTags div {
-        animation: fadeUp 300ms ease forwards;
-      }
-
-      .fleet-grid article.hidden {
-        display: none !important;
-      }
-
-      .filter-content {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 300ms ease;
-      }
-
-      .filter-content.block {
-        max-height: 1000px;
-      }
-
-      .filter-panel {
-        animation: fadeUp 400ms ease forwards;
-      }
-
-      /* Smooth transitions for filter inputs */
-      input[type="text"],
-      input[type="number"],
-      select {
-        transition: all 200ms ease;
-      }
-
-      input[type="text"]:focus,
-      input[type="number"]:focus,
-      select:focus {
-        transition: all 200ms ease;
-      }
-
-      /* Accessibility: Focus visible for keyboard navigation */
-      input:focus-visible,
-      select:focus-visible,
-      button:focus-visible {
-        outline: 2px solid #E58C4E;
-        outline-offset: 2px;
-      }
-
-      /* Improved hover states for touch devices */
-      @media (hover: hover) {
-        button:hover {
-          cursor: pointer;
-        }
-      }
-
-      /* Animation for filter tags */
-      @keyframes tagSlideIn {
-        from {
-          opacity: 0;
-          transform: translateX(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-
-      #activeTags div {
-        animation: tagSlideIn 200ms ease forwards;
-      }
-    </style>
   </head>
-  <body class="min-h-screen bg-paper font-poppins text-ink">
+  <body class="min-h-screen bg-paper font-poppins text-ink antialiased">
     <main class="relative min-h-screen overflow-hidden">
       <div class="pointer-events-none absolute left-[-80px] top-[-80px] h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(229,140,78,0.52),rgba(229,140,78,0.08))] blur-[8px]"></div>
       <div class="pointer-events-none absolute bottom-[-90px] right-[-60px] h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle_at_38%_35%,rgba(44,118,110,0.58),rgba(44,118,110,0.12))] blur-[8px]"></div>
@@ -256,138 +162,184 @@
           </div>
         </div>
 
-        <!-- Advanced Filter Panel -->
-        <div class="mt-7 rounded-2xl border border-white/60 bg-[linear-gradient(160deg,rgba(255,255,255,0.95),rgba(240,248,245,0.88))] p-5 shadow-[0_12px_30px_rgba(10,31,34,0.06)] sm:p-6">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
-            <h2 class="text-[18px] font-bold text-ink flex items-center gap-2 cursor-pointer sm:cursor-default" id="filterToggle">
-              <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-              </svg>
-              <span>Smart Filters</span>
-              <span class="hidden sm:inline text-[14px] text-[#6C7074]" id="filterBadge"></span>
-            </h2>
-            <div class="flex items-center gap-2">
-              <button id="clearFilters" type="button" class="text-[12px] font-semibold text-[#E58C4E] transition duration-200 hover:text-[#d67a3e] hover:underline text-left">Clear All</button>
-              <button id="filterToggleMobile" type="button" class="sm:hidden text-[14px] font-semibold text-panel transition duration-200 hover:text-accent">▼</button>
-            </div>
-          </div>
+        <div class="mt-7 grid gap-6 xl:grid-cols-[320px,minmax(0,1fr)] xl:items-start">
+          <!-- Left Sidebar Filter Panel -->
+          <aside class="xl:sticky xl:top-6">
+            <div class="rounded-3xl border border-white/70 bg-[linear-gradient(160deg,rgba(255,255,255,0.95),rgba(240,248,245,0.9))] p-5 shadow-[0_18px_36px_rgba(10,31,34,0.09)] sm:p-6">
+              <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between xl:flex-col xl:items-start">
+                <h2 class="flex cursor-pointer items-center gap-2 text-[18px] font-bold text-ink sm:cursor-default" id="filterToggle">
+                  <svg class="h-5 w-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                  </svg>
+                  <span>Smart Filters</span>
+                  <span class="hidden text-[14px] text-[#6C7074] sm:inline" id="filterBadge"></span>
+                </h2>
+                <div class="flex items-center gap-2">
+                  <button id="clearFilters" type="button" class="rounded-full border border-[#f2cfb4] bg-[#fff4eb] px-3 py-1.5 text-[12px] font-semibold text-[#E58C4E] transition duration-200 hover:-translate-y-[1px] hover:text-[#d67a3e]">Clear All</button>
+                  <button id="filterToggleMobile" type="button" class="rounded-full border border-[#d6dfdb] bg-white px-3 py-1 text-[14px] font-semibold text-panel transition duration-200 hover:text-accent sm:hidden">▼</button>
+                </div>
+              </div>
 
-          <div id="filterContent" class="filter-content hidden sm:block sm:opacity-100 transition-all duration-300">
-            <!-- Search Filter -->
-            <div class="sm:col-span-2">
-              <label for="searchInput" class="block text-[12px] font-semibold text-panel mb-2">🔍 Search Vehicle</label>
-              <input
-                id="searchInput"
-                type="text"
-                placeholder="Brand, model, or tag..."
-                aria-label="Search vehicles"
-                aria-describedby="searchHelp"
-                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-4 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
-              />
-              <span id="searchHelp" class="sr-only">Search by brand name, model name, or vehicle tag</span>
+              <div id="filterContent" class="filter-content hidden space-y-4 rounded-2xl border border-[#dfe7e3] bg-white/70 p-4 sm:block">
+                <!-- Search Filter -->
+                <div>
+                  <label for="searchInput" class="mb-2 block text-[12px] font-semibold text-panel">Search Vehicle</label>
+                  <input
+                    id="searchInput"
+                    type="text"
+                    placeholder="Brand, model, or tag..."
+                    aria-label="Search vehicles"
+                    aria-describedby="searchHelp"
+                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-4 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-2 focus:ring-accent/25"
+                  />
+                  <span id="searchHelp" class="sr-only">Search by brand name, model name, or vehicle tag</span>
+                </div>
+
+                <div>
+                  <label for="brandFilter" class="mb-2 block text-[12px] font-semibold text-panel">Brand</label>
+                  <select
+                    id="brandFilter"
+                    aria-label="Filter by brand"
+                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                  >
+                    <option value="">All Brands</option>
+                    <option value="toyota">Toyota</option>
+                    <option value="honda">Honda</option>
+                    <option value="ford">Ford</option>
+                    <option value="bmw">BMW</option>
+                    <option value="hyundai">Hyundai</option>
+                    <option value="kia">Kia</option>
+                    <option value="nissan">Nissan</option>
+                    <option value="mercedes">Mercedes-Benz</option>
+                    <option value="audi">Audi</option>
+                    <option value="jeep">Jeep</option>
+                  </select>
+                </div>
+
+                <!-- Vehicle Type Filter -->
+                <div>
+                  <label for="typeFilter" class="mb-2 block text-[12px] font-semibold text-panel">Vehicle Type</label>
+                  <select
+                    id="typeFilter"
+                    aria-label="Filter by vehicle type"
+                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                  >
+                    <option value="">All Types</option>
+                    <option value="sedan">Sedan</option>
+                    <option value="suv">SUV</option>
+                    <option value="sport">Sport</option>
+                    <option value="luxury">Luxury</option>
+                    <option value="off-road">Off-Road</option>
+                  </select>
+                </div>
+
+                <!-- Fuel Type Filter -->
+                <div>
+                  <label for="fuelFilter" class="mb-2 block text-[12px] font-semibold text-panel">Fuel Type</label>
+                  <select
+                    id="fuelFilter"
+                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                  >
+                    <option value="">All Fuels</option>
+                    <option value="petrol">Petrol</option>
+                    <option value="diesel">Diesel</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="electric">Electric</option>
+                  </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <!-- Transmission Filter -->
+                  <div>
+                    <label for="transmissionFilter" class="mb-2 block text-[12px] font-semibold text-panel">Transmission</label>
+                    <select
+                      id="transmissionFilter"
+                      class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                    >
+                      <option value="">All</option>
+                      <option value="automatic">Automatic</option>
+                      <option value="manual">Manual</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label for="seatsFilter" class="mb-2 block text-[12px] font-semibold text-panel">Min Seats</label>
+                    <select
+                      id="seatsFilter"
+                      class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                    >
+                      <option value="">Any</option>
+                      <option value="4">4+</option>
+                      <option value="5">5+</option>
+                      <option value="6">6+</option>
+                      <option value="7">7+</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Availability Filter -->
+                <div>
+                  <label for="availabilityFilter" class="mb-2 block text-[12px] font-semibold text-panel">Availability</label>
+                  <select
+                    id="availabilityFilter"
+                    class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 focus:border-accent focus:ring-2 focus:ring-accent/25"
+                  >
+                    <option value="">All Status</option>
+                    <option value="available">Available Now</option>
+                    <option value="limited">Limited Stock</option>
+                  </select>
+                </div>
+
+                <!-- Price Range Filter -->
+                <div class="space-y-3 rounded-2xl border border-[#dfe7e3] bg-white/75 p-3">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="mb-2 block text-[12px] font-semibold text-panel">Min Price ($/day)</label>
+                      <input
+                        id="minPrice"
+                        type="number"
+                        placeholder="0"
+                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-2 focus:ring-accent/25"
+                      />
+                    </div>
+                    <div>
+                      <label class="mb-2 block text-[12px] font-semibold text-panel">Max Price ($/day)</label>
+                      <input
+                        id="maxPrice"
+                        type="number"
+                        placeholder="999"
+                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-2 focus:ring-accent/25"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    id="applyFilters"
+                    type="button"
+                    class="w-full rounded-2xl bg-accent px-5 py-2.5 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_12px_22px_rgba(229,140,78,0.34)]"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+
+                <!-- Active Filter Tags -->
+                <div id="activeTags" class="mt-1 flex flex-wrap gap-2"></div>
+
+                <!-- Result Counter -->
+                <div id="filterResults" class="hidden rounded-xl border border-[#d4ded9] bg-white/80 px-4 py-3 text-[13px] font-medium text-[#385356]">
+                  Showing <span id="visibleCount" class="font-bold text-accent">0</span> vehicles
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Vehicle Results -->
+          <div>
+            <div class="mb-4 flex items-center justify-between rounded-2xl border border-[#d4ded9] bg-white/80 px-4 py-3 text-[13px] font-semibold text-[#355255]">
+              <p>Showing curated vehicles based on your selected filters.</p>
+              <p class="hidden text-[12px] text-muted sm:block">Tip: combine brand, type, seats, and price for fastest narrowing.</p>
             </div>
 
-            <!-- Vehicle Type Filter -->
-            <div>
-              <label for="typeFilter" class="block text-[12px] font-semibold text-panel mb-2">🚗 Vehicle Type</label>
-              <select
-                id="typeFilter"
-                aria-label="Filter by vehicle type"
-                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
-              >
-                <option value="">All Types</option>
-                <option value="sedan">Sedan</option>
-                <option value="suv">SUV</option>
-                <option value="sport">Sport</option>
-                <option value="luxury">Luxury</option>
-                <option value="off-road">Off-Road</option>
-              </select>
-            </div>
-
-            <!-- Fuel Type Filter -->
-            <div>
-              <label class="block text-[12px] font-semibold text-panel mb-2">⛽ Fuel Type</label>
-              <select
-                id="fuelFilter"
-                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
-              >
-                <option value="">All Fuels</option>
-                <option value="petrol">Petrol</option>
-                <option value="diesel">Diesel</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="electric">Electric</option>
-              </select>
-            </div>
-
-            <!-- Transmission Filter -->
-            <div>
-              <label class="block text-[12px] font-semibold text-panel mb-2">⚙️ Transmission</label>
-              <select
-                id="transmissionFilter"
-                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
-              >
-                <option value="">All Types</option>
-                <option value="automatic">Automatic</option>
-                <option value="manual">Manual</option>
-              </select>
-            </div>
-
-            <!-- Availability Filter -->
-            <div>
-              <label class="block text-[12px] font-semibold text-panel mb-2">✅ Availability</label>
-              <select
-                id="availabilityFilter"
-                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 focus:border-accent focus:ring-1 focus:ring-accent/30"
-              >
-                <option value="">All Status</option>
-                <option value="available">Available Now</option>
-                <option value="limited">Limited Stock</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Price Range Filter -->
-          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:gap-4">
-            <div class="sm:col-span-1">
-              <label class="block text-[12px] font-semibold text-panel mb-2">Min Price ($/day)</label>
-              <input
-                id="minPrice"
-                type="number"
-                placeholder="0"
-                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
-              />
-            </div>
-            <div class="sm:col-span-1">
-              <label class="block text-[12px] font-semibold text-panel mb-2">Max Price ($/day)</label>
-              <input
-                id="maxPrice"
-                type="number"
-                placeholder="999"
-                class="w-full rounded-xl border border-[#d4ded9] bg-white/80 px-3 py-2.5 text-[13px] text-ink outline-none transition duration-200 placeholder:text-[#9ca3a0] focus:border-accent focus:ring-1 focus:ring-accent/30"
-              />
-            </div>
-            <div class="sm:col-span-2 lg:col-span-4 flex items-end gap-2">
-              <button
-                id="applyFilters"
-                type="button"
-                class="flex-1 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_8px_16px_rgba(229,140,78,0.32)]"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-
-          <!-- Active Filter Tags -->
-          <div id="activeTags" class="mt-4 flex flex-wrap gap-2"></div>
-          
-          <!-- Result Counter -->
-          <div id="filterResults" class="mt-4 hidden rounded-lg border border-[#d4ded9] bg-white/50 px-4 py-3 text-[13px] font-medium text-[#385356]">
-            Showing <span id="visibleCount" class="font-bold text-accent">0</span> vehicles
-          </div>
-          </div>
-        </div>
-
-        <div class="fleet-grid mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="fleet-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <article data-detail-url="vehicle-details.html?id=camry-hybrid" tabindex="0" role="link" class="group cursor-pointer rounded-[22px] border border-[#d8e2de] bg-white/90 p-3 opacity-0 shadow-[0_14px_30px_rgba(10,31,34,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_36px_rgba(10,31,34,0.16)] animate-cardLift">
             <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eef3f1,#dde8e4)]">
               <img src="assets/images/car-transparent.png" alt="Toyota Camry" class="h-[170px] w-full object-contain p-2 transition duration-500 group-hover:scale-[1.03]" />
@@ -537,6 +489,8 @@
               </div>
             </div>
           </article>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -567,10 +521,12 @@
 
           var count = 0;
           if (filters.search) count++;
+          if (filters.brand) count++;
           if (filters.type) count++;
           if (filters.fuel) count++;
           if (filters.transmission) count++;
           if (filters.availability) count++;
+          if (filters.minSeats !== null) count++;
           if (filters.minPrice !== null) count++;
           if (filters.maxPrice !== null) count++;
 
