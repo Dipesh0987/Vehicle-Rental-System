@@ -44,6 +44,11 @@
         return el ? String(el.value || "").trim() : "";
     }
 
+    function getPasswordValue(id) {
+        var el = document.getElementById(id);
+        return el ? String(el.value || "") : "";
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
 
@@ -55,8 +60,8 @@
 
         var fullName = getFieldValue("name");
         var email = getFieldValue("email");
-        var password = getFieldValue("password");
-        var confirmPassword = getFieldValue("confirmPassword");
+        var password = getPasswordValue("password");
+        var confirmPassword = getPasswordValue("confirmPassword");
 
         if (!fullName) {
             setMessage("error", "Please enter your full name.");
