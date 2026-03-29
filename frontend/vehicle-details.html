@@ -68,6 +68,7 @@
         <nav class="hidden items-center gap-8 text-[15px] font-semibold text-[#2F3336] lg:flex">
           <a class="transition hover:text-panel" href="index.html">Home</a>
           <a class="text-accent" href="vehicles.html">Vehicles</a>
+          <a data-auth-bookings-link data-open-bookings-panel class="hidden transition hover:text-panel" href="#">Your Bookings</a>
           <a class="transition hover:text-panel" href="#">Pricing</a>
           <a class="transition hover:text-panel" href="#">Support</a>
         </nav>
@@ -119,80 +120,106 @@
 
       <section class="relative z-10 mx-auto w-[95%] max-w-[1320px] space-y-4 rounded-[26px] border border-white/65 bg-[linear-gradient(160deg,rgba(255,255,255,0.91),rgba(240,246,243,0.84))] p-5 shadow-[0_28px_60px_rgba(10,31,34,0.14)] sm:p-7 lg:p-8">
         <div class="flex flex-wrap items-center justify-between gap-3 text-[12px] font-semibold text-[#375053]">
-          <a href="vehicles.html" class="rounded-full border border-[#d0dbd6] bg-white px-4 py-2 transition hover:-translate-y-[1px]">Back to Fleet</a>
+          <a href="vehicles.html" class="rounded-full border border-[#d0dbd6] bg-white px-4 py-2 transition hover:-translate-y-[1px]">Back to Vehicle Collection</a>
           <p id="vehicleDetailMeta" class="rounded-full border border-[#d0dbd6] bg-white px-4 py-2">Vehicle Overview</p>
         </div>
 
-        <div class="grid gap-5 lg:grid-cols-[1.5fr,1fr]">
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-4">
-            <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eef4f1,#dde8e4)]">
-              <img id="vehicleDetailHero" src="assets/images/car-transparent.png" alt="Vehicle" class="h-[240px] w-full object-contain p-3 sm:h-[300px]" />
+        <div class="grid gap-5 lg:grid-cols-[1.45fr,0.95fr] lg:items-start">
+          <div class="space-y-4">
+            <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-4">
+              <div class="overflow-hidden rounded-2xl bg-[linear-gradient(160deg,#eef4f1,#dde8e4)]">
+                <img id="vehicleDetailHero" src="assets/images/car-transparent.png" alt="Vehicle" class="h-[240px] w-full object-contain p-3 sm:h-[300px]" />
+              </div>
+              <div id="vehicleThumbnailRail" class="mt-3 grid grid-cols-3 gap-2"></div>
+            </article>
+
+            <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/95 p-5">
+              <p id="vehicleBrand" class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Brand</p>
+              <h1 id="vehicleName" class="mt-2 text-[30px] font-bold leading-[1.1] text-ink">Vehicle Name</h1>
+              <p id="vehicleTagline" class="mt-3 text-[14px] leading-relaxed text-[#3f5c5f]">Tagline and short value proposition.</p>
+              <div id="vehicleBadges" class="mt-4 flex flex-wrap gap-2"></div>
+              <div id="vehicleQuickSpecs" class="mt-5 grid grid-cols-2 gap-2"></div>
+            </article>
+
+            <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+              <h2 class="text-[19px] font-bold text-ink">What Is Included</h2>
+              <div id="vehicleIncluded" class="mt-3 grid gap-2 sm:grid-cols-2"></div>
+            </article>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+              <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+                <h2 class="text-[19px] font-bold text-ink">Rental Requirements</h2>
+                <ul id="vehicleRequirements" class="mt-3 space-y-2"></ul>
+              </article>
+              <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
+                <h2 class="text-[19px] font-bold text-ink">Policy Snapshot</h2>
+                <ul id="vehiclePolicies" class="mt-3 space-y-2"></ul>
+              </article>
             </div>
-            <div id="vehicleThumbnailRail" class="mt-3 grid grid-cols-3 gap-2"></div>
-          </article>
+          </div>
 
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/95 p-5">
-            <p id="vehicleBrand" class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Brand</p>
-            <h1 id="vehicleName" class="mt-2 text-[30px] font-bold leading-[1.1] text-ink">Vehicle Name</h1>
-            <p id="vehicleTagline" class="mt-3 text-[14px] leading-relaxed text-[#3f5c5f]">Tagline and short value proposition.</p>
+          <aside data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/95 p-5 shadow-[0_16px_30px_rgba(10,31,34,0.08)] lg:sticky lg:top-5">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Premium Booking</p>
+            <h2 class="mt-2 text-[24px] font-bold text-ink">Reserve This Vehicle</h2>
+            <p class="mt-1 text-[13px] text-[#3f5c5f]">Static-first pricing UI designed for quick API integration later.</p>
 
-            <div id="vehicleBadges" class="mt-4 flex flex-wrap gap-2"></div>
+            <div class="mt-4 grid gap-3">
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Pick-up Date</span>
+                <input id="bookingPickupDate" type="date" class="rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
+              </label>
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Pick-up Time</span>
+                <input id="bookingPickupTime" type="time" value="10:00" class="rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
+              </label>
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Duration (Days)</span>
+                <input id="bookingDuration" type="number" min="1" value="3" class="rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
+              </label>
 
-            <div id="vehicleQuickSpecs" class="mt-5 grid grid-cols-2 gap-2"></div>
-
-            <div class="mt-6 flex flex-wrap gap-2">
-              <button type="button" class="rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105">Reserve This Vehicle</button>
-              <button type="button" class="rounded-full border border-[#cad8d2] bg-white px-5 py-2.5 text-[13px] font-semibold text-[#2c4a4d] transition hover:-translate-y-[1px]">Contact Fleet Team</button>
+              <div class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Coupon Code</span>
+                <div class="flex gap-2">
+                  <input id="bookingCouponCode" type="text" placeholder="SAVE10" class="w-full rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
+                  <button id="bookingApplyCoupon" type="button" class="rounded-xl border border-[#cad8d2] bg-white px-3 py-2 text-[12px] font-semibold text-[#2b4d50] transition hover:-translate-y-[1px]">Apply</button>
+                </div>
+                <p id="bookingCouponStatus" class="text-[12px] text-[#5a7376]">Try: SAVE10 or WEEKEND50</p>
+              </div>
             </div>
-          </article>
-        </div>
 
-        <div class="grid gap-4 lg:grid-cols-[1.3fr,1fr]">
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">What Is Included</h2>
-            <div id="vehicleIncluded" class="mt-3 grid gap-2 sm:grid-cols-2"></div>
-          </article>
+            <article class="mt-5 rounded-2xl border border-[#d6e2dd] bg-[#f8fcfa] p-4" id="bookingSummary" data-booking-payload="">
+              <div class="mb-3 flex items-center justify-between rounded-xl border border-[#e3ece8] bg-white px-3 py-2">
+                <span class="text-[12px] font-semibold text-[#476367]">Daily Rate</span>
+                <span id="bookingDailyRate" class="text-[12px] font-semibold text-[#1f4043]">$0</span>
+              </div>
 
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">Pricing Breakdown</h2>
-            <div id="vehiclePricing" class="mt-3 space-y-2"></div>
-          </article>
-        </div>
+              <div class="space-y-2 text-[13px]">
+                <div class="flex items-center justify-between">
+                  <span class="text-[#4a6569]">Base Amount</span>
+                  <span id="bookingBaseAmount" class="font-semibold text-[#214346]">$0.00</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[#4a6569]">Service Fee</span>
+                  <span id="bookingServiceFee" class="font-semibold text-[#214346]">$0.00</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[#4a6569]">Tax</span>
+                  <span id="bookingTaxAmount" class="font-semibold text-[#214346]">$0.00</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[#4a6569]">Discount</span>
+                  <span id="bookingDiscountAmount" class="font-semibold text-[#1f6a55]">-$0.00</span>
+                </div>
+              </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">Rental Requirements</h2>
-            <ul id="vehicleRequirements" class="mt-3 space-y-2"></ul>
-          </article>
+              <div class="mt-4 flex items-center justify-between rounded-xl border border-[#f0cfb6] bg-[#fff6ef] px-3 py-2">
+                <span class="text-[13px] font-semibold text-[#7f4c22]">Estimated Total</span>
+                <span id="bookingTotalAmount" class="text-[15px] font-bold text-[#6d3e18]">$0.00</span>
+              </div>
+            </article>
 
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">Policy & Terms Snapshot</h2>
-            <ul id="vehiclePolicies" class="mt-3 space-y-2"></ul>
-          </article>
-        </div>
-
-        <div class="grid gap-4 lg:grid-cols-2">
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">Customer Reviews</h2>
-            <div id="vehicleReviews" class="mt-3 space-y-2"></div>
-          </article>
-
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">Recommended Similar Vehicles</h2>
-            <div id="vehicleSimilar" class="mt-3 space-y-2"></div>
-          </article>
-        </div>
-
-        <div class="grid gap-4 lg:grid-cols-2">
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">Availability Timeline</h2>
-            <ul id="vehicleAvailability" class="mt-3 space-y-2"></ul>
-          </article>
-
-          <article data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/90 p-5">
-            <h2 class="text-[19px] font-bold text-ink">Operational Notes</h2>
-            <ul id="vehicleOperationalNotes" class="mt-3 space-y-2"></ul>
-          </article>
+            <button type="button" class="mt-4 w-full rounded-full bg-accent px-5 py-3 text-[13px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105">Continue to Secure Checkout</button>
+          </aside>
         </div>
       </section>
     </main>

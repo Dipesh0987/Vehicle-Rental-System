@@ -2,7 +2,7 @@
   "use strict";
 
   var VEHICLES = {
-    camry-hybrid: {
+    "camry-hybrid": {
       id: "camry-hybrid",
       brand: "Toyota",
       name: "Camry Hybrid",
@@ -53,7 +53,7 @@
       ],
       similar: ["Honda CR-V Touring", "Nissan Altima SV", "BMW 3 Series"]
     },
-    crv-touring: {
+    "crv-touring": {
       id: "crv-touring",
       brand: "Honda",
       name: "CR-V Touring",
@@ -100,7 +100,7 @@
       ],
       similar: ["Hyundai Tucson N Line", "Audi Q5 Premium", "Jeep Wrangler Sahara"]
     },
-    mustang-gt: {
+    "mustang-gt": {
       id: "mustang-gt",
       brand: "Ford",
       name: "Mustang GT",
@@ -147,7 +147,7 @@
       ],
       similar: ["BMW 3 Series", "Mercedes C 300", "Audi Q5 Premium"]
     },
-    bmw-3-series: {
+    "bmw-3-series": {
       id: "bmw-3-series",
       brand: "BMW",
       name: "3 Series",
@@ -194,7 +194,7 @@
       ],
       similar: ["Mercedes C 300", "Audi Q5 Premium", "Toyota Camry Hybrid"]
     },
-    tucson-n-line: {
+    "tucson-n-line": {
       id: "tucson-n-line",
       brand: "Hyundai",
       name: "Tucson N Line",
@@ -241,7 +241,7 @@
       ],
       similar: ["Honda CR-V Touring", "Kia Seltos X-Line", "Jeep Wrangler Sahara"]
     },
-    seltos-x-line: {
+    "seltos-x-line": {
       id: "seltos-x-line",
       brand: "Kia",
       name: "Seltos X-Line",
@@ -288,7 +288,7 @@
       ],
       similar: ["Hyundai Tucson N Line", "Honda CR-V Touring", "Toyota Camry Hybrid"]
     },
-    altima-sv: {
+    "altima-sv": {
       id: "altima-sv",
       brand: "Nissan",
       name: "Altima SV",
@@ -335,7 +335,7 @@
       ],
       similar: ["Toyota Camry Hybrid", "BMW 3 Series", "Mercedes C 300"]
     },
-    mercedes-c-300: {
+    "mercedes-c-300": {
       id: "mercedes-c-300",
       brand: "Mercedes-Benz",
       name: "C 300",
@@ -382,7 +382,7 @@
       ],
       similar: ["BMW 3 Series", "Audi Q5 Premium", "Ford Mustang GT"]
     },
-    audi-q5-premium: {
+    "audi-q5-premium": {
       id: "audi-q5-premium",
       brand: "Audi",
       name: "Q5 Premium",
@@ -429,7 +429,7 @@
       ],
       similar: ["Mercedes C 300", "Honda CR-V Touring", "Jeep Wrangler Sahara"]
     },
-    wrangler-sahara: {
+    "wrangler-sahara": {
       id: "wrangler-sahara",
       brand: "Jeep",
       name: "Wrangler Sahara",
@@ -702,6 +702,158 @@
     });
   }
 
+  function parseDailyRate(value) {
+    var numeric = Number(String(value || "0").replace(/[^\d.]/g, ""));
+    return Number.isFinite(numeric) ? numeric : 0;
+  }
+
+  function formatCurrency(amount) {
+    return "$" + amount.toFixed(2);
+  }
+
+  function wireBookingSidebar(vehicle) {
+    var summary = document.getElementById("bookingSummary");
+    if (!summary) {
+      return;
+    }
+
+    var pickupDate = document.getElementById("bookingPickupDate");
+    var pickupTime = document.getElementById("bookingPickupTime");
+    var durationInput = document.getElementById("bookingDuration");
+    var couponInput = document.getElementById("bookingCouponCode");
+    var applyBtn = document.getElementById("bookingApplyCoupon");
+    var couponStatus = document.getElementById("bookingCouponStatus");
+
+    var dailyRateEl = document.getElementById("bookingDailyRate");
+    var baseEl = document.getElementById("bookingBaseAmount");
+    var serviceEl = document.getElementById("bookingServiceFee");
+    var taxEl = document.getElementById("bookingTaxAmount");
+    var discountEl = document.getElementById("bookingDiscountAmount");
+    var totalEl = document.getElementById("bookingTotalAmount");
+
+    var state = {
+      couponCode: "",
+      couponType: "none"
+    };
+
+    var COUPONS = {
+      SAVE10: { type: "percent", value: 0.10, label: "10% off applied" },
+      WEEKEND50: { type: "flat", value: 50, label: "$50 off applied" }
+    };
+
+    function getDurationDays() {
+      var value = Number(durationInput && durationInput.value ? durationInput.value : "1");
+      if (!Number.isFinite(value) || value < 1) {
+        return 1;
+      }
+      return Math.floor(value);
+    }
+
+    function compute() {
+      var dailyRate = parseDailyRate(vehicle.pricing && vehicle.pricing.dailyRate);
+      var days = getDurationDays();
+      var base = dailyRate * days;
+      var serviceFee = Math.max(15, base * 0.05);
+      var tax = (base + serviceFee) * 0.13;
+      var discount = 0;
+
+      if (state.couponType === "percent") {
+        discount = base * COUPONS[state.couponCode].value;
+      } else if (state.couponType === "flat") {
+        discount = COUPONS[state.couponCode].value;
+      }
+
+      var subtotal = base + serviceFee + tax;
+      var total = Math.max(0, subtotal - discount);
+
+      if (dailyRateEl) {
+        dailyRateEl.textContent = vehicle.pricing.dailyRate;
+      }
+      if (baseEl) {
+        baseEl.textContent = formatCurrency(base);
+      }
+      if (serviceEl) {
+        serviceEl.textContent = formatCurrency(serviceFee);
+      }
+      if (taxEl) {
+        taxEl.textContent = formatCurrency(tax);
+      }
+      if (discountEl) {
+        discountEl.textContent = "-" + formatCurrency(discount);
+      }
+      if (totalEl) {
+        totalEl.textContent = formatCurrency(total);
+      }
+
+      summary.setAttribute("data-booking-payload", JSON.stringify({
+        vehicleId: vehicle.id,
+        pickupDate: pickupDate ? pickupDate.value : "",
+        pickupTime: pickupTime ? pickupTime.value : "",
+        durationDays: days,
+        couponCode: state.couponCode,
+        baseAmount: base,
+        serviceFee: serviceFee,
+        taxAmount: tax,
+        discountAmount: discount,
+        totalAmount: total
+      }));
+    }
+
+    function applyCoupon() {
+      var raw = String(couponInput && couponInput.value ? couponInput.value : "").trim().toUpperCase();
+      if (!raw) {
+        state.couponCode = "";
+        state.couponType = "none";
+        if (couponStatus) {
+          couponStatus.textContent = "Coupon cleared";
+        }
+        compute();
+        return;
+      }
+
+      var coupon = COUPONS[raw];
+      if (!coupon) {
+        state.couponCode = "";
+        state.couponType = "none";
+        if (couponStatus) {
+          couponStatus.textContent = "Invalid coupon code";
+        }
+        compute();
+        return;
+      }
+
+      state.couponCode = raw;
+      state.couponType = coupon.type;
+      if (couponStatus) {
+        couponStatus.textContent = coupon.label;
+      }
+      compute();
+    }
+
+    if (durationInput) {
+      durationInput.addEventListener("input", compute);
+    }
+    if (pickupDate) {
+      pickupDate.addEventListener("input", compute);
+    }
+    if (pickupTime) {
+      pickupTime.addEventListener("input", compute);
+    }
+    if (couponInput) {
+      couponInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyCoupon();
+        }
+      });
+    }
+    if (applyBtn) {
+      applyBtn.addEventListener("click", applyCoupon);
+    }
+
+    compute();
+  }
+
   function init() {
     var vehicle = getVehicleFromQuery();
     renderIdentity(vehicle);
@@ -712,13 +864,14 @@
     renderPricing(vehicle);
     renderBulletList("vehicleRequirements", vehicle.requirements);
     renderBulletList("vehiclePolicies", vehicle.policies);
-    renderReviews(vehicle);
-    renderSimilar(vehicle);
-    renderAvailability(vehicle);
+    wireBookingSidebar(vehicle);
     wireRevealAnimations();
   }
 
   window.VehicleDetailsPage = {
     init: init
   };
+
+  // Export vehicle data for filter module
+  window.VehicleDetailsData = VEHICLES;
 })();
