@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vehicle Search | Rent A Vehicle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        poppins: ["Poppins", "sans-serif"],
+                    },
+                    colors: {
+                        accent: "#E58C4E",
+                        panel: "#2C766E",
+                        ink: "#0E2528",
+                        muted: "#6C7074",
+                        paper: "#F2F3F1",
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            "0%": { opacity: "0", transform: "translateY(10px)" },
+                            "100%": { opacity: "1", transform: "translateY(0)" },
+                        },
+                        slideInRight: {
+                            "0%": { opacity: "0", transform: "translateX(400px)" },
+                            "100%": { opacity: "1", transform: "translateX(0)" },
+                        },
+                    },
+                    animation: {
+                        fadeIn: "fadeIn 300ms ease-out",
+                        slideInRight: "slideInRight 300ms ease-out",
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-paper font-poppins text-ink antialiased">
+    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div class="absolute -left-16 -top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(229,140,78,0.45),rgba(229,140,78,0.08))] blur-sm"></div>
+        <div class="absolute right-[-90px] top-36 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_38%_35%,rgba(44,118,110,0.48),rgba(44,118,110,0.08))] blur-sm"></div>
+        <div class="absolute bottom-[-130px] left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(14,37,40,0.18),rgba(14,37,40,0.04))] blur-md"></div>
+    </div>
+    <!-- Navigation Header -->
+    <header class="border-b border-white/20 bg-[linear-gradient(135deg,#2C766E_0%,#1f5659_55%,#174447_100%)] text-white shadow-[0_16px_36px_rgba(17,54,56,0.28)]">
+        <div class="mx-auto flex w-[95%] max-w-[1320px] items-center justify-between py-4">
+            <a href="index.html" class="text-2xl font-bold tracking-tight transition hover:-translate-y-0.5 hover:text-[#ffe6d5]">
+                <i class="fas fa-car"></i> Rent A Vehicle
+            </a>
+            <nav class="hidden md:flex gap-8">
+                <a href="index.html" class="hover:text-accent transition">Home</a>
+                <a href="vehicles.html" class="hover:text-accent transition">Vehicles</a>
+                <a href="#" class="hover:text-accent transition">About</a>
+                <a href="#" class="hover:text-accent transition">Contact</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <button id="wishlistBtn" class="relative hover:text-accent transition">
+                    <i class="fas fa-heart"></i>
+                    <span id="wishlistCount" class="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                </button>
+                <button class="bg-accent px-6 py-2 rounded-full hover:brightness-110 transition">Sign In</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto w-[95%] max-w-[1320px] py-8 lg:py-10">
+        <!-- Top Search Bar -->
+        <div class="sticky top-4 z-30 mb-8 rounded-3xl border border-white/60 bg-white/90 p-6 shadow-[0_22px_46px_rgba(10,31,34,0.14)] backdrop-blur-lg lg:p-7">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Pickup Location -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-map-marker-alt text-accent mr-2"></i>Pickup Location
+                    </label>
+                    <input
+                        type="text"
+                        id="pickupLocation"
+                        placeholder="Enter city or airport"
+                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-4 py-3 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25"
+                    />
+                </div>
+
+                <!-- Pickup Date/Time -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-calendar-check text-accent mr-2"></i>Pickup Date
+                    </label>
+                    <input
+                        type="datetime-local"
+                        id="pickupDateTime"
+                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-4 py-3 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25"
+                    />
+                </div>
+
+                <!-- Dropoff Location -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-map-marker-alt text-accent mr-2"></i>Return Location
+                    </label>
+                    <input
+                        type="text"
+                        id="dropoffLocation"
+                        placeholder="Enter city or airport"
+                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-4 py-3 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25"
+                    />
+                </div>
+
+                <!-- Return Date/Time -->
+                <div>
+                    <label class="block text-sm font-semibold text-ink mb-2">
+                        <i class="fas fa-calendar-times text-accent mr-2"></i>Return Date
+                    </label>
+                    <input
+                        type="datetime-local"
+                        id="dropoffDateTime"
+                        class="w-full rounded-2xl border border-[#d4ded9] bg-white px-4 py-3 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25"
+                    />
+                </div>
+
+                <!-- Search Button -->
+                <div class="flex items-end">
+                    <button
+                        id="searchBtn"
+                        class="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3 font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_14px_24px_rgba(229,140,78,0.35)]"
+                    >
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Filters -->
+            <div class="mt-6 flex flex-wrap gap-3">
+                <span class="text-sm font-semibold text-muted">Quick Filters:</span>
+                <button class="quick-filter-btn rounded-full border border-[#d4ded9] bg-white px-4 py-2 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent" data-preset="budget">
+                    <i class="fas fa-wallet mr-1"></i>Budget
+                </button>
+                <button class="quick-filter-btn rounded-full border border-[#d4ded9] bg-white px-4 py-2 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent" data-preset="family">
+                    <i class="fas fa-users mr-1"></i>Family
+                </button>
+                <button class="quick-filter-btn rounded-full border border-[#d4ded9] bg-white px-4 py-2 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent" data-preset="luxury">
+                    <i class="fas fa-crown mr-1"></i>Luxury
+                </button>
+                <button class="quick-filter-btn rounded-full border border-[#d4ded9] bg-white px-4 py-2 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-0.5 hover:border-accent hover:text-accent" data-preset="eco">
+                    <i class="fas fa-leaf mr-1"></i>Eco-Friendly
+                </button>
+            </div>
+        </div>
+
+        <div class="flex gap-8">
+            <!-- Desktop Sidebar Filters -->
+            <aside class="hidden lg:block w-80 flex-shrink-0">
+                <div id="filterPanel" class="h-[calc(100vh-12rem)] overflow-y-auto rounded-3xl border border-[#d4ded9] bg-white p-6 shadow-[0_18px_36px_rgba(10,31,34,0.12)]">
+                    <!-- Filter Content Will Be Injected Here -->
+                </div>
+            </aside>
+
+            <!-- Mobile Filter Modal Trigger -->
+            <button
+                id="mobileFilterBtn"
+                class="fixed bottom-8 right-8 z-20 rounded-full bg-accent p-4 text-white shadow-[0_16px_30px_rgba(229,140,78,0.45)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 lg:hidden"
+                title="Open Filters"
+            >
+                <i class="fas fa-sliders-h text-xl"></i>
+            </button>
+
+            <!-- Main Content -->
+            <div class="flex-1 min-w-0">
+                <!-- Sorting and View Options -->
+                <div class="mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#d9e2de] bg-white/90 p-4 shadow-[0_10px_26px_rgba(10,31,34,0.08)] sm:flex-row">
+                    <div class="text-sm font-semibold text-muted">
+                        <span id="resultCount">0</span> vehicles found
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <select
+                            id="sortBy"
+                            class="rounded-xl border border-[#d4ded9] bg-white px-4 py-2 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25"
+                        >
+                            <option value="relevance">Sort by: Relevance</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="rating">Highest Rated</option>
+                            <option value="newest">Newest</option>
+                        </select>
+                        <button id="clearFiltersBtn" class="flex items-center gap-2 text-sm font-semibold text-accent transition hover:-translate-y-0.5 hover:underline">
+                            <i class="fas fa-times-circle"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Filters Display -->
+                <div id="activeFilters" class="mb-6 flex flex-wrap gap-2">
+                    <!-- Filter tags will be displayed here -->
+                </div>
+
+
+                <!-- Vehicle Results Grid -->
+                <div id="vehicleResults" class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    <!-- Vehicle cards will be injected here -->
+                </div>
+
+                <!-- No Results Message -->
+                <div id="noResults" class="hidden rounded-3xl border border-[#d9e2de] bg-white/90 py-16 text-center shadow-[0_12px_28px_rgba(10,31,34,0.08)] animate-fadeIn">
+                    <i class="fas fa-search mb-4 text-6xl text-muted"></i>
+                    <h3 class="mb-2 text-2xl font-bold text-ink">No vehicles found</h3>
+                    <p class="mb-6 text-muted">Try adjusting your search criteria or filters</p>
+                    <button id="resetSearchBtn" class="rounded-full bg-accent px-6 py-3 font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_14px_24px_rgba(229,140,78,0.35)]">
+                        Reset Search
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="assets/js/search-api-client.js"></script>
+    <script src="assets/js/search-filter-manager.js"></script>
+    <script src="assets/js/search-ui-manager.js"></script>
+    <script src="assets/js/search-wishlist.js"></script>
+    <script src="assets/js/location-autocomplete.js"></script>
+    <script src="assets/js/pricing-calculator.js"></script>
+    <script src="assets/js/search-analytics.js"></script>
+    <script src="assets/js/advanced-search.js"></script>
+    <script src="assets/js/mobile-filter-modal.js"></script>
+    </body>
+</html>
