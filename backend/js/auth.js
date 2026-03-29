@@ -109,6 +109,7 @@
     var fallback = {
       username: "Guest User",
       avatarDataUrl: "",
+      email: "",
     };
 
     return Object.assign(fallback, safeParse(localStorage.getItem(STORAGE_PROFILE), {}));
@@ -218,6 +219,7 @@
           setProfile({
             username: syncedName,
             avatarDataUrl: existingProfile.avatarDataUrl || "",
+            email: sessionData.user.email || existingProfile.email || "",
           });
 
           if (typeof auth.upsertProfile === "function") {
@@ -615,11 +617,20 @@
 
   function renderProfileChip() {
     var profile = getProfile();
+    var session = getSession();
+    var email = String(profile.email || (session && session.email) || "");
     var nameEl = document.querySelector("[data-profile-name]");
     var avatarEl = document.querySelector("[data-profile-avatar]");
+    var emailEls = document.querySelectorAll("[data-profile-email]");
 
     if (nameEl) {
       nameEl.textContent = profile.username || "User";
+    }
+
+    if (emailEls && emailEls.length) {
+      emailEls.forEach(function (el) {
+        el.textContent = email || "No email";
+      });
     }
 
     if (avatarEl) {
@@ -638,6 +649,11 @@
     var panelName = document.getElementById("profileName");
     if (panelName && !panelName.value) {
       panelName.value = profile.username || "User";
+    }
+
+    var panelEmail = document.getElementById("profileEmail");
+    if (panelEmail) {
+      panelEmail.value = email;
     }
   }
 
@@ -678,24 +694,47 @@
     var photoInput = document.getElementById("profilePhoto");
     var note = document.getElementById("profileNote");
 
-    function saveProfileData(avatarDataUrl) {
+    function readCurrentProfileEmail() {
+      var profile = getProfile();
+      var session = getSession();
+      return String(profile.email || (session && session.email) || "");
+    }
+
+    async function saveProfileData(avatarDataUrl) {
       var current = getProfile();
       var nextProfile = {
         username: (nameInput && nameInput.value.trim()) || current.username || "User",
         avatarDataUrl: avatarDataUrl !== undefined ? avatarDataUrl : current.avatarDataUrl,
+        email: readCurrentProfileEmail(),
       };
 
       setProfile(nextProfile);
       renderProfileChip();
+
+      var auth = getAuthService();
+      var cloudSynced = false;
+      if (auth && typeof auth.upsertProfile === "function") {
+        try {
+          await auth.upsertProfile(nextProfile.username);
+          cloudSynced = true;
+        } catch (_err) {
+          cloudSynced = false;
+        }
+      }
+
       if (note) {
-        note.textContent = "Profile updated.";
+        note.textContent = cloudSynced
+          ? "Profile updated and synced to Supabase."
+          : "Profile updated locally.";
       }
     }
 
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
-        saveProfileData();
-        closePanel();
+        Promise.resolve(saveProfileData())
+          .finally(function () {
+            closePanel();
+          });
       });
     }
 
@@ -918,6 +957,7 @@
         setProfile({
           username: profileName,
           avatarDataUrl: getProfile().avatarDataUrl || "",
+          email: email,
         });
 
         if (typeof auth.upsertProfile === "function") {
