@@ -55,3 +55,10 @@ This creates `public.user_profiles` with RLS policies so each authenticated user
 4. User is redirected to `frontend/login.html` after successful registration.
 5. Successful sign-in redirects to `frontend/index.html`.
 6. Public users can still browse `frontend/index.html` without signing in.
+
+## Password Security
+
+1. Passwords are never stored in frontend localStorage/sessionStorage.
+2. Passwords are not stored in `public.user_profiles`.
+3. Password hashing is handled securely by Supabase Auth on the server side.
+4. Client-side code only sends passwords over HTTPS to Supabase Auth endpoints.
