@@ -214,10 +214,17 @@
           setSession(mapped, true);
 
           var existingProfile = getProfile();
+          var syncedName = getDisplayNameFromUser(sessionData.user);
           setProfile({
-            username: getDisplayNameFromUser(sessionData.user),
+            username: syncedName,
             avatarDataUrl: existingProfile.avatarDataUrl || "",
           });
+
+          if (typeof auth.upsertProfile === "function") {
+            auth.upsertProfile(syncedName).catch(function () {
+              // Keep UI functional even if profile table migration is not applied yet.
+            });
+          }
         }
 
         return mapped;
@@ -907,10 +914,15 @@
         }
 
         setSession(mappedSession, rememberMe ? rememberMe.checked : true);
+        var profileName = getDisplayNameFromUser((result.session && result.session.user) || result.user);
         setProfile({
-          username: getDisplayNameFromUser((result.session && result.session.user) || result.user),
+          username: profileName,
           avatarDataUrl: getProfile().avatarDataUrl || "",
         });
+
+        if (typeof auth.upsertProfile === "function") {
+          await auth.upsertProfile(profileName);
+        }
 
         resetAttempts();
         window.location.href = "index.html";
