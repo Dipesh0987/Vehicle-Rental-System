@@ -20,6 +20,7 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `database/migrations/001_user_profiles.sql` - SQL migration for persistent user profile data
 - `database/migrations/002_user_profiles_avatar.sql` - SQL migration to add profile image support (`avatar_url`)
 - `database/migrations/003_profile_images_storage.sql` - SQL migration for Supabase Storage bucket and RLS policies for profile images
+- `database/migrations/004_vehicle_catalog.sql` - SQL migration for vehicle catalog tables, admin policies, and vehicle image storage
 
 ## Run
 
@@ -48,8 +49,28 @@ Run this SQL in Supabase SQL Editor:
 1. `database/migrations/001_user_profiles.sql`
 2. `database/migrations/002_user_profiles_avatar.sql`
 3. `database/migrations/003_profile_images_storage.sql`
+4. `database/migrations/004_vehicle_catalog.sql`
 
 This creates `public.user_profiles` with RLS policies and configures `storage.profile-images` bucket policies so authenticated users can upload/update only their own avatar path.
+
+`004_vehicle_catalog.sql` additionally creates:
+
+- `public.admin_users` (admin authorization source)
+- `public.vehicles` (vehicle inventory with strict validation constraints)
+- `public.vehicle_images` (up to 5 ordered images per vehicle)
+- `storage.vehicle-images` bucket with RLS policies for admin uploads
+
+## Admin Vehicle Creation Setup
+
+After running migration `004_vehicle_catalog.sql`, seed at least one admin user:
+
+```sql
+insert into public.admin_users (user_id, role)
+values ('YOUR_AUTH_USER_UUID', 'super_admin')
+on conflict (user_id) do nothing;
+```
+
+You can get `user_id` from Supabase Auth -> Users.
 
 ## Profile Image Best Practice
 
