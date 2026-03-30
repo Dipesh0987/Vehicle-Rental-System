@@ -478,9 +478,107 @@
     }
   };
 
-  function getVehicleFromQuery() {
+  function getVehicleIdFromQuery() {
     var params = new URLSearchParams(window.location.search);
-    var id = params.get("id") || "camry-hybrid";
+    return params.get("id") || "camry-hybrid";
+  }
+
+  function formatDetailCurrency(value) {
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return "$0.00";
+    }
+    return "$" + numeric.toFixed(2);
+  }
+
+  function mapCatalogVehicleToDetail(vehicle, similarNames) {
+    var pricePerDay = Number(vehicle && vehicle.pricePerDay ? vehicle.pricePerDay : 0);
+    var seats = Number(vehicle && vehicle.seats ? vehicle.seats : 5);
+    var fuelType = String(vehicle && vehicle.fuelType ? vehicle.fuelType : "Petrol");
+    var type = String(vehicle && vehicle.type ? vehicle.type : "Vehicle");
+
+    var gallery = Array.isArray(vehicle && vehicle.imageUrls) ? vehicle.imageUrls.filter(Boolean) : [];
+    var heroImage = String(vehicle && vehicle.primaryImageUrl ? vehicle.primaryImageUrl : (gallery[0] || "assets/images/car-transparent.png"));
+    if (!gallery.length) {
+      gallery = [heroImage];
+    }
+
+    return {
+      id: String(vehicle && vehicle.id ? vehicle.id : "custom-vehicle"),
+      brand: String(vehicle && vehicle.brand ? vehicle.brand : "Vehicle"),
+      name: String(vehicle && vehicle.name ? vehicle.name : "Custom Vehicle"),
+      meta: type + " | Automatic | " + seats + " Seats | " + fuelType,
+      tagline: "Book this " + type.toLowerCase() + " instantly with transparent pricing and verified images.",
+      heroImage: heroImage,
+      gallery: gallery,
+      badges: [type, fuelType, seats + " Seats"],
+      quickSpecs: {
+        "Fuel Type": fuelType,
+        Transmission: "Automatic",
+        Mileage: "As per vehicle profile",
+        Seats: String(seats),
+        Luggage: "Standard",
+        Year: "Latest fleet"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Transparent digital booking summary"
+      ],
+      pricing: {
+        dailyRate: formatDetailCurrency(pricePerDay) + " / day",
+        securityDeposit: "$500 refundable",
+        extraKm: "$0.50 / km",
+        estimatedTotal: formatDetailCurrency(pricePerDay * 3) + " for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 1 year old)",
+        "Government photo ID or passport",
+        "Minimum age: 23 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 24 hours before pickup",
+        "Late return fee applies after 30 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Fleet Customer", rating: 4.8, text: "Vehicle condition matched photos and pickup was smooth." },
+        { name: "Business Traveler", rating: 4.7, text: "Reliable booking experience with clear pricing." }
+      ],
+      similar: Array.isArray(similarNames) && similarNames.length ? similarNames : ["Toyota Camry Hybrid", "Honda CR-V Touring", "BMW 3 Series"]
+    };
+  }
+
+  async function getVehicleFromQuery() {
+    var id = getVehicleIdFromQuery();
+
+    if (window.VehicleCatalogService && typeof window.VehicleCatalogService.getVehicleById === "function") {
+      try {
+        var catalogVehicle = await window.VehicleCatalogService.getVehicleById(id, { includeInactive: false });
+        if (catalogVehicle) {
+          var similarNames = [];
+          if (typeof window.VehicleCatalogService.listVehicles === "function") {
+            var catalogList = await window.VehicleCatalogService.listVehicles({ includeInactive: false });
+            similarNames = (catalogList || [])
+              .filter(function (entry) {
+                return entry.id !== catalogVehicle.id;
+              })
+              .slice(0, 3)
+              .map(function (entry) {
+                return entry.name;
+              });
+          }
+
+          return mapCatalogVehicleToDetail(catalogVehicle, similarNames);
+        }
+      } catch (error) {
+        console.warn("Catalog-backed vehicle details unavailable, falling back to static catalog:", error);
+      }
+    }
+
     return VEHICLES[id] || VEHICLES["camry-hybrid"];
   }
 
@@ -854,8 +952,8 @@
     compute();
   }
 
-  function init() {
-    var vehicle = getVehicleFromQuery();
+  async function init() {
+    var vehicle = await getVehicleFromQuery();
     renderIdentity(vehicle);
     renderGallery(vehicle);
     renderBadges(vehicle);
