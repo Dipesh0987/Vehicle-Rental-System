@@ -18,6 +18,8 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `backend/js/auth.js` - Shared client-side auth/profile UI logic used by frontend pages
 - `frontend/assets/js/vehicle-details.js` - Static vehicle data and UI rendering logic for detail page
 - `database/migrations/001_user_profiles.sql` - SQL migration for persistent user profile data
+- `database/migrations/002_user_profiles_avatar.sql` - SQL migration to add profile image support (`avatar_url`)
+- `database/migrations/003_profile_images_storage.sql` - SQL migration for Supabase Storage bucket and RLS policies for profile images
 
 ## Run
 
@@ -44,8 +46,16 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 Run this SQL in Supabase SQL Editor:
 
 1. `database/migrations/001_user_profiles.sql`
+2. `database/migrations/002_user_profiles_avatar.sql`
+3. `database/migrations/003_profile_images_storage.sql`
 
-This creates `public.user_profiles` with RLS policies so each authenticated user can read/write only their own profile row.
+This creates `public.user_profiles` with RLS policies and configures `storage.profile-images` bucket policies so authenticated users can upload/update only their own avatar path.
+
+## Profile Image Best Practice
+
+1. Upload image files to Supabase Storage bucket `profile-images`.
+2. Store only the image URL in `public.user_profiles.avatar_url` (not base64 blobs in database).
+3. Keep image size bounded (optimized on client before upload).
 
 ## Auth Flow
 
