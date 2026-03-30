@@ -59,6 +59,7 @@ function renderActiveModule() {
       data: appState.data,
       query: appState.globalSearch,
       notify: pushToast,
+      requestRender: renderActiveModule,
     });
 
     if (typeof section === 'string') {
