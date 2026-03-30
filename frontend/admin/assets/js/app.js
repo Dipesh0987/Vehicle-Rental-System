@@ -1,6 +1,6 @@
 import { appConfig } from './config.js';
 import { dashboardData } from './data.js';
-import { bindShellInteractions, pushToast, renderShell, setActiveNav } from './shell.js';
+import { bindShellInteractions, pushToast, renderShell, setActiveNav, setAdminIdentity } from './shell.js';
 import { renderOverviewModule } from './modules/overview.js';
 import { renderVehiclesModule } from './modules/vehicles.js';
 import { renderBookingsModule } from './modules/bookings.js';
@@ -33,19 +33,91 @@ const appState = {
   activeModule: 'overview',
   globalSearch: '',
   data: structuredClone(dashboardData),
+  adminIdentity: null,
 };
 
 bootstrap();
 
-function bootstrap() {
+async function bootstrap() {
   const root = document.getElementById('adminApp');
   if (!root) return;
 
+  const access = await ensureAdminAccess();
+  if (!access.allowed) {
+    return;
+  }
+
+  appState.adminIdentity = access.identity;
+
   root.innerHTML = renderShell();
   initTheme();
-  bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
+  bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch, handleAdminLogout);
+  setAdminIdentity(appState.adminIdentity || { displayName: 'Admin', role: 'Admin', initials: 'AD' });
   renderActiveModule();
   setActiveNav(appState.activeModule);
+}
+
+async function ensureAdminAccess() {
+  const auth = window.AdminAuthService;
+  if (!auth || typeof auth.requireAdminAccess !== 'function') {
+    return {
+      allowed: true,
+      identity: { displayName: 'Admin', role: 'Admin', initials: 'AD' },
+    };
+  }
+
+  const access = await auth.requireAdminAccess({
+    redirectIfUnauthorized: true,
+    nextPath: 'index.html',
+  });
+
+  if (!access || !access.allowed) {
+    return {
+      allowed: false,
+      identity: null,
+    };
+  }
+
+  let identity = null;
+  if (typeof auth.getAdminIdentity === 'function') {
+    try {
+      identity = await auth.getAdminIdentity();
+    } catch (_error) {
+      identity = null;
+    }
+  }
+
+  if (!identity) {
+    const email = String(access.session?.user?.email || 'admin@vehicle-rental.local');
+    identity = {
+      displayName: 'Admin',
+      role: access.admin?.role === 'super_admin' ? 'Super Admin' : 'Admin',
+      initials: 'AD',
+      email,
+    };
+  }
+
+  return {
+    allowed: true,
+    identity,
+  };
+}
+
+async function handleAdminLogout() {
+  const auth = window.AdminAuthService;
+  const loginUrl = auth && typeof auth.buildLoginUrl === 'function' ? auth.buildLoginUrl('index.html') : 'login.html';
+
+  try {
+    if (auth && typeof auth.signOut === 'function') {
+      await auth.signOut();
+    } else if (window.VehicleAuthService && typeof window.VehicleAuthService.signOut === 'function') {
+      await window.VehicleAuthService.signOut();
+    }
+  } catch (error) {
+    pushToast(error?.message || 'Unable to sign out cleanly. Redirecting to login.', 'warn');
+  } finally {
+    window.location.href = loginUrl;
+  }
 }
 
 function renderActiveModule() {

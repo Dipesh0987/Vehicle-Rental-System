@@ -52,11 +52,11 @@ export function openModal({ title, content, onConfirm, onClose }) {
   return close;
 }
 
-export function openDrawer({ title, content, onClose }) {
+export function openDrawer({ title, content, onClose, panelClassName = '', panelStyle = '' }) {
   const host = ensureOverlayHost();
   host.innerHTML = `
     <div id="overlayBackdrop" class="pointer-events-auto absolute inset-0 bg-black/45"></div>
-    <aside class="pointer-events-auto absolute right-0 top-0 h-full w-[92%] max-w-[480px] border-l border-slate-200 bg-white p-5 shadow-panel dark:border-white/10 dark:bg-[#151d22]">
+    <aside id="overlayDrawerPanel" style="${panelStyle}" class="pointer-events-auto absolute right-0 top-0 h-full w-[92%] max-w-[480px] translate-x-full border-l border-slate-200 bg-white p-5 shadow-panel transition-transform duration-300 dark:border-white/10 dark:bg-[#151d22] ${panelClassName}">
       <div class="flex items-start justify-between gap-3">
         <h3 class="text-lg font-extrabold">${title}</h3>
         <button id="overlayClose" class="rounded-lg p-1.5 hover:bg-slate-900/10 dark:hover:bg-white/10">✕</button>
@@ -65,7 +65,34 @@ export function openDrawer({ title, content, onClose }) {
     </aside>
   `;
 
+  const panel = host.querySelector('#overlayDrawerPanel');
+  let closed = false;
+
+  if (panel) {
+    window.requestAnimationFrame(() => {
+      panel.classList.remove('translate-x-full');
+      panel.classList.add('translate-x-0');
+    });
+  }
+
   const close = () => {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+
+    if (panel) {
+      panel.classList.remove('translate-x-0');
+      panel.classList.add('translate-x-full');
+
+      window.setTimeout(() => {
+        host.innerHTML = '';
+        onClose?.();
+      }, 220);
+      return;
+    }
+
     host.innerHTML = '';
     onClose?.();
   };

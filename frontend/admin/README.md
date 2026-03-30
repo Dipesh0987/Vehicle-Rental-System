@@ -4,11 +4,14 @@ This directory contains the enterprise-grade admin console for the Vehicle Renta
 
 ## Entry Point
 
-- `index.html` - standalone dashboard shell using Tailwind CDN and modular ES scripts.
+- `login.html` - admin sign-in page (required before dashboard access).
+- `index.html` - protected admin dashboard shell.
 
 ## JS Structure
 
 - `assets/js/app.js` - bootstraps shell, routing, and module rendering.
+- `assets/js/admin-auth.js` - admin session guard, role checks, and login helpers.
+- `assets/js/login.js` - login page interactions and submit flow.
 - `assets/js/shell.js` - sidebar/top navigation, quick actions, and toasts.
 - `assets/js/data.js` - in-memory seed data for all admin domains.
 - `assets/js/modules/` - feature modules (overview, vehicles, bookings, customers, drivers, payments, pricing, maintenance, reviews, admins, notifications, reports).
@@ -44,5 +47,21 @@ This directory contains the enterprise-grade admin console for the Vehicle Renta
 
 ### Required Backend Setup
 
-- Run `database/migrations/004_vehicle_catalog.sql` in Supabase SQL editor.
-- Seed at least one admin record in `public.admin_users` for the authenticated admin account.
+- Run migrations in order:
+	- `database/migrations/004_vehicle_catalog.sql`
+	- `database/migrations/005_seed_dummy_vehicles.sql`
+	- `database/migrations/006_seed_demo_vehicles_rpc.sql`
+	- `database/migrations/007_admin_super_admin_bootstrap.sql`
+	- `database/migrations/008_admin_login_repair.sql` (safe to re-run if admin login fails)
+	- `database/migrations/009_vehicle_catalog_repair.sql` (one-shot repair for missing vehicle tables)
+
+Default admin login after migration 007:
+
+- Username: `admin`
+- Password: `admin123`
+
+Login resilience behavior:
+
+- If legacy admin auth data is broken in Supabase (`unexpected_failure` / schema query error), signing in with `admin/admin123` now auto-bootstraps a clean auth account and continues.
+
+If login returns `Invalid admin username or password`, run `database/migrations/008_admin_login_repair.sql` in Supabase SQL Editor and retry.

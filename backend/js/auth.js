@@ -316,8 +316,8 @@
 
   function bookingStatusPillClass(status) {
     return String(status).toLowerCase() === "upcoming"
-      ? "rounded-full border border-[#f5c7a5] bg-[rgba(229,140,78,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd7ba]"
-      : "rounded-full border border-[#95d6ae] bg-[rgba(86,170,117,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#d2f0dd]";
+      ? "rounded-full border border-[#f3c9ab] bg-[#fff4eb] px-2 py-0.5 text-[10px] font-semibold text-[#9f5825]"
+      : "rounded-full border border-[#b7e1c7] bg-[#e9fff1] px-2 py-0.5 text-[10px] font-semibold text-[#1b6a3d]";
   }
 
   function renderBookingDetail(detail, booking) {
@@ -332,10 +332,10 @@
 
     var titleWrap = document.createElement("div");
     var title = document.createElement("h3");
-    title.className = "text-[20px] font-bold leading-tight text-white";
+    title.className = "text-[20px] font-bold leading-tight text-[#1f4043]";
     title.textContent = booking.vehicle;
     var sub = document.createElement("p");
-    sub.className = "mt-1 text-[12px] text-white/72";
+    sub.className = "mt-1 text-[12px] text-[#4a6569]";
     sub.textContent = booking.reference + " • " + booking.category;
     titleWrap.appendChild(title);
     titleWrap.appendChild(sub);
@@ -348,18 +348,18 @@
     top.appendChild(status);
 
     var timeline = document.createElement("div");
-    timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-white/15 bg-white/5 p-3 text-[12px] text-white/85 sm:grid-cols-2";
+    timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-[#d8e3de] bg-white p-3 text-[12px] text-[#365457] sm:grid-cols-2";
     timeline.innerHTML =
-      "<p><span class=\"block text-white/65\">Pick-up</span>" + booking.pickupDate + " at " + booking.pickupTime + "</p>" +
-      "<p><span class=\"block text-white/65\">Drop-off</span>" + booking.dropoffDate + " at " + booking.dropoffTime + "</p>" +
-      "<p><span class=\"block text-white/65\">From</span>" + booking.pickupLocation + "</p>" +
-      "<p><span class=\"block text-white/65\">To</span>" + booking.dropoffLocation + "</p>";
+      "<p><span class=\"block text-[#5a7376]\">Pick-up</span>" + booking.pickupDate + " at " + booking.pickupTime + "</p>" +
+      "<p><span class=\"block text-[#5a7376]\">Drop-off</span>" + booking.dropoffDate + " at " + booking.dropoffTime + "</p>" +
+      "<p><span class=\"block text-[#5a7376]\">From</span>" + booking.pickupLocation + "</p>" +
+      "<p><span class=\"block text-[#5a7376]\">To</span>" + booking.dropoffLocation + "</p>";
 
     var money = document.createElement("div");
     money.className = "mt-3 rounded-2xl border border-[#f2c8aa]/35 bg-[rgba(229,140,78,0.08)] p-3 text-[12px]";
     money.innerHTML =
-      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-white/72\">Total Paid</span><strong class=\"text-[16px] text-[#ffd8bd]\">" + booking.amount + "</strong></div>" +
-      "<div class=\"space-y-1 text-white/78\">" +
+      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-[#6d3e18]\">Total Paid</span><strong class=\"text-[16px] text-[#a05820]\">" + booking.amount + "</strong></div>" +
+      "<div class=\"space-y-1 text-[#3f5c5f]\">" +
       "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + booking.baseAmount + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + booking.serviceFee + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Tax</span><span>" + booking.tax + "</span></p>" +
@@ -367,12 +367,12 @@
       "</div>";
 
     var extra = document.createElement("div");
-    extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-white/82 sm:grid-cols-2";
+    extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-[#3f5c5f] sm:grid-cols-2";
     extra.innerHTML =
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Driver</span>" + booking.driverName + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Payment Method</span>" + booking.paymentMethod + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Add-ons</span>" + booking.addOns.join(", ") + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Last Updated</span>" + booking.lastUpdated + "</p>";
+      "<p class=\"rounded-xl border border-[#d8e3de] bg-[#fbfdfc] px-3 py-2\"><span class=\"block text-[#5a7376]\">Driver</span>" + booking.driverName + "</p>" +
+      "<p class=\"rounded-xl border border-[#d8e3de] bg-[#fbfdfc] px-3 py-2\"><span class=\"block text-[#5a7376]\">Payment Method</span>" + booking.paymentMethod + "</p>" +
+      "<p class=\"rounded-xl border border-[#d8e3de] bg-[#fbfdfc] px-3 py-2 sm:col-span-2\"><span class=\"block text-[#5a7376]\">Add-ons</span>" + booking.addOns.join(", ") + "</p>" +
+      "<p class=\"rounded-xl border border-[#d8e3de] bg-[#fbfdfc] px-3 py-2 sm:col-span-2\"><span class=\"block text-[#5a7376]\">Last Updated</span>" + booking.lastUpdated + "</p>";
 
     detail.appendChild(top);
     detail.appendChild(timeline);
@@ -408,7 +408,7 @@
     }
 
     if (!bookings.length) {
-      detail.innerHTML = "<p class=\"rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-[13px] text-white/75\">No bookings yet. Once you reserve a vehicle, details will appear here.</p>";
+      detail.innerHTML = "<p class=\"rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] text-[#4a6569]\">No bookings yet. Once you reserve a vehicle, details will appear here.</p>";
       return;
     }
 
@@ -425,8 +425,8 @@
 
         var isActive = booking.id === activeId;
         row.className = isActive
-          ? "w-full rounded-2xl border border-[#f3c9ab] bg-[rgba(229,140,78,0.12)] px-3 py-3 text-left transition"
-          : "w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:bg-white/10";
+          ? "w-full rounded-2xl border border-[#f3c9ab] bg-[#fff4eb] px-3 py-3 text-left transition"
+          : "w-full rounded-2xl border border-[#d8e3de] bg-white px-3 py-3 text-left transition hover:-translate-y-[1px] hover:bg-[#f8fcfa]";
       });
 
       var selected = bookings.find(function (booking) {
@@ -445,7 +445,7 @@
       top.className = "flex items-center justify-between gap-2";
 
       var title = document.createElement("p");
-      title.className = "text-[13px] font-semibold text-white";
+      title.className = "text-[13px] font-semibold text-[#214346]";
       title.textContent = booking.vehicle;
 
       var status = document.createElement("span");
@@ -453,7 +453,7 @@
       status.textContent = booking.status;
 
       var meta = document.createElement("p");
-      meta.className = "mt-1 text-[11px] text-white/74";
+      meta.className = "mt-1 text-[11px] text-[#5a7376]";
       meta.textContent = booking.pickupDate + " to " + booking.dropoffDate + " • " + booking.amount;
 
       top.appendChild(title);
@@ -479,22 +479,22 @@
 
     var overlay = document.createElement("div");
     overlay.setAttribute("data-bookings-modal-overlay", "true");
-    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(5,18,20,0.58)] opacity-0 transition duration-200";
+    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-black/45 opacity-0 transition duration-200";
 
     var card = document.createElement("section");
     card.setAttribute("role", "dialog");
     card.setAttribute("aria-modal", "true");
-    card.className = "mx-4 w-full max-w-[1060px] rounded-3xl border border-white/20 bg-[linear-gradient(160deg,rgba(23,56,60,0.98),rgba(16,38,42,0.98))] p-5 text-white shadow-[0_28px_70px_rgba(0,0,0,0.42)] sm:p-6";
+    card.className = "mx-4 w-full max-w-[1120px] rounded-3xl border border-[rgba(23,57,60,0.16)] bg-[linear-gradient(160deg,#f4f3ef,#e9e0d7)] p-5 text-[#182227] shadow-[0_30px_70px_rgba(7,31,34,0.17)] translate-y-5 scale-95 opacity-0 transition duration-300 sm:p-6";
 
     var top = document.createElement("div");
     top.className = "flex items-start justify-between gap-3";
 
     var titleWrap = document.createElement("div");
     var heading = document.createElement("h2");
-    heading.className = "text-[22px] font-bold tracking-[-0.01em]";
+    heading.className = "text-[22px] font-bold tracking-[-0.01em] text-[#182227]";
     heading.textContent = "Your Bookings";
     var subtitle = document.createElement("p");
-    subtitle.className = "mt-1 text-[13px] text-white/75";
+    subtitle.className = "mt-1 text-[13px] text-[#4a6569]";
     subtitle.textContent = "Recent and upcoming reservations in one place.";
     titleWrap.appendChild(heading);
     titleWrap.appendChild(subtitle);
@@ -502,18 +502,18 @@
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.setAttribute("data-bookings-modal-close", "true");
-    closeBtn.className = "rounded-full border border-white/25 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:-translate-y-[1px] hover:bg-white/10";
+    closeBtn.className = "rounded-full border border-[#cad8d2] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2b4d50] transition hover:-translate-y-[1px] hover:bg-[#f6faf8]";
     closeBtn.textContent = "Close";
 
     top.appendChild(titleWrap);
     top.appendChild(closeBtn);
 
     var summary = document.createElement("div");
-    summary.className = "mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold text-white/88";
+    summary.className = "mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold text-[#2f4d50]";
     summary.innerHTML =
-      "<p class=\"rounded-xl border border-white/15 bg-white/5 px-3 py-2\">Total <span data-bookings-total class=\"ml-1 text-white\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#f2c9ac]/35 bg-[rgba(229,140,78,0.1)] px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"ml-1 text-[#ffd8bd]\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#9ad8b2]/30 bg-[rgba(86,170,117,0.1)] px-3 py-2\">Completed <span data-bookings-completed class=\"ml-1 text-[#d2f0dd]\">0</span></p>";
+      "<p class=\"rounded-xl border border-[#d8e3de] bg-white px-3 py-2\">Total <span data-bookings-total class=\"ml-1 text-[#1f4043]\">0</span></p>" +
+      "<p class=\"rounded-xl border border-[#f2c9ac]/35 bg-[rgba(229,140,78,0.1)] px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"ml-1 text-[#9f5825]\">0</span></p>" +
+      "<p class=\"rounded-xl border border-[#9ad8b2]/30 bg-[rgba(86,170,117,0.1)] px-3 py-2\">Completed <span data-bookings-completed class=\"ml-1 text-[#1b6a3d]\">0</span></p>";
 
     var workspace = document.createElement("div");
     workspace.className = "mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[0.95fr,1.35fr]";
@@ -524,7 +524,7 @@
 
     var detail = document.createElement("div");
     detail.setAttribute("data-bookings-modal-detail", "true");
-    detail.className = "max-h-[58vh] overflow-y-auto rounded-2xl border border-white/15 bg-white/6 p-4";
+    detail.className = "max-h-[58vh] overflow-y-auto rounded-2xl border border-[#d8e3de] bg-white p-4";
 
     card.appendChild(top);
     card.appendChild(summary);
@@ -539,17 +539,30 @@
 
   function openBookingsModal() {
     var overlay = ensureBookingsModal();
+    var card = overlay.firstElementChild;
     renderBookingsWorkspace(overlay);
 
     overlay.classList.remove("opacity-0", "pointer-events-none");
     overlay.classList.add("opacity-100", "pointer-events-auto");
+
+    if (card) {
+      card.classList.remove("translate-y-5", "scale-95", "opacity-0");
+      card.classList.add("translate-y-0", "scale-100", "opacity-100");
+    }
+
     document.body.classList.add("overflow-hidden");
   }
 
   function closeBookingsModal() {
     var overlay = document.querySelector("[data-bookings-modal-overlay]");
+    var card = overlay ? overlay.firstElementChild : null;
     if (!overlay) {
       return;
+    }
+
+    if (card) {
+      card.classList.remove("translate-y-0", "scale-100", "opacity-100");
+      card.classList.add("translate-y-5", "scale-95", "opacity-0");
     }
 
     overlay.classList.remove("opacity-100", "pointer-events-auto");

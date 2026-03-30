@@ -50,6 +50,11 @@ Run this SQL in Supabase SQL Editor:
 2. `database/migrations/002_user_profiles_avatar.sql`
 3. `database/migrations/003_profile_images_storage.sql`
 4. `database/migrations/004_vehicle_catalog.sql`
+5. `database/migrations/005_seed_dummy_vehicles.sql`
+6. `database/migrations/006_seed_demo_vehicles_rpc.sql`
+7. `database/migrations/007_admin_super_admin_bootstrap.sql`
+8. `database/migrations/008_admin_login_repair.sql` (safe re-run helper for admin login)
+9. `database/migrations/009_vehicle_catalog_repair.sql` (one-shot repair if vehicle tables are missing)
 
 This creates `public.user_profiles` with RLS policies and configures `storage.profile-images` bucket policies so authenticated users can upload/update only their own avatar path.
 
@@ -60,17 +65,72 @@ This creates `public.user_profiles` with RLS policies and configures `storage.pr
 - `public.vehicle_images` (up to 5 ordered images per vehicle)
 - `storage.vehicle-images` bucket with RLS policies for admin uploads
 
+`005_seed_dummy_vehicles.sql` seeds sample vehicles + image records so they appear in:
+
+- Admin Dashboard -> Vehicle Management
+- Public website vehicle search/listing and vehicle details page
+
 ## Admin Vehicle Creation Setup
 
-After running migration `004_vehicle_catalog.sql`, seed at least one admin user:
+After running migrations `004` to `007`:
 
-```sql
-insert into public.admin_users (user_id, role)
-values ('YOUR_AUTH_USER_UUID', 'super_admin')
-on conflict (user_id) do nothing;
-```
+1. Open `frontend/admin/login.html`.
+2. Sign in with:
+	- Username: `admin`
+	- Password: `admin123`
+3. You will be redirected to `frontend/admin/index.html`.
 
-You can get `user_id` from Supabase Auth -> Users.
+Admin login auto-bootstrap behavior:
+
+- If the legacy `admin@vehicle-rental.local` auth row is corrupted or missing, the login flow now auto-provisions a clean bootstrap auth user (`admin.bootstrap@vehicle-rental.local`) when you sign in with `admin/admin123`.
+- This avoids Supabase Auth `unexpected_failure` schema-query errors caused by legacy manual auth-row inserts.
+
+`007_admin_super_admin_bootstrap.sql` creates/updates:
+
+- Supabase Auth user: `admin@vehicle-rental.local`
+- Auth identity for email login
+- `public.admin_users` row with role `super_admin`
+- Optional `public.user_profiles` row when profile table exists
+
+If you prefer your own admin account, change credentials immediately after bootstrap.
+
+If admin login shows `Invalid admin username or password`, run:
+
+1. `database/migrations/008_admin_login_repair.sql`
+2. Retry login with username `admin` and password `admin123`
+
+## One-Click Demo Seed (Admin Panel)
+
+After completing migrations:
+
+1. Open `frontend/admin/index.html`.
+2. Go to **Vehicle Management**.
+3. Click **Seed Demo Vehicles**.
+
+This action writes demo vehicles directly to Supabase (`public.vehicles` + `public.vehicle_images`) through RPC `public.seed_demo_vehicles()` and immediately appears in:
+
+- Admin Vehicle Management table
+- Public vehicle listing/search pages
+- Public vehicle details page
+
+If you do not have an admin login yet, this still works after running migration `006_seed_demo_vehicles_rpc.sql`.
+
+If Supabase shows `relation "public.vehicles" does not exist`, run:
+
+1. `database/migrations/004_vehicle_catalog.sql`
+2. `database/migrations/005_seed_dummy_vehicles.sql`
+3. `database/migrations/006_seed_demo_vehicles_rpc.sql`
+
+Quick repair alternative (single script):
+
+1. `database/migrations/009_vehicle_catalog_repair.sql`
+
+Admin add-vehicle save checklist:
+
+1. Sign in at `frontend/admin/login.html` (or use another account that exists in `public.admin_users` with `is_active = true`).
+2. Fill all required fields in the Add Vehicle drawer.
+3. Upload at least one valid image (JPG, PNG, or WebP; max 5 MB each).
+4. Click **Add Vehicle**.
 
 ## Profile Image Best Practice
 

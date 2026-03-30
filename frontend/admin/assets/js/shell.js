@@ -116,8 +116,16 @@ export function renderShell() {
         </button>
 
         <button id="profileBtn" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">AG</span>
-          <span class="hidden text-sm font-semibold sm:inline">Ariana Gray</span>
+          <span id="profileInitials" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">AD</span>
+          <span class="hidden min-w-0 text-left sm:flex sm:flex-col">
+            <span id="profileName" class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">Admin</span>
+            <span id="profileRole" class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">Admin</span>
+          </span>
+        </button>
+
+        <button id="logoutBtn" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+          <span class="material-symbols-outlined mr-1.5 text-[17px] align-middle">logout</span>
+          <span class="hidden sm:inline">Logout</span>
         </button>
       </div>
     </header>
@@ -163,7 +171,7 @@ export function pushToast(message, variant = 'info') {
   }, 2800);
 }
 
-export function bindShellInteractions(onNavigate, onQuickAction, onSearch) {
+export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onLogout) {
   const navButtons = document.querySelectorAll('[data-nav-item]');
   navButtons.forEach((button) => {
     button.addEventListener('click', () => {
@@ -208,6 +216,13 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch) {
   mobileToggle?.addEventListener('click', openMobileSidebar);
   mobileClose?.addEventListener('click', closeMobileSidebar);
   mobileBackdrop?.addEventListener('click', closeMobileSidebar);
+
+  const logoutButton = document.getElementById('logoutBtn');
+  logoutButton?.addEventListener('click', () => {
+    if (typeof onLogout === 'function') {
+      onLogout();
+    }
+  });
 }
 
 export function setActiveNav(id) {
@@ -218,6 +233,42 @@ export function setActiveNav(id) {
     button.classList.toggle('dark:bg-white/20', active);
     button.classList.toggle('dark:text-white', active);
   });
+}
+
+function computeInitials(name) {
+  const safeName = String(name || '').trim();
+  if (!safeName) {
+    return 'AD';
+  }
+
+  const parts = safeName.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+}
+
+export function setAdminIdentity(identity = {}) {
+  const displayName = String(identity.displayName || identity.name || 'Admin');
+  const role = String(identity.role || 'Admin');
+  const initials = String(identity.initials || computeInitials(displayName));
+
+  const nameHost = document.getElementById('profileName');
+  const roleHost = document.getElementById('profileRole');
+  const initialsHost = document.getElementById('profileInitials');
+
+  if (nameHost) {
+    nameHost.textContent = displayName;
+  }
+
+  if (roleHost) {
+    roleHost.textContent = role;
+  }
+
+  if (initialsHost) {
+    initialsHost.textContent = initials;
+  }
 }
 
 function openMobileSidebar() {
