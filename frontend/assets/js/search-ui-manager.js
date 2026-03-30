@@ -56,8 +56,8 @@ class SearchUIManager {
                 icon: "fa-dollar-sign",
                 type: "range",
                 min: 0,
-                max: 500,
-                step: 10,
+                max: 100000,
+                step: 50,
                 minKey: "minPrice",
                 maxKey: "maxPrice",
             },
@@ -146,13 +146,13 @@ class SearchUIManager {
         let html = `
             <div class="space-y-6">
                 <!-- Clear Filters Button -->
-                <button id="clearPanelFilters" class="flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 py-2.5 text-sm font-semibold text-red-600 transition duration-200 hover:-translate-y-0.5 hover:bg-red-100">
+                <button id="clearPanelFilters" class="flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition duration-200 hover:-translate-y-0.5 hover:bg-red-100">
                     <i class="fas fa-times-circle"></i> Clear All Filters
                 </button>
 
                 <!-- Search in filters -->
                 <div>
-                    <input type="text" id="filterSearch" placeholder="Search filters..." class="w-full rounded-xl border border-[#d4ded9] bg-white px-4 py-2 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25" />
+                    <input type="text" id="filterSearch" placeholder="Search filters..." class="w-full rounded-xl border border-[#d4ded9] bg-white px-4 py-3 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25" />
                 </div>
         `;
 
@@ -173,14 +173,16 @@ class SearchUIManager {
      * Render a single filter category
      */
     renderFilterCategory(key, config) {
+        const expandedByDefault = ["vehicleType", "priceRange", "availability"].includes(key);
+
         let html = `
-            <div class="filter-category rounded-2xl border border-[#e2e9e5] bg-[#f8fbf9] px-4 py-4">
+            <div class="filter-category rounded-2xl border border-[#e2e9e5] bg-[#f8fbf9] px-4 py-4" data-filter-title="${String(config.label || "").toLowerCase()}">
                 <div class="filter-toggle mb-3 flex cursor-pointer items-center gap-2" data-filter="${key}">
                     <i class="fas ${config.icon} text-accent"></i>
                     <h3 class="flex-1 text-sm font-semibold text-ink">${config.label}</h3>
-                    <i class="fas fa-chevron-down toggle-icon text-xs text-muted transition-transform duration-200"></i>
+                    <i class="fas fa-chevron-down toggle-icon text-xs text-muted transition-transform duration-200 ${expandedByDefault ? "rotate-180" : ""}"></i>
                 </div>
-                <div class="filter-content space-y-2 pl-1">
+                <div class="filter-content space-y-2 pl-1 ${expandedByDefault ? "" : "hidden"}">
         `;
 
         switch (config.type) {
@@ -211,7 +213,7 @@ class SearchUIManager {
         for (const option of config.options) {
             const isChecked = this.filterManager.filters[config.filterKey]?.includes(option.value);
             html += `
-                <label class="flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm text-[#30484b] transition hover:bg-white">
+                <label class="flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-[#30484b] transition hover:bg-white">
                     <input type="checkbox" class="filter-checkbox h-4 w-4 rounded border-[#c7d5cf] text-accent focus:ring-accent/30" data-filter="${config.filterKey}" data-value="${option.value}" ${isChecked ? "checked" : ""} />
                     ${option.icon ? `<i class="fas ${option.icon} text-muted text-sm"></i>` : ""}
                     <span class="text-sm">${option.label}</span>
@@ -321,6 +323,20 @@ class SearchUIManager {
             });
         });
 
+        // Search categories in filter panel
+        const filterSearchInput = document.getElementById("filterSearch");
+        if (filterSearchInput && filterSearchInput.dataset.listenerBound !== "true") {
+            filterSearchInput.dataset.listenerBound = "true";
+            filterSearchInput.addEventListener("input", (event) => {
+                const query = String(event.target.value || "").trim().toLowerCase();
+                document.querySelectorAll(".filter-category").forEach((category) => {
+                    const title = String(category.dataset.filterTitle || "");
+                    const shouldHide = query.length > 0 && !title.includes(query);
+                    category.classList.toggle("hidden", shouldHide);
+                });
+            });
+        }
+
         // Clear filters in panel
         const clearPanelBtn = document.getElementById("clearPanelFilters");
         if (clearPanelBtn && clearPanelBtn.dataset.listenerBound !== "true") {
@@ -429,9 +445,9 @@ class SearchUIManager {
         noResultsDiv.classList.add("hidden");
 
         let html = "";
-        for (const vehicle of vehicles) {
-            html += this.createVehicleCard(vehicle);
-        }
+        vehicles.forEach((vehicle, index) => {
+            html += this.createVehicleCard(vehicle, index);
+        });
 
         resultsDiv.innerHTML = html;
         this.attachVehicleCardListeners();
@@ -440,30 +456,48 @@ class SearchUIManager {
     /**
      * Create a vehicle card
      */
-    createVehicleCard(vehicle) {
+    createVehicleCard(vehicle, index = 0) {
         const price = this.filterManager.extractPrice(vehicle.pricing?.dailyRate || "0");
-        const rating = parseFloat(vehicle.rating || 0);
+        const parsedRating = parseFloat(vehicle.rating || 0);
+        const rating = Number.isFinite(parsedRating) ? parsedRating : 0;
         const isWishlisted = this.isVehicleWishlisted(vehicle.id);
         const imageUrl = vehicle.imageUrl || vehicle.image || "";
+        const galleryImages = Array.isArray(vehicle.imageUrls) && vehicle.imageUrls.length
+            ? vehicle.imageUrls.filter(Boolean)
+            : (imageUrl ? [imageUrl] : []);
+        const galleryPayload = encodeURIComponent(JSON.stringify(galleryImages));
+        const hasGallery = galleryImages.length > 1;
+        const activeImage = galleryImages[0] || imageUrl;
         const vehicleTitle = [vehicle.brand, vehicle.name].filter(Boolean).join(" ").trim() || "Vehicle";
+        const featureList = Array.isArray(vehicle.features) ? vehicle.features : [];
+        const reviewSeedSource = String(vehicle.id || vehicleTitle).replace(/\D/g, "");
+        const reviewSeed = Number.parseInt(reviewSeedSource.slice(-3), 10);
+        const reviewCount = Number.isFinite(reviewSeed) ? 18 + (reviewSeed % 83) : 42;
+        const staggerDelay = Math.min(index, 10) * 70;
 
         let html = `
-            <div class="group overflow-hidden rounded-2xl border border-[#d4ded9] bg-white shadow-[0_12px_28px_rgba(10,31,34,0.09)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_36px_rgba(10,31,34,0.15)]">
+            <article class="vehicle-result-card group relative cursor-pointer overflow-hidden rounded-2xl border border-[#d4ded9] bg-white shadow-[0_12px_28px_rgba(10,31,34,0.09)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_36px_rgba(10,31,34,0.15)] animate-cardLift opacity-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2c766e]/35" style="animation-delay:${staggerDelay}ms;animation-fill-mode:forwards;" data-vehicle-id="${vehicle.id}" tabindex="0" role="link" aria-label="Open details for ${vehicleTitle}">
+                <div class="absolute inset-x-0 top-0 h-[2px] bg-[linear-gradient(90deg,#E58C4E,#2C766E)]"></div>
                 <!-- Vehicle Image -->
-                <div class="relative bg-gradient-to-br from-panel to-[#1f5659] h-48 flex items-center justify-center">
-                    ${imageUrl
-                        ? `<img src="${imageUrl}" alt="${vehicleTitle}" class="h-full w-full object-cover" />`
+                <div class="relative bg-gradient-to-br from-panel to-[#1f5659] h-[240px] flex items-center justify-center" data-gallery-index="0" data-gallery-images="${galleryPayload}">
+                    ${activeImage
+                        ? `<img src="${activeImage}" alt="${vehicleTitle}" class="vehicle-card-image h-full w-full object-cover transition-opacity duration-300" />`
                         : '<i class="fas fa-car text-white text-6xl opacity-30"></i>'}
+                    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/45 to-transparent"></div>
+                          ${hasGallery
+                                ? `<button type="button" style="left:12px;" class="vehicle-image-prev vehicle-gallery-nav absolute z-10 inline-flex items-center justify-center" aria-label="Previous image">&#8592;</button>
+                                    <button type="button" style="right:12px;" class="vehicle-image-next vehicle-gallery-nav absolute z-10 inline-flex items-center justify-center" aria-label="Next image">&#8594;</button>`
+                                : ""}
                     ${vehicle.available !== false ? '<div class="absolute right-4 top-4 rounded-full border border-[#b7e1c7] bg-[#e9fff1] px-3 py-1 text-[11px] font-semibold text-[#1b6a3d]"><i class="fas fa-check-circle mr-1"></i>Available</div>' : ""}
                 </div>
 
                 <!-- Card Content -->
-                <div class="p-5">
+                <div class="p-5 sm:p-6">
                     <!-- Header -->
-                    <div class="flex items-start justify-between mb-2">
-                        <div>
-                            <h3 class="font-bold text-lg text-ink">${vehicleTitle}</h3>
-                            <p class="text-xs text-muted font-semibold uppercase">${vehicle.type || "Vehicle"}</p>
+                    <div class="mb-4 flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-lg text-ink" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${vehicleTitle}</h3>
+                            <p class="mt-1 text-[11px] text-[#4a6568] font-semibold uppercase tracking-[0.11em]">${vehicle.type || "Vehicle"}</p>
                         </div>
                         <button class="wishlist-icon rounded-full p-2 transition ${isWishlisted ? "bg-red-50 text-red-500" : "text-muted hover:bg-[#f5f8f7] hover:text-red-500"}" data-vehicle-id="${vehicle.id}">
                             <i class="${isWishlisted ? "fas" : "far"} fa-heart text-lg"></i>
@@ -471,47 +505,46 @@ class SearchUIManager {
                     </div>
 
                     <!-- Quick Specs -->
-                    <div class="grid grid-cols-2 gap-2 mb-4 text-xs text-muted font-semibold">
-                        <div><i class="fas fa-gears mr-1"></i>${vehicle.transmission || "Auto"}</div>
-                        <div><i class="fas fa-gas-pump mr-1"></i>${vehicle.fuelType || "Petrol"}</div>
-                        <div><i class="fas fa-person mr-1"></i>${vehicle.seats || 5} Seats</div>
-                        ${vehicle.features ? `<div><i class="fas fa-list-check mr-1"></i>${vehicle.features.length} Features</div>` : ""}
+                    <div class="mb-5 grid grid-cols-2 gap-2.5 text-[13px] text-muted font-semibold">
+                        <div class="flex items-center gap-1"><i class="fas fa-gears mr-1"></i><span>${vehicle.transmission || "Auto"}</span></div>
+                        <div class="flex items-center gap-1"><i class="fas fa-gas-pump mr-1"></i><span>${vehicle.fuelType || "Petrol"}</span></div>
+                        <div class="flex items-center gap-1"><i class="fas fa-person mr-1"></i><span>${vehicle.seats || 5} Seats</span></div>
+                        ${featureList.length ? `<div class="flex items-center gap-1"><i class="fas fa-list-check mr-1"></i><span>${featureList.length} Features</span></div>` : ""}
                     </div>
 
                     <!-- Rating -->
-                    <div class="flex items-center gap-2 mb-4">
+                    <div class="mb-5 flex items-center gap-2">
                         <div class="flex gap-1">
                             ${this.renderStars(rating)}
                         </div>
                         <span class="text-sm font-bold text-ink">${rating.toFixed(1)}</span>
-                        <span class="text-xs text-muted">(${Math.floor(Math.random() * 50 + 10)} reviews)</span>
+                        <span class="text-xs text-muted">(${reviewCount} reviews)</span>
                     </div>
 
                     <!-- Price -->
-                    <div class="mb-4 flex items-baseline gap-2">
+                    <div class="mb-5 flex items-baseline gap-2 rounded-xl bg-[#f8fcfa] px-3 py-2">
                         <span class="text-2xl font-bold text-accent">$${price}</span>
-                        <span class="text-sm text-muted">/ day</span>
+                        <span class="text-sm font-medium text-muted">/ day</span>
                     </div>
 
                     <!-- Features Tags -->
-                    ${vehicle.features ? `
-                        <div class="mb-4 flex flex-wrap gap-1">
-                            ${vehicle.features.slice(0, 3).map(f => `<span class="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-semibold">${this.formatFeatureLabel(f)}</span>`).join("")}
-                            ${vehicle.features.length > 3 ? `<span class="text-xs bg-gray-100 text-muted px-2 py-1 rounded-full font-semibold">+${vehicle.features.length - 3}</span>` : ""}
+                    ${featureList.length ? `
+                        <div class="mb-6 flex flex-wrap gap-2">
+                            ${featureList.slice(0, 3).map(f => `<span class="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-semibold">${this.formatFeatureLabel(f)}</span>`).join("")}
                         </div>
                     ` : ""}
 
                     <!-- Buttons -->
-                    <div class="flex gap-2">
-                        <button class="view-details flex-1 rounded-lg bg-accent py-2 font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105" data-vehicle-id="${vehicle.id}">
+                    <div class="mt-1 flex flex-col gap-2 sm:flex-row">
+                        <button class="view-details flex-1 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]" data-vehicle-id="${vehicle.id}">
                             View Details
                         </button>
-                        <button class="book-vehicle flex-1 rounded-lg border-2 border-accent py-2 font-semibold text-accent transition duration-200 hover:-translate-y-0.5 hover:bg-accent hover:text-white" data-vehicle-id="${vehicle.id}">
+                        <button class="book-vehicle flex-1 rounded-xl border-2 border-accent px-4 py-3 text-sm font-semibold text-accent transition duration-200 hover:-translate-y-0.5 hover:bg-accent hover:text-white" data-vehicle-id="${vehicle.id}">
                             Book Now
                         </button>
                     </div>
                 </div>
-            </div>
+            </article>
         `;
 
         return html;
@@ -547,6 +580,65 @@ class SearchUIManager {
      * Attach vehicle card event listeners
      */
     attachVehicleCardListeners() {
+        const parseGallery = (container) => {
+            if (!container) return [];
+
+            try {
+                const raw = String(container.dataset.galleryImages || "");
+                const decoded = decodeURIComponent(raw);
+                const parsed = JSON.parse(decoded);
+                return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+            } catch (_error) {
+                return [];
+            }
+        };
+
+        const setGalleryFrame = (container, nextIndex) => {
+            if (!container) return;
+
+            const gallery = parseGallery(container);
+            if (!gallery.length) return;
+
+            const imageNode = container.querySelector(".vehicle-card-image");
+
+            const current = Number(container.dataset.galleryIndex || 0);
+            const normalized = Number.isFinite(nextIndex) ? nextIndex : current;
+            const wrappedIndex = ((normalized % gallery.length) + gallery.length) % gallery.length;
+
+            container.dataset.galleryIndex = String(wrappedIndex);
+
+            if (imageNode) {
+                imageNode.classList.add("opacity-70");
+                imageNode.src = gallery[wrappedIndex];
+                window.setTimeout(() => {
+                    imageNode.classList.remove("opacity-70");
+                }, 120);
+            }
+
+        };
+
+        document.querySelectorAll(".vehicle-image-prev").forEach((btn) => {
+            btn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const container = btn.closest("[data-gallery-images]");
+                const current = Number(container?.dataset.galleryIndex || 0);
+                setGalleryFrame(container, current - 1);
+            });
+        });
+
+        document.querySelectorAll(".vehicle-image-next").forEach((btn) => {
+            btn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const container = btn.closest("[data-gallery-images]");
+                const current = Number(container?.dataset.galleryIndex || 0);
+                setGalleryFrame(container, current + 1);
+            });
+        });
+
         // Wishlist buttons
         document.querySelectorAll(".wishlist-icon").forEach((btn) => {
             btn.addEventListener("click", (e) => {
@@ -560,7 +652,9 @@ class SearchUIManager {
 
         // View details buttons
         document.querySelectorAll(".view-details").forEach((btn) => {
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 const vehicleId = btn.dataset.vehicleId;
                 window.location.href = `vehicle-details.html?id=${vehicleId}`;
             });
@@ -568,10 +662,42 @@ class SearchUIManager {
 
         // Book now buttons
         document.querySelectorAll(".book-vehicle").forEach((btn) => {
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 const vehicleId = btn.dataset.vehicleId;
                 // Navigate to booking page with vehicle pre-selected
                 window.location.href = `booking.html?vehicle=${vehicleId}`;
+            });
+        });
+
+        // Whole card click opens vehicle details
+        document.querySelectorAll(".vehicle-result-card").forEach((card) => {
+            card.addEventListener("click", (event) => {
+                if (event.target.closest("button, a, input, select, textarea, label")) {
+                    return;
+                }
+
+                const vehicleId = card.dataset.vehicleId;
+                if (!vehicleId) {
+                    return;
+                }
+
+                window.location.href = `vehicle-details.html?id=${vehicleId}`;
+            });
+
+            card.addEventListener("keydown", (event) => {
+                if (event.key !== "Enter" && event.key !== " ") {
+                    return;
+                }
+
+                event.preventDefault();
+                const vehicleId = card.dataset.vehicleId;
+                if (!vehicleId) {
+                    return;
+                }
+
+                window.location.href = `vehicle-details.html?id=${vehicleId}`;
             });
         });
     }

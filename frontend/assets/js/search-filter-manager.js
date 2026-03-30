@@ -11,6 +11,7 @@ class SearchFilterManager {
         this.allVehicles = [];
         this.sortOrder = "relevance";
         this.listeners = new Set();
+        this.storageKey = "searchFilters:v2";
     }
 
     /**
@@ -31,7 +32,7 @@ class SearchFilterManager {
 
             // Price filter
             minPrice: 0,
-            maxPrice: 500,
+            maxPrice: 100000,
 
             // Transmission filter
             transmissions: [], // 'manual', 'automatic'
@@ -115,11 +116,15 @@ class SearchFilterManager {
      */
     matchesFilters(vehicle) {
         // Location filter
-        if (
-            this.filters.pickupLocation &&
-            !vehicle.location?.toLowerCase().includes(this.filters.pickupLocation.toLowerCase())
-        ) {
-            return false;
+        if (this.filters.pickupLocation) {
+            const locationQuery = this.filters.pickupLocation.toLowerCase();
+            const locationValue = String(vehicle.location || "").toLowerCase();
+            const isGenericLocation = !locationValue || locationValue === "available" || locationValue === "all locations";
+
+            // Keep results visible when records do not carry real location metadata yet.
+            if (!isGenericLocation && !locationValue.includes(locationQuery)) {
+                return false;
+            }
         }
 
         // Vehicle type filter
@@ -189,10 +194,13 @@ class SearchFilterManager {
         }
 
         // Availability filter
+        const availabilityText = String(vehicle.availability || vehicle.status || "").toLowerCase();
+        const isAvailableByText = availabilityText === "available" || availabilityText === "active";
+
         if (
             this.filters.availabilityOnly &&
             vehicle.available !== true &&
-            vehicle.availability !== "Available"
+            !isAvailableByText
         ) {
             return false;
         }
@@ -337,10 +345,17 @@ class SearchFilterManager {
      */
     getActiveFilters() {
         const active = {};
+        const defaults = this.initializeFilters();
+
         for (const [key, value] of Object.entries(this.filters)) {
             if (Array.isArray(value)) {
                 if (value.length > 0) active[key] = value;
-            } else if (value !== "" && value !== 0 && value !== false) {
+            } else if (typeof value === "number") {
+                const defaultNumber = Number(defaults[key] || 0);
+                if (value !== defaultNumber) {
+                    active[key] = value;
+                }
+            } else if (value !== defaults[key]) {
                 active[key] = value;
             }
         }
@@ -361,12 +376,14 @@ class SearchFilterManager {
      * @param {string} filterName - Filter name to clear
      */
     clearFilter(filterName) {
+        const defaults = this.initializeFilters();
+
         if (Array.isArray(this.filters[filterName])) {
             this.filters[filterName] = [];
         } else if (typeof this.filters[filterName] === "boolean") {
             this.filters[filterName] = false;
         } else if (typeof this.filters[filterName] === "number") {
-            this.filters[filterName] = filterName.includes("min") ? 0 : 999;
+            this.filters[filterName] = Number(defaults[filterName] || 0);
         } else {
             this.filters[filterName] = "";
         }
@@ -378,7 +395,7 @@ class SearchFilterManager {
      */
     saveState() {
         try {
-            localStorage.setItem("searchFilters", JSON.stringify(this.filters));
+            localStorage.setItem(this.storageKey, JSON.stringify(this.filters));
         } catch (e) {
             console.warn("Failed to save filter state:", e);
         }
@@ -389,9 +406,25 @@ class SearchFilterManager {
      */
     restoreState() {
         try {
-            const saved = localStorage.getItem("searchFilters");
+            const saved = localStorage.getItem(this.storageKey);
             if (saved) {
-                this.filters = { ...this.filters, ...JSON.parse(saved) };
+                const parsed = JSON.parse(saved);
+                const defaults = this.initializeFilters();
+
+                this.filters = { ...defaults, ...parsed };
+
+                if (!Number.isFinite(this.filters.minPrice) || this.filters.minPrice < 0) {
+                    this.filters.minPrice = defaults.minPrice;
+                }
+
+                if (!Number.isFinite(this.filters.maxPrice) || this.filters.maxPrice <= 0) {
+                    this.filters.maxPrice = defaults.maxPrice;
+                }
+
+                if (this.filters.maxPrice < this.filters.minPrice) {
+                    this.filters.maxPrice = defaults.maxPrice;
+                }
+
                 this.notifyListeners();
             }
         } catch (e) {

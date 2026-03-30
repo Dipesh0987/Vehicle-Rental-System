@@ -100,3 +100,12 @@ export async function createAdminVehicle(draft) {
   const created = await catalog.createVehicle(draft || {});
   return mapCatalogVehicle(created);
 }
+
+export async function seedAdminDemoVehicles() {
+  const catalog = getCatalogService();
+  if (!catalog || typeof catalog.seedDemoVehicles !== "function") {
+    throw new Error("Vehicle catalog service is unavailable on this page.");
+  }
+
+  return catalog.seedDemoVehicles();
+}

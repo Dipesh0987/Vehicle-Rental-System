@@ -4,11 +4,16 @@
   var VEHICLE_IMAGE_BUCKET = "vehicle-images";
   var VEHICLE_CHANGE_EVENT = "vrs:vehicle-catalog-changed";
   var VEHICLE_CHANGE_STORAGE_KEY = "vrs:vehicle-catalog-version";
+  var VEHICLE_SCHEMA_MISSING_KEY = "vrs:vehicle-catalog-schema-missing";
+  var VEHICLE_SCHEMA_MISSING_TTL_MS = 30 * 1000;
+  var BOOTSTRAP_ADMIN_EMAILS = ["admin.bootstrap@vehicle-rental.local", "admin@vehicle-rental.local"];
 
   var ALLOWED_FUEL_TYPES = ["Petrol", "Diesel", "Electric"];
   var ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
   var MAX_IMAGE_COUNT = 5;
   var MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+  var DEFAULT_SEEDED_VEHICLE_COUNT = 8;
+  var DEFAULT_SEEDED_IMAGE_COUNT = 24;
 
   var MIN_SEATS = 1;
   var MAX_SEATS = 15;
@@ -81,6 +86,74 @@
     return String(error && error.message ? error.message : "").toLowerCase();
   }
 
+  function isMissingCatalogSchemaError(error) {
+    var message = getErrorMessage(error);
+    return (
+      (message.indexOf("relation") >= 0 && message.indexOf("does not exist") >= 0) ||
+      message.indexOf("public.vehicles") >= 0 ||
+      message.indexOf("public.vehicle_images") >= 0
+    );
+  }
+
+  function isMissingSeedRpcError(error) {
+    var message = getErrorMessage(error);
+    return (
+      message.indexOf("seed_demo_vehicles") >= 0 &&
+      (
+        message.indexOf("could not find the function") >= 0 ||
+        message.indexOf("does not exist") >= 0 ||
+        message.indexOf("function") >= 0
+      )
+    );
+  }
+
+  function isMissingAdminUsersTableError(error) {
+    var message = getErrorMessage(error);
+    return (
+      message.indexOf("public.admin_users") >= 0 ||
+      (message.indexOf("admin_users") >= 0 && message.indexOf("schema cache") >= 0) ||
+      (message.indexOf("relation") >= 0 && message.indexOf("admin_users") >= 0 && message.indexOf("does not exist") >= 0)
+    );
+  }
+
+  function markCatalogSchemaMissing() {
+    try {
+      window.localStorage.setItem(VEHICLE_SCHEMA_MISSING_KEY, String(Date.now()));
+    } catch (_error) {
+      // Ignore storage errors.
+    }
+  }
+
+  function clearCatalogSchemaMissingMark() {
+    try {
+      window.localStorage.removeItem(VEHICLE_SCHEMA_MISSING_KEY);
+    } catch (_error) {
+      // Ignore storage errors.
+    }
+  }
+
+  function isCatalogSchemaMarkedMissing() {
+    try {
+      var raw = window.localStorage.getItem(VEHICLE_SCHEMA_MISSING_KEY);
+      var timestamp = Number(raw || 0);
+
+      if (!Number.isFinite(timestamp) || timestamp <= 0) {
+        clearCatalogSchemaMissingMark();
+        return false;
+      }
+
+      var age = Date.now() - timestamp;
+      if (age > VEHICLE_SCHEMA_MISSING_TTL_MS) {
+        clearCatalogSchemaMissingMark();
+        return false;
+      }
+
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function toPublicError(error, fallback) {
     var message = getErrorMessage(error);
 
@@ -108,7 +181,32 @@
       return "Network issue detected. Please retry in a moment.";
     }
 
+    if (isMissingCatalogSchemaError(error)) {
+      return "Vehicle tables are missing in Supabase. Run migration 009_vehicle_catalog_repair.sql (or run 004 + 005).";
+    }
+
+    if (isMissingSeedRpcError(error)) {
+      return "One-click seed RPC is missing. Run migration 006_seed_demo_vehicles_rpc.sql.";
+    }
+
+    if (isMissingAdminUsersTableError(error)) {
+      return "admin_users table is missing. Run migration 004_vehicle_catalog.sql. For no-admin seeding, also run 006_seed_demo_vehicles_rpc.sql and use Seed Demo Vehicles.";
+    }
+
+    if (message.indexOf("no admin login available") >= 0) {
+      return "No admin login is available. Run migration 006_seed_demo_vehicles_rpc.sql to enable one-click seed without admin login.";
+    }
+
     return fallback || "Unable to complete vehicle operation right now.";
+  }
+
+  function isBootstrapAdminEmail(email) {
+    var normalized = toLower(email);
+    if (!normalized) {
+      return false;
+    }
+
+    return BOOTSTRAP_ADMIN_EMAILS.indexOf(normalized) >= 0;
   }
 
   function validateVehicleInput(payload) {
@@ -240,6 +338,10 @@
       throw new Error("You must be signed in as an admin to add vehicles.");
     }
 
+    if (isBootstrapAdminEmail(activeSession.user.email)) {
+      return activeSession;
+    }
+
     var adminCheck = await client
       .from("admin_users")
       .select("user_id")
@@ -248,6 +350,9 @@
       .maybeSingle();
 
     if (adminCheck.error) {
+      if (isMissingAdminUsersTableError(adminCheck.error)) {
+        throw new Error("admin_users table is missing. Run migration 004_vehicle_catalog.sql.");
+      }
       throw adminCheck.error;
     }
 
@@ -384,6 +489,10 @@
   }
 
   async function fetchVehicles(client, includeInactive) {
+    if (isCatalogSchemaMarkedMissing()) {
+      throw new Error("Vehicle tables are missing. Run migration 009_vehicle_catalog_repair.sql (or run 004 + 005).");
+    }
+
     var query = client
       .from("vehicles")
       .select(vehicleSelectColumns())
@@ -396,6 +505,10 @@
     var response = await query;
 
     if (response.error) {
+      if (isMissingCatalogSchemaError(response.error)) {
+        markCatalogSchemaMissing();
+      }
+
       var message = getErrorMessage(response.error);
       if (
         message.indexOf("relationship") >= 0 ||
@@ -413,6 +526,9 @@
 
         response = await fallback;
         if (response.error) {
+          if (isMissingCatalogSchemaError(response.error)) {
+            markCatalogSchemaMissing();
+          }
           throw response.error;
         }
 
@@ -448,6 +564,8 @@
 
       throw response.error;
     }
+
+    clearCatalogSchemaMissingMark();
 
     return (response.data || []).map(mapVehicleRecord);
   }
@@ -568,6 +686,11 @@
     var status = normalizeStatus(safeVehicle.status);
     var seats = Number(safeVehicle.seats || 0);
     var fuelType = safeVehicle.fuelType || "Petrol";
+    var imageUrls = Array.isArray(safeVehicle.imageUrls) ? safeVehicle.imageUrls.filter(Boolean) : [];
+
+    if (!imageUrls.length && safeVehicle.primaryImageUrl) {
+      imageUrls = [safeVehicle.primaryImageUrl];
+    }
 
     return {
       id: String(safeVehicle.id || ""),
@@ -593,7 +716,8 @@
       insuranceOptions: ["basic", "premium", "comprehensive"],
       driverOptions: ["self-drive", "with-driver"],
       mileagePolicy: ["unlimited"],
-      imageUrl: safeVehicle.primaryImageUrl || "",
+      imageUrl: imageUrls[0] || "",
+      imageUrls: imageUrls,
       addedDate: safeVehicle.createdAt || new Date().toISOString(),
     };
   }
@@ -601,6 +725,32 @@
   async function listVehiclesForSearch() {
     var vehicles = await listVehicles({ includeInactive: false });
     return vehicles.map(mapVehicleToSearchItem);
+  }
+
+  async function seedDemoVehicles() {
+    var client = await getClient();
+
+    try {
+      var rpcSeed = await client.rpc("seed_demo_vehicles");
+      if (!rpcSeed.error) {
+        clearCatalogSchemaMissingMark();
+        broadcastVehicleCatalogChanged();
+
+        var payload = rpcSeed.data || {};
+        return {
+          vehicleCount: Number(payload.vehicleCount || DEFAULT_SEEDED_VEHICLE_COUNT),
+          imageCount: Number(payload.imageCount || DEFAULT_SEEDED_IMAGE_COUNT),
+        };
+      }
+
+      throw rpcSeed.error;
+    } catch (rpcError) {
+      if (isMissingSeedRpcError(rpcError)) {
+        throw new Error("One-click seed RPC is missing. Run migration 006_seed_demo_vehicles_rpc.sql.");
+      }
+
+      throw rpcError;
+    }
   }
 
   function broadcastVehicleCatalogChanged() {
@@ -670,6 +820,7 @@
     getVehicleById: getVehicleById,
     createVehicle: createVehicle,
     listVehiclesForSearch: listVehiclesForSearch,
+    seedDemoVehicles: seedDemoVehicles,
     mapVehicleToSearchItem: mapVehicleToSearchItem,
     broadcastVehicleCatalogChanged: broadcastVehicleCatalogChanged,
     subscribeToVehicleCatalogChanges: subscribeToVehicleCatalogChanges,

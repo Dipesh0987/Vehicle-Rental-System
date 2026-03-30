@@ -93,6 +93,7 @@ class SearchAPIClient {
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
         const cacheKey = this.buildCacheKey(endpoint, options.body || {});
+        const suppressErrors = Boolean(options.suppressErrors);
 
         // Check cache for GET requests
         if (!options.method || options.method === "GET") {
@@ -111,12 +112,14 @@ class SearchAPIClient {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
 
+            const { suppressErrors: _ignoredSuppressErrors, ...fetchOptions } = options;
+
             const response = await fetch(url, {
-                ...options,
+                ...fetchOptions,
                 signal: controller.signal,
                 headers: {
                     "Content-Type": "application/json",
-                    ...options.headers,
+                    ...fetchOptions.headers,
                 },
             });
 
@@ -135,7 +138,9 @@ class SearchAPIClient {
 
             return data;
         } catch (error) {
-            console.error(`API Error [${endpoint}]:`, error);
+            if (!suppressErrors) {
+                console.error(`API Error [${endpoint}]:`, error);
+            }
             throw {
                 message: error.message,
                 endpoint,
@@ -169,6 +174,7 @@ class SearchAPIClient {
         return this.request("/vehicles/search", {
             method: "POST",
             body: JSON.stringify(filters),
+            suppressErrors: true,
         });
     }
 
@@ -218,6 +224,7 @@ class SearchAPIClient {
         return this.request("/locations/search", {
             method: "POST",
             body: JSON.stringify({ query }),
+            suppressErrors: true,
         });
     }
 

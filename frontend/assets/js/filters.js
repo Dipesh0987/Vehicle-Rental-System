@@ -106,6 +106,42 @@
     return price > 0 ? "available" : "limited";
   }
 
+  // Build a filter snapshot from a rendered vehicle card instead of static globals.
+  function buildVehicleFromArticle(article) {
+    if (!article) return null;
+
+    const titleNode = article.querySelector("h3, h2, [data-vehicle-title]");
+    const metaNode = article.querySelector("[data-vehicle-meta], [data-meta], .meta");
+    const priceNode = article.querySelector("[data-price], [data-daily-rate], .price, .daily-rate");
+
+    const title = String(titleNode ? titleNode.textContent : "").trim();
+    const titleParts = title.split(/\s+/).filter(Boolean);
+    const brand = String(article.dataset.brand || titleParts[0] || "").trim();
+    const name = String(
+      article.dataset.name ||
+      (titleParts.length > 1 ? titleParts.slice(1).join(" ") : title)
+    ).trim();
+    const meta = String(article.dataset.meta || (metaNode ? metaNode.textContent : article.textContent) || "").trim();
+    const pricingText = String(
+      article.dataset.dailyRate ||
+      article.dataset.pricePerDay ||
+      article.dataset.price ||
+      (priceNode ? priceNode.textContent : "") ||
+      ""
+    ).trim();
+
+    return {
+      brand,
+      name,
+      meta,
+      tagline: String(article.dataset.tagline || "").trim(),
+      badges: Array.from(article.querySelectorAll("[data-badge], .badge")).map(node => String(node.textContent || "").trim()).filter(Boolean),
+      pricing: {
+        dailyRate: pricingText
+      }
+    };
+  }
+
   // Filter a single vehicle based on current filters
   function matchesFilters(vehicle) {
     if (!vehicle) return false;
@@ -186,14 +222,11 @@
   // Apply filters to vehicle list
   function applyFilters() {
     const articles = document.querySelectorAll(".fleet-grid article");
-    const vehicleData = window.VehicleDetailsData || {};
     let visibleCount = 0;
     const totalCount = articles.length;
 
     articles.forEach(article => {
-      const vehicleUrl = article.getAttribute("data-detail-url") || "";
-      const vehicleId = vehicleUrl.split("=").pop();
-      const vehicle = vehicleData[vehicleId];
+      const vehicle = buildVehicleFromArticle(article);
 
       const isVisible = vehicle ? matchesFilters(vehicle) : true;
       article.style.display = isVisible ? "" : "none";
