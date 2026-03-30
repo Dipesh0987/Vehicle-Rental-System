@@ -444,12 +444,16 @@ class SearchUIManager {
         const price = this.filterManager.extractPrice(vehicle.pricing?.dailyRate || "0");
         const rating = parseFloat(vehicle.rating || 0);
         const isWishlisted = this.isVehicleWishlisted(vehicle.id);
+        const imageUrl = vehicle.imageUrl || vehicle.image || "";
+        const vehicleTitle = [vehicle.brand, vehicle.name].filter(Boolean).join(" ").trim() || "Vehicle";
 
         let html = `
             <div class="group overflow-hidden rounded-2xl border border-[#d4ded9] bg-white shadow-[0_12px_28px_rgba(10,31,34,0.09)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_36px_rgba(10,31,34,0.15)]">
                 <!-- Vehicle Image -->
                 <div class="relative bg-gradient-to-br from-panel to-[#1f5659] h-48 flex items-center justify-center">
-                    <i class="fas fa-car text-white text-6xl opacity-30"></i>
+                    ${imageUrl
+                        ? `<img src="${imageUrl}" alt="${vehicleTitle}" class="h-full w-full object-cover" />`
+                        : '<i class="fas fa-car text-white text-6xl opacity-30"></i>'}
                     ${vehicle.available !== false ? '<div class="absolute right-4 top-4 rounded-full border border-[#b7e1c7] bg-[#e9fff1] px-3 py-1 text-[11px] font-semibold text-[#1b6a3d]"><i class="fas fa-check-circle mr-1"></i>Available</div>' : ""}
                 </div>
 
@@ -458,7 +462,7 @@ class SearchUIManager {
                     <!-- Header -->
                     <div class="flex items-start justify-between mb-2">
                         <div>
-                            <h3 class="font-bold text-lg text-ink">${vehicle.brand} ${vehicle.name}</h3>
+                            <h3 class="font-bold text-lg text-ink">${vehicleTitle}</h3>
                             <p class="text-xs text-muted font-semibold uppercase">${vehicle.type || "Vehicle"}</p>
                         </div>
                         <button class="wishlist-icon rounded-full p-2 transition ${isWishlisted ? "bg-red-50 text-red-500" : "text-muted hover:bg-[#f5f8f7] hover:text-red-500"}" data-vehicle-id="${vehicle.id}">
@@ -492,7 +496,7 @@ class SearchUIManager {
                     <!-- Features Tags -->
                     ${vehicle.features ? `
                         <div class="mb-4 flex flex-wrap gap-1">
-                            ${vehicle.features.slice(0, 3).map(f => `<span class="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-semibold">${f}</span>`).join("")}
+                            ${vehicle.features.slice(0, 3).map(f => `<span class="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-semibold">${this.formatFeatureLabel(f)}</span>`).join("")}
                             ${vehicle.features.length > 3 ? `<span class="text-xs bg-gray-100 text-muted px-2 py-1 rounded-full font-semibold">+${vehicle.features.length - 3}</span>` : ""}
                         </div>
                     ` : ""}
@@ -511,6 +515,15 @@ class SearchUIManager {
         `;
 
         return html;
+    }
+
+    /**
+     * Convert feature keys into readable labels.
+     */
+    formatFeatureLabel(feature) {
+        return String(feature || "")
+            .replace(/[-_]/g, " ")
+            .replace(/\b\w/g, (char) => char.toUpperCase());
     }
 
     /**
