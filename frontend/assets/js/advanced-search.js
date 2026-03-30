@@ -11,11 +11,13 @@ class AdvancedSearchSystem {
         this.analytics = new window.SearchAnalytics();
         this.locationAutocomplete = new window.LocationAutocomplete(this.apiClient);
         this.pricingCalculator = new window.PricingCalculator();
+        this.catalogService = window.VehicleCatalogService || null;
         this.vehicles = [];
         this.isInitialized = false;
+        this.unsubscribeCatalogSync = null;
 
         // For testing: use vehicle data if available (from vehicle-details.js)
-        if (window.VehicleDetailsData) {
+        if (!this.catalogService && window.VehicleDetailsData) {
             this.loadTestData();
         }
     }
@@ -111,7 +113,20 @@ class AdvancedSearchSystem {
      * Load vehicles from API or cache
      */
     async loadVehicles() {
-        // If we have test data, use it
+        // Preferred source: Supabase-backed catalog service
+        if (this.catalogService && typeof this.catalogService.listVehiclesForSearch === "function") {
+            try {
+                const catalogVehicles = await this.catalogService.listVehiclesForSearch();
+                if (Array.isArray(catalogVehicles) && catalogVehicles.length > 0) {
+                    this.vehicles = catalogVehicles;
+                    return;
+                }
+            } catch (error) {
+                console.warn("Failed to load vehicles from catalog service:", error);
+            }
+        }
+
+        // If we have local test data, use it
         if (this.vehicles.length > 0) {
             return;
         }
@@ -161,6 +176,48 @@ class AdvancedSearchSystem {
                 this.uiManager.renderVehicleResults(this.filterManager.filteredVehicles);
             }
         });
+
+        this.setupCatalogSync();
+    }
+
+    /**
+     * Keep search results in sync with admin catalog changes.
+     */
+    setupCatalogSync() {
+        if (!this.catalogService || typeof this.catalogService.subscribeToVehicleCatalogChanges !== "function") {
+            return;
+        }
+
+        if (this.unsubscribeCatalogSync) {
+            this.unsubscribeCatalogSync();
+            this.unsubscribeCatalogSync = null;
+        }
+
+        this.unsubscribeCatalogSync = this.catalogService.subscribeToVehicleCatalogChanges(async () => {
+            await this.reloadVehiclesFromCatalog();
+        });
+    }
+
+    /**
+     * Reload from catalog and preserve current filter context.
+     */
+    async reloadVehiclesFromCatalog() {
+        if (!this.catalogService || typeof this.catalogService.listVehiclesForSearch !== "function") {
+            return;
+        }
+
+        try {
+            const catalogVehicles = await this.catalogService.listVehiclesForSearch();
+            if (!Array.isArray(catalogVehicles)) {
+                return;
+            }
+
+            this.vehicles = catalogVehicles;
+            const filtered = this.filterManager.applyFilters(this.vehicles);
+            this.uiManager.renderVehicleResults(filtered);
+        } catch (error) {
+            console.warn("Failed to refresh vehicles from catalog service:", error);
+        }
     }
 
     /**
