@@ -83,6 +83,10 @@ class AdvancedSearchSystem {
             return;
         }
 
+        if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
+            this.uiManager.showReloadStatus("Syncing latest vehicles...");
+        }
+
         try {
             const fresh = await this.catalogService.listVehiclesForSearch();
             if (!Array.isArray(fresh)) {
@@ -98,6 +102,10 @@ class AdvancedSearchSystem {
             }
         } catch (_error) {
             // Keep existing list when background refresh fails.
+        } finally {
+            if (this.uiManager && typeof this.uiManager.hideReloadStatus === "function") {
+                this.uiManager.hideReloadStatus();
+            }
         }
     }
 
@@ -263,6 +271,10 @@ class AdvancedSearchSystem {
             return;
         }
 
+        if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
+            this.uiManager.showReloadStatus("Refreshing catalog data...");
+        }
+
         try {
             const catalogVehicles = await this.catalogService.listVehiclesForSearch();
             if (!Array.isArray(catalogVehicles)) {
@@ -275,6 +287,10 @@ class AdvancedSearchSystem {
             this.uiManager.renderVehicleResults(filtered);
         } catch (error) {
             console.warn("Failed to refresh vehicles from catalog service:", error);
+        } finally {
+            if (this.uiManager && typeof this.uiManager.hideReloadStatus === "function") {
+                this.uiManager.hideReloadStatus();
+            }
         }
     }
 
@@ -469,8 +485,23 @@ class AdvancedSearchSystem {
      */
     performSearch() {
         console.log("Searching with filters:", this.filterManager.filters);
-        const filtered = this.filterManager.applyFilters(this.vehicles);
-        this.uiManager.renderVehicleResults(filtered);
+
+        if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
+            this.uiManager.showReloadStatus("Refining results...");
+        }
+
+        if (this.uiManager && typeof this.uiManager.showLoadingSkeleton === "function") {
+            this.uiManager.showLoadingSkeleton();
+        }
+
+        window.setTimeout(() => {
+            const filtered = this.filterManager.applyFilters(this.vehicles);
+            this.uiManager.renderVehicleResults(filtered);
+
+            if (this.uiManager && typeof this.uiManager.hideReloadStatus === "function") {
+                this.uiManager.hideReloadStatus();
+            }
+        }, 260);
     }
 
     /**
