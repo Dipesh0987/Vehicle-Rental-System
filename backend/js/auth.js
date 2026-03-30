@@ -929,7 +929,18 @@
     var saveBtn = document.getElementById("saveProfile");
     var nameInput = document.getElementById("profileName");
     var photoInput = document.getElementById("profilePhoto");
+    var photoFileLabel = document.getElementById("profileFileLabel");
     var note = document.getElementById("profileNote");
+
+    function setPhotoFileLabel(fileName) {
+      if (!photoFileLabel) {
+        return;
+      }
+
+      photoFileLabel.textContent = String(fileName || "No file selected");
+    }
+
+    setPhotoFileLabel();
 
     function readCurrentProfileEmail() {
       var profile = getProfile();
@@ -1022,8 +1033,11 @@
       photoInput.addEventListener("change", function () {
         var file = photoInput.files && photoInput.files[0];
         if (!file) {
+          setPhotoFileLabel();
           return;
         }
+
+        setPhotoFileLabel(file.name);
 
         var auth = getAuthService();
         if (auth && typeof auth.uploadProfileImage === "function") {
@@ -1054,6 +1068,10 @@
                   error && error.message ? error.message : "Profile image upload failed."
                 );
               }
+            })
+            .finally(function () {
+              photoInput.value = "";
+              setPhotoFileLabel();
             });
           return;
         }
@@ -1063,12 +1081,16 @@
           if (note) {
             note.textContent = "Image is too large. Please choose a file under 5 MB.";
           }
+          photoInput.value = "";
+          setPhotoFileLabel();
           return;
         }
 
         var reader = new FileReader();
         reader.onload = function (event) {
           saveProfileData(String(event.target && event.target.result ? event.target.result : ""));
+          photoInput.value = "";
+          setPhotoFileLabel();
         };
         reader.readAsDataURL(file);
       });
