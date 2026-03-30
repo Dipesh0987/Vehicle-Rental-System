@@ -1,12 +1,12 @@
 # Database Design (Supabase/Postgres)
 
-This project is connected to Supabase and is prepared for incremental schema rollout.
+This project is connected to Supabase with incremental schema rollout via versioned SQL migrations.
 
-## Current Goal
+## Current Status
 
-- Connection setup only
-- No physical tables created yet
-- Design-first planning for consistent future migrations
+- User profile domain is live (`001`, `002`, `003` migrations)
+- Vehicle catalog domain is live (`004_vehicle_catalog.sql`)
+- Supabase Storage buckets are configured for profile and vehicle images
 
 ## Proposed Domains
 
@@ -16,13 +16,17 @@ This project is connected to Supabase and is prepared for incremental schema rol
 - Payments and invoices
 - Fleet operations and availability
 
-## Logical Entities (Draft)
+## Logical Entities
 
 - user_profiles
   - Linked to auth.users
   - Stores display and contact fields
-- vehicles
-  - Vehicle metadata and pricing strategy
+ - vehicles
+  - Vehicle metadata, pricing, availability status, and primary image URL
+ - vehicle_images
+  - Ordered image records (up to 5 per vehicle) with public URL + storage path
+- admin_users
+  - Admin authorization source table for RLS-protected management operations
 - bookings
   - Rental lifecycle states (pending, confirmed, active, completed, cancelled)
 - booking_events
@@ -53,15 +57,22 @@ This project is connected to Supabase and is prepared for incremental schema rol
 - vehicles(brand, category)
 - payments(booking_id, payment_status)
 
-## Security Model (Planned)
+## Security Model
 
-- Public read policy for active vehicle catalog
-- Authenticated users can create bookings
-- Users can only read/update their own bookings
-- Admin role policies reserved for management actions
+- Public read policy for active vehicle catalog and public vehicle images
+- Admin-only insert/update/delete policies for vehicle records and image metadata
+- Admin-only storage write access in `vehicle-images` bucket (folder-bound to auth user)
+- Users can only read/update their own profile records in `user_profiles`
 
 ## Migration Strategy
 
 - Versioned SQL files in database/migrations
 - One migration per domain change
 - Avoid destructive changes without backfill scripts
+
+## Implemented Migrations
+
+- `001_user_profiles.sql`
+- `002_user_profiles_avatar.sql`
+- `003_profile_images_storage.sql`
+- `004_vehicle_catalog.sql`

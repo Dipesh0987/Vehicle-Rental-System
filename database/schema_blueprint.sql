@@ -1,5 +1,5 @@
 -- Supabase/Postgres schema blueprint
--- Connection is active, but physical table creation is intentionally deferred.
+-- Source-of-truth implementation lives in database/migrations/*.sql.
 
 -- ---------------------------------------------------------------------------
 -- 1) Extensions (planned)
@@ -13,19 +13,19 @@
 -- create domain email_text as text check (position('@' in value) > 1);
 
 -- ---------------------------------------------------------------------------
--- 3) Core table stubs (planned, not executed)
+-- 3) Current implemented domains
 -- ---------------------------------------------------------------------------
--- create table user_profiles (...);
--- create table vehicles (...);
--- create table bookings (...);
--- create table booking_events (...);
--- create table payments (...);
+-- Implemented in migrations:
+-- - 001_user_profiles.sql
+-- - 002_user_profiles_avatar.sql
+-- - 003_profile_images_storage.sql
+-- - 004_vehicle_catalog.sql
 
 -- ---------------------------------------------------------------------------
--- 4) Policy model (planned)
+-- 4) Policy model
 -- ---------------------------------------------------------------------------
--- alter table vehicles enable row level security;
--- create policy "Public can read vehicles" on vehicles for select using (true);
+-- Public read: available vehicles + vehicle images.
+-- Admin write: vehicles + vehicle_images + vehicle-images storage bucket.
 
 -- ---------------------------------------------------------------------------
 -- 5) Migration notes
