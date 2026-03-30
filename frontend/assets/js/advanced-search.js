@@ -15,12 +15,107 @@ class AdvancedSearchSystem {
         this.vehicles = [];
         this.isInitialized = false;
         this.unsubscribeCatalogSync = null;
+        this.vehicleCacheKey = "vrs:search:vehicles:cache:v1";
+        this.catalogVersionKey = "vrs:vehicle-catalog-version";
+        this.vehicleCacheTTL = 3 * 60 * 1000;
+    }
 
-        // For testing: use vehicle data if available (from vehicle-details.js)
-        if (!this.catalogService && window.VehicleDetailsData) {
-            this.loadTestData();
+    readCatalogVersion() {
+        try {
+            const raw = localStorage.getItem(this.catalogVersionKey);
+            const numeric = Number(raw || 0);
+            return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+        } catch (_error) {
+            return 0;
         }
     }
+
+    readVehicleCache() {
+        try {
+            const raw = localStorage.getItem(this.vehicleCacheKey);
+            if (!raw) return [];
+
+            const parsed = JSON.parse(raw);
+            const timestamp = Number(parsed?.timestamp || 0);
+            const rows = Array.isArray(parsed?.vehicles) ? parsed.vehicles : [];
+            if (!rows.length) return [];
+
+            if (!Number.isFinite(timestamp) || Date.now() - timestamp > this.vehicleCacheTTL) {
+                return [];
+            }
+
+            const latestCatalogVersion = this.readCatalogVersion();
+            if (latestCatalogVersion > 0 && timestamp < latestCatalogVersion) {
+                return [];
+            }
+
+            return rows;
+        } catch (_error) {
+            return [];
+        }
+    }
+
+    writeVehicleCache(rows) {
+        if (!Array.isArray(rows)) {
+            return;
+        }
+
+        try {
+            if (!rows.length) {
+                localStorage.removeItem(this.vehicleCacheKey);
+                return;
+            }
+
+            localStorage.setItem(
+                this.vehicleCacheKey,
+                JSON.stringify({
+                    timestamp: Date.now(),
+                    vehicles: rows,
+                })
+            );
+        } catch (_error) {
+            // Ignore localStorage failures.
+        }
+    }
+
+    async refreshCatalogVehiclesInBackground() {
+        if (!this.catalogService || typeof this.catalogService.listVehiclesForSearch !== "function") {
+            return;
+        }
+
+        if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
+            this.uiManager.showReloadStatus("Syncing latest vehicles...");
+        }
+
+        try {
+            const fresh = await this.catalogService.listVehiclesForSearch();
+            if (!Array.isArray(fresh)) {
+                return;
+            }
+
+            this.writeVehicleCache(fresh);
+            this.vehicles = fresh;
+
+            if (this.isInitialized) {
+                const filtered = this.filterManager.applyFilters(this.vehicles);
+                this.uiManager.renderVehicleResults(filtered);
+            }
+        } catch (_error) {
+            // Keep existing list when background refresh fails.
+        } finally {
+            if (this.uiManager && typeof this.uiManager.hideReloadStatus === "function") {
+                this.uiManager.hideReloadStatus();
+            }
+        }
+    }
+
+    /**
+     * Use local /api fallback only when explicitly enabled.
+     */
+    shouldUseHttpApiFallback() {
+        return window.SEARCH_API_ENABLED === true;
+    }
+
 
     /**
      * Initialize the entire search system
@@ -54,80 +149,49 @@ class AdvancedSearchSystem {
         }
     }
 
-    /**
-     * Load test vehicle data from window.VehicleDetailsData
-     */
-    loadTestData() {
-        if (!window.VehicleDetailsData) return;
-
-        this.vehicles = Object.values(window.VehicleDetailsData).map((vehicle) => ({
-            id: vehicle.id,
-            brand: vehicle.brand,
-            name: vehicle.name,
-            type: this.inferVehicleType(vehicle.meta),
-            transmission: this.extractInfo(vehicle.meta, "Automatic|Manual") || "Automatic",
-            fuelType: this.extractInfo(vehicle.meta, "Petrol|Diesel|Hybrid|Electric") || "Petrol",
-            seats: this.extractInfo(vehicle.meta, "\\d+\\s+Seats") ? parseInt(this.extractInfo(vehicle.meta, "\\d+")) : 5,
-            rating: parseFloat(Math.random() * 2 + 3.5).toFixed(1),
-            location: "New York, USA",
-            available: true,
-            availability: "Available",
-            pricing: vehicle.pricing,
-            features: [
-                "Air Conditioning",
-                "GPS Navigation",
-                "Bluetooth",
-                vehicle.meta.includes("Automatic") ? "Reverse Camera" : null,
-                Math.random() > 0.5 ? "Child Seat" : null,
-            ].filter(Boolean),
-            insuranceOptions: ["Basic Coverage", "Premium Coverage"],
-            driverOptions: ["Self-Drive", "With Driver"],
-            mileagePolicy: ["Unlimited"],
-            included: vehicle.included,
-            badges: vehicle.badges,
-            description: vehicle.tagline,
-        }));
-    }
-
-    /**
-     * Infer vehicle type from metadata
-     */
-    inferVehicleType(meta) {
-        if (meta.includes("SUV")) return "suv";
-        if (meta.includes("Van")) return "van";
-        if (meta.includes("Luxury")) return "luxury";
-        if (meta.includes("Sedan")) return "sedan";
-        return "economy";
-    }
-
-    /**
-     * Extract info from meta string using regex
-     */
-    extractInfo(meta, pattern) {
-        const regex = new RegExp(pattern, "i");
-        const match = meta.match(regex);
-        return match ? match[0] : null;
-    }
 
     /**
      * Load vehicles from API or cache
      */
     async loadVehicles() {
+        const cachedVehicles = this.readVehicleCache();
+        let catalogFailed = false;
+        const hasCatalogService = this.catalogService && typeof this.catalogService.listVehiclesForSearch === "function";
+
         // Preferred source: Supabase-backed catalog service
-        if (this.catalogService && typeof this.catalogService.listVehiclesForSearch === "function") {
+        if (hasCatalogService) {
+            if (cachedVehicles.length) {
+                this.vehicles = cachedVehicles;
+            }
+
             try {
                 const catalogVehicles = await this.catalogService.listVehiclesForSearch();
-                if (Array.isArray(catalogVehicles) && catalogVehicles.length > 0) {
+                if (Array.isArray(catalogVehicles)) {
                     this.vehicles = catalogVehicles;
+                    this.writeVehicleCache(this.vehicles);
                     return;
                 }
+
+                catalogFailed = true;
             } catch (error) {
+                catalogFailed = true;
                 console.warn("Failed to load vehicles from catalog service:", error);
             }
+
+            if (cachedVehicles.length) {
+                return;
+            }
+        } else if (cachedVehicles.length) {
+            this.vehicles = cachedVehicles;
+            return;
         }
 
-        // If we have local test data, use it
-        if (this.vehicles.length > 0) {
+        // In static setups, avoid /api fallback unless explicitly enabled.
+        if (!this.shouldUseHttpApiFallback()) {
+            if (catalogFailed) {
+                console.warn("HTTP API fallback disabled and catalog load failed.");
+            }
+            this.vehicles = [];
             return;
         }
 
@@ -135,9 +199,10 @@ class AdvancedSearchSystem {
         try {
             const response = await this.apiClient.searchVehicles({});
             this.vehicles = response.vehicles || [];
+            this.writeVehicleCache(this.vehicles);
         } catch (error) {
-            console.warn("Failed to load vehicles from API, using test data");
-            this.loadTestData();
+            console.warn("Failed to load vehicles from API:", error);
+            this.vehicles = [];
         }
     }
 
@@ -206,6 +271,10 @@ class AdvancedSearchSystem {
             return;
         }
 
+        if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
+            this.uiManager.showReloadStatus("Refreshing catalog data...");
+        }
+
         try {
             const catalogVehicles = await this.catalogService.listVehiclesForSearch();
             if (!Array.isArray(catalogVehicles)) {
@@ -213,10 +282,15 @@ class AdvancedSearchSystem {
             }
 
             this.vehicles = catalogVehicles;
+            this.writeVehicleCache(this.vehicles);
             const filtered = this.filterManager.applyFilters(this.vehicles);
             this.uiManager.renderVehicleResults(filtered);
         } catch (error) {
             console.warn("Failed to refresh vehicles from catalog service:", error);
+        } finally {
+            if (this.uiManager && typeof this.uiManager.hideReloadStatus === "function") {
+                this.uiManager.hideReloadStatus();
+            }
         }
     }
 
@@ -411,8 +485,23 @@ class AdvancedSearchSystem {
      */
     performSearch() {
         console.log("Searching with filters:", this.filterManager.filters);
-        const filtered = this.filterManager.applyFilters(this.vehicles);
-        this.uiManager.renderVehicleResults(filtered);
+
+        if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
+            this.uiManager.showReloadStatus("Refining results...");
+        }
+
+        if (this.uiManager && typeof this.uiManager.showLoadingSkeleton === "function") {
+            this.uiManager.showLoadingSkeleton();
+        }
+
+        window.setTimeout(() => {
+            const filtered = this.filterManager.applyFilters(this.vehicles);
+            this.uiManager.renderVehicleResults(filtered);
+
+            if (this.uiManager && typeof this.uiManager.hideReloadStatus === "function") {
+                this.uiManager.hideReloadStatus();
+            }
+        }, 260);
     }
 
     /**
