@@ -109,6 +109,7 @@
     var fallback = {
       username: "Guest User",
       avatarDataUrl: "",
+      email: "",
     };
 
     return Object.assign(fallback, safeParse(localStorage.getItem(STORAGE_PROFILE), {}));
@@ -162,6 +163,97 @@
     return left.replace(/[._-]+/g, " ").replace(/\b\w/g, function (char) {
       return char.toUpperCase();
     });
+  }
+
+  function getAuthService() {
+    return window.VehicleAuthService || null;
+  }
+
+  function getDisplayNameFromUser(user) {
+    if (!user) {
+      return "User";
+    }
+
+    var metadata = user.user_metadata || {};
+    var fullName = String(metadata.full_name || metadata.display_name || "").trim();
+    if (fullName) {
+      return fullName;
+    }
+
+    return getDisplayNameFromEmail(user.email);
+  }
+
+  function mapSupabaseSession(sessionData) {
+    if (!sessionData || !sessionData.user) {
+      return null;
+    }
+
+    return {
+      email: sessionData.user.email || "",
+      provider: (sessionData.user.app_metadata && sessionData.user.app_metadata.provider) || "password",
+      userId: sessionData.user.id,
+      accessToken: sessionData.access_token || "",
+      refreshToken: sessionData.refresh_token || "",
+      loggedInAt: Date.now(),
+    };
+  }
+
+  function syncLocalAuthFromSupabase() {
+    var auth = getAuthService();
+    if (!auth || typeof auth.getSession !== "function") {
+      return Promise.resolve(getSession());
+    }
+
+    return auth.getSession()
+      .then(function (sessionData) {
+        if (!sessionData || !sessionData.user) {
+          return getSession();
+        }
+
+        var mapped = mapSupabaseSession(sessionData);
+        if (mapped) {
+          setSession(mapped, true);
+
+          var existingProfile = getProfile();
+          var syncedName = getDisplayNameFromUser(sessionData.user);
+          setProfile({
+            username: syncedName,
+            avatarDataUrl: existingProfile.avatarDataUrl || "",
+            email: sessionData.user.email || existingProfile.email || "",
+          });
+
+          if (typeof auth.upsertProfile === "function") {
+            auth.upsertProfile(syncedName).catch(function () {
+              // Keep UI functional even if profile table migration is not applied yet.
+            });
+          }
+        }
+
+        return mapped;
+      })
+      .catch(function () {
+        return getSession();
+      });
+  }
+
+  function performLogout() {
+    var auth = getAuthService();
+
+    function finish() {
+      clearSession();
+      window.location.href = "index.html";
+    }
+
+    if (!auth || typeof auth.signOut !== "function") {
+      finish();
+      return;
+    }
+
+    auth.signOut()
+      .catch(function () {
+        // Ignore sign-out transport failures and still clear local app state.
+      })
+      .finally(finish);
   }
 
   function getStaticBookingHistory() {
@@ -525,11 +617,20 @@
 
   function renderProfileChip() {
     var profile = getProfile();
+    var session = getSession();
+    var email = String(profile.email || (session && session.email) || "");
     var nameEl = document.querySelector("[data-profile-name]");
     var avatarEl = document.querySelector("[data-profile-avatar]");
+    var emailEls = document.querySelectorAll("[data-profile-email]");
 
     if (nameEl) {
       nameEl.textContent = profile.username || "User";
+    }
+
+    if (emailEls && emailEls.length) {
+      emailEls.forEach(function (el) {
+        el.textContent = email || "No email";
+      });
     }
 
     if (avatarEl) {
@@ -548,6 +649,11 @@
     var panelName = document.getElementById("profileName");
     if (panelName && !panelName.value) {
       panelName.value = profile.username || "User";
+    }
+
+    var panelEmail = document.getElementById("profileEmail");
+    if (panelEmail) {
+      panelEmail.value = email;
     }
   }
 
@@ -588,24 +694,47 @@
     var photoInput = document.getElementById("profilePhoto");
     var note = document.getElementById("profileNote");
 
-    function saveProfileData(avatarDataUrl) {
+    function readCurrentProfileEmail() {
+      var profile = getProfile();
+      var session = getSession();
+      return String(profile.email || (session && session.email) || "");
+    }
+
+    async function saveProfileData(avatarDataUrl) {
       var current = getProfile();
       var nextProfile = {
         username: (nameInput && nameInput.value.trim()) || current.username || "User",
         avatarDataUrl: avatarDataUrl !== undefined ? avatarDataUrl : current.avatarDataUrl,
+        email: readCurrentProfileEmail(),
       };
 
       setProfile(nextProfile);
       renderProfileChip();
+
+      var auth = getAuthService();
+      var cloudSynced = false;
+      if (auth && typeof auth.upsertProfile === "function") {
+        try {
+          await auth.upsertProfile(nextProfile.username);
+          cloudSynced = true;
+        } catch (_err) {
+          cloudSynced = false;
+        }
+      }
+
       if (note) {
-        note.textContent = "Profile updated.";
+        note.textContent = cloudSynced
+          ? "Profile updated and synced to Supabase."
+          : "Profile updated locally.";
       }
     }
 
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
-        saveProfileData();
-        closePanel();
+        Promise.resolve(saveProfileData())
+          .finally(function () {
+            closePanel();
+          });
       });
     }
 
@@ -627,8 +756,7 @@
     var logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", function () {
-        clearSession();
-        window.location.href = "index.html";
+        performLogout();
       });
     }
   }
@@ -651,6 +779,21 @@
     var eyeOpenIcon = document.getElementById("eyeOpenIcon");
     var eyeOffIcon = document.getElementById("eyeOffIcon");
     var google = document.getElementById("googleSignIn");
+    var auth = getAuthService();
+
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get("registered") === "1") {
+        var registeredEmail = params.get("email");
+        if (registeredEmail) {
+          setBanner(banner, "Account created for " + registeredEmail + ". Please verify your email and sign in.", "success");
+        } else {
+          setBanner(banner, "Account created. Please verify your email and sign in.", "success");
+        }
+      }
+    } catch (_err) {
+      // Ignore URL parsing issues.
+    }
 
     if (passwordToggle && passwordInput) {
       passwordToggle.addEventListener("click", function () {
@@ -719,7 +862,7 @@
     }
 
     if (sendReset) {
-      sendReset.addEventListener("click", function () {
+      sendReset.addEventListener("click", async function () {
         var email = String(resetEmail && resetEmail.value ? resetEmail.value : form.email.value || "").trim();
 
         if (!isValidEmail(email)) {
@@ -727,12 +870,23 @@
           return;
         }
 
-        if (form.email && !form.email.value) {
-          form.email.value = email;
+        if (!auth || typeof auth.sendPasswordReset !== "function") {
+          setBanner(banner, "Password reset service is unavailable. Please refresh and try again.", "error");
+          return;
         }
 
-        setBanner(banner, "Reset link sent to " + email + ". Please check your inbox.", "success");
-        closeForgotPanel();
+        try {
+          await auth.sendPasswordReset(email, "login.html");
+
+          if (form.email && !form.email.value) {
+            form.email.value = email;
+          }
+
+          setBanner(banner, "Reset link sent to " + email + ". Please check your inbox.", "success");
+          closeForgotPanel();
+        } catch (error) {
+          setBanner(banner, auth.toPublicError(error, "Unable to send reset link right now."), "error");
+        }
       });
     }
 
@@ -743,24 +897,22 @@
     }
 
     if (google) {
-      google.addEventListener("click", function () {
-        var googleUser = {
-          email: "google.user@example.com",
-          provider: "google",
-          loggedInAt: Date.now(),
-        };
+      google.addEventListener("click", async function () {
+        if (!auth || typeof auth.signInWithGoogle !== "function") {
+          setBanner(banner, "Google sign in is currently unavailable.", "error");
+          return;
+        }
 
-        setSession(googleUser, rememberMe ? rememberMe.checked : true);
-        setProfile({
-          username: "Google User",
-          avatarDataUrl: "",
-        });
-        resetAttempts();
-        window.location.href = "index.html";
+        try {
+          setBanner(banner, "Redirecting to Google sign in...", "success");
+          await auth.signInWithGoogle("index.html");
+        } catch (error) {
+          setBanner(banner, auth.toPublicError(error, "Google sign in failed."), "error");
+        }
       });
     }
 
-    form.addEventListener("submit", function (event) {
+    form.addEventListener("submit", async function (event) {
       event.preventDefault();
       setBanner(banner, "", "error");
 
@@ -773,10 +925,10 @@
         return;
       }
 
-      if (password.length < 6) {
+      if (password.length < 8) {
         var badAttempts = attemptsValue() + 1;
         setAttempts(badAttempts);
-        var base = "Invalid login attempt. Password must be at least 6 characters.";
+        var base = "Invalid login attempt. Password must be at least 8 characters.";
         var message = badAttempts >= MAX_ATTEMPTS_WARNING
           ? base + " Multiple failed attempts detected."
           : base;
@@ -784,19 +936,45 @@
         return;
       }
 
-      var session = {
-        email: email,
-        provider: "password",
-        loggedInAt: Date.now(),
-      };
+      if (!auth || typeof auth.signIn !== "function") {
+        setBanner(banner, "Authentication service unavailable. Please refresh and try again.", "error");
+        return;
+      }
 
-      setSession(session, rememberMe ? rememberMe.checked : true);
-      setProfile({
-        username: getDisplayNameFromEmail(email),
-        avatarDataUrl: getProfile().avatarDataUrl || "",
-      });
-      resetAttempts();
-      window.location.href = "index.html";
+      try {
+        var result = await auth.signIn({
+          email: email,
+          password: password,
+        });
+
+        var mappedSession = mapSupabaseSession(result.session || { user: result.user });
+        if (!mappedSession) {
+          throw new Error("Session not available after login.");
+        }
+
+        setSession(mappedSession, rememberMe ? rememberMe.checked : true);
+        var profileName = getDisplayNameFromUser((result.session && result.session.user) || result.user);
+        setProfile({
+          username: profileName,
+          avatarDataUrl: getProfile().avatarDataUrl || "",
+          email: email,
+        });
+
+        if (typeof auth.upsertProfile === "function") {
+          await auth.upsertProfile(profileName);
+        }
+
+        resetAttempts();
+        window.location.href = "index.html";
+      } catch (error) {
+        var badAttemptsAfterFailure = attemptsValue() + 1;
+        setAttempts(badAttemptsAfterFailure);
+        setBanner(
+          banner,
+          auth.toPublicError(error, "Sign in failed. Please try again."),
+          "error"
+        );
+      }
     });
   }
 
@@ -823,13 +1001,20 @@
     if (pageType === "login") {
       runLoginFlow();
     }
+
+    syncLocalAuthFromSupabase().then(function (session) {
+      renderNavbarAuth();
+
+      if (pageType === "login" && session) {
+        window.location.href = "index.html";
+      }
+    });
   }
 
   window.VehicleAuthUI = {
     init: init,
     logout: function () {
-      clearSession();
-      window.location.href = "index.html";
+      performLogout();
     },
   };
 })();
