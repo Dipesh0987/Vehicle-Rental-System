@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Booking | Vehicle Rental System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/tailwind.css" />
+  </head>
+  <body
+    class="min-h-screen bg-paper font-poppins text-ink"
+    style="background: radial-gradient(circle at 82% 6%, rgba(19, 87, 81, 0.28), transparent 42%), radial-gradient(circle at 14% 84%, rgba(229, 140, 78, 0.2), transparent 36%), linear-gradient(145deg, #f8faf8 0%, #edf3ef 48%, #e8efec 100%);"
+  >
+    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(44,118,110,0.42),transparent_68%)] blur-sm"></div>
+      <div class="absolute -bottom-20 -left-16 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(229,140,78,0.34),transparent_68%)] blur-sm"></div>
+    </div>
+
+    <header class="mx-auto w-[95%] max-w-[1320px] py-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <a href="index.html" class="text-[22px] font-extrabold tracking-tight text-ink lg:text-[30px]">RENT A VEHICLE</a>
+        <nav class="flex items-center gap-5 text-[14px] font-semibold text-[#2c494c]">
+          <a href="index.html" class="transition hover:text-panel">Home</a>
+          <a href="vehicles.html" class="transition hover:text-panel">Vehicles</a>
+          <a href="vehicle-details.html" class="transition hover:text-panel">Vehicle Details</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto w-[95%] max-w-[1320px] pb-14">
+      <section class="rounded-[28px] border border-[rgba(23,57,60,0.14)] bg-white/85 p-5 shadow-[0_18px_44px_rgba(10,31,34,0.08)] backdrop-blur-sm sm:p-7">
+        <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3c6667]">Premium Reservation</p>
+            <h1 class="mt-1 text-[30px] font-extrabold leading-tight text-[#12373b] sm:text-[36px]">Secure Vehicle Booking</h1>
+            <p class="mt-1 max-w-[720px] text-[14px] text-[#3d5f61]">Choose dates, verify availability, review your booking details, and submit with confidence.</p>
+          </div>
+          <div id="bookingLiveStatus" class="inline-flex items-center gap-2 rounded-full border border-[#d5e2dc] bg-[#f6faf8] px-3 py-1.5 text-[12px] font-semibold text-[#2e5e5a]">
+            <span class="inline-flex h-2.5 w-2.5 rounded-full bg-[#2c766e]"></span>
+            <span>Live availability enabled</span>
+          </div>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-[1.35fr,0.95fr]">
+          <section class="space-y-4 rounded-3xl border border-[#d5e0db] bg-white/95 p-4 sm:p-5">
+            <div id="bookingFormError" class="hidden rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-semibold text-rose-700"></div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Vehicle</span>
+                <select id="bookingVehicleSelect" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]"></select>
+              </label>
+
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Pickup Time</span>
+                <input id="bookingPickupTime" type="time" value="10:00" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+              </label>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Start Date</span>
+                <input id="bookingStartDate" type="date" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+              </label>
+
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">End Date</span>
+                <input id="bookingEndDate" type="date" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+              </label>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Full Name</span>
+                <input id="bookingCustomerName" type="text" placeholder="Enter your full name" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+              </label>
+
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Email</span>
+                <input id="bookingCustomerEmail" type="email" placeholder="you@example.com" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+              </label>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Phone (Optional)</span>
+                <input id="bookingCustomerPhone" type="tel" placeholder="+1 555 000 000" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+              </label>
+
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Promo Code</span>
+                <div class="flex gap-2">
+                  <input id="bookingCouponCode" type="text" placeholder="SAVE10" class="w-full rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+                  <button id="bookingApplyCoupon" type="button" class="rounded-xl border border-[#c8d6d1] bg-white px-3 py-2 text-[12px] font-semibold text-[#2e5154] transition hover:-translate-y-[1px] hover:bg-[#f2f8f5]">Apply</button>
+                </div>
+              </label>
+            </div>
+
+            <p id="bookingCouponStatus" class="text-[12px] font-semibold text-[#4f6f71]">Try SAVE10 or WEEKEND50</p>
+
+            <label class="grid gap-1">
+              <span class="text-[12px] font-semibold text-[#315154]">Special Notes</span>
+              <textarea id="bookingNotes" rows="3" placeholder="Any pickup instructions?" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]"></textarea>
+            </label>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div id="bookingAvailabilityStatus" class="inline-flex items-center gap-2 rounded-full border border-[#d5e2dc] bg-[#f6faf8] px-3 py-1.5 text-[12px] font-semibold text-[#2e5e5a]">
+                <span class="inline-flex h-2.5 w-2.5 rounded-full bg-[#2c766e]"></span>
+                <span>Choose dates to check availability</span>
+              </div>
+
+              <button id="bookingReviewBtn" type="button" class="group inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-[13px] font-semibold text-white shadow-[0_12px_24px_rgba(229,140,78,0.26)] transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_16px_30px_rgba(229,140,78,0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(229,140,78,0.45)]">
+                <span>Review Booking</span>
+                <span class="transition group-hover:translate-x-[2px]">&rarr;</span>
+              </button>
+            </div>
+          </section>
+
+          <aside class="space-y-4">
+            <article class="rounded-3xl border border-[#d5e0db] bg-white/95 p-4 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:p-5">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Selected Vehicle</p>
+              <div class="mt-3 overflow-hidden rounded-2xl border border-[#d6e3de]">
+                <img id="bookingVehicleImage" src="assets/images/car-transparent.png" alt="Vehicle" class="h-44 w-full object-cover" />
+              </div>
+              <h2 id="bookingVehicleTitle" class="mt-3 text-[22px] font-bold text-[#14373b]">Vehicle</h2>
+              <p id="bookingVehicleMeta" class="text-[13px] text-[#456467]">Category | Transmission | Fuel</p>
+              <p id="bookingVehiclePrice" class="mt-2 text-[14px] font-semibold text-[#1f5b57]">$0 / day</p>
+            </article>
+
+            <article class="rounded-3xl border border-[#d5e0db] bg-white/95 p-4 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:p-5">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Pricing Summary</p>
+              <div class="mt-3 space-y-2 text-[13px] text-[#3d5f61]">
+                <div class="flex items-center justify-between"><span>Duration</span><span id="bookingDurationText" class="font-semibold text-[#24484b]">0 days</span></div>
+                <div class="flex items-center justify-between"><span>Base</span><span id="bookingBaseAmount" class="font-semibold text-[#24484b]">$0.00</span></div>
+                <div class="flex items-center justify-between"><span>Service Fee</span><span id="bookingServiceFee" class="font-semibold text-[#24484b]">$0.00</span></div>
+                <div class="flex items-center justify-between"><span>Tax</span><span id="bookingTaxAmount" class="font-semibold text-[#24484b]">$0.00</span></div>
+                <div class="flex items-center justify-between"><span>Discount</span><span id="bookingDiscountAmount" class="font-semibold text-[#1f6a55]">-$0.00</span></div>
+              </div>
+              <div class="mt-4 rounded-2xl border border-[#f2d3bb] bg-[#fff6ef] px-3 py-2.5">
+                <div class="flex items-center justify-between text-[13px] font-semibold text-[#7f4c22]">
+                  <span>Total Due</span>
+                  <span id="bookingTotalAmount" class="text-[16px] font-bold">$0.00</span>
+                </div>
+              </div>
+            </article>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <div id="bookingConfirmModal" class="pointer-events-none fixed inset-0 z-[260] flex items-center justify-center bg-[rgba(8,22,24,0.62)] px-4 opacity-0 transition duration-200" aria-hidden="true">
+      <div id="bookingConfirmCard" class="w-full max-w-[560px] translate-y-2 scale-[0.985] rounded-[24px] border border-[rgba(23,57,60,0.18)] bg-white p-5 shadow-[0_30px_80px_rgba(2,14,16,0.46)] transition duration-200 sm:p-6">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Confirm Reservation</p>
+        <h3 class="mt-1 text-[26px] font-extrabold text-[#14373b]">Review Booking Details</h3>
+        <div id="bookingConfirmError" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-semibold text-rose-700"></div>
+        <div id="bookingConfirmSummary" class="mt-3 rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] p-4 text-[13px] text-[#375c5f]"></div>
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+          <button id="bookingConfirmCancel" type="button" class="rounded-full border border-[#d0ddd8] px-4 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">Back</button>
+          <button id="bookingConfirmSubmit" type="button" class="rounded-full bg-accent px-5 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70">Submit Booking</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="bookingSuccessModal" class="pointer-events-none fixed inset-0 z-[270] flex items-center justify-center bg-[rgba(8,22,24,0.66)] px-4 opacity-0 transition duration-200" aria-hidden="true">
+      <div id="bookingSuccessCard" class="w-full max-w-[480px] translate-y-2 scale-[0.985] overflow-hidden rounded-[24px] border border-[rgba(16,46,49,0.18)] bg-white p-6 text-center shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200">
+        <div class="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#2c766e,#1f5b57)] text-[26px] text-white shadow-[0_14px_32px_rgba(31,91,87,0.34)]">&#10003;</div>
+        <h3 class="mt-4 text-[27px] font-extrabold text-[#133438]">Booking Confirmed</h3>
+        <p id="bookingSuccessMessage" class="mt-2 text-[14px] leading-relaxed text-[#2e5255]">Your reservation has been saved successfully.</p>
+        <div class="mt-5 flex flex-wrap justify-center gap-2">
+          <a href="vehicles.html" class="rounded-full border border-[#d0ddd8] px-4 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">Browse Vehicles</a>
+          <a id="bookingSuccessDetailsLink" href="vehicle-details.html" class="rounded-full bg-accent px-5 py-2 text-[13px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105">Back to Details</a>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/supabase.config.local.js"></script>
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/auth.supabase.js"></script>
+    <script src="assets/js/vehicle-catalog.service.js"></script>
+    <script src="assets/js/booking.service.js"></script>
+    <script src="../backend/js/auth.js"></script>
+    <script src="assets/js/booking-page.js"></script>
+    <script>
+      window.VehicleAuthUI.init("home");
+      window.VehicleBookingPage.init();
+    </script>
+  </body>
+</html>
