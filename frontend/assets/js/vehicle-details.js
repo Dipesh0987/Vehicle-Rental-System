@@ -20,6 +20,51 @@
     return "$" + numeric.toFixed(2);
   }
 
+  function formatFeatureLabel(value) {
+    var raw = String(value || "").trim();
+    if (!raw) {
+      return "";
+    }
+
+    var normalized = raw.toLowerCase();
+    if (normalized === "ac") return "Air Conditioning";
+    if (normalized === "gps") return "GPS Navigation";
+    if (normalized === "bluetooth") return "Bluetooth";
+    if (normalized === "reverse-camera") return "Reverse Camera";
+    if (normalized === "child-seat") return "Child Seat Support";
+
+    return raw
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, function (char) {
+        return char.toUpperCase();
+      });
+  }
+
+  function normalizeFeatureHighlights(rawFeatures) {
+    var source = Array.isArray(rawFeatures) ? rawFeatures : [];
+    var seen = Object.create(null);
+    var normalized = [];
+
+    source.forEach(function (item) {
+      var label = formatFeatureLabel(item);
+      if (!label) {
+        return;
+      }
+
+      var key = label.toLowerCase();
+      if (seen[key]) {
+        return;
+      }
+
+      seen[key] = true;
+      normalized.push(label);
+    });
+
+    return normalized;
+  }
+
   function normalizeGallery(vehicle) {
     var gallery = Array.isArray(vehicle && vehicle.imageUrls) ? vehicle.imageUrls.filter(Boolean) : [];
     var heroImage = String(vehicle && vehicle.primaryImageUrl ? vehicle.primaryImageUrl : (gallery[0] || DEFAULT_FALLBACK_IMAGE));
@@ -34,21 +79,62 @@
     };
   }
 
+  function normalizeVehicleIdentityForDetail(brandValue, nameValue, typeValue) {
+    var brand = String(brandValue || "").trim();
+    var name = String(nameValue || "").trim();
+    var type = String(typeValue || "Vehicle").trim() || "Vehicle";
+    var brandLower = brand.toLowerCase();
+    var nameLower = name.toLowerCase();
+
+    if (!name) {
+      name = "Vehicle";
+    }
+
+    if (brand && brandLower !== "general") {
+      if (nameLower === brandLower || nameLower.indexOf(brandLower + " ") === 0) {
+        return {
+          brand: brand,
+          name: name,
+        };
+      }
+
+      return {
+        brand: brand,
+        name: name,
+      };
+    }
+
+    return {
+      brand: type,
+      name: name,
+    };
+  }
+
   function mapCatalogVehicleToDetail(vehicle, similarVehicles) {
     var pricePerDay = Number(vehicle && vehicle.pricePerDay ? vehicle.pricePerDay : 0);
     var seats = Number(vehicle && vehicle.seats ? vehicle.seats : 5);
     var fuelType = String(vehicle && vehicle.fuelType ? vehicle.fuelType : "Petrol");
     var type = String(vehicle && vehicle.type ? vehicle.type : "Vehicle");
+    var rating = Number(vehicle && vehicle.rating ? vehicle.rating : 4.6);
     var images = normalizeGallery(vehicle || {});
+
+    var identity = normalizeVehicleIdentityForDetail(
+      vehicle && vehicle.brand,
+      vehicle && vehicle.name,
+      type
+    );
+
+    var featureHighlights = normalizeFeatureHighlights(vehicle && vehicle.features);
 
     return {
       id: String(vehicle && vehicle.id ? vehicle.id : ""),
-      brand: String(vehicle && vehicle.brand ? vehicle.brand : "Vehicle"),
-      name: String(vehicle && vehicle.name ? vehicle.name : "Vehicle"),
+      brand: identity.brand,
+      name: identity.name,
       meta: type + " | Automatic | " + seats + " Seats | " + fuelType,
       tagline: "Book this " + type.toLowerCase() + " instantly with transparent pricing and verified images.",
       heroImage: images.heroImage,
       gallery: images.gallery,
+      featureHighlights: featureHighlights,
       badges: [type, fuelType, seats + " Seats"],
       quickSpecs: {
         "Fuel Type": fuelType,
@@ -100,6 +186,7 @@
       tagline: "We could not find " + label + ". Browse the latest available fleet instead.",
       heroImage: DEFAULT_FALLBACK_IMAGE,
       gallery: [DEFAULT_FALLBACK_IMAGE],
+      featureHighlights: [],
       badges: ["Catalog", "Live Fleet"],
       quickSpecs: {
         Status: "Unavailable",
@@ -118,7 +205,7 @@
       policies: ["Live availability is shown on the Vehicles page."],
       reviews: [],
       similar: [
-        { id: "", name: "Browse All Vehicles" }
+        { id: "", name: "Browse All Vehicles", type: "Catalog", priceLabel: "Check availability" }
       ]
     };
   }
@@ -165,9 +252,13 @@
         })
         .slice(0, 3)
         .map(function (entry) {
+          var entryType = String(entry && entry.type ? entry.type : "Vehicle");
+          var entryPrice = Number(entry && entry.pricePerDay ? entry.pricePerDay : 0);
           return {
             id: String(entry && entry.id ? entry.id : ""),
             name: String(entry && entry.name ? entry.name : "Vehicle"),
+            type: entryType,
+            priceLabel: formatDetailCurrency(entryPrice) + " / day",
           };
         });
 
@@ -319,6 +410,23 @@
     }).join("");
   }
 
+  function renderFeatures(vehicle) {
+    var target = document.getElementById("vehicleFeatures");
+    if (!target) {
+      return;
+    }
+
+    var features = Array.isArray(vehicle.featureHighlights) ? vehicle.featureHighlights : [];
+    if (!features.length) {
+      target.innerHTML = '<p class="rounded-2xl border border-dashed border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#466367]">Feature details will be updated soon.</p>';
+      return;
+    }
+
+    target.innerHTML = features.map(function (feature) {
+      return '<span class="rounded-full border border-[#cfe0d9] bg-[#eef6f2] px-3 py-1.5 text-[12px] font-semibold text-[#2a5b57]">' + feature + '</span>';
+    }).join("");
+  }
+
   function renderPricing(vehicle) {
     var target = document.getElementById("vehiclePricing");
     if (!target) {
@@ -363,16 +471,50 @@
 
     var items = Array.isArray(vehicle.similar) && vehicle.similar.length
       ? vehicle.similar
-      : [{ id: "", name: "Browse All Vehicles" }];
+      : [{ id: "", name: "Browse All Vehicles", type: "Catalog", priceLabel: "Check availability" }];
 
     target.innerHTML = items.map(function (item) {
       var id = String(item && item.id ? item.id : "").trim();
       var name = String(item && item.name ? item.name : "Vehicle");
+      var type = String(item && item.type ? item.type : "Vehicle");
+      var priceLabel = String(item && item.priceLabel ? item.priceLabel : "View pricing");
       var href = id ? "vehicle-details.html?id=" + encodeURIComponent(id) : "vehicles.html";
 
-      return '<a href="' + href + '" class="flex items-center justify-between rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-semibold text-[#29494c] transition hover:-translate-y-[1px]">' +
-        '<span>' + name + '</span><span class="text-[12px] text-[#5a7376]">View Details</span>' +
+      return '<a href="' + href + '" class="flex items-center justify-between gap-3 rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 transition hover:-translate-y-[1px]">' +
+        '<span class="min-w-0">' +
+          '<span class="block truncate text-[13px] font-semibold text-[#29494c]">' + name + '</span>' +
+          '<span class="block truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5a7376]">' + type + '</span>' +
+        '</span>' +
+        '<span class="text-[12px] font-semibold text-[#1f5b57]">' + priceLabel + '</span>' +
         '</a>';
+    }).join("");
+  }
+
+  function renderReviewSnippets(vehicle) {
+    var target = document.getElementById("vehicleReviewSnippets");
+    if (!target) {
+      return;
+    }
+
+    var reviews = Array.isArray(vehicle.reviews) ? vehicle.reviews.slice(0, 2) : [];
+    if (!reviews.length) {
+      target.innerHTML = '<p class="rounded-2xl border border-dashed border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#466367]">No public reviews yet for this listing.</p>';
+      return;
+    }
+
+    target.innerHTML = reviews.map(function (review) {
+      var reviewer = String(review && review.name ? review.name : "Renter");
+      var text = String(review && review.text ? review.text : "Great rental experience.");
+      var rating = Number(review && review.rating ? review.rating : 0);
+      var ratingLabel = rating > 0 ? rating.toFixed(1) + " / 5" : "Verified";
+
+      return '<article class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3">' +
+        '<div class="flex items-center justify-between gap-2">' +
+          '<p class="text-[12px] font-semibold text-[#2f4d50]">' + reviewer + '</p>' +
+          '<p class="text-[11px] font-semibold text-[#1f5b57]">' + ratingLabel + '</p>' +
+        '</div>' +
+        '<p class="mt-2 text-[12px] leading-relaxed text-[#4d686b]">' + text + '</p>' +
+        '</article>';
     }).join("");
   }
 
@@ -579,11 +721,13 @@
     renderGallery(vehicle);
     renderBadges(vehicle);
     renderQuickSpecs(vehicle);
+    renderFeatures(vehicle);
     renderIncluded(vehicle);
     renderPricing(vehicle);
     renderBulletList("vehicleRequirements", vehicle.requirements);
     renderBulletList("vehiclePolicies", vehicle.policies);
     renderSimilar(vehicle);
+    renderReviewSnippets(vehicle);
     wireBookingSidebar(vehicle);
     wireRevealAnimations();
     hideDetailsLoader();

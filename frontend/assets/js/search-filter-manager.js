@@ -6,6 +6,8 @@
 
 class SearchFilterManager {
     constructor() {
+        this.storageKey = "searchFilters:v2";
+        this.legacyStorageKey = "searchFilters";
         this.filters = this.initializeFilters();
         this.filteredVehicles = [];
         this.allVehicles = [];
@@ -31,7 +33,7 @@ class SearchFilterManager {
 
             // Price filter
             minPrice: 0,
-            maxPrice: 500,
+            maxPrice: 5000,
 
             // Transmission filter
             transmissions: [], // 'manual', 'automatic'
@@ -366,7 +368,13 @@ class SearchFilterManager {
         } else if (typeof this.filters[filterName] === "boolean") {
             this.filters[filterName] = false;
         } else if (typeof this.filters[filterName] === "number") {
-            this.filters[filterName] = filterName.includes("min") ? 0 : 999;
+            if (filterName.includes("min")) {
+                this.filters[filterName] = 0;
+            } else if (filterName === "maxPrice") {
+                this.filters[filterName] = 5000;
+            } else {
+                this.filters[filterName] = 999;
+            }
         } else {
             this.filters[filterName] = "";
         }
@@ -378,7 +386,7 @@ class SearchFilterManager {
      */
     saveState() {
         try {
-            localStorage.setItem("searchFilters", JSON.stringify(this.filters));
+            localStorage.setItem(this.storageKey, JSON.stringify(this.filters));
         } catch (e) {
             console.warn("Failed to save filter state:", e);
         }
@@ -389,9 +397,15 @@ class SearchFilterManager {
      */
     restoreState() {
         try {
-            const saved = localStorage.getItem("searchFilters");
+            const saved = localStorage.getItem(this.storageKey) || localStorage.getItem(this.legacyStorageKey);
             if (saved) {
                 this.filters = { ...this.filters, ...JSON.parse(saved) };
+
+                // Ensure old persisted caps do not hide higher-priced DB vehicles.
+                if (!Number.isFinite(this.filters.maxPrice) || this.filters.maxPrice < 5000) {
+                    this.filters.maxPrice = 5000;
+                }
+
                 this.notifyListeners();
             }
         } catch (e) {
