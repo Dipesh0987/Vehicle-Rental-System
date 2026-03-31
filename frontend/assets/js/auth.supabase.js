@@ -8,6 +8,17 @@
   var PROFILE_IMAGE_MAX_SOURCE_BYTES = 20 * 1024 * 1024;
   var PROFILE_IMAGE_MAX_DIMENSION = 768;
   var PROFILE_IMAGE_QUALITY = 0.86;
+  var PROFILE_IMAGE_MAX_DATA_URL_CHARS = 7 * 1024 * 1024;
+
+  (function resolveProfileImageBucket() {
+    var localConfig = window.SUPABASE_LOCAL_CONFIG || {};
+    var runtimeConfig = window.SUPABASE_CONFIG || {};
+    var configured = trim(localConfig.profileImageBucket || runtimeConfig.profileImageBucket);
+
+    if (configured) {
+      PROFILE_IMAGE_BUCKET = configured;
+    }
+  })();
 
   function trim(value) {
     return String(value || "").trim();
@@ -15,6 +26,31 @@
 
   function getErrorMessage(error) {
     return String(error && error.message ? error.message : "").toLowerCase();
+  }
+
+  function isBucketNotFoundStorageError(error) {
+    var message = getErrorMessage(error);
+    var status = Number(error && (error.status || error.statusCode));
+
+    return (
+      status === 404 && message.indexOf("bucket") >= 0
+    ) || (
+      message.indexOf("bucket not found") >= 0
+    );
+  }
+
+  function isKnownPlaceholderAvatarUrl(value) {
+    var raw = trim(value);
+    if (!raw) {
+      return false;
+    }
+
+    var normalized = raw.split("#")[0].split("?")[0].toLowerCase();
+    return (
+      normalized.indexOf("assets/images/car-transparent.png") >= 0 ||
+      normalized.indexOf("default-avatar") >= 0 ||
+      normalized.indexOf("avatar-placeholder") >= 0
+    );
   }
 
   function parseRetryAfterSeconds(error) {
@@ -258,7 +294,25 @@
       return "";
     }
 
+    if (isKnownPlaceholderAvatarUrl(raw)) {
+      return "";
+    }
+
     return raw;
+  }
+
+  function normalizeDataImageUrlForStorage(value) {
+    var avatarUrl = sanitizeAvatarUrl(value);
+
+    if (avatarUrl.indexOf("data:image/") !== 0) {
+      return "";
+    }
+
+    if (avatarUrl.length > PROFILE_IMAGE_MAX_DATA_URL_CHARS) {
+      return "";
+    }
+
+    return avatarUrl;
   }
 
   function isLocalOnlyAvatarUrl(value) {
@@ -336,7 +390,15 @@
   function resolveAvatarUrlFromDatabase(client, value) {
     var avatarUrl = sanitizeAvatarUrl(value);
 
-    if (!avatarUrl || isLocalOnlyAvatarUrl(avatarUrl)) {
+    if (!avatarUrl) {
+      return null;
+    }
+
+    if (avatarUrl.indexOf("data:image/") === 0) {
+      return avatarUrl;
+    }
+
+    if (avatarUrl.indexOf("blob:") === 0) {
       return null;
     }
 
@@ -382,8 +444,10 @@
       fullName = getDisplayNameFromEmail(session && session.user && session.user.email);
     }
 
-    if (isLocalOnlyAvatarUrl(avatarUrl)) {
+    if (avatarUrl.indexOf("blob:") === 0) {
       avatarUrl = "";
+    } else if (avatarUrl.indexOf("data:image/") === 0) {
+      avatarUrl = normalizeDataImageUrlForStorage(avatarUrl);
     } else {
       avatarUrl = stripUrlQueryAndHash(avatarUrl);
     }
@@ -482,6 +546,19 @@
         reject(new Error("Unable to read image file."));
       };
       reader.readAsDataURL(file);
+    });
+  }
+
+  function readBlobAsDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function (event) {
+        resolve(String(event && event.target && event.target.result ? event.target.result : ""));
+      };
+      reader.onerror = function () {
+        reject(new Error("Unable to process profile image."));
+      };
+      reader.readAsDataURL(blob);
     });
   }
 
@@ -737,6 +814,17 @@
       });
 
     if (upload.error) {
+      if (isBucketNotFoundStorageError(upload.error)) {
+        var dataUrlFallback = await readBlobAsDataUrl(optimizedBlob);
+        var normalizedFallback = normalizeDataImageUrlForStorage(dataUrlFallback);
+
+        if (!normalizedFallback) {
+          throw new Error("Storage bucket missing and data fallback failed. Configure profile image bucket and retry.");
+        }
+
+        return normalizedFallback;
+      }
+
       throw upload.error;
     }
 

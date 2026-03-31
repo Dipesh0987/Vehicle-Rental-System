@@ -3,6 +3,7 @@
 
   var STORAGE_SESSION = "vrs_auth_session";
   var STORAGE_PROFILE = "vrs_profile";
+  var STORAGE_PROFILE_PREFIX = "vrs_profile::";
   var STORAGE_ATTEMPTS = "vrs_login_attempts";
   var PROFILE_UPDATED_EVENT = "vrs:profile-updated";
   var BROKEN_AVATAR_SYNC_CACHE = {};
@@ -105,6 +106,15 @@
       return "";
     }
 
+    var normalizedPath = raw.split("#")[0].split("?")[0].toLowerCase();
+    if (
+      normalizedPath.indexOf("assets/images/car-transparent.png") >= 0 ||
+      normalizedPath.indexOf("default-avatar") >= 0 ||
+      normalizedPath.indexOf("avatar-placeholder") >= 0
+    ) {
+      return "";
+    }
+
     return raw;
   }
 
@@ -129,7 +139,15 @@
       return null;
     }
 
-    if (avatar.indexOf("data:") === 0 || avatar.indexOf("blob:") === 0) {
+    if (avatar.indexOf("blob:") === 0) {
+      return null;
+    }
+
+    if (avatar.indexOf("data:image/") === 0) {
+      return avatar;
+    }
+
+    if (avatar.indexOf("data:") === 0) {
       return null;
     }
 
@@ -155,6 +173,32 @@
 
     avatarEl.innerHTML = "";
     avatarEl.textContent = getInitials(username || "User");
+  }
+
+  function renderAvatarImage(avatarEl, avatarUrl, username, onBrokenAvatar) {
+    if (!avatarEl) {
+      return;
+    }
+
+    var normalizedUrl = normalizeAvatarValue(avatarUrl);
+    avatarEl.innerHTML = "";
+
+    if (normalizedUrl && isRenderableAvatarValue(normalizedUrl)) {
+      var img = document.createElement("img");
+      img.src = normalizedUrl;
+      img.alt = "Profile image";
+      img.className = "h-full w-full object-cover";
+      img.onerror = function () {
+        renderAvatarFallback(avatarEl, username);
+        if (typeof onBrokenAvatar === "function") {
+          onBrokenAvatar(normalizedUrl);
+        }
+      };
+      avatarEl.appendChild(img);
+      return;
+    }
+
+    renderAvatarFallback(avatarEl, username);
   }
 
   function clearBrokenAvatarFromCloud(profile, brokenAvatarUrl) {
@@ -213,20 +257,82 @@
     sessionStorage.removeItem(STORAGE_SESSION);
   }
 
+  function getProfileOwnerKey(sessionLike) {
+    var session = sessionLike || getSession();
+    var userId = String(session && session.userId ? session.userId : "").trim();
+    if (userId) {
+      return "uid:" + userId;
+    }
+
+    var email = String(session && session.email ? session.email : "").trim().toLowerCase();
+    if (email) {
+      return "email:" + email;
+    }
+
+    return "";
+  }
+
+  function getScopedProfileStorageKey(sessionLike) {
+    var owner = getProfileOwnerKey(sessionLike);
+    return owner ? STORAGE_PROFILE_PREFIX + owner : "";
+  }
+
+  function readLegacyProfileForSession(sessionLike) {
+    var legacy = safeParse(localStorage.getItem(STORAGE_PROFILE), null);
+    if (!legacy || typeof legacy !== "object") {
+      return null;
+    }
+
+    var session = sessionLike || getSession();
+    var sessionEmail = String(session && session.email ? session.email : "").trim().toLowerCase();
+    if (!sessionEmail) {
+      return null;
+    }
+
+    var legacyEmail = String(legacy.email || "").trim().toLowerCase();
+    if (legacyEmail && legacyEmail === sessionEmail) {
+      return toLocalProfileShape(legacy);
+    }
+
+    return null;
+  }
+
   function getProfile() {
+    var session = getSession();
     var fallback = {
       username: "Guest User",
       avatarDataUrl: "",
-      email: "",
+      email: String(session && session.email ? session.email : ""),
     };
 
-    return toLocalProfileShape(Object.assign(fallback, safeParse(localStorage.getItem(STORAGE_PROFILE), {})));
+    var scopedKey = getScopedProfileStorageKey(session);
+    if (scopedKey) {
+      var scopedProfile = safeParse(localStorage.getItem(scopedKey), null);
+      if (scopedProfile && typeof scopedProfile === "object") {
+        return toLocalProfileShape(Object.assign(fallback, scopedProfile));
+      }
+
+      var legacyProfile = readLegacyProfileForSession(session);
+      if (legacyProfile) {
+        localStorage.setItem(scopedKey, JSON.stringify(legacyProfile));
+        localStorage.removeItem(STORAGE_PROFILE);
+        return toLocalProfileShape(Object.assign(fallback, legacyProfile));
+      }
+    }
+
+    return toLocalProfileShape(fallback);
   }
 
   function setProfile(profile) {
     var nextProfile = toLocalProfileShape(profile);
+    var scopedKey = getScopedProfileStorageKey();
 
-    localStorage.setItem(STORAGE_PROFILE, JSON.stringify(nextProfile));
+    if (scopedKey) {
+      localStorage.setItem(scopedKey, JSON.stringify(nextProfile));
+      localStorage.removeItem(STORAGE_PROFILE);
+    } else {
+      localStorage.setItem(STORAGE_PROFILE, JSON.stringify(nextProfile));
+    }
 
     try {
       window.dispatchEvent(new CustomEvent(PROFILE_UPDATED_EVENT, {
@@ -411,6 +517,16 @@
         // Ignore sign-out transport failures and still clear local app state.
       })
       .finally(finish);
+  }
+
+  function isBucketNotFoundUploadError(error) {
+    var message = String(error && error.message ? error.message : "").toLowerCase();
+    var status = Number(error && (error.status || error.statusCode));
+
+    return (
+      message.indexOf("bucket not found") >= 0 ||
+      (status === 404 && message.indexOf("bucket") >= 0)
+    );
   }
 
   function getStaticBookingHistory() {
@@ -737,6 +853,8 @@
     var session = getSession();
     var guest = document.querySelector("[data-auth-guest]");
     var user = document.querySelector("[data-auth-user]");
+    var profilePanel = document.querySelector("[data-profile-panel]");
+    var profileTrigger = document.querySelector("[data-profile-trigger]");
     var bookingsLinks = document.querySelectorAll("[data-auth-bookings-link]");
 
     document.body.classList.remove("auth-logged-in", "auth-guest");
@@ -767,6 +885,16 @@
       bookingsLinks.forEach(function (link) {
         link.classList.add("hidden");
       });
+
+      if (profilePanel) {
+        profilePanel.classList.remove("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
+        profilePanel.classList.add("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
+        profilePanel.setAttribute("aria-hidden", "true");
+      }
+
+      if (profileTrigger) {
+        profileTrigger.setAttribute("aria-expanded", "false");
+      }
     }
 
     renderProfileChip();
@@ -779,6 +907,7 @@
     var avatarUrl = normalizeAvatarValue(profile.avatarDataUrl);
     var nameEl = document.querySelector("[data-profile-name]");
     var avatarEl = document.querySelector("[data-profile-avatar]");
+    var panelAvatarPreviewEl = document.querySelector("[data-profile-avatar-preview]");
     var emailEls = document.querySelectorAll("[data-profile-email]");
 
     if (nameEl) {
@@ -791,25 +920,14 @@
       });
     }
 
-    if (avatarEl) {
-      if (avatarUrl && isRenderableAvatarValue(avatarUrl)) {
-        avatarEl.innerHTML = "";
-        var img = document.createElement("img");
-        img.src = avatarUrl;
-        img.alt = "Profile image";
-        img.className = "h-full w-full object-cover";
-        img.onerror = function () {
-          renderAvatarFallback(avatarEl, profile.username);
-          var latestProfile = getProfile();
-          if (normalizeAvatarValue(latestProfile.avatarDataUrl) === avatarUrl) {
-            clearBrokenAvatarFromCloud(latestProfile, avatarUrl);
-          }
-        };
-        avatarEl.appendChild(img);
-      } else {
-        renderAvatarFallback(avatarEl, profile.username);
+    renderAvatarImage(avatarEl, avatarUrl, profile.username, function (brokenAvatarUrl) {
+      var latestProfile = getProfile();
+      if (normalizeAvatarValue(latestProfile.avatarDataUrl) === brokenAvatarUrl) {
+        clearBrokenAvatarFromCloud(latestProfile, brokenAvatarUrl);
       }
-    }
+    });
+
+    renderAvatarImage(panelAvatarPreviewEl, avatarUrl, profile.username);
 
     var panelName = document.getElementById("profileName");
     if (panelName && !panelName.value) {
@@ -838,7 +956,7 @@
         return;
       }
 
-      if (event.key === STORAGE_PROFILE) {
+      if (event.key === STORAGE_PROFILE || (typeof event.key === "string" && event.key.indexOf(STORAGE_PROFILE_PREFIX) === 0)) {
         renderProfileChip();
         return;
       }
@@ -859,14 +977,192 @@
     }
 
     var isPanelOpen = false;
+    var restoreTimerId = null;
+    var hidePanelTimerId = null;
+    var panelHomeParent = panel.parentNode;
+    var panelHomeNextSibling = panel.nextSibling;
+    var mobileBackdrop = null;
+
+    function isMobileViewport() {
+      if (typeof window.matchMedia !== "function") {
+        return window.innerWidth <= 1024;
+      }
+
+      return window.matchMedia("(max-width: 1024px)").matches;
+    }
+
+    function ensureMobileBackdrop() {
+      if (mobileBackdrop && document.body.contains(mobileBackdrop)) {
+        return mobileBackdrop;
+      }
+
+      mobileBackdrop = document.createElement("div");
+      mobileBackdrop.setAttribute("data-profile-mobile-backdrop", "true");
+      mobileBackdrop.className = "fixed inset-0 z-[120]";
+      mobileBackdrop.style.background = "rgba(14, 29, 32, 0.52)";
+      mobileBackdrop.style.opacity = "0";
+      mobileBackdrop.style.pointerEvents = "none";
+      mobileBackdrop.style.backdropFilter = "blur(0px)";
+      mobileBackdrop.style.webkitBackdropFilter = "blur(0px)";
+      mobileBackdrop.style.transition =
+        "opacity 260ms ease, backdrop-filter 260ms ease, -webkit-backdrop-filter 260ms ease";
+      mobileBackdrop.addEventListener("click", function () {
+        closePanel();
+      });
+      document.body.appendChild(mobileBackdrop);
+      return mobileBackdrop;
+    }
+
+    function showMobileBackdrop() {
+      var backdrop = ensureMobileBackdrop();
+      backdrop.style.opacity = "1";
+      backdrop.style.pointerEvents = "auto";
+      backdrop.style.backdropFilter = "blur(6px)";
+      backdrop.style.webkitBackdropFilter = "blur(6px)";
+    }
+
+    function hideMobileBackdrop() {
+      if (!mobileBackdrop) {
+        return;
+      }
+
+      mobileBackdrop.style.opacity = "0";
+      mobileBackdrop.style.pointerEvents = "none";
+      mobileBackdrop.style.backdropFilter = "blur(0px)";
+      mobileBackdrop.style.webkitBackdropFilter = "blur(0px)";
+    }
+
+    function mountPanelForMobile() {
+      if (panel.parentNode === document.body) {
+        return;
+      }
+
+      panelHomeParent = panelHomeParent || panel.parentNode;
+      panelHomeNextSibling = panel.nextSibling;
+      document.body.appendChild(panel);
+    }
+
+    function restorePanelPlacement() {
+      if (!panelHomeParent || panel.parentNode !== document.body) {
+        return;
+      }
+
+      if (panelHomeNextSibling && panelHomeNextSibling.parentNode === panelHomeParent) {
+        panelHomeParent.insertBefore(panel, panelHomeNextSibling);
+      } else {
+        panelHomeParent.appendChild(panel);
+      }
+    }
+
+    function clearMobilePanelStyles() {
+      panel.style.removeProperty("position");
+      panel.style.removeProperty("top");
+      panel.style.removeProperty("left");
+      panel.style.removeProperty("right");
+      panel.style.removeProperty("z-index");
+      panel.style.removeProperty("width");
+      panel.style.removeProperty("max-height");
+      panel.style.removeProperty("transform");
+      panel.style.removeProperty("transform-origin");
+      panel.style.removeProperty("will-change");
+      panel.style.removeProperty("transition");
+      panel.style.removeProperty("box-shadow");
+    }
+
+    function applyMobilePanelStyles(isOpenState) {
+      var viewportWidth = Math.max(
+        document.documentElement ? document.documentElement.clientWidth : 0,
+        window.innerWidth || 0
+      );
+      var isSmallViewport = viewportWidth <= 640;
+
+      panel.style.position = "fixed";
+      panel.style.zIndex = "130";
+      panel.style.top = "50%";
+      panel.style.left = "50%";
+      panel.style.right = "auto";
+      panel.style.width = isSmallViewport ? "94vw" : "92vw";
+      panel.style.maxWidth = isSmallViewport ? "408px" : "420px";
+      panel.style.minWidth = "0";
+      panel.style.maxHeight = isSmallViewport ? "84vh" : "80vh";
+      panel.style.transformOrigin = "50% 50%";
+      panel.style.willChange = "transform, opacity";
+      panel.style.transition =
+        "opacity 220ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms ease";
+      panel.style.boxShadow = "0 30px 70px rgba(7, 31, 34, 0.32)";
+      panel.style.transform = isOpenState
+        ? "translate(-50%, -50%) scale(1)"
+        : "translate(-50%, -46%) scale(0.935)";
+    }
+
+    function hasAuthenticatedSession() {
+      var session = getSession();
+      if (!session) {
+        return false;
+      }
+
+      return Boolean(String(session.email || "").trim());
+    }
+
+    function clearHidePanelTimer() {
+      if (!hidePanelTimerId) {
+        return;
+      }
+
+      window.clearTimeout(hidePanelTimerId);
+      hidePanelTimerId = null;
+    }
+
+    function showPanelElement() {
+      clearHidePanelTimer();
+      panel.style.display = "block";
+    }
+
+    function scheduleHidePanel(delay) {
+      clearHidePanelTimer();
+
+      hidePanelTimerId = window.setTimeout(function () {
+        if (isPanelOpen) {
+          return;
+        }
+
+        panel.style.display = "none";
+        hidePanelTimerId = null;
+      }, Math.max(0, Number(delay) || 0));
+    }
 
     trigger.setAttribute("aria-haspopup", "dialog");
     trigger.setAttribute("aria-expanded", "false");
     panel.setAttribute("aria-hidden", "true");
+    panel.style.display = "none";
 
     function openPanel() {
+      if (!hasAuthenticatedSession()) {
+        closePanel();
+        return;
+      }
+
+      if (restoreTimerId) {
+        window.clearTimeout(restoreTimerId);
+        restoreTimerId = null;
+      }
+
+      showPanelElement();
+
       if (isPanelOpen) {
         return;
+      }
+
+      if (isMobileViewport()) {
+        mountPanelForMobile();
+        applyMobilePanelStyles(false);
+        showMobileBackdrop();
+        document.body.classList.add("overflow-hidden");
+      } else {
+        hideMobileBackdrop();
+        document.body.classList.remove("overflow-hidden");
+        clearMobilePanelStyles();
+        restorePanelPlacement();
       }
 
       isPanelOpen = true;
@@ -874,6 +1170,15 @@
       panel.classList.add("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
       trigger.setAttribute("aria-expanded", "true");
       panel.setAttribute("aria-hidden", "false");
+
+      if (isMobileViewport()) {
+        window.requestAnimationFrame(function () {
+          if (!isPanelOpen) {
+            return;
+          }
+          applyMobilePanelStyles(true);
+        });
+      }
     }
 
     function closePanel() {
@@ -886,11 +1191,39 @@
       panel.classList.add("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
       trigger.setAttribute("aria-expanded", "false");
       panel.setAttribute("aria-hidden", "true");
+      scheduleHidePanel(isMobileViewport() ? 300 : 220);
+
+      if (isMobileViewport()) {
+        applyMobilePanelStyles(false);
+        hideMobileBackdrop();
+        document.body.classList.remove("overflow-hidden");
+
+        if (restoreTimerId) {
+          window.clearTimeout(restoreTimerId);
+        }
+
+        restoreTimerId = window.setTimeout(function () {
+          if (isPanelOpen) {
+            return;
+          }
+          clearMobilePanelStyles();
+          restorePanelPlacement();
+          restoreTimerId = null;
+        }, 300);
+      } else {
+        clearMobilePanelStyles();
+        restorePanelPlacement();
+      }
     }
 
     trigger.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
+
+      if (!hasAuthenticatedSession()) {
+        closePanel();
+        return;
+      }
 
       if (isPanelOpen) {
         closePanel();
@@ -926,10 +1259,33 @@
       }
     });
 
+    window.addEventListener("resize", function () {
+      if (isPanelOpen) {
+        if (isMobileViewport()) {
+          mountPanelForMobile();
+          applyMobilePanelStyles(true);
+          showMobileBackdrop();
+          document.body.classList.add("overflow-hidden");
+        } else {
+          hideMobileBackdrop();
+          document.body.classList.remove("overflow-hidden");
+          clearMobilePanelStyles();
+          restorePanelPlacement();
+        }
+        return;
+      }
+
+      hideMobileBackdrop();
+      document.body.classList.remove("overflow-hidden");
+      clearMobilePanelStyles();
+      restorePanelPlacement();
+    });
+
     var saveBtn = document.getElementById("saveProfile");
     var nameInput = document.getElementById("profileName");
     var photoInput = document.getElementById("profilePhoto");
     var photoFileLabel = document.getElementById("profileFileLabel");
+    var photoShell = panel ? panel.querySelector(".profile-photo-shell") : null;
     var note = document.getElementById("profileNote");
 
     function setPhotoFileLabel(fileName) {
@@ -938,6 +1294,18 @@
       }
 
       photoFileLabel.textContent = String(fileName || "No file selected");
+    }
+
+    function setPhotoDropState(isDragOver) {
+      if (!photoShell) {
+        return;
+      }
+
+      var active = Boolean(isDragOver);
+      photoShell.classList.toggle("border-[#2c766e]", active);
+      photoShell.classList.toggle("bg-[rgba(44,118,110,0.12)]", active);
+      photoShell.classList.toggle("border-[rgba(23,57,60,0.16)]", !active);
+      photoShell.classList.toggle("bg-white/70", !active);
     }
 
     setPhotoFileLabel();
@@ -1029,70 +1397,146 @@
       });
     }
 
+    function handleSelectedPhotoFile(file) {
+      if (!file) {
+        setPhotoFileLabel();
+        return;
+      }
+
+      setPhotoFileLabel(file.name);
+
+      var auth = getAuthService();
+      if (auth && typeof auth.uploadProfileImage === "function") {
+        var previousProfile = getProfile();
+
+        previewSelectedImage(file, previousProfile);
+
+        if (note) {
+          note.textContent = "Uploading and optimizing profile image...";
+        }
+
+        auth.uploadProfileImage(file)
+          .then(function (avatarUrl) {
+            return saveProfileData(avatarUrl);
+          })
+          .catch(function (error) {
+            if (isBucketNotFoundUploadError(error)) {
+              var currentPreview = getProfile();
+              if (currentPreview && normalizeAvatarValue(currentPreview.avatarDataUrl)) {
+                saveProfileData(currentPreview.avatarDataUrl)
+                  .then(function () {
+                    if (note) {
+                      note.textContent = "Storage bucket is missing, so profile image was saved in profile data fallback.";
+                    }
+                  })
+                  .catch(function () {
+                    setProfile(previousProfile);
+                    renderProfileChip();
+                    if (note) {
+                      note.textContent = "Profile image upload failed.";
+                    }
+                  });
+                return;
+              }
+            }
+
+            setProfile(previousProfile);
+            renderProfileChip();
+
+            if (!note) {
+              return;
+            }
+
+            if (auth && typeof auth.toPublicError === "function") {
+              note.textContent = auth.toPublicError(error, "Profile image upload failed.");
+            } else {
+              note.textContent = String(
+                error && error.message ? error.message : "Profile image upload failed."
+              );
+            }
+          })
+          .finally(function () {
+            if (photoInput) {
+              photoInput.value = "";
+            }
+            setPhotoFileLabel();
+            setPhotoDropState(false);
+          });
+        return;
+      }
+
+      var fallbackMaxBytes = 1024 * 1024 * 5;
+      if (file.size > fallbackMaxBytes) {
+        if (note) {
+          note.textContent = "Image is too large. Please choose a file under 5 MB.";
+        }
+        if (photoInput) {
+          photoInput.value = "";
+        }
+        setPhotoFileLabel();
+        setPhotoDropState(false);
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = function (event) {
+        saveProfileData(String(event.target && event.target.result ? event.target.result : ""));
+        if (photoInput) {
+          photoInput.value = "";
+        }
+        setPhotoFileLabel();
+        setPhotoDropState(false);
+      };
+      reader.readAsDataURL(file);
+    }
+
     if (photoInput) {
       photoInput.addEventListener("change", function () {
         var file = photoInput.files && photoInput.files[0];
-        if (!file) {
-          setPhotoFileLabel();
+        handleSelectedPhotoFile(file);
+      });
+    }
+
+    if (photoShell) {
+      ["dragenter", "dragover"].forEach(function (eventName) {
+        photoShell.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          setPhotoDropState(true);
+        });
+      });
+
+      ["dragleave", "dragend"].forEach(function (eventName) {
+        photoShell.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          setPhotoDropState(false);
+        });
+      });
+
+      photoShell.addEventListener("drop", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        setPhotoDropState(false);
+
+        var droppedFile = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        if (!droppedFile) {
           return;
         }
 
-        setPhotoFileLabel(file.name);
-
-        var auth = getAuthService();
-        if (auth && typeof auth.uploadProfileImage === "function") {
-          var previousProfile = getProfile();
-
-          previewSelectedImage(file, previousProfile);
-
-          if (note) {
-            note.textContent = "Uploading and optimizing profile image...";
+        if (photoInput) {
+          try {
+            if (typeof DataTransfer === "function") {
+              var transfer = new DataTransfer();
+              transfer.items.add(droppedFile);
+              photoInput.files = transfer.files;
+            }
+          } catch (_dropError) {
+            // Fallback to direct handler if assignment fails.
           }
-
-          auth.uploadProfileImage(file)
-            .then(function (avatarUrl) {
-              return saveProfileData(avatarUrl);
-            })
-            .catch(function (error) {
-              setProfile(previousProfile);
-              renderProfileChip();
-
-              if (!note) {
-                return;
-              }
-
-              if (auth && typeof auth.toPublicError === "function") {
-                note.textContent = auth.toPublicError(error, "Profile image upload failed.");
-              } else {
-                note.textContent = String(
-                  error && error.message ? error.message : "Profile image upload failed."
-                );
-              }
-            })
-            .finally(function () {
-              photoInput.value = "";
-              setPhotoFileLabel();
-            });
-          return;
         }
 
-        var fallbackMaxBytes = 1024 * 1024 * 5;
-        if (file.size > fallbackMaxBytes) {
-          if (note) {
-            note.textContent = "Image is too large. Please choose a file under 5 MB.";
-          }
-          photoInput.value = "";
-          setPhotoFileLabel();
-          return;
-        }
-
-        var reader = new FileReader();
-        reader.onload = function (event) {
-          saveProfileData(String(event.target && event.target.result ? event.target.result : ""));
-          photoInput.value = "";
-          setPhotoFileLabel();
-        };
-        reader.readAsDataURL(file);
+        handleSelectedPhotoFile(droppedFile);
       });
     }
 
@@ -1112,10 +1556,11 @@
 
     var banner = document.getElementById("loginBanner");
     var forgot = document.getElementById("forgotPassword");
-    var forgotPanel = document.getElementById("forgotPanel");
-    var resetEmail = document.getElementById("resetEmail");
-    var sendReset = document.getElementById("sendResetLink");
-    var cancelReset = document.getElementById("cancelReset");
+    var forgotAssistModal = document.getElementById("forgotAssistModal");
+    var forgotAssistCard = document.getElementById("forgotAssistCard");
+    var forgotAssistClose = document.getElementById("forgotAssistClose");
+    var forgotAssistPrimary = document.getElementById("forgotAssistPrimary");
+    var loginMain = document.getElementById("loginMain");
     var rememberMe = document.getElementById("rememberMe");
     var passwordInput = document.getElementById("password");
     var passwordToggle = document.getElementById("passwordToggle");
@@ -1168,29 +1613,88 @@
       });
     }
 
-    function openForgotPanel() {
-      if (!forgotPanel) {
+    var forgotModalHideTimer = null;
+
+    function setForgotModalBackgroundState(isOpen) {
+      if (!loginMain) {
         return;
       }
 
-      forgotPanel.classList.remove("mt-[-0.25rem]", "max-h-0", "opacity-0", "-translate-y-2", "pointer-events-none");
-      forgotPanel.classList.add("mt-0", "max-h-52", "opacity-100", "translate-y-0", "pointer-events-auto");
-      forgotPanel.setAttribute("aria-hidden", "false");
-      if (forgot) {
-        forgot.setAttribute("aria-expanded", "true");
+      if (isOpen) {
+        loginMain.style.filter = "blur(4px)";
+        loginMain.style.transform = "scale(0.992)";
+        loginMain.style.pointerEvents = "none";
+      } else {
+        loginMain.style.removeProperty("filter");
+        loginMain.style.removeProperty("transform");
+        loginMain.style.removeProperty("pointer-events");
       }
     }
 
-    function closeForgotPanel() {
-      if (!forgotPanel) {
+    function openForgotModal() {
+      if (!forgotAssistModal || !forgotAssistCard) {
         return;
       }
 
-      forgotPanel.classList.remove("mt-0", "max-h-52", "opacity-100", "translate-y-0", "pointer-events-auto");
-      forgotPanel.classList.add("mt-[-0.25rem]", "max-h-0", "opacity-0", "-translate-y-2", "pointer-events-none");
-      forgotPanel.setAttribute("aria-hidden", "true");
+      if (forgotModalHideTimer) {
+        clearTimeout(forgotModalHideTimer);
+        forgotModalHideTimer = null;
+      }
+
+      forgotAssistModal.classList.remove("hidden");
+      forgotAssistModal.classList.add("flex");
+      forgotAssistModal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("overflow-hidden");
+      setForgotModalBackgroundState(true);
+
+      requestAnimationFrame(function () {
+        forgotAssistModal.classList.remove("opacity-0", "pointer-events-none");
+        forgotAssistModal.classList.add("opacity-100", "pointer-events-auto");
+        forgotAssistCard.classList.remove("translate-y-3", "scale-[0.985]");
+        forgotAssistCard.classList.add("translate-y-0", "scale-100");
+      });
+
+      if (forgot) {
+        forgot.setAttribute("aria-expanded", "true");
+      }
+
+      if (forgotAssistPrimary) {
+        forgotAssistPrimary.focus();
+      }
+    }
+
+    function closeForgotModal() {
+      if (!forgotAssistModal || !forgotAssistCard) {
+        return;
+      }
+
+      forgotAssistModal.classList.remove("opacity-100", "pointer-events-auto");
+      forgotAssistModal.classList.add("opacity-0", "pointer-events-none");
+      forgotAssistCard.classList.remove("translate-y-0", "scale-100");
+      forgotAssistCard.classList.add("translate-y-3", "scale-[0.985]");
+      forgotAssistModal.setAttribute("aria-hidden", "true");
+      setForgotModalBackgroundState(false);
+      document.body.classList.remove("overflow-hidden");
+
+      if (forgotModalHideTimer) {
+        clearTimeout(forgotModalHideTimer);
+      }
+
+      forgotModalHideTimer = setTimeout(function () {
+        forgotAssistModal.classList.remove("flex");
+        forgotAssistModal.classList.add("hidden");
+      }, 220);
+
       if (forgot) {
         forgot.setAttribute("aria-expanded", "false");
+        forgot.focus();
+      }
+    }
+
+    function onForgotModalKeyDown(event) {
+      if (event.key === "Escape" && forgotAssistModal && forgotAssistModal.getAttribute("aria-hidden") === "false") {
+        event.preventDefault();
+        closeForgotModal();
       }
     }
 
@@ -1198,63 +1702,32 @@
       forgot.addEventListener("click", function (event) {
         event.preventDefault();
 
-        if (!forgotPanel) {
-          return;
-        }
-
-        var isOpen = forgotPanel.classList.contains("max-h-52");
-        if (!isOpen) {
-          openForgotPanel();
-
-          if (resetEmail) {
-            var currentEmail = String(form.email.value || "").trim();
-            if (currentEmail) {
-              resetEmail.value = currentEmail;
-            }
-            resetEmail.focus();
-          }
-        } else {
-          closeForgotPanel();
-        }
-
+        openForgotModal();
         setBanner(banner, "", "error");
       });
     }
 
-    if (sendReset) {
-      sendReset.addEventListener("click", async function () {
-        var email = String(resetEmail && resetEmail.value ? resetEmail.value : form.email.value || "").trim();
+    if (forgotAssistClose) {
+      forgotAssistClose.addEventListener("click", function () {
+        closeForgotModal();
+      });
+    }
 
-        if (!isValidEmail(email)) {
-          setBanner(banner, "Enter a valid email before sending a reset link.", "error");
-          return;
-        }
+    if (forgotAssistPrimary) {
+      forgotAssistPrimary.addEventListener("click", function () {
+        closeForgotModal();
+      });
+    }
 
-        if (!auth || typeof auth.sendPasswordReset !== "function") {
-          setBanner(banner, "Password reset service is unavailable. Please refresh and try again.", "error");
-          return;
-        }
-
-        try {
-          await auth.sendPasswordReset(email, "login.html");
-
-          if (form.email && !form.email.value) {
-            form.email.value = email;
-          }
-
-          setBanner(banner, "Reset link sent to " + email + ". Please check your inbox.", "success");
-          closeForgotPanel();
-        } catch (error) {
-          setBanner(banner, auth.toPublicError(error, "Unable to send reset link right now."), "error");
+    if (forgotAssistModal) {
+      forgotAssistModal.addEventListener("click", function (event) {
+        if (event.target === forgotAssistModal) {
+          closeForgotModal();
         }
       });
     }
 
-    if (cancelReset) {
-      cancelReset.addEventListener("click", function () {
-        closeForgotPanel();
-      });
-    }
+    document.addEventListener("keydown", onForgotModalKeyDown);
 
     if (google) {
       google.addEventListener("click", async function () {
