@@ -364,6 +364,7 @@
         setBannerMessage("bookingFormError", "", "error");
         updateAvailabilityPill("default", "Choose dates to check availability");
         selectVehicleById(state, vehicleSelect.value);
+        scheduleAvailabilityCheck(state);
       });
     }
 
@@ -376,6 +377,7 @@
         setBannerMessage("bookingFormError", "", "error");
         updateAvailabilityPill("default", "Choose dates to check availability");
         syncQuoteFromState(state);
+        scheduleAvailabilityCheck(state);
       });
     });
 
@@ -397,10 +399,239 @@
     }
   }
 
+  function setModalState(modalId, cardId, isOpen) {
+    var modal = byId(modalId);
+    var card = byId(cardId);
+
+    if (!modal || !card) {
+      return;
+    }
+
+    if (isOpen) {
+      modal.classList.remove("pointer-events-none", "opacity-0");
+      modal.classList.add("pointer-events-auto", "opacity-100");
+      card.classList.remove("translate-y-2", "scale-[0.985]");
+      card.classList.add("translate-y-0", "scale-100");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("overflow-hidden");
+      return;
+    }
+
+    modal.classList.remove("pointer-events-auto", "opacity-100");
+    modal.classList.add("pointer-events-none", "opacity-0");
+    card.classList.remove("translate-y-0", "scale-100");
+    card.classList.add("translate-y-2", "scale-[0.985]");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("overflow-hidden");
+  }
+
+  function formatDatePretty(value) {
+    var text = normalizeString(value, "");
+    if (!text) {
+      return "-";
+    }
+
+    var date = new Date(text + "T00:00:00");
+    if (Number.isNaN(date.getTime())) {
+      return text;
+    }
+
+    try {
+      return date.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (_error) {
+      return text;
+    }
+  }
+
+  async function checkAvailability(state) {
+    var values = readFormValues();
+
+    if (!state.selectedVehicle || !values.startDate || !values.endDate) {
+      state.lastAvailability = null;
+      updateAvailabilityPill("default", "Choose dates to check availability");
+      return null;
+    }
+
+    if (!window.VehicleBookingService || typeof window.VehicleBookingService.checkAvailability !== "function") {
+      updateAvailabilityPill("error", "Availability service is unavailable");
+      return null;
+    }
+
+    var requestId = state.availabilityRequestId + 1;
+    state.availabilityRequestId = requestId;
+
+    try {
+      var result = await window.VehicleBookingService.checkAvailability({
+        vehicleId: state.selectedVehicle.id,
+        startDate: values.startDate,
+        endDate: values.endDate,
+      });
+
+      if (requestId !== state.availabilityRequestId) {
+        return state.lastAvailability;
+      }
+
+      state.lastAvailability = result;
+      if (result && result.available) {
+        updateAvailabilityPill("ok", "Vehicle is available for the selected dates");
+      } else {
+        updateAvailabilityPill("error", "Vehicle is not available for the selected dates");
+      }
+
+      return result;
+    } catch (error) {
+      if (requestId !== state.availabilityRequestId) {
+        return state.lastAvailability;
+      }
+
+      state.lastAvailability = null;
+      var message = window.VehicleBookingService && typeof window.VehicleBookingService.toPublicError === "function"
+        ? window.VehicleBookingService.toPublicError(error, "Unable to check availability right now.")
+        : "Unable to check availability right now.";
+
+      updateAvailabilityPill("error", message);
+      return null;
+    }
+  }
+
+  function scheduleAvailabilityCheck(state) {
+    if (state.availabilityTimerId) {
+      window.clearTimeout(state.availabilityTimerId);
+    }
+
+    state.availabilityTimerId = window.setTimeout(function () {
+      checkAvailability(state);
+    }, 220);
+  }
+
+  function firstErrorMessage(errors) {
+    if (!errors || typeof errors !== "object") {
+      return "Please complete the booking form before continuing.";
+    }
+
+    var keys = Object.keys(errors);
+    if (!keys.length) {
+      return "Please complete the booking form before continuing.";
+    }
+
+    return normalizeString(errors[keys[0]], "Please complete the booking form before continuing.");
+  }
+
+  function buildConfirmSummaryHtml(state, values) {
+    var quote = state.latestQuote || {
+      bookingDays: 0,
+      baseAmount: 0,
+      serviceFee: 0,
+      taxAmount: 0,
+      discountAmount: 0,
+      totalAmount: 0,
+    };
+    var vehicleName = getVehicleDisplayName(state.selectedVehicle || {});
+
+    return [
+      '<div class="grid gap-2">',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Vehicle</span><span>' + vehicleName + '</span></div>',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Start Date</span><span>' + formatDatePretty(values.startDate) + '</span></div>',
+      '<div class="flex items-center justify-between"><span class="font-semibold">End Date</span><span>' + formatDatePretty(values.endDate) + '</span></div>',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Pickup Time</span><span>' + normalizeString(values.pickupTime, "10:00") + '</span></div>',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Customer</span><span>' + normalizeString(values.customerName, "-") + '</span></div>',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Email</span><span>' + normalizeString(values.customerEmail, "-") + '</span></div>',
+      '<div class="mt-2 border-t border-[#d7e3de] pt-2">',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Duration</span><span>' + quote.bookingDays + ' day' + (quote.bookingDays === 1 ? '' : 's') + '</span></div>',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Total</span><span class="font-bold text-[#1f5b57]">' + formatMoney(quote.totalAmount) + '</span></div>',
+      '</div>',
+      '</div>'
+    ].join('');
+  }
+
+  function wireReviewFlow(state) {
+    var reviewBtn = byId("bookingReviewBtn");
+    var confirmSummary = byId("bookingConfirmSummary");
+    var confirmCancel = byId("bookingConfirmCancel");
+    var confirmModal = byId("bookingConfirmModal");
+
+    if (confirmCancel) {
+      confirmCancel.addEventListener("click", function () {
+        setBannerMessage("bookingConfirmError", "", "error");
+        setModalState("bookingConfirmModal", "bookingConfirmCard", false);
+      });
+    }
+
+    if (confirmModal) {
+      confirmModal.addEventListener("click", function (event) {
+        if (event.target === confirmModal) {
+          setBannerMessage("bookingConfirmError", "", "error");
+          setModalState("bookingConfirmModal", "bookingConfirmCard", false);
+        }
+      });
+    }
+
+    if (!reviewBtn) {
+      return;
+    }
+
+    reviewBtn.addEventListener("click", async function () {
+      setBannerMessage("bookingFormError", "", "error");
+      setBannerMessage("bookingConfirmError", "", "error");
+
+      if (!state.selectedVehicle) {
+        setBannerMessage("bookingFormError", "Select a vehicle before continuing.", "error");
+        return;
+      }
+
+      if (!window.VehicleBookingService || typeof window.VehicleBookingService.validateBookingInput !== "function") {
+        setBannerMessage("bookingFormError", "Booking service is unavailable right now.", "error");
+        return;
+      }
+
+      var values = readFormValues();
+      var validation = window.VehicleBookingService.validateBookingInput({
+        vehicleId: state.selectedVehicle.id,
+        customerName: values.customerName,
+        customerEmail: values.customerEmail,
+        customerPhone: values.customerPhone,
+        startDate: values.startDate,
+        endDate: values.endDate,
+        pickupTime: values.pickupTime,
+        couponCode: values.couponCode,
+        notes: values.notes,
+        dailyRate: parseDailyRate(state.selectedVehicle),
+        status: "confirmed",
+      });
+
+      if (!validation.valid) {
+        setBannerMessage("bookingFormError", firstErrorMessage(validation.errors), "error");
+        return;
+      }
+
+      var availability = await checkAvailability(state);
+      if (!availability || !availability.available) {
+        setBannerMessage("bookingFormError", "Selected dates are unavailable for this vehicle.", "error");
+        return;
+      }
+
+      state.pendingBookingValues = values;
+      if (confirmSummary) {
+        confirmSummary.innerHTML = buildConfirmSummaryHtml(state, values);
+      }
+
+      setModalState("bookingConfirmModal", "bookingConfirmCard", true);
+    });
+  }
+
   async function init() {
     var state = {
       vehicles: [],
       selectedVehicle: null,
+      pendingBookingValues: null,
+      lastAvailability: null,
+      availabilityTimerId: null,
+      availabilityRequestId: 0,
       latestQuote: {
         bookingDays: 0,
         baseAmount: 0,
@@ -421,6 +652,8 @@
     fillVehicleSelect(state.vehicles, preferredVehicleId);
     selectVehicleById(state, preferredVehicleId);
     wireBaseInteractions(state);
+    wireReviewFlow(state);
+    scheduleAvailabilityCheck(state);
 
     if (!state.vehicles.length) {
       setBannerMessage("bookingFormError", "No active vehicles are available for booking right now.", "error");
