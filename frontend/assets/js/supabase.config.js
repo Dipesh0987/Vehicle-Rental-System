@@ -6,6 +6,7 @@
   window.SUPABASE_CONFIG = {
     url: String(localOverride.url || "https://YOUR_PROJECT_ID.supabase.co"),
     anonKey: String(localOverride.anonKey || "YOUR_SUPABASE_ANON_KEY"),
+    profileImageBucket: String(localOverride.profileImageBucket || "profile-images"),
     projectLabel: String(localOverride.projectLabel || "dev"),
   };
 })();

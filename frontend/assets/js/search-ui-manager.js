@@ -56,7 +56,7 @@ class SearchUIManager {
                 icon: "fa-dollar-sign",
                 type: "range",
                 min: 0,
-                max: 500,
+                max: 5000,
                 step: 10,
                 minKey: "minPrice",
                 maxKey: "maxPrice",
@@ -414,46 +414,55 @@ class SearchUIManager {
 
         if (!resultsDiv) return;
 
+        const safeVehicles = Array.isArray(vehicles) ? vehicles : [];
+
         // Update result count
         if (resultCountDiv) {
-            resultCountDiv.textContent = vehicles.length;
+            resultCountDiv.textContent = safeVehicles.length;
         }
 
         // Show no results message
-        if (vehicles.length === 0) {
+        if (safeVehicles.length === 0) {
             resultsDiv.innerHTML = "";
-            noResultsDiv.classList.remove("hidden");
+            if (noResultsDiv) {
+                noResultsDiv.classList.remove("hidden");
+            }
             return;
         }
 
-        noResultsDiv.classList.add("hidden");
+        if (noResultsDiv) {
+            noResultsDiv.classList.add("hidden");
+        }
 
         let html = "";
-        for (const vehicle of vehicles) {
-            html += this.createVehicleCard(vehicle);
+        for (let index = 0; index < safeVehicles.length; index += 1) {
+            html += this.createVehicleCard(safeVehicles[index], index);
         }
 
         resultsDiv.innerHTML = html;
         this.attachVehicleCardListeners();
+        this.animateVehicleCards();
     }
 
     /**
      * Create a vehicle card
      */
-    createVehicleCard(vehicle) {
+    createVehicleCard(vehicle, index) {
         const price = this.filterManager.extractPrice(vehicle.pricing?.dailyRate || "0");
         const rating = parseFloat(vehicle.rating || 0);
         const isWishlisted = this.isVehicleWishlisted(vehicle.id);
-        const imageUrl = vehicle.imageUrl || vehicle.image || "";
-        const vehicleTitle = [vehicle.brand, vehicle.name].filter(Boolean).join(" ").trim() || "Vehicle";
+        const imageUrl = this.getVehicleImageUrl(vehicle);
+        const fallbackImage = "assets/images/car-transparent.png";
+        const reviewCount = this.getReviewCount(vehicle);
+        const animationDelay = Math.min(index * 55, 420);
+        const displayName = this.getVehicleDisplayName(vehicle);
 
         let html = `
-            <div class="group overflow-hidden rounded-2xl border border-[#d4ded9] bg-white shadow-[0_12px_28px_rgba(10,31,34,0.09)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_36px_rgba(10,31,34,0.15)]">
+            <div class="vehicle-result-card group cursor-pointer overflow-hidden rounded-2xl border border-[#d4ded9] bg-white shadow-[0_12px_28px_rgba(10,31,34,0.09)] transition-[box-shadow,border-color] duration-300 hover:shadow-[0_20px_36px_rgba(10,31,34,0.15)]" style="--card-stagger-delay:${animationDelay}ms" data-vehicle-id="${vehicle.id}" role="link" tabindex="0" aria-label="Open details for ${displayName}">
                 <!-- Vehicle Image -->
-                <div class="relative bg-gradient-to-br from-panel to-[#1f5659] h-48 flex items-center justify-center">
-                    ${imageUrl
-                        ? `<img src="${imageUrl}" alt="${vehicleTitle}" class="h-full w-full object-cover" />`
-                        : '<i class="fas fa-car text-white text-6xl opacity-30"></i>'}
+                <div class="relative h-48 overflow-hidden bg-gradient-to-br from-panel to-[#1f5659]">
+                    <img src="${imageUrl || fallbackImage}" alt="${displayName}" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.src='${fallbackImage}'" />
+                    <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0d2528]/55 via-transparent to-transparent"></div>
                     ${vehicle.available !== false ? '<div class="absolute right-4 top-4 rounded-full border border-[#b7e1c7] bg-[#e9fff1] px-3 py-1 text-[11px] font-semibold text-[#1b6a3d]"><i class="fas fa-check-circle mr-1"></i>Available</div>' : ""}
                 </div>
 
@@ -462,7 +471,7 @@ class SearchUIManager {
                     <!-- Header -->
                     <div class="flex items-start justify-between mb-2">
                         <div>
-                            <h3 class="font-bold text-lg text-ink">${vehicleTitle}</h3>
+                            <h3 class="font-bold text-lg text-ink">${displayName}</h3>
                             <p class="text-xs text-muted font-semibold uppercase">${vehicle.type || "Vehicle"}</p>
                         </div>
                         <button class="wishlist-icon rounded-full p-2 transition ${isWishlisted ? "bg-red-50 text-red-500" : "text-muted hover:bg-[#f5f8f7] hover:text-red-500"}" data-vehicle-id="${vehicle.id}">
@@ -484,7 +493,7 @@ class SearchUIManager {
                             ${this.renderStars(rating)}
                         </div>
                         <span class="text-sm font-bold text-ink">${rating.toFixed(1)}</span>
-                        <span class="text-xs text-muted">(${Math.floor(Math.random() * 50 + 10)} reviews)</span>
+                        <span class="text-xs text-muted">(${reviewCount} reviews)</span>
                     </div>
 
                     <!-- Price -->
@@ -517,6 +526,100 @@ class SearchUIManager {
         return html;
     }
 
+    getVehicleDisplayName(vehicle) {
+        const brand = String(vehicle?.brand || "").trim();
+        const name = String(vehicle?.name || "").trim();
+        const brandLower = brand.toLowerCase();
+        const nameLower = name.toLowerCase();
+
+        if (name) {
+            if (!brand || brandLower === "general") {
+                return name;
+            }
+
+            if (nameLower === brandLower || nameLower.startsWith(`${brandLower} `)) {
+                return name;
+            }
+        }
+
+        if (brand && name) {
+            return `${brand} ${name}`.trim();
+        }
+
+        return name || brand || "Vehicle";
+    }
+
+    /**
+     * Resolve image URL from normalized catalog vehicles.
+     */
+    getVehicleImageUrl(vehicle) {
+        if (!vehicle || typeof vehicle !== "object") {
+            return "";
+        }
+
+        const primary = String(vehicle.primaryImageUrl || "").trim();
+        if (primary) {
+            return primary;
+        }
+
+        if (Array.isArray(vehicle.imageUrls) && vehicle.imageUrls.length > 0) {
+            const first = String(vehicle.imageUrls[0] || "").trim();
+            if (first) {
+                return first;
+            }
+        }
+
+        return "";
+    }
+
+    /**
+     * Deterministic review count avoids jitter across rerenders.
+     */
+    getReviewCount(vehicle) {
+        const seed = String(vehicle?.id || vehicle?.name || "vehicle");
+        let hash = 0;
+        for (let i = 0; i < seed.length; i += 1) {
+            hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+        }
+        return 10 + Math.abs(hash % 51);
+    }
+
+    /**
+     * Format feature chips for display.
+     */
+    formatFeatureLabel(feature) {
+        return String(feature || "")
+            .replace(/[-_]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    /**
+     * Stagger card reveal for smoother perceived rendering.
+     */
+    animateVehicleCards() {
+        const cards = document.querySelectorAll("#vehicleResults .vehicle-result-card");
+        if (!cards.length) {
+            return;
+        }
+
+        const reduceMotion =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        if (reduceMotion) {
+            cards.forEach((card) => card.classList.add("is-visible"));
+            return;
+        }
+
+        requestAnimationFrame(() => {
+            cards.forEach((card) => {
+                card.classList.add("is-visible");
+            });
+        });
+    }
+
     /**
      * Convert feature keys into readable labels.
      */
@@ -547,6 +650,11 @@ class SearchUIManager {
      * Attach vehicle card event listeners
      */
     attachVehicleCardListeners() {
+        const openVehicleDetails = (vehicleId) => {
+            if (!vehicleId) return;
+            window.location.href = `vehicle-details.html?id=${encodeURIComponent(vehicleId)}`;
+        };
+
         // Wishlist buttons
         document.querySelectorAll(".wishlist-icon").forEach((btn) => {
             btn.addEventListener("click", (e) => {
@@ -560,18 +668,42 @@ class SearchUIManager {
 
         // View details buttons
         document.querySelectorAll(".view-details").forEach((btn) => {
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
                 const vehicleId = btn.dataset.vehicleId;
-                window.location.href = `vehicle-details.html?id=${vehicleId}`;
+                openVehicleDetails(vehicleId);
             });
         });
 
         // Book now buttons
         document.querySelectorAll(".book-vehicle").forEach((btn) => {
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
                 const vehicleId = btn.dataset.vehicleId;
                 // Navigate to booking page with vehicle pre-selected
                 window.location.href = `booking.html?vehicle=${vehicleId}`;
+            });
+        });
+
+        // Whole card click and keyboard support
+        document.querySelectorAll(".vehicle-result-card[data-vehicle-id]").forEach((card) => {
+            card.addEventListener("click", (e) => {
+                if (e.target.closest(".wishlist-icon, .view-details, .book-vehicle")) {
+                    return;
+                }
+
+                openVehicleDetails(card.dataset.vehicleId);
+            });
+
+            card.addEventListener("keydown", (e) => {
+                if (e.target.closest(".wishlist-icon, .view-details, .book-vehicle")) {
+                    return;
+                }
+
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openVehicleDetails(card.dataset.vehicleId);
+                }
             });
         });
     }

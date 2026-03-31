@@ -20,7 +20,7 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `database/migrations/001_user_profiles.sql` - SQL migration for persistent user profile data
 - `database/migrations/002_user_profiles_avatar.sql` - SQL migration to add profile image support (`avatar_url`)
 - `database/migrations/003_profile_images_storage.sql` - SQL migration for Supabase Storage bucket and RLS policies for profile images
-- `database/migrations/004_vehicle_catalog.sql` - SQL migration for vehicle catalog tables, admin policies, and vehicle image storage
+- `database/migrations/004_vehicle_catalog_and_images.sql` - SQL migration for vehicle catalog tables, image table, and vehicle image storage policies
 
 ## Run
 
@@ -51,9 +51,11 @@ Run this SQL in Supabase SQL Editor:
 1. `database/migrations/001_user_profiles.sql`
 2. `database/migrations/002_user_profiles_avatar.sql`
 3. `database/migrations/003_profile_images_storage.sql`
-4. `database/migrations/004_vehicle_catalog.sql`
+4. `database/migrations/004_vehicle_catalog_and_images.sql`
 
-This creates `public.user_profiles` with RLS policies and configures `storage.profile-images` bucket policies so authenticated users can upload/update only their own avatar path.
+This creates `public.user_profiles`, `public.vehicles`, and `public.vehicle_images`, plus storage policies for both `profile-images` and `vehicle-images` buckets.
+
+For compatibility with the current frontend admin runtime, migration `004_vehicle_catalog_and_images.sql` uses permissive public write policies for vehicle catalog objects. Tighten these policies before production.
 
 `004_vehicle_catalog.sql` additionally creates:
 
