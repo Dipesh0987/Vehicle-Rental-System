@@ -570,6 +570,7 @@
     var couponInput = document.getElementById("bookingCouponCode");
     var applyBtn = document.getElementById("bookingApplyCoupon");
     var couponStatus = document.getElementById("bookingCouponStatus");
+    var proceedBtn = document.getElementById("bookingProceedBtn");
 
     var dailyRateEl = document.getElementById("bookingDailyRate");
     var baseEl = document.getElementById("bookingBaseAmount");
@@ -587,6 +588,19 @@
       SAVE10: { type: "percent", value: 0.10, label: "10% off applied" },
       WEEKEND50: { type: "flat", value: 50, label: "$50 off applied" }
     };
+
+    function addDaysToIsoDate(isoDate, days) {
+      var parsed = new Date(String(isoDate || "") + "T00:00:00");
+      if (Number.isNaN(parsed.getTime())) {
+        return "";
+      }
+
+      parsed.setDate(parsed.getDate() + Math.max(0, Number(days || 0)));
+      var yyyy = parsed.getFullYear();
+      var mm = String(parsed.getMonth() + 1).padStart(2, "0");
+      var dd = String(parsed.getDate()).padStart(2, "0");
+      return yyyy + "-" + mm + "-" + dd;
+    }
 
     function getDurationDays() {
       var value = Number(durationInput && durationInput.value ? durationInput.value : "1");
@@ -696,6 +710,35 @@
     }
     if (applyBtn) {
       applyBtn.addEventListener("click", applyCoupon);
+    }
+
+    if (proceedBtn) {
+      proceedBtn.addEventListener("click", function () {
+        var startDate = pickupDate ? String(pickupDate.value || "") : "";
+        var durationDays = getDurationDays();
+        if (!startDate) {
+          if (couponStatus) {
+            couponStatus.textContent = "Choose a pick-up date before checkout.";
+          }
+          return;
+        }
+
+        var endDate = addDaysToIsoDate(startDate, Math.max(0, durationDays - 1));
+        var target = new URL("booking.html", window.location.href);
+        target.searchParams.set("vehicle", String(vehicle.id || ""));
+        target.searchParams.set("start", startDate);
+        if (endDate) {
+          target.searchParams.set("end", endDate);
+        }
+        if (pickupTime && pickupTime.value) {
+          target.searchParams.set("pickupTime", String(pickupTime.value));
+        }
+        if (state.couponCode) {
+          target.searchParams.set("coupon", state.couponCode);
+        }
+
+        window.location.href = target.toString();
+      });
     }
 
     compute();
