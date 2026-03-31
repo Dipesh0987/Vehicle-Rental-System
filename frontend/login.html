@@ -83,7 +83,7 @@
     class="min-h-screen overflow-hidden bg-paper font-poppins text-ink"
     style="background: radial-gradient(circle at 88% 8%, rgba(19, 87, 81, 0.34), transparent 42%), radial-gradient(circle at 10% 88%, rgba(229, 140, 78, 0.24), transparent 36%), linear-gradient(148deg, #f8faf8 0%, #eef3ef 50%, #e7edeb 100%);"
   >
-    <main class="relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8">
+    <main id="loginMain" class="relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8 transition duration-200">
       <div class="pointer-events-none absolute right-[-100px] top-[-95px] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle_at_32%_28%,rgba(229,140,78,0.78),rgba(229,140,78,0.12))] opacity-75 blur-[12px] animate-drift" aria-hidden="true"></div>
       <div class="pointer-events-none absolute bottom-[-95px] left-[-85px] h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(44,118,110,0.62),rgba(44,118,110,0.16))] opacity-75 blur-[12px] [animation-delay:600ms] animate-drift" aria-hidden="true"></div>
       <div class="pointer-events-none absolute right-[-36px] top-[-55px] h-[210px] w-[210px] rounded-full bg-[rgba(44,118,110,0.14)] blur-[5px]" aria-hidden="true"></div>
@@ -197,30 +197,9 @@
               <input id="rememberMe" type="checkbox" class="h-4 w-4 rounded border border-[#9ab0ac] text-panel focus:ring-panel/30" checked />
               Remember me
             </label>
-            <button id="forgotPassword" class="font-semibold text-panel hover:underline" type="button" aria-expanded="false" aria-controls="forgotPanel">
+            <button id="forgotPassword" class="font-semibold text-panel hover:underline" type="button" aria-expanded="false" aria-controls="forgotAssistModal" aria-haspopup="dialog">
               Forgot password?
             </button>
-          </div>
-
-          <div id="forgotPanel" class="mt-[-0.25rem] max-h-0 -translate-y-2 overflow-hidden rounded-xl border border-[rgba(44,118,110,0.25)] bg-[rgba(228,240,236,0.65)] p-3 text-[13px] opacity-0 pointer-events-none transition-all duration-300 ease-out" aria-hidden="true">
-            <p class="text-[#234043]">Enter your email and we will send a reset link.</p>
-            <div class="mt-3 flex flex-col gap-2 sm:flex-row">
-              <input
-                id="resetEmail"
-                type="email"
-                autocomplete="email"
-                class="w-full rounded-lg border border-[rgba(23,57,60,0.16)] bg-white px-3 py-2 text-[13px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.12)]"
-                placeholder="you@example.com"
-              />
-              <div class="flex gap-2">
-                <button id="sendResetLink" type="button" class="rounded-lg bg-panel px-3 py-2 font-semibold text-white">
-                  Send Link
-                </button>
-                <button id="cancelReset" type="button" class="rounded-lg border border-[#c8d3cf] px-3 py-2 font-semibold text-[#2a4446]">
-                  Cancel
-                </button>
-              </div>
-            </div>
           </div>
 
               <button
@@ -247,6 +226,61 @@
         </div>
       </section>
     </main>
+
+    <div
+      id="forgotAssistModal"
+      class="fixed inset-0 z-[300] hidden items-center justify-center bg-[rgba(5,18,20,0.68)] px-4 py-6 opacity-0 pointer-events-none backdrop-blur-[10px] transition-opacity duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="forgotAssistTitle"
+    >
+      <div
+        id="forgotAssistCard"
+        class="relative w-full max-w-[520px] overflow-hidden rounded-[24px] border border-[rgba(16,46,49,0.2)] bg-white p-6 shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200 ease-out translate-y-3 scale-[0.985] sm:p-7"
+      >
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-[4px] bg-[linear-gradient(90deg,#2c766e,#e58c4e)]"></div>
+        <button
+          id="forgotAssistClose"
+          type="button"
+          aria-label="Close forgot password help"
+          class="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(23,57,60,0.2)] bg-white text-[#244649] transition hover:scale-105 hover:bg-[#f2f7f5]"
+        >
+          <span class="text-lg leading-none">&times;</span>
+        </button>
+
+        <div class="inline-flex items-center gap-2 rounded-full border border-[rgba(44,118,110,0.2)] bg-[rgba(44,118,110,0.08)] px-3 py-1">
+          <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-panel text-[11px] font-bold text-white">!</span>
+          <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2f6862]">Password Assistance</span>
+        </div>
+
+        <h2 id="forgotAssistTitle" class="mt-3 text-[26px] font-bold leading-tight text-[#0f3438] sm:text-[30px]">
+          Password Reset Needs Verification
+        </h2>
+        <p class="mt-3 text-[15px] leading-relaxed text-[#2a4c50] sm:text-[16px]">
+          For your security, password recovery is handled manually. An admin will contact you and complete verification before account access is restored.
+        </p>
+
+        <div class="mt-5 rounded-2xl border border-[rgba(23,57,60,0.14)] bg-[#f8fbfa] p-4">
+          <p class="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#1f5551]">Verification Types</p>
+          <ul class="mt-3 space-y-2 text-[15px] text-[#1f3f42]">
+            <li class="flex items-start gap-2"><span class="mt-[3px] text-[#2c766e]">&#10003;</span><span>Registered email ownership confirmation</span></li>
+            <li class="flex items-start gap-2"><span class="mt-[3px] text-[#2c766e]">&#10003;</span><span>Mobile or identity validation by support team</span></li>
+            <li class="flex items-start gap-2"><span class="mt-[3px] text-[#2c766e]">&#10003;</span><span>Recent booking and account activity cross-check</span></li>
+          </ul>
+        </div>
+
+        <div class="mt-6">
+          <button
+            id="forgotAssistPrimary"
+            type="button"
+            class="w-full rounded-full bg-panel px-8 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105"
+          >
+            OK, I Understand
+          </button>
+        </div>
+      </div>
+    </div>
 
     <script src="assets/js/supabase.config.local.js"></script>
     <script src="assets/js/supabase.config.js"></script>

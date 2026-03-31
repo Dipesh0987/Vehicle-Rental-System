@@ -4,9 +4,9 @@ This project is connected to Supabase and is prepared for incremental schema rol
 
 ## Current Goal
 
-- Connection setup only
-- No physical tables created yet
-- Design-first planning for consistent future migrations
+- Incremental schema rollout with Supabase SQL migrations
+- Profile and vehicle catalog tables now implemented
+- Continue design-first planning for future booking/payment migrations
 
 ## Proposed Domains
 

@@ -33,19 +33,27 @@ const appState = {
   activeModule: 'overview',
   globalSearch: '',
   data: structuredClone(dashboardData),
+  catalogService: null,
 };
+
+let catalogUnsubscribe = null;
 
 bootstrap();
 
-function bootstrap() {
+async function bootstrap() {
   const root = document.getElementById('adminApp');
   if (!root) return;
 
   root.innerHTML = renderShell();
+  appState.catalogService = window.VehicleCatalogService || null;
+
+  await hydrateVehiclesFromCatalog({ silent: true });
+
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
   setActiveNav(appState.activeModule);
+  setupCatalogSync();
 }
 
 function renderActiveModule() {
@@ -59,6 +67,13 @@ function renderActiveModule() {
       data: appState.data,
       query: appState.globalSearch,
       notify: pushToast,
+      catalogService: appState.catalogService,
+      reloadVehiclesData: async () => {
+        await hydrateVehiclesFromCatalog({ silent: true });
+        if (appState.activeModule === 'vehicles' || appState.activeModule === 'overview') {
+          renderActiveModule();
+        }
+      },
     });
 
     if (typeof section === 'string') {
@@ -94,6 +109,119 @@ function handleQuickAction(id) {
 function handleGlobalSearch(query) {
   appState.globalSearch = query;
   renderActiveModule();
+}
+
+async function hydrateVehiclesFromCatalog({ silent = false } = {}) {
+  if (!appState.catalogService || typeof appState.catalogService.listVehicles !== 'function') {
+    return;
+  }
+
+  try {
+    const catalogRows = await appState.catalogService.listVehicles({ includeInactive: true });
+    const normalizedRows = Array.isArray(catalogRows)
+      ? catalogRows.map(mapCatalogVehicleToAdminRow)
+      : [];
+
+    appState.data.vehicles = normalizedRows;
+    appState.data.metrics.totalVehicles = normalizedRows.length;
+
+    if (!silent) {
+      pushToast('Vehicle catalog synced from database', 'success');
+    }
+  } catch (error) {
+    console.warn('Failed to sync vehicles from catalog service:', error);
+    if (!silent) {
+      pushToast('Unable to sync vehicle catalog from database', 'warn');
+    }
+  }
+}
+
+function setupCatalogSync() {
+  if (!appState.catalogService || typeof appState.catalogService.subscribeToVehicleCatalogChanges !== 'function') {
+    return;
+  }
+
+  if (catalogUnsubscribe) {
+    catalogUnsubscribe();
+  }
+
+  catalogUnsubscribe = appState.catalogService.subscribeToVehicleCatalogChanges(async () => {
+    await hydrateVehiclesFromCatalog({ silent: true });
+    if (appState.activeModule === 'vehicles' || appState.activeModule === 'overview') {
+      renderActiveModule();
+    }
+  });
+}
+
+function mapCatalogVehicleToAdminRow(vehicle) {
+  const dailyRate = extractDailyRate(vehicle);
+  const imageUrls = Array.isArray(vehicle && vehicle.imageUrls) ? vehicle.imageUrls : [];
+  const fallbackImage =
+    'https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=640&q=80';
+
+  return {
+    id: String(vehicle && vehicle.id ? vehicle.id : ''),
+    addedAt: String(vehicle && vehicle.addedDate ? vehicle.addedDate : ''),
+    name: formatLabel(vehicle && vehicle.name ? vehicle.name : 'Vehicle'),
+    brand: formatLabel(vehicle && vehicle.brand ? vehicle.brand : ''),
+    category: formatLabel(vehicle && (vehicle.category || vehicle.type) ? (vehicle.category || vehicle.type) : 'Vehicle'),
+    status: normalizeStatus(vehicle),
+    daily: dailyRate,
+    weekly: Math.max(0, Math.round(dailyRate * 6.2)),
+    seasonal: Math.max(0, Math.round(dailyRate * 24)),
+    image:
+      (vehicle && vehicle.primaryImageUrl) ||
+      (imageUrls.length ? imageUrls[0] : '') ||
+      fallbackImage,
+    transmission: formatLabel(vehicle && vehicle.transmission ? vehicle.transmission : 'Automatic'),
+    fuelType: formatLabel(vehicle && vehicle.fuelType ? vehicle.fuelType : 'Petrol'),
+    seats: Number.isFinite(Number(vehicle && vehicle.seats)) ? Number(vehicle.seats) : 5,
+    features: Array.isArray(vehicle && vehicle.features) ? vehicle.features.slice() : [],
+    location: formatLabel(vehicle && vehicle.location ? vehicle.location : ''),
+    rating: Number.isFinite(Number(vehicle && vehicle.rating)) ? Number(vehicle.rating) : 4.6,
+  };
+}
+
+function extractDailyRate(vehicle) {
+  if (Number.isFinite(Number(vehicle && vehicle.pricePerDay))) {
+    return Math.max(0, Math.round(Number(vehicle.pricePerDay)));
+  }
+
+  const dailyRateText = String(
+    vehicle && vehicle.pricing && vehicle.pricing.dailyRate
+      ? vehicle.pricing.dailyRate
+      : vehicle && vehicle.daily
+      ? vehicle.daily
+      : '0'
+  );
+
+  const parsed = Number(dailyRateText.replace(/[^\d.-]/g, ''));
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(parsed));
+}
+
+function normalizeStatus(vehicle) {
+  const explicit = String(vehicle && vehicle.status ? vehicle.status : '').trim();
+  if (explicit) {
+    return formatLabel(explicit);
+  }
+
+  if (vehicle && vehicle.available === false) {
+    return 'Unavailable';
+  }
+
+  return 'Available';
+}
+
+function formatLabel(value) {
+  return String(value || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function initTheme() {
