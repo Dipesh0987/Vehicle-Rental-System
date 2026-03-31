@@ -751,6 +751,31 @@
     });
   }
 
+  function applyQueryPrefill() {
+    var start = getQueryParam("start");
+    var end = getQueryParam("end");
+    var pickup = getQueryParam("pickupTime");
+    var coupon = getQueryParam("coupon");
+
+    var startInput = byId("bookingStartDate");
+    var endInput = byId("bookingEndDate");
+    var pickupInput = byId("bookingPickupTime");
+    var couponInput = byId("bookingCouponCode");
+
+    if (startInput && /^\d{4}-\d{2}-\d{2}$/.test(start)) {
+      startInput.value = start;
+    }
+    if (endInput && /^\d{4}-\d{2}-\d{2}$/.test(end)) {
+      endInput.value = end;
+    }
+    if (pickupInput && /^\d{2}:\d{2}$/.test(pickup)) {
+      pickupInput.value = pickup;
+    }
+    if (couponInput && coupon) {
+      couponInput.value = coupon;
+    }
+  }
+
   async function init() {
     var state = {
       vehicles: [],
@@ -770,6 +795,7 @@
     };
 
     setDefaultDateInputs();
+    applyQueryPrefill();
 
     state.vehicles = await loadVehicles();
 
