@@ -159,8 +159,14 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
 function detectConflicts(rows) {
   const grouped = new Map();
   const conflicts = [];
+  const conflictEligible = new Set(['confirmed', 'pending']);
 
   rows.forEach((row) => {
+    const status = String(row && row.status ? row.status : '').trim().toLowerCase();
+    if (!conflictEligible.has(status)) {
+      return;
+    }
+
     const vehicleKey = String(row && row.vehicleId ? row.vehicleId : row && row.vehicle ? row.vehicle : '').trim();
     if (!vehicleKey) {
       return;
@@ -306,5 +312,6 @@ function statusClass(status) {
   if (status === 'Confirmed') return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
   if (status === 'Ongoing') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
   if (status === 'Pending') return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
+  if (status === 'Completed') return `${base} bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200`;
   return `${base} bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300`;
 }
