@@ -1,8 +1,98 @@
 (function () {
   "use strict";
 
+  var DEFAULT_IMAGE = "assets/images/car-transparent.png";
+
   function byId(id) {
     return document.getElementById(id);
+  }
+
+  function normalizeString(value, fallback) {
+    if (value === null || value === undefined) {
+      return fallback || "";
+    }
+
+    var text = String(value).trim();
+    if (!text) {
+      return fallback || "";
+    }
+
+    return text;
+  }
+
+  function formatMoney(amount) {
+    var numeric = Number(amount || 0);
+    if (!Number.isFinite(numeric)) {
+      numeric = 0;
+    }
+
+    return "$" + numeric.toFixed(2);
+  }
+
+  function getQueryParam(key) {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      return normalizeString(params.get(key), "");
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function getVehicleDisplayName(vehicle) {
+    var brand = normalizeString(vehicle && vehicle.brand, "");
+    var name = normalizeString(vehicle && vehicle.name, "");
+    var brandLower = brand.toLowerCase();
+    var nameLower = name.toLowerCase();
+
+    if (name) {
+      if (!brand || brandLower === "general") {
+        return name;
+      }
+
+      if (nameLower === brandLower || nameLower.indexOf(brandLower + " ") === 0) {
+        return name;
+      }
+    }
+
+    if (brand && name) {
+      return brand + " " + name;
+    }
+
+    return name || brand || "Vehicle";
+  }
+
+  function parseDailyRate(vehicle) {
+    if (Number.isFinite(Number(vehicle && vehicle.pricePerDay))) {
+      return Math.max(0, Number(vehicle.pricePerDay));
+    }
+
+    var pricingText = normalizeString(
+      vehicle && vehicle.pricing && vehicle.pricing.dailyRate ? vehicle.pricing.dailyRate : "0",
+      "0"
+    );
+
+    var parsed = Number(pricingText.replace(/[^\d.-]/g, ""));
+    if (!Number.isFinite(parsed)) {
+      return 0;
+    }
+
+    return Math.max(0, parsed);
+  }
+
+  function resolveImage(vehicle) {
+    var primary = normalizeString(vehicle && vehicle.primaryImageUrl, "");
+    if (primary) {
+      return primary;
+    }
+
+    if (Array.isArray(vehicle && vehicle.imageUrls) && vehicle.imageUrls.length) {
+      var first = normalizeString(vehicle.imageUrls[0], "");
+      if (first) {
+        return first;
+      }
+    }
+
+    return DEFAULT_IMAGE;
   }
 
   function setDefaultDateInputs() {
@@ -10,6 +100,10 @@
     var endInput = byId("bookingEndDate");
 
     if (!startInput || !endInput) {
+      return;
+    }
+
+    if (startInput.value && endInput.value) {
       return;
     }
 
@@ -24,12 +118,314 @@
       return yyyy + "-" + mm + "-" + dd;
     }
 
-    startInput.value = toIsoDate(start);
-    endInput.value = toIsoDate(end);
+    if (!startInput.value) {
+      startInput.value = toIsoDate(start);
+    }
+    if (!endInput.value) {
+      endInput.value = toIsoDate(end);
+    }
   }
 
-  function init() {
+  function setBannerMessage(targetId, text, mode) {
+    var element = byId(targetId);
+    if (!element) {
+      return;
+    }
+
+    if (!text) {
+      element.textContent = "";
+      element.classList.add("hidden");
+      return;
+    }
+
+    element.classList.remove("hidden");
+    element.textContent = text;
+    element.classList.remove("border-rose-200", "bg-rose-50", "text-rose-700", "border-emerald-200", "bg-emerald-50", "text-emerald-700");
+
+    if (mode === "success") {
+      element.classList.add("border-emerald-200", "bg-emerald-50", "text-emerald-700");
+      return;
+    }
+
+    element.classList.add("border-rose-200", "bg-rose-50", "text-rose-700");
+  }
+
+  function renderVehicleSummary(vehicle) {
+    var title = byId("bookingVehicleTitle");
+    var meta = byId("bookingVehicleMeta");
+    var price = byId("bookingVehiclePrice");
+    var image = byId("bookingVehicleImage");
+
+    if (!vehicle) {
+      if (title) {
+        title.textContent = "Vehicle";
+      }
+      if (meta) {
+        meta.textContent = "Select a vehicle to continue";
+      }
+      if (price) {
+        price.textContent = "$0 / day";
+      }
+      if (image) {
+        image.src = DEFAULT_IMAGE;
+      }
+      return;
+    }
+
+    var displayName = getVehicleDisplayName(vehicle);
+    var dailyRate = parseDailyRate(vehicle);
+    var type = normalizeString(vehicle.category || vehicle.type, "Vehicle");
+    var transmission = normalizeString(vehicle.transmission, "Automatic");
+    var fuel = normalizeString(vehicle.fuelType, "Petrol");
+
+    if (title) {
+      title.textContent = displayName;
+    }
+    if (meta) {
+      meta.textContent = type + " | " + transmission + " | " + fuel;
+    }
+    if (price) {
+      price.textContent = "$" + Math.round(dailyRate) + " / day";
+    }
+    if (image) {
+      image.src = resolveImage(vehicle);
+      image.alt = displayName;
+      image.onerror = function () {
+        image.src = DEFAULT_IMAGE;
+      };
+    }
+  }
+
+  function renderQuote(quote) {
+    var duration = byId("bookingDurationText");
+    var base = byId("bookingBaseAmount");
+    var service = byId("bookingServiceFee");
+    var tax = byId("bookingTaxAmount");
+    var discount = byId("bookingDiscountAmount");
+    var total = byId("bookingTotalAmount");
+
+    if (duration) {
+      duration.textContent = String(quote.bookingDays || 0) + " day" + ((quote.bookingDays || 0) === 1 ? "" : "s");
+    }
+    if (base) {
+      base.textContent = formatMoney(quote.baseAmount);
+    }
+    if (service) {
+      service.textContent = formatMoney(quote.serviceFee);
+    }
+    if (tax) {
+      tax.textContent = formatMoney(quote.taxAmount);
+    }
+    if (discount) {
+      discount.textContent = "-" + formatMoney(quote.discountAmount);
+    }
+    if (total) {
+      total.textContent = formatMoney(quote.totalAmount);
+    }
+  }
+
+  function readFormValues() {
+    return {
+      vehicleId: normalizeString(byId("bookingVehicleSelect") && byId("bookingVehicleSelect").value, ""),
+      startDate: normalizeString(byId("bookingStartDate") && byId("bookingStartDate").value, ""),
+      endDate: normalizeString(byId("bookingEndDate") && byId("bookingEndDate").value, ""),
+      pickupTime: normalizeString(byId("bookingPickupTime") && byId("bookingPickupTime").value, "10:00"),
+      customerName: normalizeString(byId("bookingCustomerName") && byId("bookingCustomerName").value, ""),
+      customerEmail: normalizeString(byId("bookingCustomerEmail") && byId("bookingCustomerEmail").value, ""),
+      customerPhone: normalizeString(byId("bookingCustomerPhone") && byId("bookingCustomerPhone").value, ""),
+      couponCode: normalizeString(byId("bookingCouponCode") && byId("bookingCouponCode").value, ""),
+      notes: normalizeString(byId("bookingNotes") && byId("bookingNotes").value, ""),
+    };
+  }
+
+  async function loadVehicles() {
+    if (!window.VehicleCatalogService || typeof window.VehicleCatalogService.listVehicles !== "function") {
+      return [];
+    }
+
+    try {
+      var rows = await window.VehicleCatalogService.listVehicles({ includeInactive: false });
+      if (!Array.isArray(rows)) {
+        return [];
+      }
+
+      return rows.filter(function (vehicle) {
+        return vehicle && vehicle.id;
+      });
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  function fillVehicleSelect(vehicles, selectedId) {
+    var select = byId("bookingVehicleSelect");
+    if (!select) {
+      return;
+    }
+
+    if (!vehicles.length) {
+      select.innerHTML = '<option value="">No active vehicles</option>';
+      select.disabled = true;
+      return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = vehicles
+      .map(function (vehicle) {
+        var id = normalizeString(vehicle.id, "");
+        var name = getVehicleDisplayName(vehicle);
+        var dailyRate = Math.round(parseDailyRate(vehicle));
+        var selected = id === selectedId ? " selected" : "";
+        return '<option value="' + id + '"' + selected + '>' + name + ' - $' + dailyRate + '/day</option>';
+      })
+      .join("");
+  }
+
+  function updateAvailabilityPill(mode, text) {
+    var pill = byId("bookingAvailabilityStatus");
+    if (!pill) {
+      return;
+    }
+
+    pill.classList.remove("border-[#d5e2dc]", "bg-[#f6faf8]", "text-[#2e5e5a]", "border-rose-200", "bg-rose-50", "text-rose-700", "border-emerald-200", "bg-emerald-50", "text-emerald-700");
+    if (mode === "error") {
+      pill.classList.add("border-rose-200", "bg-rose-50", "text-rose-700");
+    } else if (mode === "ok") {
+      pill.classList.add("border-emerald-200", "bg-emerald-50", "text-emerald-700");
+    } else {
+      pill.classList.add("border-[#d5e2dc]", "bg-[#f6faf8]", "text-[#2e5e5a]");
+    }
+
+    pill.innerHTML = '<span class="inline-flex h-2.5 w-2.5 rounded-full bg-current"></span><span>' + text + '</span>';
+  }
+
+  function applyCouponStatus(text) {
+    var label = byId("bookingCouponStatus");
+    if (!label) {
+      return;
+    }
+
+    label.textContent = text;
+  }
+
+  function syncQuoteFromState(state) {
+    var vehicle = state.selectedVehicle;
+    var values = readFormValues();
+
+    if (!vehicle || !window.VehicleBookingService || typeof window.VehicleBookingService.calculateBookingQuote !== "function") {
+      renderQuote({ bookingDays: 0, baseAmount: 0, serviceFee: 0, taxAmount: 0, discountAmount: 0, totalAmount: 0 });
+      return;
+    }
+
+    var quote = window.VehicleBookingService.calculateBookingQuote({
+      dailyRate: parseDailyRate(vehicle),
+      startDate: values.startDate,
+      endDate: values.endDate,
+      couponCode: values.couponCode,
+    });
+
+    state.latestQuote = quote;
+    renderQuote(quote);
+
+    if (values.couponCode) {
+      if (quote.couponCode) {
+        applyCouponStatus(quote.couponMessage);
+      } else {
+        applyCouponStatus("Coupon not recognized");
+      }
+    } else {
+      applyCouponStatus("Try SAVE10 or WEEKEND50");
+    }
+  }
+
+  function selectVehicleById(state, vehicleId) {
+    var nextVehicle = null;
+    for (var i = 0; i < state.vehicles.length; i += 1) {
+      if (String(state.vehicles[i].id) === String(vehicleId)) {
+        nextVehicle = state.vehicles[i];
+        break;
+      }
+    }
+
+    state.selectedVehicle = nextVehicle;
+    renderVehicleSummary(nextVehicle);
+    syncQuoteFromState(state);
+  }
+
+  function wireBaseInteractions(state) {
+    var vehicleSelect = byId("bookingVehicleSelect");
+    var startDate = byId("bookingStartDate");
+    var endDate = byId("bookingEndDate");
+    var couponCode = byId("bookingCouponCode");
+    var applyCoupon = byId("bookingApplyCoupon");
+
+    if (vehicleSelect) {
+      vehicleSelect.addEventListener("change", function () {
+        setBannerMessage("bookingFormError", "", "error");
+        updateAvailabilityPill("default", "Choose dates to check availability");
+        selectVehicleById(state, vehicleSelect.value);
+      });
+    }
+
+    [startDate, endDate].forEach(function (input) {
+      if (!input) {
+        return;
+      }
+
+      input.addEventListener("input", function () {
+        setBannerMessage("bookingFormError", "", "error");
+        updateAvailabilityPill("default", "Choose dates to check availability");
+        syncQuoteFromState(state);
+      });
+    });
+
+    if (couponCode) {
+      couponCode.addEventListener("keydown", function (event) {
+        if (event.key !== "Enter") {
+          return;
+        }
+
+        event.preventDefault();
+        syncQuoteFromState(state);
+      });
+    }
+
+    if (applyCoupon) {
+      applyCoupon.addEventListener("click", function () {
+        syncQuoteFromState(state);
+      });
+    }
+  }
+
+  async function init() {
+    var state = {
+      vehicles: [],
+      selectedVehicle: null,
+      latestQuote: {
+        bookingDays: 0,
+        baseAmount: 0,
+        serviceFee: 0,
+        taxAmount: 0,
+        discountAmount: 0,
+        totalAmount: 0,
+      },
+    };
+
     setDefaultDateInputs();
+
+    state.vehicles = await loadVehicles();
+
+    var queryVehicle = getQueryParam("vehicle");
+    var preferredVehicleId = queryVehicle || (state.vehicles[0] && state.vehicles[0].id ? state.vehicles[0].id : "");
+
+    fillVehicleSelect(state.vehicles, preferredVehicleId);
+    selectVehicleById(state, preferredVehicleId);
+    wireBaseInteractions(state);
+
+    if (!state.vehicles.length) {
+      setBannerMessage("bookingFormError", "No active vehicles are available for booking right now.", "error");
+      updateAvailabilityPill("error", "No vehicles available");
+    }
 
     var status = byId("bookingLiveStatus");
     if (status && (!window.VehicleCatalogService || !window.VehicleBookingService)) {
