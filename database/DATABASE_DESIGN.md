@@ -4,9 +4,9 @@ This project is connected to Supabase with incremental schema rollout via versio
 
 ## Current Status
 
-- User profile domain is live (`001`, `002`, `003` migrations)
-- Vehicle catalog domain is live (`004_vehicle_catalog.sql`)
-- Supabase Storage buckets are configured for profile and vehicle images
+- Incremental schema rollout with Supabase SQL migrations
+- Profile and vehicle catalog tables now implemented
+- Continue design-first planning for future booking/payment migrations
 
 ## Proposed Domains
 
