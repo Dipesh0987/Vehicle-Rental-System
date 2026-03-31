@@ -776,6 +776,51 @@
     }
   }
 
+  async function prefillCustomerIdentity() {
+    var nameInput = byId('bookingCustomerName');
+    var emailInput = byId('bookingCustomerEmail');
+
+    if (!nameInput && !emailInput) {
+      return;
+    }
+
+    if (!window.SupabaseClient || typeof window.SupabaseClient.init !== 'function') {
+      return;
+    }
+
+    try {
+      var client = window.SupabaseRuntime && window.SupabaseRuntime.client
+        ? window.SupabaseRuntime.client
+        : await window.SupabaseClient.init();
+
+      if (!client || !client.auth || typeof client.auth.getSession !== 'function') {
+        return;
+      }
+
+      var sessionResult = await client.auth.getSession();
+      var user = sessionResult && sessionResult.data && sessionResult.data.session && sessionResult.data.session.user
+        ? sessionResult.data.session.user
+        : null;
+
+      if (!user) {
+        return;
+      }
+
+      if (emailInput && !String(emailInput.value || '').trim()) {
+        emailInput.value = String(user.email || '').trim();
+      }
+
+      if (nameInput && !String(nameInput.value || '').trim()) {
+        var metadataName = normalizeString(user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name), '');
+        if (metadataName) {
+          nameInput.value = metadataName;
+        }
+      }
+    } catch (_error) {
+      // Keep form editable even if session prefill fails.
+    }
+  }
+
   async function init() {
     var state = {
       vehicles: [],
@@ -796,6 +841,7 @@
 
     setDefaultDateInputs();
     applyQueryPrefill();
+    await prefillCustomerIdentity();
 
     state.vehicles = await loadVehicles();
 
