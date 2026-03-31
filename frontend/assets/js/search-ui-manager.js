@@ -515,7 +515,7 @@ class SearchUIManager {
                         <button class="view-details flex-1 rounded-lg bg-accent py-2 font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105" data-vehicle-id="${vehicle.id}">
                             View Details
                         </button>
-                        <button class="book-vehicle flex-1 rounded-lg border border-[#1f7668] bg-white py-2 font-semibold text-[#1f7668] transition duration-200 hover:-translate-y-0.5 hover:border-[#16584d] hover:bg-[#1f7668] hover:text-white hover:shadow-[0_10px_22px_rgba(31,118,104,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(44,118,110,0.38)]" data-vehicle-id="${vehicle.id}">
+                        <button class="book-vehicle book-now-btn flex-1 rounded-lg border border-[#1f7668] bg-white py-2 font-semibold text-[#1f7668] transition duration-200 hover:-translate-y-0.5 hover:border-[#16584d] hover:bg-[#1f7668] hover:text-white hover:shadow-[0_10px_22px_rgba(31,118,104,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(44,118,110,0.38)]" data-vehicle-id="${vehicle.id}">
                             Book Now
                         </button>
                     </div>
