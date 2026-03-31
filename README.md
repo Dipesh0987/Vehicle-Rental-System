@@ -9,11 +9,15 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `frontend/registration.html` - Registration page aligned to the same premium theme
 - `frontend/vehicles.html` - Professional dummy fleet listing page with multiple brands
 - `frontend/vehicle-details.html` - Individual vehicle profile view (query-based static details)
+- `frontend/booking.html` - Customer booking flow with availability check, confirmation modal, and success feedback
 - `frontend/assets/images/car.jpg` - Vehicle image asset
 - `frontend/assets/images/car-transparent.png` - Transparent vehicle hero asset
 - `frontend/assets/js/supabase.config.js` - Supabase connection config
 - `frontend/assets/js/supabase.client.js` - Supabase JS client runtime loader
 - `frontend/assets/js/auth.supabase.js` - Shared Supabase auth service (sign-up/sign-in/reset/logout)
+- `frontend/assets/js/vehicle-catalog.service.js` - Shared vehicle catalog data service used by public/admin pages
+- `frontend/assets/js/booking.service.js` - Shared booking data service (quote, validation, availability, persistence)
+- `frontend/assets/js/booking-page.js` - Booking page controller with confirmation and success flows
 - `frontend/assets/js/register.js` - Registration form logic with real Supabase sign-up
 - `backend/js/auth.js` - Shared client-side auth/profile UI logic used by frontend pages
 - `frontend/assets/js/vehicle-details.js` - Static vehicle data and UI rendering logic for detail page
@@ -21,6 +25,8 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `database/migrations/002_user_profiles_avatar.sql` - SQL migration to add profile image support (`avatar_url`)
 - `database/migrations/003_profile_images_storage.sql` - SQL migration for Supabase Storage bucket and RLS policies for profile images
 - `database/migrations/004_vehicle_catalog_and_images.sql` - SQL migration for vehicle catalog tables, image table, and vehicle image storage policies
+- `database/migrations/005_vehicle_catalog_schema_hotfix.sql` - SQL migration to backfill required vehicle columns/defaults for legacy projects
+- `database/migrations/006_vehicle_bookings_system.sql` - SQL migration for secure booking persistence and overlap prevention
 
 ## Run
 
@@ -52,29 +58,14 @@ Run this SQL in Supabase SQL Editor:
 2. `database/migrations/002_user_profiles_avatar.sql`
 3. `database/migrations/003_profile_images_storage.sql`
 4. `database/migrations/004_vehicle_catalog_and_images.sql`
+5. `database/migrations/005_vehicle_catalog_schema_hotfix.sql`
+6. `database/migrations/006_vehicle_bookings_system.sql`
 
-This creates `public.user_profiles`, `public.vehicles`, and `public.vehicle_images`, plus storage policies for both `profile-images` and `vehicle-images` buckets.
+This creates `public.user_profiles`, `public.vehicles`, `public.vehicle_images`, and `public.vehicle_bookings`, plus storage policies for both `profile-images` and `vehicle-images` buckets.
 
 For compatibility with the current frontend admin runtime, migration `004_vehicle_catalog_and_images.sql` uses permissive public write policies for vehicle catalog objects. Tighten these policies before production.
 
-`004_vehicle_catalog.sql` additionally creates:
-
-- `public.admin_users` (admin authorization source)
-- `public.vehicles` (vehicle inventory with strict validation constraints)
-- `public.vehicle_images` (up to 5 ordered images per vehicle)
-- `storage.vehicle-images` bucket with RLS policies for admin uploads
-
-## Admin Vehicle Creation Setup
-
-After running migration `004_vehicle_catalog.sql`, seed at least one admin user:
-
-```sql
-insert into public.admin_users (user_id, role)
-values ('YOUR_AUTH_USER_UUID', 'super_admin')
-on conflict (user_id) do nothing;
-```
-
-You can get `user_id` from Supabase Auth -> Users.
+Migration `006_vehicle_bookings_system.sql` adds database-level overlap protection through an exclusion constraint so double-booking is blocked even under concurrent requests.
 
 ## Profile Image Best Practice
 
