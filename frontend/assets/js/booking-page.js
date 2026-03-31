@@ -549,16 +549,143 @@
     ].join('');
   }
 
+  function setButtonLoading(button, isLoading, loadingText, defaultText) {
+    if (!button) {
+      return;
+    }
+
+    button.disabled = Boolean(isLoading);
+    button.classList.toggle("opacity-70", Boolean(isLoading));
+    button.classList.toggle("cursor-not-allowed", Boolean(isLoading));
+    if (isLoading) {
+      button.textContent = normalizeString(loadingText, "Processing...");
+      return;
+    }
+
+    button.textContent = normalizeString(defaultText, "Submit Booking");
+  }
+
+  function showSuccessModal(payload) {
+    var message = byId("bookingSuccessMessage");
+    var detailsLink = byId("bookingSuccessDetailsLink");
+    var summary = payload || {};
+
+    if (message) {
+      message.textContent = "Reservation " + normalizeString(summary.bookingCode, "") + " is confirmed for " + formatDatePretty(summary.startDate) + " to " + formatDatePretty(summary.endDate) + ".";
+    }
+
+    if (detailsLink && summary.vehicleId) {
+      detailsLink.href = "vehicle-details.html?id=" + encodeURIComponent(summary.vehicleId);
+    }
+
+    setModalState("bookingSuccessModal", "bookingSuccessCard", true);
+  }
+
+  function hideSuccessModal() {
+    setModalState("bookingSuccessModal", "bookingSuccessCard", false);
+  }
+
+  function resetBookingFormForNext(state) {
+    var coupon = byId("bookingCouponCode");
+    var notes = byId("bookingNotes");
+    if (coupon) {
+      coupon.value = "";
+    }
+    if (notes) {
+      notes.value = "";
+    }
+
+    state.pendingBookingValues = null;
+    syncQuoteFromState(state);
+    scheduleAvailabilityCheck(state);
+  }
+
+  function wireSuccessModal() {
+    var successModal = byId("bookingSuccessModal");
+    if (!successModal) {
+      return;
+    }
+
+    successModal.addEventListener("click", function (event) {
+      if (event.target === successModal) {
+        hideSuccessModal();
+      }
+    });
+  }
+
   function wireReviewFlow(state) {
     var reviewBtn = byId("bookingReviewBtn");
     var confirmSummary = byId("bookingConfirmSummary");
     var confirmCancel = byId("bookingConfirmCancel");
     var confirmModal = byId("bookingConfirmModal");
+    var confirmSubmit = byId("bookingConfirmSubmit");
 
     if (confirmCancel) {
       confirmCancel.addEventListener("click", function () {
         setBannerMessage("bookingConfirmError", "", "error");
         setModalState("bookingConfirmModal", "bookingConfirmCard", false);
+      });
+    }
+
+    if (confirmSubmit) {
+      var submitDefaultLabel = normalizeString(confirmSubmit.textContent, "Submit Booking");
+      confirmSubmit.addEventListener("click", async function () {
+        setBannerMessage("bookingConfirmError", "", "error");
+
+        if (!state.pendingBookingValues || !state.selectedVehicle) {
+          setBannerMessage("bookingConfirmError", "Booking context is missing. Please review the form again.", "error");
+          return;
+        }
+
+        if (!window.VehicleBookingService || typeof window.VehicleBookingService.createBooking !== "function") {
+          setBannerMessage("bookingConfirmError", "Booking service is unavailable right now.", "error");
+          return;
+        }
+
+        var values = state.pendingBookingValues;
+        var payload = {
+          vehicleId: state.selectedVehicle.id,
+          customerName: values.customerName,
+          customerEmail: values.customerEmail,
+          customerPhone: values.customerPhone,
+          startDate: values.startDate,
+          endDate: values.endDate,
+          pickupTime: values.pickupTime,
+          couponCode: values.couponCode,
+          notes: values.notes,
+          dailyRate: parseDailyRate(state.selectedVehicle),
+          status: "confirmed",
+        };
+
+        setButtonLoading(confirmSubmit, true, "Saving Booking...", submitDefaultLabel);
+
+        try {
+          var savedBooking = await window.VehicleBookingService.createBooking(payload);
+          setModalState("bookingConfirmModal", "bookingConfirmCard", false);
+          showSuccessModal({
+            bookingCode: savedBooking && savedBooking.bookingCode,
+            startDate: savedBooking && savedBooking.startDate,
+            endDate: savedBooking && savedBooking.endDate,
+            vehicleId: savedBooking && savedBooking.vehicleId,
+          });
+          resetBookingFormForNext(state);
+          setBannerMessage("bookingFormError", "", "error");
+          updateAvailabilityPill("ok", "Booking saved successfully");
+        } catch (error) {
+          if (error && error.code === "VALIDATION_ERROR") {
+            setBannerMessage("bookingConfirmError", firstErrorMessage(error.fields), "error");
+          } else if (error && error.code === "BOOKING_CONFLICT") {
+            setBannerMessage("bookingConfirmError", "These dates became unavailable. Choose a different date range.", "error");
+            updateAvailabilityPill("error", "Date range is no longer available");
+          } else {
+            var message = window.VehicleBookingService && typeof window.VehicleBookingService.toPublicError === "function"
+              ? window.VehicleBookingService.toPublicError(error, "Unable to save booking right now.")
+              : "Unable to save booking right now.";
+            setBannerMessage("bookingConfirmError", message, "error");
+          }
+        } finally {
+          setButtonLoading(confirmSubmit, false, "Saving Booking...", submitDefaultLabel);
+        }
       });
     }
 
@@ -653,6 +780,7 @@
     selectVehicleById(state, preferredVehicleId);
     wireBaseInteractions(state);
     wireReviewFlow(state);
+    wireSuccessModal();
     scheduleAvailabilityCheck(state);
 
     if (!state.vehicles.length) {
