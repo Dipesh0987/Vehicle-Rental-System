@@ -20,6 +20,48 @@
     return text;
   }
 
+  function readStoredAuthSession() {
+    try {
+      var raw = sessionStorage.getItem("vrs_auth_session") || localStorage.getItem("vrs_auth_session");
+      return raw ? JSON.parse(raw) : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function hasRegisteredUserSession() {
+    var session = readStoredAuthSession();
+    return Boolean(
+      session &&
+      (
+        String(session.userId || "").trim() ||
+        String(session.email || "").trim()
+      )
+    );
+  }
+
+  function ensureRegisteredBookingAccess() {
+    var message = "Please register or sign in to continue with vehicle booking. Redirecting to registration...";
+
+    if (window.VehicleAuthUI && typeof window.VehicleAuthUI.requireBookingAccess === "function") {
+      return window.VehicleAuthUI.requireBookingAccess({
+        message: message,
+        autoRedirect: true,
+        delayMs: 700,
+      });
+    }
+
+    if (hasRegisteredUserSession()) {
+      return true;
+    }
+
+    setBannerMessage("bookingFormError", message, "error");
+    window.setTimeout(function () {
+      window.location.href = "registration.html";
+    }, 700);
+    return false;
+  }
+
   function formatMoney(amount) {
     var numeric = Number(amount || 0);
     if (!Number.isFinite(numeric)) {
@@ -814,6 +856,11 @@
       confirmSubmit.addEventListener("click", async function () {
         setBannerMessage("bookingConfirmError", "", "error");
 
+        if (!ensureRegisteredBookingAccess()) {
+          setBannerMessage("bookingConfirmError", "Please register or sign in before submitting a booking.", "error");
+          return;
+        }
+
         if (!state.pendingBookingValues || !state.selectedVehicle) {
           setBannerMessage("bookingConfirmError", "Booking context is missing. Please review the form again.", "error");
           return;
@@ -892,6 +939,11 @@
     reviewBtn.addEventListener("click", async function () {
       setBannerMessage("bookingFormError", "", "error");
       setBannerMessage("bookingConfirmError", "", "error");
+
+      if (!ensureRegisteredBookingAccess()) {
+        setBannerMessage("bookingFormError", "Please register or sign in before booking a vehicle.", "error");
+        return;
+      }
 
       if (!state.selectedVehicle) {
         setBannerMessage("bookingFormError", "Select a vehicle before continuing.", "error");
@@ -1004,6 +1056,11 @@
         emailInput.value = String(user.email || '').trim();
       }
 
+      if (emailInput && String(user.email || '').trim()) {
+        emailInput.readOnly = true;
+        emailInput.classList.add('bg-[#f3f8f6]', 'text-[#35595c]', 'cursor-not-allowed');
+      }
+
       if (nameInput && !String(nameInput.value || '').trim()) {
         var metadataName = normalizeString(user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name), '');
         if (metadataName) {
@@ -1049,6 +1106,11 @@
     wireReviewFlow(state);
     wireSuccessModal();
     scheduleAvailabilityCheck(state);
+
+    if (!hasRegisteredUserSession()) {
+      setBannerMessage("bookingFormError", "Please register or sign in to submit a booking.", "error");
+      updateAvailabilityPill("error", "Registration required to complete booking");
+    }
 
     if (!state.vehicles.length) {
       setBannerMessage("bookingFormError", "No active vehicles are available for booking right now.", "error");
