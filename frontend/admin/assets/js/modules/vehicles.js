@@ -44,6 +44,8 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
     Boolean(catalogService) &&
     typeof catalogService.deleteVehicle === 'function';
 
+  const canDeleteWithWrite = canDeleteCatalog && Boolean(canWriteCatalog);
+
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -110,8 +112,8 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
                       <div class="flex gap-2">
                         <button data-edit-id="${escapeHtml(vehicle.id)}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Edit</button>
                         <button data-delete-id="${escapeHtml(vehicle.id)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 ${
-                          canDeleteCatalog ? '' : 'opacity-60 cursor-not-allowed'
-                        }" ${canDeleteCatalog ? '' : 'disabled'}>Delete</button>
+                          canDeleteWithWrite ? '' : 'opacity-60 cursor-not-allowed'
+                        }" ${canDeleteWithWrite ? '' : 'disabled title="No write access"'}>Delete</button>
                       </div>
                     </td>
                   </tr>`
@@ -183,6 +185,47 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
         content: renderVehicleEditDrawer(selectedVehicle),
       });
 
+      const editForm = document.getElementById('editVehicleForm');
+      editForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        try {
+          if (!catalogService || (typeof catalogService.updateVehicle !== 'function' && typeof catalogService.saveVehicle !== 'function')) {
+            throw new Error('Catalog service is unavailable.');
+          }
+
+          const payload = {
+            name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
+            category: document.getElementById('editVehicleCategory')?.value || selectedVehicle.category,
+            status: document.getElementById('editVehicleStatus')?.value || selectedVehicle.status,
+            daily: Number(document.getElementById('editVehicleDaily')?.value || selectedVehicle.daily || 0),
+            weekly: Number(document.getElementById('editVehicleWeekly')?.value || selectedVehicle.weekly || 0),
+            seasonal: Number(document.getElementById('editVehicleSeasonal')?.value || selectedVehicle.seasonal || 0),
+            image: document.getElementById('editVehicleImage')?.value?.trim() || selectedVehicle.image,
+          };
+
+          if (!payload.name) {
+            throw new Error('Vehicle name is required.');
+          }
+
+          if (typeof catalogService.updateVehicle === 'function') {
+            await catalogService.updateVehicle(selectedVehicle.id, payload);
+          } else {
+            await catalogService.saveVehicle({ ...selectedVehicle, ...payload, id: selectedVehicle.id }, selectedVehicle.id);
+          }
+
+          document.getElementById('overlayHost')?.replaceChildren();
+          if (typeof reloadVehiclesData === 'function') {
+            await reloadVehiclesData();
+          } else {
+            rerender?.();
+          }
+          notify(`Vehicle ${selectedVehicle.id} updated successfully.`, 'success');
+        } catch (error) {
+          notify(`Failed to update vehicle ${selectedVehicle.id}: ${error.message}`, 'error');
+        }
+      });
+
       notify(`Editing ${id}`, 'info');
     });
   });
@@ -194,7 +237,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
         title: 'Confirm Vehicle Deletion',
         content: `<p>Vehicle <strong>${id}</strong> will be removed from availability and hidden from booking channels.</p>`,
         onConfirm: () => {
-          if (!canDeleteCatalog) {
+          if (!canDeleteWithWrite) {
             notify('Catalog write mode is unavailable', 'error');
             return;
           }
@@ -232,11 +275,21 @@ function statusClass(status) {
 
 function renderVehicleEditDrawer(vehicle) {
   const selectedCategory = (value) => (String(vehicle?.category || '') === value ? 'selected' : '');
+  const selectedStatus = (value) => (String(vehicle?.status || '') === value ? 'selected' : '');
+  const safeDaily = Number(vehicle?.daily || 0);
+  const safeWeekly = Number(vehicle?.weekly || 0);
+  const safeSeasonal = Number(vehicle?.seasonal || 0);
+  const safeImage = escapeHtml(vehicle?.image || '');
 
   return `
     <form id="editVehicleForm" class="space-y-3" data-vehicle-id="${escapeHtml(vehicle?.id)}">
       <label class="block space-y-1"><span class="text-xs font-semibold">Vehicle Name</span><input id="editVehicleName" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${escapeHtml(vehicle?.name)}" placeholder="Enter vehicle name" /></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Category</span><select id="editVehicleCategory" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedCategory('SUV')}>SUV</option><option ${selectedCategory('Sedan')}>Sedan</option><option ${selectedCategory('Bike')}>Bike</option><option ${selectedCategory('Electric')}>Electric</option><option ${selectedCategory('Luxury')}>Luxury</option></select></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Status</span><select id="editVehicleStatus" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedStatus('Available')}>Available</option><option ${selectedStatus('Unavailable')}>Unavailable</option><option ${selectedStatus('Rented')}>Rented</option><option ${selectedStatus('Maintenance')}>Maintenance</option><option ${selectedStatus('Inactive')}>Inactive</option></select></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Daily Rate</span><input id="editVehicleDaily" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeDaily) ? safeDaily : 0}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Weekly Rate</span><input id="editVehicleWeekly" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeWeekly) ? safeWeekly : 0}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Seasonal Rate</span><input id="editVehicleSeasonal" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeSeasonal) ? safeSeasonal : 0}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Image URL</span><input id="editVehicleImage" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeImage}" placeholder="https://..." /></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Upload Image</span><input type="file" class="w-full text-xs" /></label>
       <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
     </form>
