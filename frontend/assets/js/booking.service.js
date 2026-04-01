@@ -143,6 +143,16 @@
     return normalizeString(value, "").toLowerCase();
   }
 
+  function normalizePhone(value) {
+    return normalizeString(value, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function phoneDigitCount(value) {
+    return normalizePhone(value).replace(/[^\d]/g, "").length;
+  }
+
   function isValidEmail(value) {
     var email = normalizeEmail(value);
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -219,9 +229,14 @@
 
   function toPublicError(error, fallback) {
     var text = errorMessage(error).toLowerCase();
+    var code = String(error && error.code ? error.code : "").toUpperCase();
 
     if (isOverlapConstraintError(error)) {
       return "The selected dates are no longer available for this vehicle.";
+    }
+
+    if (code === "PGRST202" || text.indexOf("admin_update_booking_status") >= 0) {
+      return "Booking status update endpoint is missing. Run migration 008_admin_booking_status_updates.sql.";
     }
 
     if (isRelationMissingError(error)) {
@@ -237,7 +252,7 @@
     }
 
     if (text.indexOf("permission denied") >= 0 || text.indexOf("row-level security") >= 0) {
-      return "Booking could not be stored due to database permission rules.";
+      return "Booking action could not be completed due to database permission rules.";
     }
 
     return fallback || "Unable to save booking right now.";
@@ -305,7 +320,7 @@
     var vehicleId = normalizeString(payload.vehicleId, "");
     var customerName = normalizeName(payload.customerName);
     var customerEmail = normalizeEmail(payload.customerEmail);
-    var customerPhone = normalizeString(payload.customerPhone, "");
+    var customerPhone = normalizePhone(payload.customerPhone);
     var startDate = normalizeDate(payload.startDate);
     var endDate = normalizeDate(payload.endDate);
     var pickupTime = normalizeTime(payload.pickupTime);
@@ -322,6 +337,15 @@
 
     if (!isValidEmail(customerEmail)) {
       errors.customerEmail = "A valid email address is required.";
+    }
+
+    if (!customerPhone) {
+      errors.customerPhone = "Phone number is required.";
+    } else {
+      var digitCount = phoneDigitCount(customerPhone);
+      if (digitCount < 7 || digitCount > 15) {
+        errors.customerPhone = "Phone number must contain 7 to 15 digits.";
+      }
     }
 
     if (!startDate) {
@@ -480,6 +504,7 @@
       customerName: normalizeString(row.customer_name, ""),
       customerEmail: normalizeEmail(row.customer_email),
       customerPhone: normalizeString(row.customer_phone, ""),
+      pickupLocation: normalizeString(row.notes, ""),
       startDate: normalizeDate(row.start_date),
       endDate: normalizeDate(row.end_date),
       pickupTime: normalizeTime(row.pickup_time),
@@ -535,7 +560,7 @@
 
     var query = client
       .from(tableName)
-      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,start_date,end_date,pickup_time,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
       .order("created_at", { ascending: false });
 
     if (opts.vehicleId) {
@@ -591,7 +616,7 @@
 
     var query = client
       .from(tableName)
-      .select("id,booking_code,vehicle_id,start_date,end_date,status")
+      .select("id,booking_code,vehicle_id,customer_email,start_date,end_date,status")
       .eq("vehicle_id", vehicleId)
       .in("status", ACTIVE_BOOKING_STATUSES)
       .lte("start_date", endDate)
@@ -667,7 +692,7 @@
     var result = await client
       .from(tableName)
       .insert(insertPayload)
-      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,start_date,end_date,pickup_time,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
       .limit(1)
       .single();
 
@@ -685,6 +710,50 @@
 
     var vehiclesById = await buildVehicleMap();
     return mapBookingRow(result.data || {}, vehiclesById);
+  }
+
+  async function updateBookingStatus(input) {
+    var payload = input || {};
+    var bookingId = normalizeString(payload.bookingId || payload.id, "");
+    var requestedStatus = toLower(payload.status);
+
+    if (!bookingId) {
+      throw validationError({ bookingId: "Booking id is required." });
+    }
+
+    if (ALL_BOOKING_STATUSES.indexOf(requestedStatus) < 0) {
+      throw validationError({ status: "Booking status is invalid." });
+    }
+
+    var client = await getClient();
+
+    var rpcResult = await client.rpc("admin_update_booking_status", {
+      p_booking_id: bookingId,
+      p_status: requestedStatus,
+    });
+
+    if (rpcResult.error) {
+      if (isOverlapConstraintError(rpcResult.error)) {
+        var conflictError = new Error("Selected dates conflict with another active booking.");
+        conflictError.code = "BOOKING_CONFLICT";
+        throw conflictError;
+      }
+
+      throw new Error(errorMessage(rpcResult.error));
+    }
+
+    var updatedRow = Array.isArray(rpcResult.data)
+      ? (rpcResult.data[0] || null)
+      : rpcResult.data;
+
+    if (!updatedRow || !updatedRow.id) {
+      throw new Error("Booking could not be found for status update.");
+    }
+
+    broadcastBookingChanged("status-update");
+
+    var vehiclesById = await buildVehicleMap();
+    return mapBookingRow(updatedRow, vehiclesById);
   }
 
   function subscribeToBookingChanges(callback) {
@@ -725,6 +794,7 @@
     listBookings: listBookings,
     checkAvailability: checkAvailability,
     createBooking: createBooking,
+    updateBookingStatus: updateBookingStatus,
     subscribeToBookingChanges: subscribeToBookingChanges,
     touchBookingVersion: function () {
       return broadcastBookingChanged("manual");
