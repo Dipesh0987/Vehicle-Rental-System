@@ -559,20 +559,6 @@
     compute();
   }
 
-  function hideDetailsLoader() {
-    var loader = document.getElementById("vehicleDetailsLoader");
-    if (!loader) {
-      return;
-    }
-
-    loader.classList.add("is-hidden");
-    window.setTimeout(function () {
-      if (loader && loader.parentNode) {
-        loader.parentNode.removeChild(loader);
-      }
-    }, 320);
-  }
-
   async function init() {
     var vehicle = await getVehicleFromQuery();
     renderIdentity(vehicle);
@@ -586,7 +572,6 @@
     renderSimilar(vehicle);
     wireBookingSidebar(vehicle);
     wireRevealAnimations();
-    hideDetailsLoader();
   }
 
   window.VehicleDetailsPage = {
