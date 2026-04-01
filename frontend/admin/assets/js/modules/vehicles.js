@@ -12,12 +12,9 @@ import {
 const DEFAULT_IMAGE_URL =
   'https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=640&q=80';
 
-const TYPE_OPTIONS = ['Sedan', 'SUV', 'Hatchback', 'Luxury', 'Van', 'Electric'];
-const STATUS_OPTIONS = ['Available', 'Unavailable', 'Maintenance', 'Inactive'];
-const REQUIRED_FUEL_TYPES = ['Petrol', 'Diesel', 'Electric'];
-const FALLBACK_ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const STATUS_OPTIONS = ['Available', 'Maintenance', 'Inactive'];
 
-export function renderVehiclesModule({ data, query, notify, catalogService, reloadVehiclesData }) {
+export function renderVehiclesModule({ data, query, notify, requestRender }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -272,18 +269,36 @@ function openVehicleCreationDrawer({ notify, onCreated }) {
 
   function getDraft() {
     return {
-      name: fieldRefs.name?.value || '',
-      type: fieldRefs.type?.value || '',
-      seats: fieldRefs.seats?.value || '',
-      pricePerDay: fieldRefs.pricePerDay?.value || '',
-      fuelType: fieldRefs.fuelType?.value || '',
-      images: localState.files,
+      name: form.querySelector(`#vehicleNameInput-${entry.key}`),
+      type: form.querySelector(`#vehicleTypeInput-${entry.key}`),
+      status: form.querySelector(`#vehicleStatusInput-${entry.key}`),
+      seats: form.querySelector(`#vehicleSeatsInput-${entry.key}`),
+      pricePerDay: form.querySelector(`#vehiclePriceInput-${entry.key}`),
+      fuelType: form.querySelector(`#vehicleFuelTypeInput-${entry.key}`),
+      images: form.querySelector(`#vehicleImagesInput-${entry.key}`),
+      previewGrid: form.querySelector(`#vehiclePreviewGrid-${entry.key}`),
+      imageStats: form.querySelector(`#vehicleImageStats-${entry.key}`),
     };
   }
 
-  function setFieldError(field, message) {
-    const input = fieldRefs[field];
-    const target = errorTargets[field];
+  function getEntryDraft(entry) {
+    const refs = getEntryFieldRefs(entry);
+
+    return {
+      name: refs.name?.value || '',
+      type: refs.type?.value || '',
+      status: refs.status?.value || 'Available',
+      seats: refs.seats?.value || '',
+      pricePerDay: refs.pricePerDay?.value || '',
+      fuelType: refs.fuelType?.value || '',
+      images: entry.files,
+    };
+  }
+
+  function setEntryFieldError(entry, field, message) {
+    const refs = getEntryFieldRefs(entry);
+    const input = refs[field] || null;
+    const target = form.querySelector(`[data-error-for="${entry.key}:${field}"]`);
     const hasError = Boolean(message);
 
     if (target) {
@@ -386,8 +401,10 @@ function openVehicleCreationDrawer({ notify, onCreated }) {
     return validation;
   }
 
-  function attachFieldListeners() {
-    Object.values(fieldRefs).forEach((field) => {
+  function bindEntryListeners(entry) {
+    const refs = getEntryFieldRefs(entry);
+
+    [refs.name, refs.type, refs.status, refs.seats, refs.pricePerDay, refs.fuelType].forEach((field) => {
       if (!field) return;
       field.addEventListener('input', syncValidation);
       field.addEventListener('change', syncValidation);
@@ -487,12 +504,22 @@ function renderVehicleFormContent(fuelTypes) {
         <p data-error-for="fuelType" class="min-h-[1.25rem] text-xs font-semibold text-rose-600"></p>
       </div>
 
-      <div class="space-y-2">
-        <label for="vehicleImagesInput" class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Vehicle Images</label>
-        <input id="vehicleImagesInput" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" />
-        <p class="text-xs text-slate-500 dark:text-slate-400">Upload between 1 and 5 files. Allowed formats: JPG, PNG, WebP. Max 5 MB per image.</p>
-        <p data-error-for="images" class="min-h-[1.25rem] text-xs font-semibold text-rose-600"></p>
-        <div id="vehiclePreviewGrid" class="grid grid-cols-1 gap-2 sm:grid-cols-2"></div>
+      <div class="mt-2 space-y-1">
+        <label for="vehicleStatusInput-${entryKey}" class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Status</label>
+        <select id="vehicleStatusInput-${entryKey}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900">
+          ${STATUS_OPTIONS.map((status) => `<option value="${status}" ${status === 'Available' ? 'selected' : ''}>${status}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="mt-2 space-y-2">
+        <label for="vehicleImagesInput-${entryKey}" class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300">Vehicle Images</label>
+        <input id="vehicleImagesInput-${entryKey}" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" />
+        <div class="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <p>Select up to ${maxImages} files. Max 5 MB each.</p>
+          <p id="vehicleImageStats-${entryKey}" class="font-semibold text-brand-700 dark:text-brand-200">0 / ${maxImages} selected</p>
+        </div>
+        <p data-error-for="${entryKey}:images" class="min-h-[1.25rem] text-xs font-semibold text-rose-600"></p>
+        <div id="vehiclePreviewGrid-${entryKey}" class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"></div>
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-2">
@@ -539,8 +566,9 @@ function formatCurrency(amount) {
 function statusClass(status) {
   const base = 'rounded-full px-2.5 py-1 text-xs font-semibold';
   if (status === 'Available') return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
-  if (status === 'Unavailable' || status === 'Rented') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
-  if (status === 'Inactive') return `${base} bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200`;
+  if (status === 'Unavailable') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
+  if (status === 'Maintenance') return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
+  if (status === 'Inactive') return `${base} bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300`;
   return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
 }
 
