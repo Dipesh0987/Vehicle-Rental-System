@@ -8,74 +8,8 @@
   var PROFILE_UPDATED_EVENT = "vrs:profile-updated";
   var BROKEN_AVATAR_SYNC_CACHE = {};
   var MAX_ATTEMPTS_WARNING = 3;
-  var STATIC_BOOKINGS = [
-    {
-      id: "bk-24003",
-      reference: "VRS-2026-24003",
-      vehicle: "Toyota Camry Hybrid",
-      category: "Sedan",
-      pickupDate: "2026-03-28",
-      pickupTime: "10:00",
-      dropoffDate: "2026-03-31",
-      dropoffTime: "09:30",
-      pickupLocation: "Downtown Vehicle Hub",
-      dropoffLocation: "Airport Return Bay",
-      driverName: "Alex Morgan",
-      paymentMethod: "Visa ending 4421",
-      addOns: ["Child Seat", "Basic Insurance"],
-      status: "Upcoming",
-      amount: "$186.00",
-      baseAmount: "$150.00",
-      serviceFee: "$18.00",
-      tax: "$18.00",
-      discount: "-$0.00",
-      lastUpdated: "2026-03-26",
-    },
-    {
-      id: "bk-24002",
-      reference: "VRS-2026-24002",
-      vehicle: "Honda CR-V Touring",
-      category: "SUV",
-      pickupDate: "2026-03-12",
-      pickupTime: "09:30",
-      dropoffDate: "2026-03-15",
-      dropoffTime: "11:15",
-      pickupLocation: "City Center Parking",
-      dropoffLocation: "City Center Parking",
-      driverName: "Alex Morgan",
-      paymentMethod: "Visa ending 4421",
-      addOns: ["Premium Insurance"],
-      status: "Completed",
-      amount: "$264.00",
-      baseAmount: "$220.00",
-      serviceFee: "$22.00",
-      tax: "$26.00",
-      discount: "-$4.00",
-      lastUpdated: "2026-03-16",
-    },
-    {
-      id: "bk-24001",
-      reference: "VRS-2026-24001",
-      vehicle: "Ford Mustang GT",
-      category: "Sport",
-      pickupDate: "2026-02-20",
-      pickupTime: "13:00",
-      dropoffDate: "2026-02-22",
-      dropoffTime: "12:45",
-      pickupLocation: "North Business District",
-      dropoffLocation: "North Business District",
-      driverName: "Alex Morgan",
-      paymentMethod: "Mastercard ending 1197",
-      addOns: ["Roadside Assistance", "Additional Driver"],
-      status: "Completed",
-      amount: "$310.00",
-      baseAmount: "$260.00",
-      serviceFee: "$24.00",
-      tax: "$30.00",
-      discount: "-$4.00",
-      lastUpdated: "2026-02-23",
-    },
-  ];
+  var BOOKING_GUARD_REDIRECT_TIMER = null;
+  var BOOKING_GUARD_TOAST_HIDE_TIMER = null;
 
   function safeParse(raw, fallback) {
     try {
@@ -529,14 +463,281 @@
     );
   }
 
-  function getStaticBookingHistory() {
-    return STATIC_BOOKINGS.slice();
+  function ensureBookingGuardToast() {
+    var toast = document.querySelector("[data-booking-guard-toast]");
+    if (toast) {
+      return toast;
+    }
+
+    toast = document.createElement("div");
+    toast.setAttribute("data-booking-guard-toast", "true");
+    toast.className = "pointer-events-none fixed bottom-5 left-1/2 z-[260] w-[min(92vw,520px)] -translate-x-1/2 translate-y-2 rounded-2xl border px-4 py-3 text-[13px] font-semibold shadow-[0_20px_48px_rgba(0,0,0,0.34)] opacity-0 transition duration-200";
+    document.body.appendChild(toast);
+    return toast;
+  }
+
+  function showBookingGuardToast(message, mode) {
+    var toast = ensureBookingGuardToast();
+    toast.textContent = String(message || "Please register or sign in to continue.");
+
+    if (mode === "error") {
+      toast.style.background = "linear-gradient(145deg, rgba(127, 29, 29, 0.97), rgba(153, 27, 27, 0.97))";
+      toast.style.borderColor = "rgba(252, 165, 165, 0.56)";
+      toast.style.color = "#fff1f2";
+    } else {
+      toast.style.background = "linear-gradient(145deg, rgba(18, 94, 82, 0.97), rgba(15, 76, 67, 0.97))";
+      toast.style.borderColor = "rgba(110, 231, 183, 0.56)";
+      toast.style.color = "#ecfdf5";
+    }
+
+    toast.style.opacity = "1";
+    toast.style.transform = "translate(-50%, 0)";
+
+    if (BOOKING_GUARD_TOAST_HIDE_TIMER) {
+      window.clearTimeout(BOOKING_GUARD_TOAST_HIDE_TIMER);
+    }
+
+    BOOKING_GUARD_TOAST_HIDE_TIMER = window.setTimeout(function () {
+      toast.style.opacity = "0";
+      toast.style.transform = "translate(-50%, 8px)";
+    }, 2200);
+  }
+
+  function requireBookingAccess(options) {
+    var session = getSession();
+    var hasAccount = Boolean(
+      session &&
+      (
+        String(session.userId || "").trim() ||
+        String(session.email || "").trim()
+      )
+    );
+
+    if (hasAccount) {
+      return true;
+    }
+
+    var opts = options || {};
+    var redirectEnabled = opts.autoRedirect !== false;
+    var delayMs = Number(opts.delayMs || 650);
+    if (!Number.isFinite(delayMs) || delayMs < 0) {
+      delayMs = 650;
+    }
+
+    showBookingGuardToast(
+      opts.message || "Please register or sign in to continue with vehicle booking. Redirecting to registration...",
+      opts.mode || "info"
+    );
+
+    if (!redirectEnabled) {
+      return false;
+    }
+
+    var registrationUrl = String(opts.redirectUrl || "registration.html").trim() || "registration.html";
+    var pathname = String(window.location.pathname || "").toLowerCase();
+    if (pathname.indexOf("registration.html") >= 0) {
+      return false;
+    }
+
+    if (BOOKING_GUARD_REDIRECT_TIMER) {
+      window.clearTimeout(BOOKING_GUARD_REDIRECT_TIMER);
+    }
+
+    BOOKING_GUARD_REDIRECT_TIMER = window.setTimeout(function () {
+      window.location.href = registrationUrl;
+    }, delayMs);
+
+    return false;
+  }
+
+  function bookingStatusMeta(statusValue) {
+    var normalized = String(statusValue || "").toLowerCase();
+    if (normalized === "pending") {
+      return { key: "upcoming", label: "Pending" };
+    }
+    if (normalized === "confirmed" || normalized === "upcoming") {
+      return { key: "upcoming", label: "Confirmed" };
+    }
+    if (normalized === "completed") {
+      return { key: "completed", label: "Completed" };
+    }
+    if (normalized === "cancelled") {
+      return { key: "cancelled", label: "Cancelled" };
+    }
+
+    return { key: "upcoming", label: "Confirmed" };
   }
 
   function bookingStatusPillClass(status) {
-    return String(status).toLowerCase() === "upcoming"
-      ? "rounded-full border border-[#f5c7a5] bg-[rgba(229,140,78,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd7ba]"
-      : "rounded-full border border-[#95d6ae] bg-[rgba(86,170,117,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#d2f0dd]";
+    var meta = bookingStatusMeta(status);
+    if (meta.key === "completed") {
+      return "rounded-full border border-[#95d6ae] bg-[rgba(86,170,117,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#d2f0dd]";
+    }
+
+    if (meta.key === "cancelled") {
+      return "rounded-full border border-[#f8b4b4] bg-[rgba(185,46,61,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd1d1]";
+    }
+
+    return "rounded-full border border-[#f5c7a5] bg-[rgba(229,140,78,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd7ba]";
+  }
+
+  function formatBookingMoney(value) {
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      numeric = 0;
+    }
+
+    return "$" + numeric.toFixed(2);
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatBookingDate(value) {
+    var text = String(value || "").trim();
+    if (!text) {
+      return "-";
+    }
+
+    var parsed = new Date(text + "T00:00:00");
+    if (Number.isNaN(parsed.getTime())) {
+      parsed = new Date(text);
+    }
+
+    if (Number.isNaN(parsed.getTime())) {
+      return text;
+    }
+
+    try {
+      return parsed.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (_error) {
+      return text;
+    }
+  }
+
+  function formatBookingDateTime(value) {
+    var text = String(value || "").trim();
+    if (!text) {
+      return "-";
+    }
+
+    var parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) {
+      return text;
+    }
+
+    try {
+      return parsed.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (_error) {
+      return text;
+    }
+  }
+
+  function normalizeBookingHistoryItem(row, index) {
+    var booking = row || {};
+    var quote = booking.quote || {};
+    var statusMeta = bookingStatusMeta(booking.status || booking.statusLabel);
+    var bookingId = String(booking.id || "").trim();
+    var reference = String(booking.bookingCode || booking.reference || bookingId || ("BK-" + String(index + 1))).trim();
+    var pickupLocation = String(booking.pickupLocation || "").trim() || "Location not specified";
+
+    return {
+      id: bookingId || reference,
+      reference: reference,
+      vehicle: String(booking.vehicleName || booking.vehicle || "Vehicle").trim() || "Vehicle",
+      category: String(booking.type || booking.category || "Vehicle").trim() || "Vehicle",
+      pickupDate: formatBookingDate(booking.startDate || booking.pickupDate),
+      pickupTime: String(booking.pickupTime || "10:00").trim() || "10:00",
+      dropoffDate: formatBookingDate(booking.endDate || booking.dropoffDate),
+      dropoffTime: String(booking.dropoffTime || "-").trim() || "-",
+      pickupLocation: pickupLocation,
+      dropoffLocation: pickupLocation,
+      status: statusMeta.label,
+      statusKey: statusMeta.key,
+      amount: formatBookingMoney(quote.totalAmount || booking.totalAmount),
+      baseAmount: formatBookingMoney(quote.baseAmount || booking.baseAmount),
+      serviceFee: formatBookingMoney(quote.serviceFee || booking.serviceFee),
+      tax: formatBookingMoney(quote.taxAmount || booking.taxAmount),
+      discount: "-" + formatBookingMoney(quote.discountAmount || booking.discountAmount),
+      driverName: String(booking.driverOptionLabel || booking.driverOption || "Self Drive").trim() || "Self Drive",
+      paymentMethod: "Online",
+      customerEmail: String(booking.customerEmail || "").trim() || "Not provided",
+      customerPhone: String(booking.customerPhone || "").trim() || "Not provided",
+      addOns: [],
+      createdAtRaw: String(booking.createdAt || booking.lastUpdated || ""),
+      lastUpdated: formatBookingDateTime(booking.createdAt || booking.lastUpdated),
+      customerUserId: String(booking.customerUserId || "").trim(),
+    };
+  }
+
+  async function loadCurrentUserBookings() {
+    var session = getSession();
+    var currentEmail = String(session && session.email ? session.email : "").trim().toLowerCase();
+    var currentUserId = String(session && session.userId ? session.userId : "").trim();
+
+    if (!currentEmail && !currentUserId) {
+      return [];
+    }
+
+    if (!window.VehicleBookingService || typeof window.VehicleBookingService.listBookings !== "function") {
+      return [];
+    }
+
+    var rows = await window.VehicleBookingService.listBookings();
+    if (!Array.isArray(rows)) {
+      return [];
+    }
+
+    var filtered = rows.filter(function (row) {
+      var bookingUserId = String(row && row.customerUserId ? row.customerUserId : "").trim();
+      if (currentUserId && bookingUserId && bookingUserId === currentUserId) {
+        return true;
+      }
+
+      var bookingEmail = String(row && row.customerEmail ? row.customerEmail : "").trim().toLowerCase();
+      if (currentEmail && bookingEmail && bookingEmail === currentEmail) {
+        return true;
+      }
+
+      return false;
+    }).map(normalizeBookingHistoryItem);
+
+    filtered.sort(function (a, b) {
+      var dateA = Date.parse(String(a && a.createdAtRaw ? a.createdAtRaw : ""));
+      var dateB = Date.parse(String(b && b.createdAtRaw ? b.createdAtRaw : ""));
+
+      if (Number.isFinite(dateA) && Number.isFinite(dateB) && dateA !== dateB) {
+        return dateB - dateA;
+      }
+
+      return String(b && b.reference ? b.reference : "").localeCompare(String(a && a.reference ? a.reference : ""));
+    });
+
+    return filtered;
+  }
+
+  function renderBookingsWorkspaceMessage(container, message) {
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = "<p class=\"rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-[13px] text-white/75\">" + escapeHtml(message || "No records available.") + "</p>";
   }
 
   function renderBookingDetail(detail, booking) {
@@ -553,6 +754,7 @@
     var title = document.createElement("h3");
     title.className = "text-[20px] font-bold leading-tight text-white";
     title.textContent = booking.vehicle;
+
     var sub = document.createElement("p");
     sub.className = "mt-1 text-[12px] text-white/72";
     sub.textContent = booking.reference + " • " + booking.category;
@@ -569,29 +771,30 @@
     var timeline = document.createElement("div");
     timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-white/15 bg-white/5 p-3 text-[12px] text-white/85 sm:grid-cols-2";
     timeline.innerHTML =
-      "<p><span class=\"block text-white/65\">Pick-up</span>" + booking.pickupDate + " at " + booking.pickupTime + "</p>" +
-      "<p><span class=\"block text-white/65\">Drop-off</span>" + booking.dropoffDate + " at " + booking.dropoffTime + "</p>" +
-      "<p><span class=\"block text-white/65\">From</span>" + booking.pickupLocation + "</p>" +
-      "<p><span class=\"block text-white/65\">To</span>" + booking.dropoffLocation + "</p>";
+      "<p><span class=\"block text-white/65\">Pick-up</span>" + escapeHtml(booking.pickupDate) + " at " + escapeHtml(booking.pickupTime) + "</p>" +
+      "<p><span class=\"block text-white/65\">Drop-off</span>" + escapeHtml(booking.dropoffDate) + "</p>" +
+      "<p><span class=\"block text-white/65\">From</span>" + escapeHtml(booking.pickupLocation) + "</p>" +
+      "<p><span class=\"block text-white/65\">To</span>" + escapeHtml(booking.dropoffLocation) + "</p>";
 
     var money = document.createElement("div");
     money.className = "mt-3 rounded-2xl border border-[#f2c8aa]/35 bg-[rgba(229,140,78,0.08)] p-3 text-[12px]";
     money.innerHTML =
-      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-white/72\">Total Paid</span><strong class=\"text-[16px] text-[#ffd8bd]\">" + booking.amount + "</strong></div>" +
+      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-white/72\">Total Paid</span><strong class=\"text-[16px] text-[#ffd8bd]\">" + escapeHtml(booking.amount) + "</strong></div>" +
       "<div class=\"space-y-1 text-white/78\">" +
-      "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + booking.baseAmount + "</span></p>" +
-      "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + booking.serviceFee + "</span></p>" +
-      "<p class=\"flex justify-between\"><span>Tax</span><span>" + booking.tax + "</span></p>" +
-      "<p class=\"flex justify-between\"><span>Discount</span><span>" + booking.discount + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + escapeHtml(booking.baseAmount) + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + escapeHtml(booking.serviceFee) + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Tax</span><span>" + escapeHtml(booking.tax) + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Discount</span><span>" + escapeHtml(booking.discount) + "</span></p>" +
       "</div>";
 
     var extra = document.createElement("div");
     extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-white/82 sm:grid-cols-2";
     extra.innerHTML =
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Driver</span>" + booking.driverName + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Payment Method</span>" + booking.paymentMethod + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Add-ons</span>" + booking.addOns.join(", ") + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Last Updated</span>" + booking.lastUpdated + "</p>";
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Driver Option</span>" + escapeHtml(booking.driverName) + "</p>" +
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Payment</span>" + escapeHtml(booking.paymentMethod) + "</p>" +
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Contact Email</span>" + escapeHtml(booking.customerEmail) + "</p>" +
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Contact Phone</span>" + escapeHtml(booking.customerPhone) + "</p>" +
+      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
 
     detail.appendChild(top);
     detail.appendChild(timeline);
@@ -599,43 +802,84 @@
     detail.appendChild(extra);
   }
 
-  function renderBookingsWorkspace(modalRoot) {
+  async function renderBookingsWorkspace(modalRoot) {
     var list = modalRoot.querySelector("[data-bookings-modal-list]");
     var detail = modalRoot.querySelector("[data-bookings-modal-detail]");
     var total = modalRoot.querySelector("[data-bookings-total]");
     var upcoming = modalRoot.querySelector("[data-bookings-upcoming]");
     var completed = modalRoot.querySelector("[data-bookings-completed]");
-    var bookings = getStaticBookingHistory();
 
     if (!list || !detail) {
       return;
     }
 
-    list.innerHTML = "";
+    if (total) {
+      total.textContent = "0";
+    }
+    if (upcoming) {
+      upcoming.textContent = "0";
+    }
+    if (completed) {
+      completed.textContent = "0";
+    }
+
+    renderBookingsWorkspaceMessage(list, "Loading your bookings...");
+    renderBookingsWorkspaceMessage(detail, "Preparing booking details...");
+
+    var session = getSession();
+    if (!session) {
+      renderBookingsWorkspaceMessage(list, "Please sign in to view your bookings.");
+      renderBookingsWorkspaceMessage(detail, "Booking details will appear here after you sign in.");
+      return;
+    }
+
+    if (!window.VehicleBookingService || typeof window.VehicleBookingService.listBookings !== "function") {
+      renderBookingsWorkspaceMessage(list, "Booking service is not available on this page.");
+      renderBookingsWorkspaceMessage(detail, "Reload the page and try again.");
+      return;
+    }
+
+    var bookings = [];
+
+    try {
+      bookings = await loadCurrentUserBookings();
+    } catch (error) {
+      var errorMessage =
+        window.VehicleBookingService && typeof window.VehicleBookingService.toPublicError === "function"
+          ? window.VehicleBookingService.toPublicError(error, "Unable to load bookings right now.")
+          : "Unable to load bookings right now.";
+      renderBookingsWorkspaceMessage(list, errorMessage);
+      renderBookingsWorkspaceMessage(detail, "Please try again in a moment.");
+      return;
+    }
+
     if (total) {
       total.textContent = String(bookings.length);
     }
     if (upcoming) {
       upcoming.textContent = String(bookings.filter(function (booking) {
-        return String(booking.status).toLowerCase() === "upcoming";
+        return String(booking.statusKey || "").toLowerCase() === "upcoming";
       }).length);
     }
     if (completed) {
       completed.textContent = String(bookings.filter(function (booking) {
-        return String(booking.status).toLowerCase() === "completed";
+        return String(booking.statusKey || "").toLowerCase() === "completed";
       }).length);
     }
 
     if (!bookings.length) {
-      detail.innerHTML = "<p class=\"rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-[13px] text-white/75\">No bookings yet. Once you reserve a vehicle, details will appear here.</p>";
+      renderBookingsWorkspaceMessage(list, "No bookings found for your account yet.");
+      renderBookingsWorkspaceMessage(detail, "Once you complete a reservation, full details will appear here.");
       return;
     }
 
+    list.innerHTML = "";
     var activeId = bookings[0].id;
     var rowLookup = {};
 
     function setActive(id) {
       activeId = id;
+
       bookings.forEach(function (booking) {
         var row = rowLookup[booking.id];
         if (!row) {
@@ -671,6 +915,10 @@
       status.className = bookingStatusPillClass(booking.status);
       status.textContent = booking.status;
 
+      var reference = document.createElement("p");
+      reference.className = "mt-1 text-[11px] text-white/70";
+      reference.textContent = booking.reference;
+
       var meta = document.createElement("p");
       meta.className = "mt-1 text-[11px] text-white/74";
       meta.textContent = booking.pickupDate + " to " + booking.dropoffDate + " • " + booking.amount;
@@ -678,6 +926,7 @@
       top.appendChild(title);
       top.appendChild(status);
       row.appendChild(top);
+      row.appendChild(reference);
       row.appendChild(meta);
       list.appendChild(row);
 
@@ -758,7 +1007,7 @@
 
   function openBookingsModal() {
     var overlay = ensureBookingsModal();
-    renderBookingsWorkspace(overlay);
+    void renderBookingsWorkspace(overlay);
 
     overlay.classList.remove("opacity-0", "pointer-events-none");
     overlay.classList.add("opacity-100", "pointer-events-auto");
@@ -789,6 +1038,15 @@
     bookingsNavLinks.forEach(function (link) {
       link.addEventListener("click", function (event) {
         event.preventDefault();
+
+        if (!requireBookingAccess({
+          message: "Please register or sign in to view your bookings. Redirecting to registration...",
+          autoRedirect: true,
+          delayMs: 700,
+        })) {
+          return;
+        }
+
         openBookingsModal();
       });
     });
@@ -809,6 +1067,44 @@
       if (event.key === "Escape") {
         closeBookingsModal();
       }
+    });
+  }
+
+  function wireBookingAccessGuards() {
+    var bookingLinks = document.querySelectorAll("a[href]");
+    if (!bookingLinks.length) {
+      return;
+    }
+
+    bookingLinks.forEach(function (link) {
+      var href = String(link.getAttribute("href") || "").toLowerCase();
+      if (href.indexOf("booking.html") < 0) {
+        return;
+      }
+
+      link.addEventListener("click", function (event) {
+        if (event.defaultPrevented) {
+          return;
+        }
+
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+
+        if (event.button !== 0) {
+          return;
+        }
+
+        if (requireBookingAccess({
+          message: "Please register or sign in before booking a vehicle. Redirecting to registration...",
+          autoRedirect: true,
+          delayMs: 700,
+        })) {
+          return;
+        }
+
+        event.preventDefault();
+      });
     });
   }
 
@@ -2015,6 +2311,7 @@
     renderNavbarAuth();
     wireProfilePanel();
     wireBookingsModal();
+    wireBookingAccessGuards();
 
     if (pageType === "login") {
       runLoginFlow();
@@ -2031,6 +2328,7 @@
 
   window.VehicleAuthUI = {
     init: init,
+    requireBookingAccess: requireBookingAccess,
     logout: function () {
       performLogout();
     },

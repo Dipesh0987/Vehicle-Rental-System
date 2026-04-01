@@ -670,6 +670,19 @@ class SearchUIManager {
         document.querySelectorAll(".book-vehicle").forEach((btn) => {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
+
+                if (
+                    window.VehicleAuthUI &&
+                    typeof window.VehicleAuthUI.requireBookingAccess === "function" &&
+                    !window.VehicleAuthUI.requireBookingAccess({
+                        message: "Please register or sign in before booking a vehicle. Redirecting to registration...",
+                        autoRedirect: true,
+                        delayMs: 700,
+                    })
+                ) {
+                    return;
+                }
+
                 const vehicleId = btn.dataset.vehicleId;
                 // Navigate to booking page with vehicle pre-selected
                 window.location.href = `booking.html?vehicle=${vehicleId}`;

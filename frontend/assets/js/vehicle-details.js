@@ -714,6 +714,18 @@
 
     if (proceedBtn) {
       proceedBtn.addEventListener("click", function () {
+        if (
+          window.VehicleAuthUI &&
+          typeof window.VehicleAuthUI.requireBookingAccess === "function" &&
+          !window.VehicleAuthUI.requireBookingAccess({
+            message: "Please register or sign in before booking a vehicle. Redirecting to registration...",
+            autoRedirect: true,
+            delayMs: 700,
+          })
+        ) {
+          return;
+        }
+
         var startDate = pickupDate ? String(pickupDate.value || "") : "";
         var durationDays = getDurationDays();
         if (!startDate) {
