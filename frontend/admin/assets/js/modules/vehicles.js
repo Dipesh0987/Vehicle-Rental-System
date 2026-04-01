@@ -142,6 +142,11 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
       const id = button.getAttribute('data-edit-id');
       const selectedVehicle = data.vehicles.find((vehicle) => vehicle.id === id);
 
+      if (!canWriteCatalog) {
+        notify('Write access is unavailable for vehicle catalog updates.', 'error');
+        return;
+      }
+
       if (!selectedVehicle) {
         notify('Unable to open edit drawer: vehicle record not found.', 'error');
         return;
@@ -156,18 +161,24 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
       editForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        const payload = {
-          name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
-          category: document.getElementById('editVehicleCategory')?.value || selectedVehicle.category,
-          status: selectedVehicle.status,
-          daily: selectedVehicle.daily,
-          weekly: selectedVehicle.weekly,
-          seasonal: selectedVehicle.seasonal,
-          image: selectedVehicle.image,
-        };
+        try {
+          const payload = {
+            name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
+            category: document.getElementById('editVehicleCategory')?.value || selectedVehicle.category,
+            status: selectedVehicle.status,
+            daily: selectedVehicle.daily,
+            weekly: selectedVehicle.weekly,
+            seasonal: selectedVehicle.seasonal,
+            image: selectedVehicle.image,
+          };
 
-        await catalogService.saveVehicle(payload, selectedVehicle.id);
-        rerender?.();
+          await catalogService.saveVehicle(payload, selectedVehicle.id);
+          document.getElementById('overlayHost')?.replaceChildren();
+          rerender?.();
+          notify(`Vehicle ${selectedVehicle.id} updated successfully.`, 'success');
+        } catch (error) {
+          notify(`Failed to update vehicle ${selectedVehicle.id}: ${error.message}`, 'error');
+        }
       });
 
       notify(`Editing ${id}`, 'info');
