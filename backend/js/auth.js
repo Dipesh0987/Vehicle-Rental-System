@@ -1404,7 +1404,7 @@
         profileToastHideTimerId = null;
       }
 
-      toast.textContent = String(message || "Profile saved successfully.");
+      toast.textContent = String(message || "Profile updated");
 
       if (tone === "error") {
         toast.style.background = "linear-gradient(145deg, rgba(127, 29, 29, 0.95), rgba(153, 27, 27, 0.95))";
