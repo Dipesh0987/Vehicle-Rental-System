@@ -196,12 +196,22 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
 
           const payload = {
             name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
+            type: document.getElementById('editVehicleType')?.value?.trim() || selectedVehicle.type || selectedVehicle.category,
+            seats: Number(document.getElementById('editVehicleSeats')?.value || selectedVehicle.seats || 5),
+            price_per_day: Number(document.getElementById('editVehiclePricePerDay')?.value || selectedVehicle.price_per_day || selectedVehicle.daily || 0),
+            fuel_type: document.getElementById('editVehicleFuelType')?.value || selectedVehicle.fuel_type || selectedVehicle.fuelType || 'Petrol',
+            status: document.getElementById('editVehicleStatus')?.value || normalizeStatusForDb(selectedVehicle.status),
             category: document.getElementById('editVehicleCategory')?.value || selectedVehicle.category,
-            status: document.getElementById('editVehicleStatus')?.value || selectedVehicle.status,
-            daily: Number(document.getElementById('editVehicleDaily')?.value || selectedVehicle.daily || 0),
-            weekly: Number(document.getElementById('editVehicleWeekly')?.value || selectedVehicle.weekly || 0),
-            seasonal: Number(document.getElementById('editVehicleSeasonal')?.value || selectedVehicle.seasonal || 0),
-            image: document.getElementById('editVehicleImage')?.value?.trim() || selectedVehicle.image,
+            transmission: document.getElementById('editVehicleTransmission')?.value || selectedVehicle.transmission || 'Automatic',
+            rating: Number(document.getElementById('editVehicleRating')?.value || selectedVehicle.rating || 4.6),
+            location: document.getElementById('editVehicleLocation')?.value?.trim() || selectedVehicle.location || '',
+            available: document.getElementById('editVehicleAvailable')?.checked ?? (selectedVehicle.available ?? true),
+            is_active: document.getElementById('editVehicleIsActive')?.checked ?? (selectedVehicle.is_active ?? true),
+            brand: document.getElementById('editVehicleBrand')?.value?.trim() || selectedVehicle.brand || 'General',
+            primary_image_url:
+              document.getElementById('editVehiclePrimaryImageUrl')?.value?.trim() ||
+              selectedVehicle.primary_image_url ||
+              selectedVehicle.image,
           };
 
           if (!payload.name) {
@@ -267,33 +277,54 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
 
 function statusClass(status) {
   const base = 'rounded-full px-2.5 py-1 text-xs font-semibold';
-  if (status === 'Available') return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
-  if (status === 'Unavailable' || status === 'Rented') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
-  if (status === 'Inactive') return `${base} bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200`;
+  const lowered = String(status || '').toLowerCase();
+  if (lowered === 'available') return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
+  if (lowered === 'inactive' || lowered === 'unavailable' || lowered === 'rented') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
+  if (lowered === 'maintenance') return `${base} bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200`;
   return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
 }
 
 function renderVehicleEditDrawer(vehicle) {
   const selectedCategory = (value) => (String(vehicle?.category || '') === value ? 'selected' : '');
-  const selectedStatus = (value) => (String(vehicle?.status || '') === value ? 'selected' : '');
-  const safeDaily = Number(vehicle?.daily || 0);
-  const safeWeekly = Number(vehicle?.weekly || 0);
-  const safeSeasonal = Number(vehicle?.seasonal || 0);
-  const safeImage = escapeHtml(vehicle?.image || '');
+  const dbStatus = normalizeStatusForDb(vehicle?.status);
+  const selectedStatus = (value) => (dbStatus === value ? 'selected' : '');
+  const safeType = escapeHtml(vehicle?.type || vehicle?.category || 'sedan');
+  const safeSeats = Number(vehicle?.seats || 5);
+  const safePricePerDay = Number(vehicle?.price_per_day || vehicle?.daily || 0);
+  const safeFuelType = escapeHtml(vehicle?.fuel_type || vehicle?.fuelType || 'Petrol');
+  const safeTransmission = escapeHtml(vehicle?.transmission || 'Automatic');
+  const safeRating = Number(vehicle?.rating || 4.6);
+  const safeLocation = escapeHtml(vehicle?.location || '');
+  const safeBrand = escapeHtml(vehicle?.brand || 'General');
+  const safeImage = escapeHtml(vehicle?.primary_image_url || vehicle?.image || '');
 
   return `
     <form id="editVehicleForm" class="space-y-3" data-vehicle-id="${escapeHtml(vehicle?.id)}">
       <label class="block space-y-1"><span class="text-xs font-semibold">Vehicle Name</span><input id="editVehicleName" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${escapeHtml(vehicle?.name)}" placeholder="Enter vehicle name" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Type</span><input id="editVehicleType" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeType}" placeholder="sedan" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Seats</span><input id="editVehicleSeats" type="number" min="1" max="15" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeSeats) ? safeSeats : 5}" /></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Category</span><select id="editVehicleCategory" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedCategory('SUV')}>SUV</option><option ${selectedCategory('Sedan')}>Sedan</option><option ${selectedCategory('Bike')}>Bike</option><option ${selectedCategory('Electric')}>Electric</option><option ${selectedCategory('Luxury')}>Luxury</option></select></label>
-      <label class="block space-y-1"><span class="text-xs font-semibold">Status</span><select id="editVehicleStatus" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedStatus('Available')}>Available</option><option ${selectedStatus('Unavailable')}>Unavailable</option><option ${selectedStatus('Rented')}>Rented</option><option ${selectedStatus('Maintenance')}>Maintenance</option><option ${selectedStatus('Inactive')}>Inactive</option></select></label>
-      <label class="block space-y-1"><span class="text-xs font-semibold">Daily Rate</span><input id="editVehicleDaily" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeDaily) ? safeDaily : 0}" /></label>
-      <label class="block space-y-1"><span class="text-xs font-semibold">Weekly Rate</span><input id="editVehicleWeekly" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeWeekly) ? safeWeekly : 0}" /></label>
-      <label class="block space-y-1"><span class="text-xs font-semibold">Seasonal Rate</span><input id="editVehicleSeasonal" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeSeasonal) ? safeSeasonal : 0}" /></label>
-      <label class="block space-y-1"><span class="text-xs font-semibold">Image URL</span><input id="editVehicleImage" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeImage}" placeholder="https://..." /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Fuel Type</span><select id="editVehicleFuelType" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${safeFuelType === 'Petrol' ? 'selected' : ''}>Petrol</option><option ${safeFuelType === 'Diesel' ? 'selected' : ''}>Diesel</option><option ${safeFuelType === 'Electric' ? 'selected' : ''}>Electric</option></select></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Status</span><select id="editVehicleStatus" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedStatus('available')}>available</option><option ${selectedStatus('maintenance')}>maintenance</option><option ${selectedStatus('inactive')}>inactive</option></select></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Price Per Day</span><input id="editVehiclePricePerDay" type="number" min="1" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safePricePerDay) ? safePricePerDay : 0}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Transmission</span><input id="editVehicleTransmission" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeTransmission}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Rating</span><input id="editVehicleRating" type="number" step="0.01" min="0" max="5" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeRating) ? safeRating : 4.6}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Location</span><input id="editVehicleLocation" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeLocation}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Brand</span><input id="editVehicleBrand" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeBrand}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Primary Image URL</span><input id="editVehiclePrimaryImageUrl" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeImage}" placeholder="https://..." /></label>
+      <label class="flex items-center gap-2"><input id="editVehicleAvailable" type="checkbox" class="h-4 w-4" ${vehicle?.available !== false ? 'checked' : ''} /><span class="text-xs font-semibold">Available</span></label>
+      <label class="flex items-center gap-2"><input id="editVehicleIsActive" type="checkbox" class="h-4 w-4" ${vehicle?.is_active !== false ? 'checked' : ''} /><span class="text-xs font-semibold">Is Active</span></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Upload Image</span><input type="file" class="w-full text-xs" /></label>
       <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
     </form>
   `;
+}
+
+function normalizeStatusForDb(status) {
+  const lowered = String(status || '').toLowerCase();
+  if (lowered === 'available' || lowered === 'maintenance' || lowered === 'inactive') return lowered;
+  if (lowered === 'rented' || lowered === 'unavailable') return 'inactive';
+  return 'available';
 }
 
 function formatVehicleTitle(vehicle) {
