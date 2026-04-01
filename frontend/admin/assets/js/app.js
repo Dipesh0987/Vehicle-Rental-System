@@ -59,8 +59,16 @@ async function bootstrap() {
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
   setActiveNav(appState.activeModule);
-  setupCatalogSync();
-  setupBookingSync();
+
+  try {
+    const vehicles = await catalogService.loadVehicles();
+    if (Array.isArray(vehicles) && vehicles.length) {
+      appState.data.vehicles = vehicles;
+      renderActiveModule();
+    }
+  } catch (error) {
+    pushToast(`Vehicle DB sync failed: ${error.message}`, 'error');
+  }
 }
 
 function renderActiveModule() {
