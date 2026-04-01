@@ -219,6 +219,7 @@
       startDate: normalizeString(byId("bookingStartDate") && byId("bookingStartDate").value, ""),
       endDate: normalizeString(byId("bookingEndDate") && byId("bookingEndDate").value, ""),
       pickupTime: normalizeString(byId("bookingPickupTime") && byId("bookingPickupTime").value, "10:00"),
+      driverOption: normalizeString(byId("bookingDriverOption") && byId("bookingDriverOption").value, "self_drive"),
       customerName: normalizeString(byId("bookingCustomerName") && byId("bookingCustomerName").value, ""),
       customerEmail: normalizeString(byId("bookingCustomerEmail") && byId("bookingCustomerEmail").value, ""),
       customerPhone: normalizeString(byId("bookingCustomerPhone") && byId("bookingCustomerPhone").value, ""),
@@ -479,6 +480,15 @@
     }
   }
 
+  function getDriverOptionLabel(value) {
+    var normalized = normalizeString(value, "self_drive").toLowerCase();
+    if (normalized === "with_driver") {
+      return "With Driver";
+    }
+
+    return "Self Drive";
+  }
+
   async function checkAvailability(state) {
     var values = readFormValues();
 
@@ -668,6 +678,7 @@
       '<div class="flex items-center justify-between"><span class="font-semibold">Start Date</span><span>' + formatDatePretty(values.startDate) + '</span></div>',
       '<div class="flex items-center justify-between"><span class="font-semibold">End Date</span><span>' + formatDatePretty(values.endDate) + '</span></div>',
       '<div class="flex items-center justify-between"><span class="font-semibold">Pickup Time</span><span>' + normalizeString(values.pickupTime, "10:00") + '</span></div>',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Driver Option</span><span>' + getDriverOptionLabel(values.driverOption) + '</span></div>',
       '<div class="flex items-center justify-between"><span class="font-semibold">Pick Up Location</span><span>' + normalizeString(values.pickupLocation, '-') + '</span></div>',
       '<div class="flex items-center justify-between"><span class="font-semibold">Customer</span><span>' + normalizeString(values.customerName, "-") + '</span></div>',
       '<div class="flex items-center justify-between"><span class="font-semibold">Email</span><span>' + normalizeString(values.customerEmail, "-") + '</span></div>',
@@ -745,6 +756,7 @@
   function resetBookingFormForNext(state) {
     var coupon = byId("bookingCouponCode");
     var notes = byId("bookingNotes");
+    var driverOption = byId("bookingDriverOption");
 
     if (state.availabilityTimerId) {
       window.clearTimeout(state.availabilityTimerId);
@@ -756,6 +768,9 @@
     }
     if (notes) {
       notes.value = "";
+    }
+    if (driverOption) {
+      driverOption.value = "self_drive";
     }
 
     state.pendingBookingValues = null;
@@ -818,6 +833,7 @@
           startDate: values.startDate,
           endDate: values.endDate,
           pickupTime: values.pickupTime,
+          driverOption: values.driverOption,
           couponCode: values.couponCode,
           notes: values.pickupLocation,
           dailyRate: parseDailyRate(state.selectedVehicle),
@@ -901,6 +917,7 @@
         startDate: values.startDate,
         endDate: values.endDate,
         pickupTime: values.pickupTime,
+        driverOption: values.driverOption,
         couponCode: values.couponCode,
         notes: values.pickupLocation,
         dailyRate: parseDailyRate(state.selectedVehicle),
