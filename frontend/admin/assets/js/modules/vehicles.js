@@ -9,12 +9,7 @@ import {
   validateVehicleDraft,
 } from '../services/vehicle-admin.service.js';
 
-const DEFAULT_IMAGE_URL =
-  'https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=640&q=80';
-
-const STATUS_OPTIONS = ['Available', 'Maintenance', 'Inactive'];
-
-export function renderVehiclesModule({ data, query, notify, requestRender }) {
+export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, rerender }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -100,27 +95,23 @@ export function renderVehiclesModule({ data, query, notify, requestRender }) {
                           <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(vehicle.id)}</p>
                         </div>
                       </div>
-                    </td>
-                    <td class="py-3 pr-3">${escapeHtml(vehicle.category || 'Vehicle')}</td>
-                    <td class="py-3 pr-3">
-                      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(vehicle.transmission || 'Automatic')} | ${escapeHtml(vehicle.fuelType || 'Petrol')}</p>
-                      <p class="text-xs text-slate-500 dark:text-slate-400">${Number(vehicle.seats || 5)} seats</p>
-                    </td>
-                    <td class="py-3 pr-3"><span class="${statusClass(vehicle.status)}">${escapeHtml(vehicle.status || 'Available')}</span></td>
-                    <td class="py-3 pr-3">$${Number(vehicle.daily || 0).toLocaleString()}</td>
-                    <td class="py-3 pr-3">$${Number(vehicle.weekly || 0).toLocaleString()}</td>
-                    <td class="py-3 pr-3">$${Number(vehicle.seasonal || 0).toLocaleString()}</td>
-                    <td class="py-3 pr-3">
-                      <div class="flex gap-2">
-                        <button data-delete-id="${escapeHtml(vehicle.id)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 ${
-                          canDeleteCatalog ? '' : 'opacity-60 cursor-not-allowed'
-                        }" ${canDeleteCatalog ? '' : 'disabled'}>Delete</button>
-                      </div>
-                    </td>
-                  </tr>`
-                )
-                .join('')
-              : `<tr><td colspan="8" class="py-6">${renderEmptyState({ title: 'No vehicles found', message: 'Try changing your search query or clear filters.', actionLabel: 'Reset search', actionId: 'resetVehicleSearch' })}</td></tr>`}
+                    </div>
+                  </td>
+                  <td class="py-3 pr-3">${vehicle.category}</td>
+                  <td class="py-3 pr-3"><span class="${statusClass(vehicle.status)}">${vehicle.status}</span></td>
+                  <td class="py-3 pr-3">$${vehicle.daily}</td>
+                  <td class="py-3 pr-3">$${vehicle.weekly}</td>
+                  <td class="py-3 pr-3">$${vehicle.seasonal}</td>
+                  <td class="py-3 pr-3">
+                    <div class="flex gap-2">
+                      <button data-edit-id="${vehicle.id}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Edit</button>
+                      <button data-delete-id="${vehicle.id}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600">Delete</button>
+                    </div>
+                  </td>
+                </tr>`
+              )
+              .join('')
+              : `<tr><td colspan="7" class="py-6">${renderEmptyState({ title: 'No vehicles found', message: 'Try changing your search query or clear filters.', actionLabel: 'Reset search', actionId: 'resetVehicleSearch' })}</td></tr>`}
           </tbody>
         </table>
       </div>
