@@ -1287,6 +1287,103 @@
     var photoFileLabel = document.getElementById("profileFileLabel");
     var photoShell = panel ? panel.querySelector(".profile-photo-shell") : null;
     var note = document.getElementById("profileNote");
+    var noteDefaultText = note ? String(note.textContent || "").trim() : "";
+    var noteFadeTimerId = null;
+    var noteResetTimerId = null;
+
+    function clearProfileNoteTimers() {
+      if (noteFadeTimerId) {
+        window.clearTimeout(noteFadeTimerId);
+        noteFadeTimerId = null;
+      }
+
+      if (noteResetTimerId) {
+        window.clearTimeout(noteResetTimerId);
+        noteResetTimerId = null;
+      }
+    }
+
+    function setProfileNoteTone(mode) {
+      if (!note) {
+        return;
+      }
+
+      note.classList.remove(
+        "border-[rgba(229,140,78,0.9)]",
+        "border-emerald-400/90",
+        "border-rose-400/90",
+        "bg-white/10",
+        "bg-emerald-500/15",
+        "bg-rose-500/15",
+        "text-white/90",
+        "text-emerald-100",
+        "text-rose-100"
+      );
+
+      if (mode === "success") {
+        note.classList.add("border-emerald-400/90", "bg-emerald-500/15", "text-emerald-100");
+        return;
+      }
+
+      if (mode === "error") {
+        note.classList.add("border-rose-400/90", "bg-rose-500/15", "text-rose-100");
+        return;
+      }
+
+      note.classList.add("border-[rgba(229,140,78,0.9)]", "bg-white/10", "text-white/90");
+    }
+
+    function showProfileNoteMessage(message, mode, autoHideMs) {
+      if (!note) {
+        return;
+      }
+
+      clearProfileNoteTimers();
+      setProfileNoteTone(mode || "info");
+      note.textContent = String(message || noteDefaultText || "");
+      note.style.transition = "opacity 360ms ease, transform 360ms ease";
+      note.style.opacity = "1";
+      note.style.transform = "translateY(0)";
+
+      var hideDelay = Number(autoHideMs || 0);
+      if (hideDelay <= 0) {
+        return;
+      }
+
+      noteFadeTimerId = window.setTimeout(function () {
+        note.style.opacity = "0";
+        note.style.transform = "translateY(-3px)";
+
+        noteResetTimerId = window.setTimeout(function () {
+          setProfileNoteTone("info");
+          note.textContent = noteDefaultText;
+          note.style.opacity = "1";
+          note.style.transform = "translateY(0)";
+          noteResetTimerId = null;
+        }, 380);
+
+        noteFadeTimerId = null;
+      }, hideDelay);
+    }
+
+    function forceHideNativeFileInput(input) {
+      if (!input) {
+        return;
+      }
+
+      input.setAttribute("aria-hidden", "true");
+      input.setAttribute("tabindex", "-1");
+      input.style.position = "absolute";
+      input.style.width = "1px";
+      input.style.height = "1px";
+      input.style.padding = "0";
+      input.style.margin = "-1px";
+      input.style.overflow = "hidden";
+      input.style.clip = "rect(0, 0, 0, 0)";
+      input.style.whiteSpace = "nowrap";
+      input.style.border = "0";
+      input.style.opacity = "0";
+    }
 
     function setPhotoFileLabel(fileName) {
       if (!photoFileLabel) {
@@ -1309,6 +1406,7 @@
     }
 
     setPhotoFileLabel();
+    forceHideNativeFileInput(photoInput);
 
     function readCurrentProfileEmail() {
       var profile = getProfile();
@@ -1316,7 +1414,8 @@
       return String(profile.email || (session && session.email) || "");
     }
 
-    async function saveProfileData(avatarDataUrl) {
+    async function saveProfileData(avatarDataUrl, options) {
+      var opts = options || {};
       var current = getProfile();
       var resolvedAvatar = normalizeAvatarValue(
         avatarDataUrl !== undefined ? avatarDataUrl : current.avatarDataUrl
@@ -1358,11 +1457,19 @@
         }
       }
 
-      if (note) {
-        note.textContent = cloudSynced
-          ? "Profile updated and synced to Supabase."
-          : "Profile updated locally.";
+      if (!opts.silentFeedback) {
+        showProfileNoteMessage(
+          cloudSynced
+            ? "Profile updated and synced to Supabase."
+            : "Profile updated locally.",
+          "success",
+          0
+        );
       }
+
+      return {
+        cloudSynced: cloudSynced,
+      };
     }
 
     function previewSelectedImage(file, previousProfile) {
@@ -1390,9 +1497,32 @@
 
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
-        Promise.resolve(saveProfileData())
-          .finally(function () {
-            closePanel();
+        Promise.resolve(saveProfileData(undefined, { silentFeedback: true }))
+          .then(function (result) {
+            showProfileNoteMessage(
+              result && result.cloudSynced
+                ? "Profile saved successfully and synced to Supabase."
+                : "Profile saved successfully.",
+              "success",
+              3000
+            );
+          })
+          .catch(function (error) {
+            var auth = getAuthService();
+            if (auth && typeof auth.toPublicError === "function") {
+              showProfileNoteMessage(
+                auth.toPublicError(error, "Unable to save profile right now."),
+                "error",
+                0
+              );
+              return;
+            }
+
+            showProfileNoteMessage(
+              String(error && error.message ? error.message : "Unable to save profile right now."),
+              "error",
+              0
+            );
           });
       });
     }
@@ -1412,7 +1542,7 @@
         previewSelectedImage(file, previousProfile);
 
         if (note) {
-          note.textContent = "Uploading and optimizing profile image...";
+          showProfileNoteMessage("Uploading and optimizing profile image...", "info", 0);
         }
 
         auth.uploadProfileImage(file)
@@ -1425,16 +1555,16 @@
               if (currentPreview && normalizeAvatarValue(currentPreview.avatarDataUrl)) {
                 saveProfileData(currentPreview.avatarDataUrl)
                   .then(function () {
-                    if (note) {
-                      note.textContent = "Storage bucket is missing, so profile image was saved in profile data fallback.";
-                    }
+                    showProfileNoteMessage(
+                      "Storage bucket is missing, so profile image was saved in profile data fallback.",
+                      "info",
+                      0
+                    );
                   })
                   .catch(function () {
                     setProfile(previousProfile);
                     renderProfileChip();
-                    if (note) {
-                      note.textContent = "Profile image upload failed.";
-                    }
+                    showProfileNoteMessage("Profile image upload failed.", "error", 0);
                   });
                 return;
               }
@@ -1443,15 +1573,13 @@
             setProfile(previousProfile);
             renderProfileChip();
 
-            if (!note) {
-              return;
-            }
-
             if (auth && typeof auth.toPublicError === "function") {
-              note.textContent = auth.toPublicError(error, "Profile image upload failed.");
+              showProfileNoteMessage(auth.toPublicError(error, "Profile image upload failed."), "error", 0);
             } else {
-              note.textContent = String(
-                error && error.message ? error.message : "Profile image upload failed."
+              showProfileNoteMessage(
+                String(error && error.message ? error.message : "Profile image upload failed."),
+                "error",
+                0
               );
             }
           })
@@ -1467,9 +1595,7 @@
 
       var fallbackMaxBytes = 1024 * 1024 * 5;
       if (file.size > fallbackMaxBytes) {
-        if (note) {
-          note.textContent = "Image is too large. Please choose a file under 5 MB.";
-        }
+        showProfileNoteMessage("Image is too large. Please choose a file under 5 MB.", "error", 0);
         if (photoInput) {
           photoInput.value = "";
         }
