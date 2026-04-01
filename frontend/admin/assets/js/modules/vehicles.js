@@ -2,7 +2,7 @@ import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { openDrawer, openModal, renderEmptyState } from '../ui.js';
 
-export function renderVehiclesModule({ data, query, notify }) {
+export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, rerender }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -54,7 +54,7 @@ export function renderVehiclesModule({ data, query, notify }) {
                   <td class="py-3 pr-3">$${vehicle.seasonal}</td>
                   <td class="py-3 pr-3">
                     <div class="flex gap-2">
-                      <button data-edit-id="${vehicle.id}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold dark:border-white/10">Edit</button>
+                      <button data-edit-id="${vehicle.id}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Edit</button>
                       <button data-delete-id="${vehicle.id}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600">Delete</button>
                     </div>
                   </td>
