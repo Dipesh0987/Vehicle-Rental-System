@@ -190,6 +190,16 @@
                 class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white"
               />
 
+              <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
+              <div class="profile-photo-shell rounded-xl border border-white/20 bg-[linear-gradient(145deg,rgba(44,118,110,0.2),rgba(255,255,255,0.08))] p-3 backdrop-blur-[1px] transition duration-200">
+                <div class="flex items-center gap-2">
+                  <input id="profilePhoto" type="file" accept="image/*" class="hidden" />
+                  <label for="profilePhoto" class="inline-flex cursor-pointer items-center justify-center rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_8px_18px_rgba(229,140,78,0.3)] transition hover:-translate-y-[1px] hover:brightness-105">Choose Photo</label>
+                  <span id="profileFileLabel" class="min-w-0 truncate text-[12px] text-white/88">No file selected</span>
+                </div>
+                <p class="mt-2 text-[11px] text-white/72">JPG, PNG, WEBP up to 20 MB.</p>
+              </div>
+
               <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90">
                 Changes are stored locally (dummy UI flow).
               </div>
