@@ -2,12 +2,14 @@ import { classMap } from '../config.js';
 import { filterRows, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
-export function renderBookingsModule({ data, query, notify, reloadBookingsData }) {
+const BOOKING_STATUS_OPTIONS = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
+
+export function renderBookingsModule({ data, query, notify, reloadBookingsData, bookingService }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
   const allRows = Array.isArray(data && data.bookings) ? data.bookings : [];
-  const searchedRows = filterRows(allRows, query, ['id', 'customer', 'customerEmail', 'vehicle', 'type', 'status']);
+  const searchedRows = filterRows(allRows, query, ['id', 'customer', 'customerEmail', 'customerPhone', 'vehicle', 'type', 'status', 'pickupLocation']);
 
   const dateFilter = '';
   const statusFilter = '';
@@ -19,10 +21,9 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
     type: typeFilter,
   });
 
-  const sortedRows = sortRows(rows, 'start').slice().reverse();
+  const sortedRows = sortRows(rows, 'createdAt').slice().reverse();
   const totalRevenue = sortedRows.reduce((sum, row) => sum + Number(row && row.total ? row.total : 0), 0);
   const activeCount = sortedRows.filter((row) => String(row && row.status ? row.status : '').toLowerCase() === 'confirmed').length;
-  const conflicts = detectConflicts(sortedRows);
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -47,7 +48,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
         <label class="space-y-1 text-sm font-semibold">
           <span class="text-slate-600 dark:text-slate-300">Status</span>
           <select id="bookingStatus" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5">
-            ${['', 'Confirmed', 'Pending', 'Cancelled', 'Completed'].map((item) => `<option value="${escapeHtml(item)}" ${statusFilter === item ? 'selected' : ''}>${item || 'All'}</option>`).join('')}
+            ${[''].concat(BOOKING_STATUS_OPTIONS).map((item) => `<option value="${escapeHtml(item)}" ${statusFilter === item ? 'selected' : ''}>${item || 'All'}</option>`).join('')}
           </select>
         </label>
         <label class="space-y-1 text-sm font-semibold">
@@ -56,7 +57,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
             ${buildTypeOptions(allRows, typeFilter).map((item) => `<option value="${escapeHtml(item)}" ${typeFilter === item ? 'selected' : ''}>${item || 'All'}</option>`).join('')}
           </select>
         </label>
-        <button id="detectConflictBtn" class="self-end rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300">Detect Conflicts</button>
+        <button id="clearBookingFiltersBtn" class="hidden self-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10">Clear Filters</button>
       </div>
     </section>
 
@@ -69,7 +70,9 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
               <th class="pb-2 pr-3">Booking</th>
               <th class="pb-2 pr-3">Customer</th>
               <th class="pb-2 pr-3">Vehicle</th>
-              <th class="pb-2 pr-3">Date</th>
+              <th class="pb-2 pr-3">Pick Up Location</th>
+              <th class="pb-2 pr-3">Date From</th>
+              <th class="pb-2 pr-3">Date To</th>
               <th class="pb-2 pr-3">Type</th>
               <th class="pb-2 pr-3">Status</th>
               <th class="pb-2 pr-3">Total</th>
@@ -78,22 +81,9 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
           <tbody>
             ${sortedRows.length
               ? sortedRows
-              .map(
-                (row) => `<tr class="border-b border-slate-100 dark:border-white/5">
-                  <td class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
-                  <td class="py-3 pr-3">
-                    <p class="font-semibold">${escapeHtml(row.customer || '-')}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
-                  </td>
-                  <td class="py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
-                  <td class="py-3 pr-3">${escapeHtml(row.start || '-')} to ${escapeHtml(row.end || '-')}</td>
-                  <td class="py-3 pr-3">${escapeHtml(row.type || '-')}</td>
-                  <td class="py-3 pr-3"><span class="${statusClass(row.status)}">${escapeHtml(row.status || 'Confirmed')}</span></td>
-                  <td class="py-3 pr-3 font-semibold">$${Number(row.total || 0).toFixed(2)}</td>
-                </tr>`
-              )
+              .map((row) => renderBookingRow(row))
               .join('')
-              : `<tr><td colspan="7" class="py-6">${renderEmptyState({ title: 'No reservations yet', message: 'Live bookings will appear here after successful customer checkout.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`}
+              : `<tr><td colspan="9" class="py-6">${renderEmptyState({ title: 'No reservations yet', message: 'Live bookings will appear here after successful customer checkout.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -122,14 +112,6 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
     notify('Bookings refreshed from database', 'success');
   });
 
-  host.querySelector('#detectConflictBtn')?.addEventListener('click', () => {
-    if (conflicts.length) {
-      notify(`Conflict detected: ${conflicts[0]}`, 'error');
-      return;
-    }
-    notify('No booking conflict detected', 'success');
-  });
-
   host.querySelector('#emptyRefreshBookings')?.addEventListener('click', async () => {
     if (typeof reloadBookingsData === 'function') {
       await reloadBookingsData();
@@ -137,64 +119,125 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData }
     notify('Bookings refreshed from database', 'success');
   });
 
-  const dateInput = host.querySelector('#bookingDate');
-  const statusSelect = host.querySelector('#bookingStatus');
-  const typeSelect = host.querySelector('#bookingType');
+  host.addEventListener('change', async (event) => {
+    const selectElement = event.target && event.target.closest('[data-booking-status-select]');
+    if (!selectElement || !host.contains(selectElement)) {
+      return;
+    }
 
-  [dateInput, statusSelect, typeSelect].forEach((control) => {
-    control?.addEventListener('input', () => {
-      const nextRows = applyAdminFilters(searchedRows, {
-        date: dateInput ? dateInput.value : '',
-        status: statusSelect ? statusSelect.value : '',
-        type: typeSelect ? typeSelect.value : '',
+    const rowElement = selectElement.closest('tr[data-booking-id]');
+    const previousStatus = normalizeBookingStatusLabel(
+      rowElement ? rowElement.getAttribute('data-current-status') : ''
+    );
+
+    const bookingId = String(rowElement && rowElement.getAttribute('data-booking-id') ? rowElement.getAttribute('data-booking-id') : '').trim();
+    const bookingCode = String(rowElement && rowElement.getAttribute('data-booking-code') ? rowElement.getAttribute('data-booking-code') : '').trim();
+    const nextStatus = normalizeBookingStatusLabel(selectElement ? selectElement.value : '');
+
+    if (!bookingId) {
+      notify('Booking id is missing for this reservation row.', 'error');
+      return;
+    }
+
+    if (previousStatus === nextStatus) {
+      return;
+    }
+
+    if (!bookingService || typeof bookingService.updateBookingStatus !== 'function') {
+      notify('Booking status update service is unavailable. Run latest booking migration first.', 'error');
+      selectElement.value = previousStatus;
+      selectElement.className = statusSelectClass(previousStatus, !bookingId);
+      return;
+    }
+
+    selectElement.disabled = true;
+    selectElement.className = statusSelectClass(nextStatus, !bookingId);
+
+    try {
+      const updatedBooking = await bookingService.updateBookingStatus({
+        bookingId,
+        status: nextStatus,
       });
 
-      updateTableRows(host, nextRows);
-    });
-  });
+      const updatedStatus = normalizeBookingStatusLabel(
+        updatedBooking && updatedBooking.statusLabel ? updatedBooking.statusLabel : nextStatus
+      );
 
-  return host;
-}
+      if (rowElement) {
+        rowElement.setAttribute('data-current-status', updatedStatus);
+      }
 
-function detectConflicts(rows) {
-  const grouped = new Map();
-  const conflicts = [];
-  const conflictEligible = new Set(['confirmed', 'pending']);
+      selectElement.value = updatedStatus;
+      selectElement.className = statusSelectClass(updatedStatus, !bookingId);
 
-  rows.forEach((row) => {
-    const status = String(row && row.status ? row.status : '').trim().toLowerCase();
-    if (!conflictEligible.has(status)) {
-      return;
-    }
+      notify(`Reservation ${bookingCode || bookingId} marked as ${updatedStatus}.`, 'success');
 
-    const vehicleKey = String(row && row.vehicleId ? row.vehicleId : row && row.vehicle ? row.vehicle : '').trim();
-    if (!vehicleKey) {
-      return;
-    }
+      if (typeof reloadBookingsData === 'function') {
+        await reloadBookingsData();
+      }
+    } catch (error) {
+      const message = bookingService && typeof bookingService.toPublicError === 'function'
+        ? bookingService.toPublicError(error, 'Unable to update booking status right now.')
+        : 'Unable to update booking status right now.';
 
-    if (!grouped.has(vehicleKey)) {
-      grouped.set(vehicleKey, []);
-    }
+      selectElement.value = previousStatus;
+      selectElement.className = statusSelectClass(previousStatus, !bookingId);
 
-    grouped.get(vehicleKey).push(row);
-  });
-
-  grouped.forEach((vehicleRows) => {
-    const ordered = vehicleRows
-      .slice()
-      .sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
-
-    for (let index = 1; index < ordered.length; index += 1) {
-      const previous = ordered[index - 1];
-      const current = ordered[index];
-
-      if (String(current.start || '') <= String(previous.end || '')) {
-        conflicts.push(`${current.id} overlaps with ${previous.id} on ${current.vehicle}`);
+      notify(message, 'error');
+    } finally {
+      if (host.isConnected) {
+        selectElement.disabled = !bookingId;
+        selectElement.className = statusSelectClass(selectElement.value, !bookingId);
       }
     }
   });
 
-  return conflicts;
+  const dateInput = host.querySelector('#bookingDate');
+  const statusSelect = host.querySelector('#bookingStatus');
+  const typeSelect = host.querySelector('#bookingType');
+  const clearFiltersBtn = host.querySelector('#clearBookingFiltersBtn');
+
+  const readFilters = () => ({
+    date: dateInput ? dateInput.value : '',
+    status: statusSelect ? statusSelect.value : '',
+    type: typeSelect ? typeSelect.value : '',
+  });
+
+  const hasActiveFilters = (filters) => {
+    const current = filters || {};
+    return Boolean(String(current.date || '').trim() || String(current.status || '').trim() || String(current.type || '').trim());
+  };
+
+  const applyFiltersToTable = () => {
+    const filters = readFilters();
+    const nextRows = applyAdminFilters(searchedRows, filters);
+    updateTableRows(host, nextRows);
+    toggleClearFiltersButton(clearFiltersBtn, hasActiveFilters(filters));
+  };
+
+  [dateInput, statusSelect, typeSelect].forEach((control) => {
+    control?.addEventListener('input', applyFiltersToTable);
+    control?.addEventListener('change', applyFiltersToTable);
+  });
+
+  clearFiltersBtn?.addEventListener('click', () => {
+    if (dateInput) dateInput.value = '';
+    if (statusSelect) statusSelect.value = '';
+    if (typeSelect) typeSelect.value = '';
+    applyFiltersToTable();
+  });
+
+  toggleClearFiltersButton(clearFiltersBtn, false);
+
+  return host;
+}
+
+function toggleClearFiltersButton(button, isVisible) {
+  if (!button) {
+    return;
+  }
+
+  button.classList.toggle('hidden', !isVisible);
 }
 
 function applyAdminFilters(rows, filters) {
@@ -231,28 +274,65 @@ function updateTableRows(host, rows) {
     return;
   }
 
-  const source = sortRows(rows || [], 'start').slice().reverse();
+  const source = sortRows(rows || [], 'createdAt').slice().reverse();
   if (!source.length) {
-    target.innerHTML = `<tr><td colspan="7" class="py-6">${renderEmptyState({ title: 'No reservations match', message: 'Adjust filter values to show bookings from your database.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`;
+    target.innerHTML = `<tr><td colspan="9" class="py-6">${renderEmptyState({ title: 'No reservations match', message: 'Adjust filter values to show bookings from your database.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`;
     return;
   }
 
   target.innerHTML = source
-    .map(
-      (row) => `<tr class="border-b border-slate-100 dark:border-white/5">
-        <td class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
-        <td class="py-3 pr-3">
-          <p class="font-semibold">${escapeHtml(row.customer || '-')}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
-        </td>
-        <td class="py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
-        <td class="py-3 pr-3">${escapeHtml(row.start || '-')} to ${escapeHtml(row.end || '-')}</td>
-        <td class="py-3 pr-3">${escapeHtml(row.type || '-')}</td>
-        <td class="py-3 pr-3"><span class="${statusClass(row.status)}">${escapeHtml(row.status || 'Confirmed')}</span></td>
-        <td class="py-3 pr-3 font-semibold">$${Number(row.total || 0).toFixed(2)}</td>
-      </tr>`
-    )
+    .map((row) => renderBookingRow(row))
     .join('');
+}
+
+function normalizeBookingStatusLabel(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (normalized === 'pending') return 'Pending';
+  if (normalized === 'confirmed') return 'Confirmed';
+  if (normalized === 'cancelled') return 'Cancelled';
+  if (normalized === 'completed') return 'Completed';
+  return 'Confirmed';
+}
+
+function statusOptionMarkup(currentStatus) {
+  const selectedStatus = normalizeBookingStatusLabel(currentStatus);
+  return BOOKING_STATUS_OPTIONS.map((status) => `<option value="${status}" style="${statusOptionStyle(status)}" ${status === selectedStatus ? 'selected' : ''}>${status}</option>`).join('');
+}
+
+function renderBookingRow(row) {
+  const bookingId = String(row && row.bookingId ? row.bookingId : '').trim();
+  const bookingCode = String(row && row.id ? row.id : '').trim();
+  const currentStatus = normalizeBookingStatusLabel(row && row.status ? row.status : 'Confirmed');
+  const isDisabled = !bookingId;
+  const disabledState = isDisabled ? 'disabled' : '';
+
+  return `<tr class="border-b border-slate-100 dark:border-white/5" data-booking-id="${escapeHtml(bookingId)}" data-booking-code="${escapeHtml(bookingCode)}" data-current-status="${escapeHtml(currentStatus)}">
+    <td class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
+    <td class="py-3 pr-3">
+      <p class="font-semibold">${escapeHtml(row.customer || '-')}</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerPhone || '-')}</p>
+    </td>
+    <td class="py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
+    <td class="py-3 pr-3">${escapeHtml(row.pickupLocation || '-')}</td>
+    <td class="py-3 pr-3">${escapeHtml(row.start || '-')}</td>
+    <td class="py-3 pr-3">${escapeHtml(row.end || '-')}</td>
+    <td class="py-3 pr-3">${escapeHtml(row.type || '-')}</td>
+    <td class="py-3 pr-3">
+      <select data-booking-status-select ${disabledState} class="${statusSelectClass(currentStatus, isDisabled)}">
+        ${statusOptionMarkup(currentStatus)}
+      </select>
+    </td>
+    <td class="py-3 pr-3 font-semibold">$${Number(row.total || 0).toFixed(2)}</td>
+  </tr>`;
+}
+
+function statusOptionStyle(status) {
+  if (status === 'Confirmed') return 'background-color:#dcfce7;color:#166534;';
+  if (status === 'Pending') return 'background-color:#fef3c7;color:#92400e;';
+  if (status === 'Cancelled') return 'background-color:#ffe4e6;color:#be123c;';
+  if (status === 'Completed') return 'background-color:#e2e8f0;color:#334155;';
+  return 'background-color:#ffffff;color:#334155;';
 }
 
 function buildTypeOptions(rows, selectedType) {
@@ -307,11 +387,14 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function statusClass(status) {
-  const base = 'rounded-full px-2.5 py-1 text-xs font-semibold';
-  if (status === 'Confirmed') return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
-  if (status === 'Ongoing') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
-  if (status === 'Pending') return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
-  if (status === 'Completed') return `${base} bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200`;
-  return `${base} bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300`;
+function statusSelectClass(status, isDisabled) {
+  const normalized = normalizeBookingStatusLabel(status);
+  const base = 'w-[140px] rounded-lg border px-2 py-1 text-xs font-semibold outline-none transition focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-60';
+  const disabled = isDisabled ? ' opacity-60' : '';
+
+  if (normalized === 'Confirmed') return `${base} border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/20 dark:text-emerald-200${disabled}`;
+  if (normalized === 'Pending') return `${base} border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/20 dark:text-amber-200${disabled}`;
+  if (normalized === 'Cancelled') return `${base} border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-400/30 dark:bg-rose-500/20 dark:text-rose-200${disabled}`;
+  if (normalized === 'Completed') return `${base} border-slate-300 bg-slate-200 text-slate-800 dark:border-slate-400/30 dark:bg-slate-500/25 dark:text-slate-200${disabled}`;
+  return `${base} border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200${disabled}`;
 }
