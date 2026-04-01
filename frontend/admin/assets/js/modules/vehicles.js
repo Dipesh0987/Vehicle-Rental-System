@@ -10,7 +10,7 @@ const STATUS_OPTIONS = ['Available', 'Unavailable', 'Maintenance', 'Inactive'];
 const REQUIRED_FUEL_TYPES = ['Petrol', 'Diesel', 'Electric'];
 const FALLBACK_ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-export function renderVehiclesModule({ data, query, notify, catalogService, reloadVehiclesData }) {
+export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, reloadVehiclesData, rerender }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -108,6 +108,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, relo
                     <td class="py-3 pr-3">${escapeHtml(formatNpr(vehicle.seasonal || 0))}</td>
                     <td class="py-3 pr-3">
                       <div class="flex gap-2">
+                        <button data-edit-id="${escapeHtml(vehicle.id)}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Edit</button>
                         <button data-delete-id="${escapeHtml(vehicle.id)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 ${
                           canDeleteCatalog ? '' : 'opacity-60 cursor-not-allowed'
                         }" ${canDeleteCatalog ? '' : 'disabled'}>Delete</button>
