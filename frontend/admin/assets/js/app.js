@@ -63,6 +63,9 @@ function renderActiveModule() {
       data: appState.data,
       query: appState.globalSearch,
       notify: pushToast,
+      catalogService,
+      canWriteCatalog: appState.canWriteCatalog,
+      rerender: renderActiveModule,
     });
 
     if (typeof section === 'string') {
