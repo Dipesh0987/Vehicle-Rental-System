@@ -9,6 +9,7 @@
   var BOOTSTRAP_ADMIN_EMAILS = ["admin.bootstrap@vehicle-rental.local", "admin@vehicle-rental.local"];
 
   var ALLOWED_FUEL_TYPES = ["Petrol", "Diesel", "Electric"];
+  var ALLOWED_STATUS_VALUES = ["available", "maintenance", "inactive", "unavailable"];
   var ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
   var MAX_IMAGE_COUNT = 5;
   var MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -219,6 +220,11 @@
     var seats = Number.isFinite(rawSeats) ? Math.trunc(rawSeats) : NaN;
     var pricePerDay = toDecimal(payload && payload.pricePerDay);
     var fuelType = normalizeFuelType(payload && payload.fuelType);
+    var status = normalizeStatus(payload && payload.status);
+
+    if (ALLOWED_STATUS_VALUES.indexOf(status) < 0) {
+      status = "available";
+    }
 
     if (!name) {
       errors.name = "Vehicle name is required.";
@@ -278,6 +284,7 @@
       normalized: {
         name: name,
         type: type,
+        status: status,
         seats: seats,
         pricePerDay: pricePerDay,
         fuelType: fuelType,
@@ -431,6 +438,7 @@
 
   function normalizeStatus(status) {
     var value = toLower(status || "available");
+    if (value === "unavailable" || value === "rented") return "unavailable";
     if (value === "maintenance") return "maintenance";
     if (value === "inactive") return "inactive";
     return "available";
@@ -607,7 +615,7 @@
       seats: validation.normalized.seats,
       price_per_day: validation.normalized.pricePerDay,
       fuel_type: validation.normalized.fuelType,
-      status: "available",
+      status: validation.normalized.status,
       created_by: session.user.id,
     };
 
