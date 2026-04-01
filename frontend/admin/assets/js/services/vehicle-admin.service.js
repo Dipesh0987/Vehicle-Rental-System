@@ -6,6 +6,7 @@ function getCatalogService() {
 
 function normalizeStatus(status) {
   const value = String(status || "available").toLowerCase();
+  if (value === "unavailable" || value === "rented") return "Unavailable";
   if (value === "maintenance") return "Maintenance";
   if (value === "inactive") return "Inactive";
   return "Available";

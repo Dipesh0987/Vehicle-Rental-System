@@ -10,7 +10,8 @@
   var VEHICLE_IMAGE_BUCKET = "vehicle-images";
 
   var ALLOWED_FUEL_TYPES = ["Petrol", "Diesel", "Electric"];
-  var ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  var ALLOWED_STATUS_VALUES = ["available", "maintenance", "inactive", "unavailable"];
+  var ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
   var MAX_IMAGE_COUNT = 5;
   var MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
   var MIN_SEATS = 1;
@@ -444,14 +445,17 @@
     var payload = input || {};
     var errors = {};
 
-    var brand = normalizeString(payload.brand, "");
-    var name = normalizeString(payload.name, "");
-    var type = normalizeString(payload.type || payload.category, "");
-    var seatsRaw = Number(payload.seats);
-    var seats = Number.isFinite(seatsRaw) ? Math.trunc(seatsRaw) : NaN;
-    var priceRaw = toNumber(payload.pricePerDay || payload.daily || payload.dailyRate, NaN);
-    var fuelType = normalizeFuelTypeValue(payload.fuelType || payload.fuel);
-    var images = toFileArray(payload.images).slice(0, MAX_IMAGE_COUNT);
+    var name = trim(payload && payload.name);
+    var type = trim(payload && payload.type);
+    var rawSeats = Number(payload && payload.seats);
+    var seats = Number.isFinite(rawSeats) ? Math.trunc(rawSeats) : NaN;
+    var pricePerDay = toDecimal(payload && payload.pricePerDay);
+    var fuelType = normalizeFuelType(payload && payload.fuelType);
+    var status = normalizeStatus(payload && payload.status);
+
+    if (ALLOWED_STATUS_VALUES.indexOf(status) < 0) {
+      status = "available";
+    }
 
     if (!name) {
       errors.name = "Vehicle name is required.";
@@ -508,6 +512,7 @@
         brand: brand,
         name: name,
         type: type,
+        status: status,
         seats: seats,
         pricePerDay: Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : 0,
         fuelType: fuelType,
@@ -600,8 +605,13 @@
     var workingPayload = Object.assign({}, payload || {});
     var attempts = 0;
 
-    while (attempts < 24) {
-      attempts += 1;
+  function normalizeStatus(status) {
+    var value = toLower(status || "available");
+    if (value === "unavailable" || value === "rented") return "unavailable";
+    if (value === "maintenance") return "maintenance";
+    if (value === "inactive") return "inactive";
+    return "available";
+  }
 
       var result = await client.from(tableName).insert(workingPayload).select("*").limit(1);
       if (!result.error) {
@@ -629,6 +639,40 @@
     if (!imageTable) {
       return;
     }
+    return null;
+  }
+
+  async function createVehicle(payload) {
+    var validation = validateVehicleInput(payload || {});
+    if (!validation.valid) {
+      throw buildValidationError(validation);
+    }
+
+    var client = await getClient();
+    var session = await assertAdminSession(client);
+
+    var insertPayload = {
+      name: validation.normalized.name,
+      type: validation.normalized.type,
+      seats: validation.normalized.seats,
+      price_per_day: validation.normalized.pricePerDay,
+      fuel_type: validation.normalized.fuelType,
+      status: validation.normalized.status,
+      created_by: session.user.id,
+    };
+
+    var insertedVehicle = await client
+      .from("vehicles")
+      .insert(insertPayload)
+      .select("id, name, type, seats, price_per_day, fuel_type, status, primary_image_url, created_at")
+      .single();
+
+    if (insertedVehicle.error) {
+      throw insertedVehicle.error;
+    }
+
+    var vehicleId = String(insertedVehicle.data.id);
+    var uploadedImages = [];
 
     try {
       await client.from(imageTable).delete().eq("vehicle_id", vehicleId);
