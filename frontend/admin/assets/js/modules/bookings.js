@@ -9,7 +9,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   host.className = 'space-y-4';
 
   const allRows = Array.isArray(data && data.bookings) ? data.bookings : [];
-  const searchedRows = filterRows(allRows, query, ['id', 'customer', 'customerEmail', 'customerPhone', 'vehicle', 'type', 'status', 'pickupLocation']);
+  const searchedRows = filterRows(allRows, query, ['id', 'customer', 'customerEmail', 'customerPhone', 'vehicle', 'type', 'driverOption', 'status', 'pickupLocation']);
 
   const dateFilter = '';
   const statusFilter = '';
@@ -74,6 +74,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
               <th class="pb-2 pr-3">Date From</th>
               <th class="pb-2 pr-3">Date To</th>
               <th class="pb-2 pr-3">Type</th>
+              <th class="pb-2 pr-3">Driver Option</th>
               <th class="pb-2 pr-3">Status</th>
               <th class="pb-2 pr-3">Total</th>
             </tr>
@@ -83,7 +84,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
               ? sortedRows
               .map((row) => renderBookingRow(row))
               .join('')
-              : `<tr><td colspan="9" class="py-6">${renderEmptyState({ title: 'No reservations yet', message: 'Live bookings will appear here after successful customer checkout.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`}
+              : `<tr><td colspan="10" class="py-6">${renderEmptyState({ title: 'No reservations yet', message: 'Live bookings will appear here after successful customer checkout.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -276,7 +277,7 @@ function updateTableRows(host, rows) {
 
   const source = sortRows(rows || [], 'createdAt').slice().reverse();
   if (!source.length) {
-    target.innerHTML = `<tr><td colspan="9" class="py-6">${renderEmptyState({ title: 'No reservations match', message: 'Adjust filter values to show bookings from your database.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`;
+    target.innerHTML = `<tr><td colspan="10" class="py-6">${renderEmptyState({ title: 'No reservations match', message: 'Adjust filter values to show bookings from your database.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`;
     return;
   }
 
@@ -318,6 +319,7 @@ function renderBookingRow(row) {
     <td class="py-3 pr-3">${escapeHtml(row.start || '-')}</td>
     <td class="py-3 pr-3">${escapeHtml(row.end || '-')}</td>
     <td class="py-3 pr-3">${escapeHtml(row.type || '-')}</td>
+    <td class="py-3 pr-3">${escapeHtml(row.driverOption || 'Self Drive')}</td>
     <td class="py-3 pr-3">
       <select data-booking-status-select ${disabledState} class="${statusSelectClass(currentStatus, isDisabled)}">
         ${statusOptionMarkup(currentStatus)}

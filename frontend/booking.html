@@ -148,7 +148,7 @@
           <section class="space-y-4 rounded-3xl border border-[#d5e0db] bg-white/95 p-4 sm:p-5">
             <div id="bookingFormError" class="hidden rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-semibold text-rose-700"></div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-3 sm:grid-cols-3">
               <label class="grid gap-1">
                 <span class="text-[12px] font-semibold text-[#315154]">Vehicle</span>
                 <select id="bookingVehicleSelect" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]"></select>
@@ -157,6 +157,14 @@
               <label class="grid gap-1">
                 <span class="text-[12px] font-semibold text-[#315154]">Pickup Time</span>
                 <input id="bookingPickupTime" type="time" value="10:00" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+              </label>
+
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Driver Option</span>
+                <select id="bookingDriverOption" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]">
+                  <option value="self_drive" selected>Self Drive</option>
+                  <option value="with_driver">With Driver</option>
+                </select>
               </label>
             </div>
 
@@ -187,7 +195,7 @@
             <div class="grid gap-3 sm:grid-cols-2">
               <label class="grid gap-1">
                 <span class="text-[12px] font-semibold text-[#315154]">Phone <span class="text-rose-600">*</span></span>
-                <input id="bookingCustomerPhone" type="tel" required placeholder="+1 555 000 000" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+                <input id="bookingCustomerPhone" type="tel" required placeholder="+977 555 000 000" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
               </label>
 
               <label class="grid gap-1">

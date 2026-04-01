@@ -6,6 +6,7 @@
   var BOOKING_VERSION_KEY = "vrs:vehicle-booking-version";
   var ACTIVE_BOOKING_STATUSES = ["pending", "confirmed"];
   var ALL_BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
+  var ALL_DRIVER_OPTIONS = ["self_drive", "with_driver"];
 
   var COUPON_RULES = {
     SAVE10: { type: "percent", value: 0.1, label: "10% off applied" },
@@ -139,6 +140,21 @@
     return "confirmed";
   }
 
+  function bookingDriverOptionLabel(value) {
+    var normalized = toLower(value);
+    if (normalized === "with_driver") return "With Driver";
+    return "Self Drive";
+  }
+
+  function sanitizeDriverOption(value) {
+    var normalized = toLower(value);
+    if (ALL_DRIVER_OPTIONS.indexOf(normalized) >= 0) {
+      return normalized;
+    }
+
+    return "self_drive";
+  }
+
   function normalizeEmail(value) {
     return normalizeString(value, "").toLowerCase();
   }
@@ -243,12 +259,20 @@
       return "Booking schema is not ready. Run migration 006_vehicle_bookings_system.sql first.";
     }
 
+    if (text.indexOf("driver_option") >= 0 && (text.indexOf("column") >= 0 || text.indexOf("could not find") >= 0)) {
+      return "Booking schema is missing driver option support. Run migration 009_booking_driver_option.sql.";
+    }
+
     if (text.indexOf("email") >= 0 && text.indexOf("check") >= 0) {
       return "Please enter a valid customer email address.";
     }
 
     if (text.indexOf("status") >= 0 && text.indexOf("check") >= 0) {
       return "Booking status is invalid for the current database constraints.";
+    }
+
+    if (text.indexOf("driver_option") >= 0 && text.indexOf("check") >= 0) {
+      return "Driver option is invalid for the current database constraints.";
     }
 
     if (text.indexOf("permission denied") >= 0 || text.indexOf("row-level security") >= 0) {
@@ -324,6 +348,7 @@
     var startDate = normalizeDate(payload.startDate);
     var endDate = normalizeDate(payload.endDate);
     var pickupTime = normalizeTime(payload.pickupTime);
+    var driverOption = sanitizeDriverOption(payload.driverOption || "self_drive");
     var status = sanitizeStatus(payload.status || "confirmed");
     var notes = normalizeString(payload.notes, "");
 
@@ -390,6 +415,7 @@
         startDate: startDate,
         endDate: endDate,
         pickupTime: pickupTime,
+        driverOption: driverOption,
         status: status,
         notes: notes,
         couponCode: quote.couponCode,
@@ -495,6 +521,7 @@
       .trim();
 
     var status = sanitizeStatus(pickFirst(row, ["status"], "confirmed"));
+    var driverOption = sanitizeDriverOption(pickFirst(row, ["driver_option", "driverOption"], "self_drive"));
     var type = vehicle ? normalizeString(vehicle.category || vehicle.type, "Vehicle") : "Vehicle";
 
     return {
@@ -508,6 +535,8 @@
       startDate: normalizeDate(row.start_date),
       endDate: normalizeDate(row.end_date),
       pickupTime: normalizeTime(row.pickup_time),
+      driverOption: driverOption,
+      driverOptionLabel: bookingDriverOptionLabel(driverOption),
       status: status,
       statusLabel: bookingStatusLabel(status),
       type: type,
@@ -560,7 +589,7 @@
 
     var query = client
       .from(tableName)
-      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
       .order("created_at", { ascending: false });
 
     if (opts.vehicleId) {
@@ -678,6 +707,7 @@
       start_date: normalized.startDate,
       end_date: normalized.endDate,
       pickup_time: normalized.pickupTime,
+      driver_option: normalized.driverOption,
       status: normalized.status,
       currency: normalized.quote.currency,
       base_amount: normalized.quote.baseAmount,
@@ -692,7 +722,7 @@
     var result = await client
       .from(tableName)
       .insert(insertPayload)
-      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
       .limit(1)
       .single();
 
@@ -787,6 +817,7 @@
 
   window.VehicleBookingService = {
     statuses: ALL_BOOKING_STATUSES.slice(),
+    driverOptions: ALL_DRIVER_OPTIONS.slice(),
     activeStatuses: ACTIVE_BOOKING_STATUSES.slice(),
     coupons: Object.keys(COUPON_RULES),
     calculateBookingQuote: calculateBookingQuote,
