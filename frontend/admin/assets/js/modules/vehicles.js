@@ -1,5 +1,5 @@
 import { classMap } from '../config.js';
-import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
+import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { openDrawer, openModal, renderEmptyState } from '../ui.js';
 
 export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, rerender }) {
@@ -7,8 +7,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
   host.className = 'space-y-4';
 
   const filtered = filterRows(data.vehicles, query, ['id', 'name', 'category', 'status']);
-  const sorted = sortRows(filtered, 'name');
-  const paged = paginateRows(sorted, 1, 6);
+  const paged = paginateRows(filtered, 1, 6);
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -55,7 +54,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
                   <td class="py-3 pr-3">
                     <div class="flex gap-2">
                       <button data-edit-id="${vehicle.id}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Edit</button>
-                      <button data-delete-id="${vehicle.id}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600">Delete</button>
+                      <button data-delete-id="${vehicle.id}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Delete</button>
                     </div>
                   </td>
                 </tr>`
@@ -139,12 +138,16 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
           const payload = {
             name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
             category: document.getElementById('editVehicleCategory')?.value || selectedVehicle.category,
-            status: selectedVehicle.status,
-            daily: selectedVehicle.daily,
-            weekly: selectedVehicle.weekly,
-            seasonal: selectedVehicle.seasonal,
-            image: selectedVehicle.image,
+            status: document.getElementById('editVehicleStatus')?.value || selectedVehicle.status,
+            daily: document.getElementById('editVehicleDaily')?.value || selectedVehicle.daily,
+            weekly: document.getElementById('editVehicleWeekly')?.value || selectedVehicle.weekly,
+            seasonal: document.getElementById('editVehicleSeasonal')?.value || selectedVehicle.seasonal,
+            image: document.getElementById('editVehicleImage')?.value?.trim() || selectedVehicle.image,
           };
+
+          if (!payload.name) {
+            throw new Error('Vehicle name is required.');
+          }
 
           await catalogService.saveVehicle(payload, selectedVehicle.id);
           document.getElementById('overlayHost')?.replaceChildren();
@@ -162,10 +165,28 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
   host.querySelectorAll('[data-delete-id]').forEach((button) => {
     button.addEventListener('click', () => {
       const id = button.getAttribute('data-delete-id');
+
+      if (!canWriteCatalog) {
+        notify('Write access is unavailable for vehicle catalog updates.', 'error');
+        return;
+      }
+
       openModal({
         title: 'Confirm Vehicle Deletion',
         content: `<p>Vehicle <strong>${id}</strong> will be removed from availability and hidden from booking channels.</p>`,
-        onConfirm: () => notify(`Deletion requested for ${id}`, 'warn'),
+        onConfirm: async () => {
+          try {
+            if (!catalogService || typeof catalogService.deleteVehicle !== 'function') {
+              throw new Error('Catalog service is unavailable.');
+            }
+
+            await catalogService.deleteVehicle(id);
+            rerender?.();
+            notify(`Vehicle ${id} deleted successfully.`, 'success');
+          } catch (error) {
+            notify(`Failed to delete vehicle ${id}: ${error.message}`, 'error');
+          }
+        },
       });
     });
   });
@@ -186,13 +207,20 @@ function statusClass(status) {
 
 function renderVehicleEditDrawer(vehicle) {
   const selectedCategory = (value) => (vehicle.category === value ? 'selected' : '');
+  const selectedStatus = (value) => (vehicle.status === value ? 'selected' : '');
   const safeName = escapeHtml(vehicle.name || '');
   const safeId = escapeHtml(vehicle.id || '');
+  const safeImage = escapeHtml(vehicle.image || '');
 
   return `
     <form id="editVehicleForm" class="space-y-3" data-vehicle-id="${safeId}">
       <label class="block space-y-1"><span class="text-xs font-semibold">Vehicle Name</span><input id="editVehicleName" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeName}" placeholder="Enter vehicle name" /></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Category</span><select id="editVehicleCategory" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedCategory('SUV')}>SUV</option><option ${selectedCategory('Sedan')}>Sedan</option><option ${selectedCategory('Bike')}>Bike</option><option ${selectedCategory('Electric')}>Electric</option><option ${selectedCategory('Luxury')}>Luxury</option></select></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Status</span><select id="editVehicleStatus" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedStatus('Available')}>Available</option><option ${selectedStatus('Rented')}>Rented</option><option ${selectedStatus('Maintenance')}>Maintenance</option></select></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Daily Rate</span><input id="editVehicleDaily" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${vehicle.daily}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Weekly Rate</span><input id="editVehicleWeekly" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${vehicle.weekly}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Seasonal Rate</span><input id="editVehicleSeasonal" type="number" min="0" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${vehicle.seasonal}" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Image URL</span><input id="editVehicleImage" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeImage}" placeholder="https://..." /></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Upload Image</span><input type="file" class="w-full text-xs" /></label>
       <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
     </form>
