@@ -1290,6 +1290,8 @@
     var noteDefaultText = note ? String(note.textContent || "").trim() : "";
     var noteFadeTimerId = null;
     var noteResetTimerId = null;
+    var profileToastNode = null;
+    var profileToastHideTimerId = null;
 
     function clearProfileNoteTimers() {
       if (noteFadeTimerId) {
@@ -1364,6 +1366,68 @@
 
         noteFadeTimerId = null;
       }, hideDelay);
+    }
+
+    function ensureProfileSaveToast() {
+      if (profileToastNode && document.body.contains(profileToastNode)) {
+        return profileToastNode;
+      }
+
+      profileToastNode = document.createElement("div");
+      profileToastNode.setAttribute("data-profile-save-toast", "true");
+      profileToastNode.setAttribute("aria-live", "polite");
+      profileToastNode.style.position = "fixed";
+      profileToastNode.style.top = "18px";
+      profileToastNode.style.right = "18px";
+      profileToastNode.style.zIndex = "280";
+      profileToastNode.style.maxWidth = "min(92vw, 360px)";
+      profileToastNode.style.padding = "11px 14px";
+      profileToastNode.style.borderRadius = "12px";
+      profileToastNode.style.boxShadow = "0 14px 30px rgba(6, 19, 24, 0.28)";
+      profileToastNode.style.fontSize = "13px";
+      profileToastNode.style.fontWeight = "700";
+      profileToastNode.style.opacity = "0";
+      profileToastNode.style.transform = "translateY(8px)";
+      profileToastNode.style.pointerEvents = "none";
+      profileToastNode.style.transition = "opacity 260ms ease, transform 260ms ease";
+      document.body.appendChild(profileToastNode);
+
+      return profileToastNode;
+    }
+
+    function showProfileSaveToast(message, mode, autoHideMs) {
+      var toast = ensureProfileSaveToast();
+      var tone = String(mode || "success").toLowerCase();
+
+      if (profileToastHideTimerId) {
+        window.clearTimeout(profileToastHideTimerId);
+        profileToastHideTimerId = null;
+      }
+
+      toast.textContent = String(message || "Profile saved successfully.");
+
+      if (tone === "error") {
+        toast.style.background = "linear-gradient(145deg, rgba(127, 29, 29, 0.95), rgba(153, 27, 27, 0.95))";
+        toast.style.border = "1px solid rgba(252, 165, 165, 0.5)";
+        toast.style.color = "#fff1f2";
+      } else if (tone === "info") {
+        toast.style.background = "linear-gradient(145deg, rgba(31, 91, 87, 0.95), rgba(30, 107, 98, 0.95))";
+        toast.style.border = "1px solid rgba(147, 197, 253, 0.4)";
+        toast.style.color = "#ecfeff";
+      } else {
+        toast.style.background = "linear-gradient(145deg, rgba(20, 105, 88, 0.96), rgba(18, 94, 82, 0.96))";
+        toast.style.border = "1px solid rgba(110, 231, 183, 0.5)";
+        toast.style.color = "#ecfdf5";
+      }
+
+      toast.style.opacity = "1";
+      toast.style.transform = "translateY(0)";
+
+      profileToastHideTimerId = window.setTimeout(function () {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(8px)";
+        profileToastHideTimerId = null;
+      }, Math.max(1200, Number(autoHideMs || 3000)));
     }
 
     function forceHideNativeFileInput(input) {
@@ -1458,13 +1522,7 @@
       }
 
       if (!opts.silentFeedback) {
-        showProfileNoteMessage(
-          cloudSynced
-            ? "Profile updated and synced to Supabase."
-            : "Profile updated locally.",
-          "success",
-          0
-        );
+        showProfileNoteMessage("Profile updated", "success", 0);
       }
 
       return {
@@ -1499,13 +1557,8 @@
       saveBtn.addEventListener("click", function () {
         Promise.resolve(saveProfileData(undefined, { silentFeedback: true }))
           .then(function (result) {
-            showProfileNoteMessage(
-              result && result.cloudSynced
-                ? "Profile saved successfully and synced to Supabase."
-                : "Profile saved successfully.",
-              "success",
-              3000
-            );
+            closePanel();
+            showProfileSaveToast("Profile updated", "success", 3000);
           })
           .catch(function (error) {
             var auth = getAuthService();
