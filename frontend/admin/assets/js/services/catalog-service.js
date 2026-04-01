@@ -5,12 +5,23 @@ export function createCatalogService({ data }) {
   const toLocalVehicle = (row) => ({
     id: row.id,
     name: row.name,
-    category: row.category,
+    type: row.type,
+    seats: Number(row.seats || 5),
+    fuel_type: row.fuel_type,
     status: row.status,
-    daily: Number(row.daily || 0),
-    weekly: Number(row.weekly || 0),
-    seasonal: Number(row.seasonal || 0),
-    image: row.image || 'https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=640&q=80',
+    primary_image_url: row.primary_image_url,
+    category: row.category,
+    transmission: row.transmission,
+    rating: Number(row.rating || 4.6),
+    location: row.location,
+    available: row.available,
+    is_active: row.is_active,
+    brand: row.brand,
+    price_per_day: Number(row.price_per_day || 0),
+    daily: Number(row.price_per_day || 0),
+    weekly: 0,
+    seasonal: 0,
+    image: row.primary_image_url || row.image_url || 'https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=640&q=80',
   });
 
   async function getClient() {
@@ -35,13 +46,13 @@ export function createCatalogService({ data }) {
     const client = await getClient();
     const { data: rows, error } = await client
       .from(TABLE_NAME)
-      .select('id,name,category,status,daily,weekly,seasonal,image')
+      .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url')
       .order('updated_at', { ascending: false });
 
     if (error) {
       const fallback = await client
         .from(TABLE_NAME)
-        .select('id,name,category,status,daily,weekly,seasonal,image')
+        .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url')
         .order('id', { ascending: true });
 
       if (fallback.error) {
@@ -69,14 +80,20 @@ export function createCatalogService({ data }) {
       const client = await getClient();
 
       const normalized = {
-        id,
         name: vehicleInput.name,
+        type: vehicleInput.type,
+        seats: Number(vehicleInput.seats),
+        price_per_day: Number(vehicleInput.price_per_day),
+        fuel_type: vehicleInput.fuel_type,
+        status: String(vehicleInput.status || '').toLowerCase(),
+        primary_image_url: vehicleInput.primary_image_url,
         category: vehicleInput.category,
-        status: vehicleInput.status,
-        daily: Number(vehicleInput.daily),
-        weekly: Number(vehicleInput.weekly),
-        seasonal: Number(vehicleInput.seasonal),
-        image: vehicleInput.image,
+        transmission: vehicleInput.transmission,
+        rating: Number(vehicleInput.rating),
+        location: vehicleInput.location,
+        available: Boolean(vehicleInput.available),
+        is_active: Boolean(vehicleInput.is_active),
+        brand: vehicleInput.brand,
       };
 
       if (id) {
@@ -98,18 +115,16 @@ export function createCatalogService({ data }) {
         return updated;
       }
 
-      const generatedId = `V-${Math.floor(100 + Math.random() * 900)}`;
       const record = {
         ...normalized,
-        id: generatedId,
       };
 
-      const { error } = await client.from(TABLE_NAME).insert(record);
+      const { error, data: inserted } = await client.from(TABLE_NAME).insert(record).select('*').single();
       if (error) {
         throw new Error(error.message || 'Vehicle creation failed.');
       }
 
-      const created = toLocalVehicle(record);
+      const created = toLocalVehicle(inserted || record);
       data.vehicles.unshift(created);
       return created;
     },
