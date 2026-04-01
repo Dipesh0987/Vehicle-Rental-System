@@ -41,7 +41,7 @@ const catalogService = createCatalogService({ data: appState.data });
 
 bootstrap();
 
-function bootstrap() {
+async function bootstrap() {
   const root = document.getElementById('adminApp');
   if (!root) return;
 
@@ -50,6 +50,16 @@ function bootstrap() {
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
   setActiveNav(appState.activeModule);
+
+  try {
+    const vehicles = await catalogService.loadVehicles();
+    if (Array.isArray(vehicles) && vehicles.length) {
+      appState.data.vehicles = vehicles;
+      renderActiveModule();
+    }
+  } catch (error) {
+    pushToast(`Vehicle DB sync failed: ${error.message}`, 'error');
+  }
 }
 
 function renderActiveModule() {
