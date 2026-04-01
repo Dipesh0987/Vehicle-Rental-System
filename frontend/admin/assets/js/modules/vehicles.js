@@ -168,6 +168,25 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
     });
   });
 
+  host.querySelectorAll('[data-edit-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-edit-id');
+      const selectedVehicle = data.vehicles.find((vehicle) => vehicle.id === id);
+
+      if (!selectedVehicle) {
+        notify('Unable to open edit drawer: vehicle record not found.', 'error');
+        return;
+      }
+
+      openDrawer({
+        title: 'Edit Vehicle',
+        content: renderVehicleEditDrawer(selectedVehicle),
+      });
+
+      notify(`Editing ${id}`, 'info');
+    });
+  });
+
   host.querySelectorAll('[data-delete-id]').forEach((button) => {
     button.addEventListener('click', () => {
       const id = button.getAttribute('data-delete-id');
@@ -209,6 +228,19 @@ function statusClass(status) {
   if (status === 'Unavailable' || status === 'Rented') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
   if (status === 'Inactive') return `${base} bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200`;
   return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
+}
+
+function renderVehicleEditDrawer(vehicle) {
+  const selectedCategory = (value) => (String(vehicle?.category || '') === value ? 'selected' : '');
+
+  return `
+    <form id="editVehicleForm" class="space-y-3" data-vehicle-id="${escapeHtml(vehicle?.id)}">
+      <label class="block space-y-1"><span class="text-xs font-semibold">Vehicle Name</span><input id="editVehicleName" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${escapeHtml(vehicle?.name)}" placeholder="Enter vehicle name" /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Category</span><select id="editVehicleCategory" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedCategory('SUV')}>SUV</option><option ${selectedCategory('Sedan')}>Sedan</option><option ${selectedCategory('Bike')}>Bike</option><option ${selectedCategory('Electric')}>Electric</option><option ${selectedCategory('Luxury')}>Luxury</option></select></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Upload Image</span><input type="file" class="w-full text-xs" /></label>
+      <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
+    </form>
+  `;
 }
 
 function formatVehicleTitle(vehicle) {
