@@ -527,6 +527,7 @@
     return {
       id: normalizeString(row.id, ""),
       bookingCode: normalizeString(row.booking_code, ""),
+      customerUserId: normalizeString(pickFirst(row, ["customer_user_id", "customerUserId"], ""), ""),
       vehicleId: vehicleId,
       customerName: normalizeString(row.customer_name, ""),
       customerEmail: normalizeEmail(row.customer_email),
@@ -589,7 +590,7 @@
 
     var query = client
       .from(tableName)
-      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select("id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
       .order("created_at", { ascending: false });
 
     if (opts.vehicleId) {
@@ -722,7 +723,7 @@
     var result = await client
       .from(tableName)
       .insert(insertPayload)
-      .select("id,booking_code,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select("id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
       .limit(1)
       .single();
 
