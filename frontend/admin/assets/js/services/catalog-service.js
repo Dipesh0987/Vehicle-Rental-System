@@ -18,13 +18,15 @@ export function createCatalogService({ data }) {
           throw new Error(`Vehicle ${id} was not found.`);
         }
 
-        data.vehicles[index] = {
+        const updated = {
           ...data.vehicles[index],
           ...normalized,
           id,
         };
+        data.vehicles.splice(index, 1);
+        data.vehicles.unshift(updated);
 
-        return data.vehicles[index];
+        return updated;
       }
 
       const generatedId = `V-${Math.floor(100 + Math.random() * 900)}`;
@@ -34,6 +36,20 @@ export function createCatalogService({ data }) {
       };
       data.vehicles.unshift(created);
       return created;
+    },
+
+    async deleteVehicle(id) {
+      if (!id) {
+        throw new Error('Vehicle id is required.');
+      }
+
+      const index = data.vehicles.findIndex((vehicle) => vehicle.id === id);
+      if (index < 0) {
+        throw new Error(`Vehicle ${id} was not found.`);
+      }
+
+      const [deleted] = data.vehicles.splice(index, 1);
+      return deleted;
     },
   };
 }
