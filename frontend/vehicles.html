@@ -47,51 +47,6 @@
         --public-accent: #f08f5f;
         --public-ink: #182227;
         --public-sand: #f5f1e8;
-        --admin-surface: #f4f3ef;
-        --admin-surface-soft: #e9e0d7;
-      }
-
-      @keyframes panelRise {
-        from {
-          opacity: 0;
-          transform: translateY(12px) scale(0.98);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-
-      @keyframes syncPulse {
-        0%,
-        100% {
-          transform: scale(0.92);
-          opacity: 0.7;
-        }
-        50% {
-          transform: scale(1.05);
-          opacity: 1;
-        }
-      }
-
-      @keyframes stageIn {
-        from {
-          opacity: 0;
-          transform: translateY(18px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @keyframes softShimmer {
-        0% {
-          background-position: -200% 0;
-        }
-        100% {
-          background-position: 200% 0;
-        }
       }
 
       .bg-paper {
@@ -136,94 +91,6 @@
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
         gap: 2rem;
         align-items: stretch;
-      }
-
-      .elite-stage {
-        animation: stageIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-      }
-
-      .elite-glass {
-        border: 1px solid rgba(23, 57, 60, 0.12);
-        background: linear-gradient(150deg, rgba(255, 255, 255, 0.94), rgba(239, 233, 223, 0.82));
-        box-shadow: 0 24px 52px rgba(7, 31, 34, 0.12);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-      }
-
-      .elite-search-shell {
-        position: relative;
-        overflow: hidden;
-      }
-
-      .elite-search-shell::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background: linear-gradient(112deg, transparent 0%, rgba(255, 255, 255, 0.42) 50%, transparent 100%);
-        background-size: 220% 100%;
-        animation: softShimmer 6.8s linear infinite;
-      }
-
-      .vehicle-result-card {
-        position: relative;
-        overflow: hidden;
-        opacity: 0;
-        transform: translate3d(0, 16px, 0) scale(0.992);
-        transition:
-          opacity 360ms ease,
-          transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
-          box-shadow 240ms ease;
-        transition-delay: var(--card-stagger-delay, 0ms);
-        will-change: opacity, transform;
-      }
-
-      .vehicle-result-card.is-visible {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-      }
-
-      .vehicle-result-card.is-visible:hover {
-        transform: translate3d(0, -6px, 0) scale(1.01);
-      }
-
-      .vehicle-result-card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        border-radius: inherit;
-        border: 1px solid rgba(31, 118, 104, 0.08);
-        transition: border-color 220ms ease;
-      }
-
-      .vehicle-result-card::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        border-radius: inherit;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
-      }
-
-      .vehicle-result-card:hover::before {
-        border-color: rgba(31, 118, 104, 0.24);
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .vehicle-result-card {
-          opacity: 1;
-          transform: none;
-          transition: none;
-        }
-
-        .vehicle-result-card.is-visible:hover {
-          transform: none;
-        }
-      }
-
-      .animate-cardLift {
-        animation: stageIn 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
       }
 
       #vehicleResults > * {
@@ -277,50 +144,6 @@
       .vehicle-gallery-nav:active {
         transform: translateY(-50%) scale(0.96);
       }
-
-      .results-sync-indicator {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        border-radius: 9999px;
-        border: 1px solid rgba(23, 57, 60, 0.14);
-        background: rgba(255, 255, 255, 0.82);
-        color: #2c5256;
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        padding: 0.38rem 0.72rem;
-      }
-
-      .results-sync-indicator .sync-dot {
-        width: 0.5rem;
-        height: 0.5rem;
-        border-radius: 9999px;
-        background: #2c766e;
-        animation: syncPulse 1.1s ease-in-out infinite;
-      }
-
-      .quick-filter-btn {
-        transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, color 180ms ease;
-      }
-
-      .quick-filter-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 18px rgba(7, 31, 34, 0.12);
-      }
-
-      .book-now-btn {
-        background-color: #ffffff;
-        color: #1f7668;
-        border-color: #1f7668;
-      }
-
-      .book-now-btn:hover,
-      .book-now-btn:focus-visible {
-        background-color: #1f7668 !important;
-        color: #ffffff !important;
-        border-color: #16584d !important;
-      }
     </style>
   </head>
   <body class="bg-paper text-slate-900 antialiased">
@@ -364,63 +187,23 @@
           </button>
 
           <div data-profile-panel class="absolute right-0 top-[calc(100%+14px)] z-[130] w-[320px] max-h-[72vh] origin-top-right overflow-y-auto rounded-[18px] border border-white/25 bg-[linear-gradient(160deg,rgba(21,52,56,0.96),rgba(17,41,44,0.96))] p-4 text-white shadow-[0_20px_45px_rgba(2,14,16,0.36)] opacity-0 -translate-y-2 scale-95 pointer-events-none transition duration-200 max-[1024px]:fixed max-[1024px]:left-1/2 max-[1024px]:right-auto max-[1024px]:top-[90px] max-[1024px]:w-[min(92vw,360px)] max-[1024px]:-translate-x-1/2">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <p class="text-[16px] font-semibold">Edit Profile</p>
-                <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
-              </div>
-              <button type="button" data-profile-panel-close aria-label="Close profile panel" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 text-white/85 transition hover:bg-white/10">
-                <span aria-hidden="true" class="text-[15px] leading-none">&#10005;</span>
-              </button>
-            </div>
+            <p class="text-[16px] font-semibold">Edit Profile</p>
+            <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
 
             <div class="mt-3 space-y-3">
-              <div class="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2">
-                <span data-profile-avatar-preview class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/35 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[13px] font-semibold text-white">GU</span>
-                <div class="min-w-0">
-                  <p class="text-[11px] text-white/65">Signed in as</p>
-                  <p data-profile-email class="truncate text-[12px] text-white/90">guest@example.com</p>
-                </div>
-              </div>
-
               <label class="block text-[12px] text-white/85" for="profileName">Username</label>
-              <input
-                id="profileName"
-                type="text"
-                class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[14px] text-white outline-none"
-                placeholder="Enter username"
-              />
-
-              <label class="block text-[12px] text-white/85" for="profileEmail">Email</label>
-              <input
-                id="profileEmail"
-                type="email"
-                readonly
-                class="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-[13px] text-white/85 outline-none"
-                placeholder="you@example.com"
-              />
+              <input id="profileName" type="text" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[14px] text-white outline-none" placeholder="Enter username" />
 
               <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
-              <div class="profile-photo-shell rounded-xl border border-[rgba(23,57,60,0.16)] bg-white/70 p-3 transition duration-200">
-                <div class="flex items-center gap-2">
-                  <input id="profilePhoto" type="file" accept="image/*" class="hidden" />
-                  <label for="profilePhoto" class="inline-flex cursor-pointer items-center justify-center rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white transition hover:brightness-105">Choose Photo</label>
-                  <span id="profileFileLabel" class="min-w-0 truncate text-[12px] text-white/80">No file selected</span>
-                </div>
-                <p class="mt-2 text-[11px] text-white/65">JPG, PNG, WEBP up to 20 MB.</p>
-              </div>
+              <input id="profilePhoto" type="file" accept="image/*" class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white" />
 
               <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90 transition duration-200 hover:-translate-y-[1px]">
-                Changes sync to your account profile.
+                Changes are stored locally (dummy UI flow).
               </div>
 
               <div class="flex gap-2">
-                <button id="saveProfile" type="button" class="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
-                  Save
-                </button>
-                <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">
-                  Logout
-                </button>
+                <button id="saveProfile" type="button" class="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">Save</button>
+                <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">Logout</button>
               </div>
             </div>
           </div>
@@ -435,7 +218,7 @@
     </div>
 
     <main class="mx-auto w-[95%] max-w-[1460px] pb-12 pt-2 lg:pt-3">
-      <section class="elite-stage relative mb-8 overflow-hidden rounded-3xl border border-white/65 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(240,246,243,0.84))] p-7 shadow-[0_22px_48px_rgba(10,31,34,0.12)] lg:p-8">
+      <section class="relative mb-8 overflow-hidden rounded-3xl border border-white/65 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(240,246,243,0.84))] p-7 shadow-[0_22px_48px_rgba(10,31,34,0.12)] lg:p-8">
         <div class="pointer-events-none absolute right-[-90px] top-[-80px] h-72 w-72 rounded-full bg-[radial-gradient(circle,#f08f5f42,transparent_68%)]"></div>
         <p class="inline-flex rounded-full border border-[rgba(44,118,110,0.22)] bg-[rgba(44,118,110,0.1)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-panel">
           Smart Vehicle Discovery
@@ -446,7 +229,7 @@
         </p>
       </section>
 
-      <div id="vehicleSearchTop" class="elite-stage elite-search-shell elite-glass relative z-20 mb-8 rounded-3xl p-5 sm:p-6 lg:p-8" style="animation-delay:90ms;">
+      <div id="vehicleSearchTop" class="relative z-20 mb-8 rounded-3xl border border-white/60 bg-white/90 p-5 shadow-[0_22px_46px_rgba(10,31,34,0.14)] backdrop-blur-md sm:p-6 sm:backdrop-blur-lg lg:p-8">
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-5">
           <div class="space-y-2">
             <label class="block text-[12px] font-semibold uppercase tracking-[0.11em] text-[#4a6568]"><i class="fas fa-map-marker-alt mr-2 text-accent"></i>Pickup Location</label>
@@ -494,16 +277,12 @@
         </button>
 
         <div class="min-w-0 flex-1">
-          <div id="resultsToolbar" class="elite-stage mb-8 flex flex-col items-center justify-between gap-4 rounded-3xl border border-[#d9e2de] bg-white/92 p-5 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:flex-row sm:p-6" style="animation-delay:140ms;">
+          <div id="resultsToolbar" class="mb-8 flex flex-col items-center justify-between gap-4 rounded-3xl border border-[#d9e2de] bg-white/90 p-5 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:flex-row sm:p-6">
             <div>
               <p class="text-[12px] font-semibold uppercase tracking-[0.11em] text-[#4a6568]">Live Catalog</p>
               <p class="mt-1 text-[18px] font-bold text-ink"><span id="resultCount">0</span> vehicles found</p>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-3">
-              <div id="resultsSyncStatus" class="results-sync-indicator hidden">
-                <span class="sync-dot" aria-hidden="true"></span>
-                <span>Refreshing live catalog</span>
-              </div>
               <select id="sortBy" class="min-w-[230px] rounded-xl border border-[#d4ded9] bg-white px-4 py-2.5 text-sm font-semibold text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25">
                 <option value="relevance">Sort by: Relevance</option>
                 <option value="price-low">Price: Low to High</option>
@@ -531,7 +310,6 @@
       </div>
     </main>
 
-    <script src="assets/js/supabase.config.local.js"></script>
     <script src="assets/js/supabase.config.js"></script>
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>

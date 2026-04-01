@@ -37,14 +37,12 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 
 ## Supabase Auth Setup
 
-1. Keep `frontend/assets/js/supabase.config.js` as committed placeholder-safe config.
-2. Create `frontend/assets/js/supabase.config.local.js` (git-ignored) with your real credentials using `frontend/assets/js/supabase.config.example.js` as template.
-3. Confirm your local override contains your live project URL and anon key.
-4. In Supabase Dashboard -> Authentication -> Providers:
+1. Confirm `frontend/assets/js/supabase.config.js` has your live project URL and anon key.
+2. In Supabase Dashboard -> Authentication -> Providers:
 	- Enable Email provider.
 	- Enable email confirmation (verification link).
 	- Optionally enable Google provider for OAuth sign-in.
-5. In Supabase Dashboard -> Authentication -> URL Configuration, include your frontend URLs (example local URLs):
+3. In Supabase Dashboard -> Authentication -> URL Configuration, include your frontend URLs (example local URLs):
 	- `http://127.0.0.1:5500/frontend/login.html`
 	- `http://127.0.0.1:5500/frontend/index.html`
 	- `http://localhost:5500/frontend/login.html`
