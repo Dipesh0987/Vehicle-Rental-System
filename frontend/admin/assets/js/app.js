@@ -74,20 +74,9 @@ function renderActiveModule() {
       data: appState.data,
       query: appState.globalSearch,
       notify: pushToast,
-      catalogService: appState.catalogService,
-      bookingService: appState.bookingService,
-      reloadVehiclesData: async () => {
-        await hydrateVehiclesFromCatalog({ silent: true });
-        if (appState.activeModule === 'vehicles' || appState.activeModule === 'overview') {
-          renderActiveModule();
-        }
-      },
-      reloadBookingsData: async () => {
-        await hydrateBookingsFromDatabase({ silent: true });
-        if (appState.activeModule === 'bookings' || appState.activeModule === 'overview') {
-          renderActiveModule();
-        }
-      },
+      catalogService,
+      canWriteCatalog: appState.canWriteCatalog,
+      rerender: renderActiveModule,
     });
 
     if (typeof section === 'string') {
