@@ -13,6 +13,7 @@ import { renderReviewsModule } from './modules/reviews.js';
 import { renderAdminsModule } from './modules/admins.js';
 import { renderNotificationsModule } from './modules/notifications.js';
 import { renderReportsModule } from './modules/reports.js';
+import { createCatalogService } from './services/catalog-service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -32,8 +33,11 @@ const modules = {
 const appState = {
   activeModule: 'overview',
   globalSearch: '',
+  canWriteCatalog: true,
   data: structuredClone(dashboardData),
 };
+
+const catalogService = createCatalogService({ data: appState.data });
 
 bootstrap();
 
