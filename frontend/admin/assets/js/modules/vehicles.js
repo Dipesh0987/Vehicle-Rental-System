@@ -122,6 +122,24 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
         content: renderVehicleEditDrawer(selectedVehicle),
       });
 
+      const editForm = document.getElementById('editVehicleForm');
+      editForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const payload = {
+          name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
+          category: document.getElementById('editVehicleCategory')?.value || selectedVehicle.category,
+          status: selectedVehicle.status,
+          daily: selectedVehicle.daily,
+          weekly: selectedVehicle.weekly,
+          seasonal: selectedVehicle.seasonal,
+          image: selectedVehicle.image,
+        };
+
+        await catalogService.saveVehicle(payload, selectedVehicle.id);
+        rerender?.();
+      });
+
       notify(`Editing ${id}`, 'info');
     });
   });
