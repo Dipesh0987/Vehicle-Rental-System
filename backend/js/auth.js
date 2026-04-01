@@ -1321,9 +1321,9 @@
 
       var active = Boolean(isDragOver);
       photoShell.classList.toggle("border-[#2c766e]", active);
-      photoShell.classList.toggle("bg-[rgba(44,118,110,0.12)]", active);
-      photoShell.classList.toggle("border-[rgba(23,57,60,0.16)]", !active);
-      photoShell.classList.toggle("bg-white/70", !active);
+      photoShell.classList.toggle("bg-[rgba(44,118,110,0.28)]", active);
+      photoShell.classList.toggle("border-white/20", !active);
+      photoShell.classList.toggle("bg-[linear-gradient(145deg,rgba(44,118,110,0.2),rgba(255,255,255,0.08))]", !active);
     }
 
     setPhotoFileLabel();
