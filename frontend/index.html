@@ -141,25 +141,10 @@
               </button>
 
               <div data-profile-panel class="absolute right-0 top-[calc(100%+14px)] z-[130] w-[320px] max-h-[72vh] origin-top-right overflow-y-auto rounded-[18px] border border-white/25 bg-[linear-gradient(160deg,rgba(21,52,56,0.96),rgba(17,41,44,0.96))] p-4 text-white shadow-[0_20px_45px_rgba(2,14,16,0.36)] opacity-0 -translate-y-2 scale-95 pointer-events-none transition duration-200 max-[1024px]:fixed max-[1024px]:left-1/2 max-[1024px]:right-auto max-[1024px]:top-[90px] max-[1024px]:w-[min(92vw,360px)] max-[1024px]:-translate-x-1/2">
-                <div class="flex items-start justify-between gap-2">
-                  <div>
-                    <p class="text-[16px] font-semibold">Edit Profile</p>
-                    <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
-                  </div>
-                  <button type="button" data-profile-panel-close aria-label="Close profile panel" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 text-white/85 transition hover:bg-white/10">
-                    <span aria-hidden="true" class="text-[15px] leading-none">&#10005;</span>
-                  </button>
-                </div>
+                <p class="text-[16px] font-semibold">Edit Profile</p>
+                <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
 
                 <div class="mt-3 space-y-3">
-                  <div class="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2">
-                    <span data-profile-avatar-preview class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/35 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[13px] font-semibold text-white">GU</span>
-                    <div class="min-w-0">
-                      <p class="text-[11px] text-white/65">Signed in as</p>
-                      <p data-profile-email class="truncate text-[12px] text-white/90">guest@example.com</p>
-                    </div>
-                  </div>
-
                   <label class="block text-[12px] text-white/85" for="profileName">Username</label>
                   <input
                     id="profileName"
@@ -173,19 +158,17 @@
                     id="profileEmail"
                     type="email"
                     readonly
-                    class="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-[13px] text-white/85 outline-none"
+                    class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[13px] text-white/85 outline-none"
                     placeholder="you@example.com"
                   />
 
                   <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
-                  <div class="profile-photo-shell rounded-xl border border-[rgba(23,57,60,0.16)] bg-white/70 p-3 transition duration-200">
-                    <div class="flex items-center gap-2">
-                      <input id="profilePhoto" type="file" accept="image/*" class="hidden" />
-                      <label for="profilePhoto" class="inline-flex cursor-pointer items-center justify-center rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white transition hover:brightness-105">Choose Photo</label>
-                      <span id="profileFileLabel" class="min-w-0 truncate text-[12px] text-white/80">No file selected</span>
-                    </div>
-                    <p class="mt-2 text-[11px] text-white/65">JPG, PNG, WEBP up to 20 MB.</p>
-                  </div>
+                  <input
+                    id="profilePhoto"
+                    type="file"
+                    accept="image/*"
+                    class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white"
+                  />
 
                   <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90 transition duration-200 hover:-translate-y-[1px]">
                     Changes sync to your account profile.
@@ -284,7 +267,6 @@
         </div>
       </section>
     </main>
-    <script src="assets/js/supabase.config.local.js"></script>
     <script src="assets/js/supabase.config.js"></script>
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>

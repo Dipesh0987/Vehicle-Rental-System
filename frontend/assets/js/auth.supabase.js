@@ -278,151 +278,6 @@
     );
   }
 
-  function sanitizeAvatarUrl(value) {
-    var raw = trim(value);
-
-    if (!raw) {
-      return "";
-    }
-
-    var lowered = raw.toLowerCase();
-    if (
-      lowered === "null" ||
-      lowered === "undefined" ||
-      lowered === "[object object]"
-    ) {
-      return "";
-    }
-
-    if (isKnownPlaceholderAvatarUrl(raw)) {
-      return "";
-    }
-
-    return raw;
-  }
-
-  function normalizeDataImageUrlForStorage(value) {
-    var avatarUrl = sanitizeAvatarUrl(value);
-
-    if (avatarUrl.indexOf("data:image/") !== 0) {
-      return "";
-    }
-
-    if (avatarUrl.length > PROFILE_IMAGE_MAX_DATA_URL_CHARS) {
-      return "";
-    }
-
-    return avatarUrl;
-  }
-
-  function isLocalOnlyAvatarUrl(value) {
-    var avatarUrl = sanitizeAvatarUrl(value);
-    return (
-      avatarUrl.indexOf("data:") === 0 ||
-      avatarUrl.indexOf("blob:") === 0
-    );
-  }
-
-  function stripUrlQueryAndHash(value) {
-    var raw = sanitizeAvatarUrl(value);
-    if (!raw) {
-      return "";
-    }
-
-    var withoutHash = raw.split("#")[0];
-    return withoutHash.split("?")[0];
-  }
-
-  function appendAvatarVersion(url) {
-    var normalized = sanitizeAvatarUrl(url);
-    if (!normalized) {
-      return "";
-    }
-
-    var divider = normalized.indexOf("?") >= 0 ? "&" : "?";
-    return normalized + divider + "v=" + Date.now();
-  }
-
-  function extractStorageObjectPathFromAvatarUrl(value, userId) {
-    var cleaned = stripUrlQueryAndHash(value);
-    var uid = trim(userId);
-
-    if (!cleaned || !uid || isLocalOnlyAvatarUrl(cleaned)) {
-      return "";
-    }
-
-    if (/^https?:\/\//i.test(cleaned)) {
-      try {
-        var parsed = new URL(cleaned);
-        var prefixes = [
-          "/storage/v1/object/public/" + PROFILE_IMAGE_BUCKET + "/",
-          "/storage/v1/object/sign/" + PROFILE_IMAGE_BUCKET + "/",
-          "/storage/v1/object/authenticated/" + PROFILE_IMAGE_BUCKET + "/",
-        ];
-
-        for (var i = 0; i < prefixes.length; i += 1) {
-          var prefix = prefixes[i];
-          var idx = parsed.pathname.indexOf(prefix);
-          if (idx >= 0) {
-            var absolutePath = decodeURIComponent(parsed.pathname.slice(idx + prefix.length)).replace(/^\/+/, "");
-            return absolutePath.indexOf(uid + "/") === 0 ? absolutePath : "";
-          }
-        }
-      } catch (_err) {
-        return "";
-      }
-
-      return "";
-    }
-
-    var relative = cleaned.replace(/^\/+/, "");
-    if (!relative) {
-      return "";
-    }
-
-    if (relative.indexOf(PROFILE_IMAGE_BUCKET + "/") === 0) {
-      relative = relative.slice((PROFILE_IMAGE_BUCKET + "/").length);
-    }
-
-    return relative.indexOf(uid + "/") === 0 ? relative : "";
-  }
-
-  function resolveAvatarUrlFromDatabase(client, value) {
-    var avatarUrl = sanitizeAvatarUrl(value);
-
-    if (!avatarUrl) {
-      return null;
-    }
-
-    if (avatarUrl.indexOf("data:image/") === 0) {
-      return avatarUrl;
-    }
-
-    if (avatarUrl.indexOf("blob:") === 0) {
-      return null;
-    }
-
-    if (/^https?:\/\//i.test(avatarUrl)) {
-      return avatarUrl;
-    }
-
-    var objectPath = avatarUrl.replace(/^\/+/, "");
-    if (objectPath.indexOf(PROFILE_IMAGE_BUCKET + "/") === 0) {
-      objectPath = objectPath.slice((PROFILE_IMAGE_BUCKET + "/").length);
-    }
-
-    if (!objectPath) {
-      return null;
-    }
-
-    var publicUrlResponse = client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(objectPath);
-    var publicUrl = publicUrlResponse && publicUrlResponse.data
-      ? sanitizeAvatarUrl(publicUrlResponse.data.publicUrl)
-      : "";
-
-    return publicUrl || null;
-  }
-
   function normalizeProfilePayload(profileInput, session) {
     var input = profileInput;
     var fullName = "";
@@ -432,7 +287,7 @@
       fullName = trim(input);
     } else if (input && typeof input === "object") {
       fullName = trim(input.fullName || input.full_name);
-      avatarUrl = sanitizeAvatarUrl(input.avatarUrl || input.avatar_url);
+      avatarUrl = trim(input.avatarUrl || input.avatar_url);
     }
 
     if (!fullName) {
@@ -442,14 +297,6 @@
 
     if (!fullName) {
       fullName = getDisplayNameFromEmail(session && session.user && session.user.email);
-    }
-
-    if (avatarUrl.indexOf("blob:") === 0) {
-      avatarUrl = "";
-    } else if (avatarUrl.indexOf("data:image/") === 0) {
-      avatarUrl = normalizeDataImageUrlForStorage(avatarUrl);
-    } else {
-      avatarUrl = stripUrlQueryAndHash(avatarUrl);
     }
 
     return {
@@ -838,27 +685,13 @@
       throw new Error("Profile image upload succeeded but URL generation failed.");
     }
 
-    return appendAvatarVersion(publicUrl);
-  }
-
-  async function cleanupProfileImages(keepAvatarReference) {
-    var client = await getClient();
-    var session = await getSession();
-
-    if (!session || !session.user) {
-      throw new Error("You must be signed in to manage profile images.");
+    try {
+      await removeOldProfileImages(storageBucket, session.user.id, objectPath);
+    } catch (cleanupError) {
+      console.warn("Old profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
     }
 
-    var normalizedKeepReference = sanitizeAvatarUrl(keepAvatarReference);
-    var keepPath = extractStorageObjectPathFromAvatarUrl(normalizedKeepReference, session.user.id);
-
-    if (normalizedKeepReference && !keepPath) {
-      return;
-    }
-
-    var storageBucket = client.storage.from(PROFILE_IMAGE_BUCKET);
-
-    await removeOldProfileImages(storageBucket, session.user.id, keepPath);
+    return publicUrl + "?v=" + Date.now();
   }
 
   async function getProfile() {
@@ -892,13 +725,11 @@
       return null;
     }
 
-    var resolvedAvatarUrl = resolveAvatarUrlFromDatabase(client, response.data.avatar_url);
-
     return {
       id: response.data.id,
       email: response.data.email,
       full_name: response.data.full_name,
-      avatar_url: resolvedAvatarUrl,
+      avatar_url: response.data.avatar_url || null,
       updated_at: response.data.updated_at,
     };
   }
@@ -954,15 +785,13 @@
       };
     }
 
-    var resolvedAvatarUrl = resolveAvatarUrlFromDatabase(client, response.data.avatar_url);
-
     return {
       success: true,
       data: {
         id: response.data.id,
         email: response.data.email,
         full_name: response.data.full_name,
-        avatar_url: resolvedAvatarUrl,
+        avatar_url: response.data.avatar_url || null,
         updated_at: response.data.updated_at,
       },
       error: null,
@@ -974,7 +803,6 @@
     getSession: getSession,
     getProfile: getProfile,
     uploadProfileImage: uploadProfileImage,
-    cleanupProfileImages: cleanupProfileImages,
     signUp: signUp,
     signIn: signIn,
     signOut: signOut,

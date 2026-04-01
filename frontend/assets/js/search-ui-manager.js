@@ -726,50 +726,10 @@ class SearchUIManager {
         let html = "";
         for (let i = 0; i < 6; i++) {
             html += `
-                <article class="overflow-hidden rounded-2xl border border-[#d4ded9] bg-white shadow-[0_12px_24px_rgba(10,31,34,0.08)]">
-                    <div class="h-[220px] animate-pulse bg-gradient-to-r from-[#ecf2ef] via-[#f8fbfa] to-[#ecf2ef]"></div>
-                    <div class="space-y-3 p-5">
-                        <div class="h-4 w-[55%] animate-pulse rounded-full bg-[#edf3f0]"></div>
-                        <div class="h-3 w-[38%] animate-pulse rounded-full bg-[#edf3f0]"></div>
-                        <div class="grid grid-cols-2 gap-2 pt-1">
-                            <div class="h-9 animate-pulse rounded-xl bg-[#edf3f0]"></div>
-                            <div class="h-9 animate-pulse rounded-xl bg-[#edf3f0]"></div>
-                        </div>
-                        <div class="h-11 animate-pulse rounded-xl bg-[#edf3f0]"></div>
-                    </div>
-                </article>
+                <div class="h-96 animate-pulse rounded-2xl border border-[#d4ded9] bg-gradient-to-r from-[#eef3f1] via-[#f7faf9] to-[#eef3f1]"></div>
             `;
         }
         resultsDiv.innerHTML = html;
-    }
-
-    /**
-     * Show live refresh status in the results toolbar.
-     */
-    showReloadStatus(message) {
-        const status = document.getElementById("resultsSyncStatus");
-        if (!status) {
-            return;
-        }
-
-        const textNode = status.querySelector("span:last-child");
-        if (textNode && message) {
-            textNode.textContent = String(message);
-        }
-
-        status.classList.remove("hidden");
-    }
-
-    /**
-     * Hide live refresh status in the results toolbar.
-     */
-    hideReloadStatus() {
-        const status = document.getElementById("resultsSyncStatus");
-        if (!status) {
-            return;
-        }
-
-        status.classList.add("hidden");
     }
 
     /**
