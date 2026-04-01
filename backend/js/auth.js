@@ -6,7 +6,6 @@
   var STORAGE_PROFILE_PREFIX = "vrs_profile::";
   var STORAGE_ATTEMPTS = "vrs_login_attempts";
   var PROFILE_UPDATED_EVENT = "vrs:profile-updated";
-  var BROKEN_AVATAR_SYNC_CACHE = {};
   var MAX_ATTEMPTS_WARNING = 3;
   var STATIC_BOOKINGS = [
     {
@@ -90,155 +89,6 @@
     return safeParse(sessionRaw, null);
   }
 
-  function normalizeAvatarValue(value) {
-    var raw = String(value || "").trim();
-
-    if (!raw) {
-      return "";
-    }
-
-    var lowered = raw.toLowerCase();
-    if (
-      lowered === "null" ||
-      lowered === "undefined" ||
-      lowered === "[object object]"
-    ) {
-      return "";
-    }
-
-    var normalizedPath = raw.split("#")[0].split("?")[0].toLowerCase();
-    if (
-      normalizedPath.indexOf("assets/images/car-transparent.png") >= 0 ||
-      normalizedPath.indexOf("default-avatar") >= 0 ||
-      normalizedPath.indexOf("avatar-placeholder") >= 0
-    ) {
-      return "";
-    }
-
-    return raw;
-  }
-
-  function isRenderableAvatarValue(value) {
-    var avatar = normalizeAvatarValue(value);
-    if (!avatar) {
-      return false;
-    }
-
-    return (
-      avatar.indexOf("data:image/") === 0 ||
-      avatar.indexOf("blob:") === 0 ||
-      avatar.indexOf("https://") === 0 ||
-      avatar.indexOf("http://") === 0 ||
-      avatar.charAt(0) === "/"
-    );
-  }
-
-  function getCloudAvatarValue(value) {
-    var avatar = normalizeAvatarValue(value);
-    if (!avatar) {
-      return null;
-    }
-
-    if (avatar.indexOf("blob:") === 0) {
-      return null;
-    }
-
-    if (avatar.indexOf("data:image/") === 0) {
-      return avatar;
-    }
-
-    if (avatar.indexOf("data:") === 0) {
-      return null;
-    }
-
-    var withoutHash = avatar.split("#")[0];
-    var withoutQuery = withoutHash.split("?")[0];
-    return withoutQuery || null;
-  }
-
-  function toLocalProfileShape(profile) {
-    var input = profile || {};
-
-    return {
-      username: String(input.username || "Guest User"),
-      avatarDataUrl: normalizeAvatarValue(input.avatarDataUrl),
-      email: String(input.email || ""),
-    };
-  }
-
-  function renderAvatarFallback(avatarEl, username) {
-    if (!avatarEl) {
-      return;
-    }
-
-    avatarEl.innerHTML = "";
-    avatarEl.textContent = getInitials(username || "User");
-  }
-
-  function renderAvatarImage(avatarEl, avatarUrl, username, onBrokenAvatar) {
-    if (!avatarEl) {
-      return;
-    }
-
-    var normalizedUrl = normalizeAvatarValue(avatarUrl);
-    avatarEl.innerHTML = "";
-
-    if (normalizedUrl && isRenderableAvatarValue(normalizedUrl)) {
-      var img = document.createElement("img");
-      img.src = normalizedUrl;
-      img.alt = "Profile image";
-      img.className = "h-full w-full object-cover";
-      img.onerror = function () {
-        renderAvatarFallback(avatarEl, username);
-        if (typeof onBrokenAvatar === "function") {
-          onBrokenAvatar(normalizedUrl);
-        }
-      };
-      avatarEl.appendChild(img);
-      return;
-    }
-
-    renderAvatarFallback(avatarEl, username);
-  }
-
-  function clearBrokenAvatarFromCloud(profile, brokenAvatarUrl) {
-    var normalizedBrokenAvatar = normalizeAvatarValue(brokenAvatarUrl);
-    if (!normalizedBrokenAvatar) {
-      return;
-    }
-
-    var localProfile = toLocalProfileShape(profile);
-    if (normalizeAvatarValue(localProfile.avatarDataUrl) === normalizedBrokenAvatar) {
-      localProfile.avatarDataUrl = "";
-      setProfile(localProfile);
-    }
-
-    if (BROKEN_AVATAR_SYNC_CACHE[normalizedBrokenAvatar]) {
-      return;
-    }
-
-    // Prevent repeated writes for the same failing URL while the page is open.
-    BROKEN_AVATAR_SYNC_CACHE[normalizedBrokenAvatar] = true;
-
-    var auth = getAuthService();
-    if (!auth || typeof auth.upsertProfile !== "function") {
-      return;
-    }
-
-    auth.upsertProfile({
-      fullName: localProfile.username,
-      avatarUrl: null,
-    })
-      .then(function (syncResult) {
-        if (syncResult && syncResult.success && syncResult.data) {
-          setProfile(mapRemoteProfileToLocal(syncResult.data, localProfile));
-        }
-      })
-      .catch(function () {
-        // Keep local fallback avatar even if cloud cleanup fails.
-      });
-  }
-
   function setSession(session, rememberMe) {
     var raw = JSON.stringify(session);
 
@@ -305,27 +155,15 @@
       email: String(session && session.email ? session.email : ""),
     };
 
-    var scopedKey = getScopedProfileStorageKey(session);
-    if (scopedKey) {
-      var scopedProfile = safeParse(localStorage.getItem(scopedKey), null);
-      if (scopedProfile && typeof scopedProfile === "object") {
-        return toLocalProfileShape(Object.assign(fallback, scopedProfile));
-      }
-
-      var legacyProfile = readLegacyProfileForSession(session);
-      if (legacyProfile) {
-        localStorage.setItem(scopedKey, JSON.stringify(legacyProfile));
-        localStorage.removeItem(STORAGE_PROFILE);
-        return toLocalProfileShape(Object.assign(fallback, legacyProfile));
-      }
-    }
-
-    return toLocalProfileShape(fallback);
+    return Object.assign(fallback, safeParse(localStorage.getItem(STORAGE_PROFILE), {}));
   }
 
   function setProfile(profile) {
-    var nextProfile = toLocalProfileShape(profile);
-    var scopedKey = getScopedProfileStorageKey();
+    var nextProfile = profile || {
+      username: "Guest User",
+      avatarDataUrl: "",
+      email: "",
+    };
 
     if (scopedKey) {
       localStorage.setItem(scopedKey, JSON.stringify(nextProfile));
@@ -416,7 +254,7 @@
         fallback.username ||
         "User"
       ),
-      avatarDataUrl: normalizeAvatarValue(
+      avatarDataUrl: String(
         (remoteProfile && remoteProfile.avatar_url) ||
         fallback.avatarDataUrl ||
         ""
@@ -485,7 +323,7 @@
           if (!remoteProfile && typeof auth.upsertProfile === "function") {
             auth.upsertProfile({
               fullName: syncedProfile.username,
-              avatarUrl: getCloudAvatarValue(syncedProfile.avatarDataUrl),
+              avatarUrl: syncedProfile.avatarDataUrl,
             }).catch(function () {
               // Keep UI functional even if profile table migration is not applied yet.
             });
@@ -904,7 +742,6 @@
     var profile = getProfile();
     var session = getSession();
     var email = String(profile.email || (session && session.email) || "");
-    var avatarUrl = normalizeAvatarValue(profile.avatarDataUrl);
     var nameEl = document.querySelector("[data-profile-name]");
     var avatarEl = document.querySelector("[data-profile-avatar]");
     var panelAvatarPreviewEl = document.querySelector("[data-profile-avatar-preview]");
@@ -920,10 +757,16 @@
       });
     }
 
-    renderAvatarImage(avatarEl, avatarUrl, profile.username, function (brokenAvatarUrl) {
-      var latestProfile = getProfile();
-      if (normalizeAvatarValue(latestProfile.avatarDataUrl) === brokenAvatarUrl) {
-        clearBrokenAvatarFromCloud(latestProfile, brokenAvatarUrl);
+    if (avatarEl) {
+      avatarEl.innerHTML = "";
+      if (profile.avatarDataUrl) {
+        var img = document.createElement("img");
+        img.src = profile.avatarDataUrl;
+        img.alt = "Profile image";
+        img.className = "h-full w-full object-cover";
+        avatarEl.appendChild(img);
+      } else {
+        avatarEl.textContent = getInitials(profile.username);
       }
     });
 
@@ -970,315 +813,33 @@
   function wireProfilePanel() {
     var trigger = document.querySelector("[data-profile-trigger]");
     var panel = document.querySelector("[data-profile-panel]");
-    var panelCloseBtn = panel ? panel.querySelector("[data-profile-panel-close]") : null;
 
     if (!trigger || !panel) {
       return;
     }
 
-    var isPanelOpen = false;
-    var restoreTimerId = null;
-    var hidePanelTimerId = null;
-    var panelHomeParent = panel.parentNode;
-    var panelHomeNextSibling = panel.nextSibling;
-    var mobileBackdrop = null;
-
-    function isMobileViewport() {
-      if (typeof window.matchMedia !== "function") {
-        return window.innerWidth <= 1024;
-      }
-
-      return window.matchMedia("(max-width: 1024px)").matches;
-    }
-
-    function ensureMobileBackdrop() {
-      if (mobileBackdrop && document.body.contains(mobileBackdrop)) {
-        return mobileBackdrop;
-      }
-
-      mobileBackdrop = document.createElement("div");
-      mobileBackdrop.setAttribute("data-profile-mobile-backdrop", "true");
-      mobileBackdrop.className = "fixed inset-0 z-[120]";
-      mobileBackdrop.style.background = "rgba(14, 29, 32, 0.52)";
-      mobileBackdrop.style.opacity = "0";
-      mobileBackdrop.style.pointerEvents = "none";
-      mobileBackdrop.style.backdropFilter = "blur(0px)";
-      mobileBackdrop.style.webkitBackdropFilter = "blur(0px)";
-      mobileBackdrop.style.transition =
-        "opacity 260ms ease, backdrop-filter 260ms ease, -webkit-backdrop-filter 260ms ease";
-      mobileBackdrop.addEventListener("click", function () {
-        closePanel();
-      });
-      document.body.appendChild(mobileBackdrop);
-      return mobileBackdrop;
-    }
-
-    function showMobileBackdrop() {
-      var backdrop = ensureMobileBackdrop();
-      backdrop.style.opacity = "1";
-      backdrop.style.pointerEvents = "auto";
-      backdrop.style.backdropFilter = "blur(6px)";
-      backdrop.style.webkitBackdropFilter = "blur(6px)";
-    }
-
-    function hideMobileBackdrop() {
-      if (!mobileBackdrop) {
-        return;
-      }
-
-      mobileBackdrop.style.opacity = "0";
-      mobileBackdrop.style.pointerEvents = "none";
-      mobileBackdrop.style.backdropFilter = "blur(0px)";
-      mobileBackdrop.style.webkitBackdropFilter = "blur(0px)";
-    }
-
-    function mountPanelForMobile() {
-      if (panel.parentNode === document.body) {
-        return;
-      }
-
-      panelHomeParent = panelHomeParent || panel.parentNode;
-      panelHomeNextSibling = panel.nextSibling;
-      document.body.appendChild(panel);
-    }
-
-    function restorePanelPlacement() {
-      if (!panelHomeParent || panel.parentNode !== document.body) {
-        return;
-      }
-
-      if (panelHomeNextSibling && panelHomeNextSibling.parentNode === panelHomeParent) {
-        panelHomeParent.insertBefore(panel, panelHomeNextSibling);
-      } else {
-        panelHomeParent.appendChild(panel);
-      }
-    }
-
-    function clearMobilePanelStyles() {
-      panel.style.removeProperty("position");
-      panel.style.removeProperty("top");
-      panel.style.removeProperty("left");
-      panel.style.removeProperty("right");
-      panel.style.removeProperty("z-index");
-      panel.style.removeProperty("width");
-      panel.style.removeProperty("max-height");
-      panel.style.removeProperty("transform");
-      panel.style.removeProperty("transform-origin");
-      panel.style.removeProperty("will-change");
-      panel.style.removeProperty("transition");
-      panel.style.removeProperty("box-shadow");
-    }
-
-    function applyMobilePanelStyles(isOpenState) {
-      var viewportWidth = Math.max(
-        document.documentElement ? document.documentElement.clientWidth : 0,
-        window.innerWidth || 0
-      );
-      var isSmallViewport = viewportWidth <= 640;
-
-      panel.style.position = "fixed";
-      panel.style.zIndex = "130";
-      panel.style.top = "50%";
-      panel.style.left = "50%";
-      panel.style.right = "auto";
-      panel.style.width = isSmallViewport ? "94vw" : "92vw";
-      panel.style.maxWidth = isSmallViewport ? "408px" : "420px";
-      panel.style.minWidth = "0";
-      panel.style.maxHeight = isSmallViewport ? "84vh" : "80vh";
-      panel.style.transformOrigin = "50% 50%";
-      panel.style.willChange = "transform, opacity";
-      panel.style.transition =
-        "opacity 220ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms ease";
-      panel.style.boxShadow = "0 30px 70px rgba(7, 31, 34, 0.32)";
-      panel.style.transform = isOpenState
-        ? "translate(-50%, -50%) scale(1)"
-        : "translate(-50%, -46%) scale(0.935)";
-    }
-
-    function hasAuthenticatedSession() {
-      var session = getSession();
-      if (!session) {
-        return false;
-      }
-
-      return Boolean(String(session.email || "").trim());
-    }
-
-    function clearHidePanelTimer() {
-      if (!hidePanelTimerId) {
-        return;
-      }
-
-      window.clearTimeout(hidePanelTimerId);
-      hidePanelTimerId = null;
-    }
-
-    function showPanelElement() {
-      clearHidePanelTimer();
-      panel.style.display = "block";
-    }
-
-    function scheduleHidePanel(delay) {
-      clearHidePanelTimer();
-
-      hidePanelTimerId = window.setTimeout(function () {
-        if (isPanelOpen) {
-          return;
-        }
-
-        panel.style.display = "none";
-        hidePanelTimerId = null;
-      }, Math.max(0, Number(delay) || 0));
-    }
-
-    trigger.setAttribute("aria-haspopup", "dialog");
-    trigger.setAttribute("aria-expanded", "false");
-    panel.setAttribute("aria-hidden", "true");
-    panel.style.display = "none";
-
     function openPanel() {
-      if (!hasAuthenticatedSession()) {
-        closePanel();
-        return;
-      }
-
-      if (restoreTimerId) {
-        window.clearTimeout(restoreTimerId);
-        restoreTimerId = null;
-      }
-
-      showPanelElement();
-
-      if (isPanelOpen) {
-        return;
-      }
-
-      if (isMobileViewport()) {
-        mountPanelForMobile();
-        applyMobilePanelStyles(false);
-        showMobileBackdrop();
-        document.body.classList.add("overflow-hidden");
-      } else {
-        hideMobileBackdrop();
-        document.body.classList.remove("overflow-hidden");
-        clearMobilePanelStyles();
-        restorePanelPlacement();
-      }
-
-      isPanelOpen = true;
       panel.classList.remove("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
       panel.classList.add("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
-      trigger.setAttribute("aria-expanded", "true");
-      panel.setAttribute("aria-hidden", "false");
-
-      if (isMobileViewport()) {
-        window.requestAnimationFrame(function () {
-          if (!isPanelOpen) {
-            return;
-          }
-          applyMobilePanelStyles(true);
-        });
-      }
     }
 
     function closePanel() {
-      if (!isPanelOpen && !panel.classList.contains("opacity-100")) {
-        return;
-      }
-
-      isPanelOpen = false;
       panel.classList.remove("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
       panel.classList.add("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
-      trigger.setAttribute("aria-expanded", "false");
-      panel.setAttribute("aria-hidden", "true");
-      scheduleHidePanel(isMobileViewport() ? 300 : 220);
-
-      if (isMobileViewport()) {
-        applyMobilePanelStyles(false);
-        hideMobileBackdrop();
-        document.body.classList.remove("overflow-hidden");
-
-        if (restoreTimerId) {
-          window.clearTimeout(restoreTimerId);
-        }
-
-        restoreTimerId = window.setTimeout(function () {
-          if (isPanelOpen) {
-            return;
-          }
-          clearMobilePanelStyles();
-          restorePanelPlacement();
-          restoreTimerId = null;
-        }, 300);
-      } else {
-        clearMobilePanelStyles();
-        restorePanelPlacement();
-      }
     }
 
-    trigger.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (!hasAuthenticatedSession()) {
-        closePanel();
-        return;
-      }
-
-      if (isPanelOpen) {
+    trigger.addEventListener("click", function () {
+      if (panel.classList.contains("opacity-100")) {
         closePanel();
       } else {
         openPanel();
       }
     });
 
-    panel.addEventListener("click", function (event) {
-      event.stopPropagation();
-    });
-
-    if (panelCloseBtn) {
-      panelCloseBtn.addEventListener("click", function (event) {
-        event.preventDefault();
-        closePanel();
-      });
-    }
-
     document.addEventListener("click", function (event) {
-      if (!isPanelOpen) {
-        return;
-      }
-
       if (!panel.contains(event.target) && !trigger.contains(event.target)) {
         closePanel();
       }
-    });
-
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
-        closePanel();
-      }
-    });
-
-    window.addEventListener("resize", function () {
-      if (isPanelOpen) {
-        if (isMobileViewport()) {
-          mountPanelForMobile();
-          applyMobilePanelStyles(true);
-          showMobileBackdrop();
-          document.body.classList.add("overflow-hidden");
-        } else {
-          hideMobileBackdrop();
-          document.body.classList.remove("overflow-hidden");
-          clearMobilePanelStyles();
-          restorePanelPlacement();
-        }
-        return;
-      }
-
-      hideMobileBackdrop();
-      document.body.classList.remove("overflow-hidden");
-      clearMobilePanelStyles();
-      restorePanelPlacement();
     });
 
     var saveBtn = document.getElementById("saveProfile");
@@ -1481,12 +1042,9 @@
     async function saveProfileData(avatarDataUrl, options) {
       var opts = options || {};
       var current = getProfile();
-      var resolvedAvatar = normalizeAvatarValue(
-        avatarDataUrl !== undefined ? avatarDataUrl : current.avatarDataUrl
-      );
       var nextProfile = {
         username: (nameInput && nameInput.value.trim()) || current.username || "User",
-        avatarDataUrl: resolvedAvatar,
+        avatarDataUrl: avatarDataUrl !== undefined ? avatarDataUrl : current.avatarDataUrl,
         email: readCurrentProfileEmail(),
       };
 
@@ -1499,22 +1057,14 @@
         try {
           var syncResult = await auth.upsertProfile({
             fullName: nextProfile.username,
-            avatarUrl: getCloudAvatarValue(nextProfile.avatarDataUrl),
+            avatarUrl: nextProfile.avatarDataUrl,
           });
 
           cloudSynced = Boolean(syncResult && syncResult.success);
 
           if (cloudSynced && syncResult.data) {
-            var syncedProfile = mapRemoteProfileToLocal(syncResult.data, nextProfile);
-            setProfile(syncedProfile);
+            setProfile(mapRemoteProfileToLocal(syncResult.data, nextProfile));
             renderProfileChip();
-
-            if (typeof auth.cleanupProfileImages === "function") {
-              auth.cleanupProfileImages(syncedProfile.avatarDataUrl)
-                .catch(function (cleanupError) {
-                  console.warn("Profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
-                });
-            }
           }
         } catch (_err) {
           cloudSynced = false;
