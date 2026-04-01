@@ -132,6 +132,10 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
         event.preventDefault();
 
         try {
+          if (!catalogService || typeof catalogService.saveVehicle !== 'function') {
+            throw new Error('Catalog service is unavailable.');
+          }
+
           const payload = {
             name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
             category: document.getElementById('editVehicleCategory')?.value || selectedVehicle.category,
@@ -182,13 +186,24 @@ function statusClass(status) {
 
 function renderVehicleEditDrawer(vehicle) {
   const selectedCategory = (value) => (vehicle.category === value ? 'selected' : '');
+  const safeName = escapeHtml(vehicle.name || '');
+  const safeId = escapeHtml(vehicle.id || '');
 
   return `
-    <form id="editVehicleForm" class="space-y-3" data-vehicle-id="${vehicle.id}">
-      <label class="block space-y-1"><span class="text-xs font-semibold">Vehicle Name</span><input id="editVehicleName" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${vehicle.name}" placeholder="Enter vehicle name" /></label>
+    <form id="editVehicleForm" class="space-y-3" data-vehicle-id="${safeId}">
+      <label class="block space-y-1"><span class="text-xs font-semibold">Vehicle Name</span><input id="editVehicleName" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeName}" placeholder="Enter vehicle name" /></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Category</span><select id="editVehicleCategory" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5"><option ${selectedCategory('SUV')}>SUV</option><option ${selectedCategory('Sedan')}>Sedan</option><option ${selectedCategory('Bike')}>Bike</option><option ${selectedCategory('Electric')}>Electric</option><option ${selectedCategory('Luxury')}>Luxury</option></select></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Upload Image</span><input type="file" class="w-full text-xs" /></label>
       <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
     </form>
   `;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
