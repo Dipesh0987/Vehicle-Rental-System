@@ -409,14 +409,14 @@
   function bookingStatusPillClass(status) {
     var meta = bookingStatusMeta(status);
     if (meta.key === "completed") {
-      return "rounded-full border border-[#95d6ae] bg-[rgba(86,170,117,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#d2f0dd]";
+      return "vrs-booking-status vrs-booking-status--completed rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
     }
 
     if (meta.key === "cancelled") {
-      return "rounded-full border border-[#f8b4b4] bg-[rgba(185,46,61,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd1d1]";
+      return "vrs-booking-status vrs-booking-status--cancelled rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
     }
 
-    return "rounded-full border border-[#f5c7a5] bg-[rgba(229,140,78,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd7ba]";
+    return "vrs-booking-status vrs-booking-status--upcoming rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
   }
 
   function formatBookingMoney(value) {
@@ -575,7 +575,7 @@
       return;
     }
 
-    container.innerHTML = "<p class=\"rounded-2xl border border-[#d6dfd9] bg-white px-4 py-3 text-[13px] text-[#406064]\">" + escapeHtml(message || "No records available.") + "</p>";
+    container.innerHTML = "<p class=\"vrs-bookings-message rounded-2xl px-4 py-3 text-[13px]\">" + escapeHtml(message || "No records available.") + "</p>";
   }
 
   function renderBookingDetail(detail, booking) {
@@ -590,11 +590,11 @@
 
     var titleWrap = document.createElement("div");
     var title = document.createElement("h3");
-    title.className = "text-[20px] font-bold leading-tight text-[#17393d]";
+    title.className = "text-[20px] font-bold leading-tight";
     title.textContent = booking.vehicle;
 
     var sub = document.createElement("p");
-    sub.className = "mt-1 text-[12px] text-[#5f787b]";
+    sub.className = "vrs-bookings-subline mt-1 text-[12px]";
     sub.textContent = booking.reference + " • " + booking.category;
     titleWrap.appendChild(title);
     titleWrap.appendChild(sub);
@@ -607,18 +607,18 @@
     top.appendChild(status);
 
     var timeline = document.createElement("div");
-    timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-[#d6dfd9] bg-white p-3 text-[12px] text-[#2f5357] sm:grid-cols-2";
+    timeline.className = "vrs-bookings-detail-grid mt-4 grid grid-cols-1 gap-2 rounded-2xl p-3 text-[12px] sm:grid-cols-2";
     timeline.innerHTML =
-      "<p><span class=\"block text-[#5f787b]\">Pick-up</span>" + escapeHtml(booking.pickupDate) + " at " + escapeHtml(booking.pickupTime) + "</p>" +
-      "<p><span class=\"block text-[#5f787b]\">Drop-off</span>" + escapeHtml(booking.dropoffDate) + "</p>" +
-      "<p><span class=\"block text-[#5f787b]\">From</span>" + escapeHtml(booking.pickupLocation) + "</p>" +
-      "<p><span class=\"block text-[#5f787b]\">To</span>" + escapeHtml(booking.dropoffLocation) + "</p>";
+      "<p><span class=\"vrs-bookings-field-label block\">Pick-up</span>" + escapeHtml(booking.pickupDate) + " at " + escapeHtml(booking.pickupTime) + "</p>" +
+      "<p><span class=\"vrs-bookings-field-label block\">Drop-off</span>" + escapeHtml(booking.dropoffDate) + "</p>" +
+      "<p><span class=\"vrs-bookings-field-label block\">From</span>" + escapeHtml(booking.pickupLocation) + "</p>" +
+      "<p><span class=\"vrs-bookings-field-label block\">To</span>" + escapeHtml(booking.dropoffLocation) + "</p>";
 
     var money = document.createElement("div");
-    money.className = "mt-3 rounded-2xl border border-[#f2d2bb] bg-[#fff7ef] p-3 text-[12px]";
+    money.className = "vrs-bookings-money mt-3 rounded-2xl p-3 text-[12px]";
     money.innerHTML =
-      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-[#8b5530]\">Total Paid</span><strong class=\"text-[16px] text-[#7b4520]\">" + escapeHtml(booking.amount) + "</strong></div>" +
-      "<div class=\"space-y-1 text-[#6d5b4d]\">" +
+      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"vrs-bookings-money-label\">Total Paid</span><strong class=\"vrs-bookings-money-total text-[16px]\">" + escapeHtml(booking.amount) + "</strong></div>" +
+      "<div class=\"vrs-bookings-money-lines space-y-1\">" +
       "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + escapeHtml(booking.baseAmount) + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + escapeHtml(booking.serviceFee) + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Tax</span><span>" + escapeHtml(booking.tax) + "</span></p>" +
@@ -626,13 +626,13 @@
       "</div>";
 
     var extra = document.createElement("div");
-    extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-[#35585c] sm:grid-cols-2";
+    extra.className = "vrs-bookings-extra mt-3 grid grid-cols-1 gap-2 text-[12px] sm:grid-cols-2";
     extra.innerHTML =
-      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Driver Option</span>" + escapeHtml(booking.driverName) + "</p>" +
-      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Payment</span>" + escapeHtml(booking.paymentMethod) + "</p>" +
-      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Contact Email</span>" + escapeHtml(booking.customerEmail) + "</p>" +
-      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Contact Phone</span>" + escapeHtml(booking.customerPhone) + "</p>" +
-      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2 sm:col-span-2\"><span class=\"block text-[#5f787b]\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Driver Option</span>" + escapeHtml(booking.driverName) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Payment</span>" + escapeHtml(booking.paymentMethod) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Contact Email</span>" + escapeHtml(booking.customerEmail) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Contact Phone</span>" + escapeHtml(booking.customerPhone) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2 sm:col-span-2\"><span class=\"vrs-bookings-field-label block\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
 
     detail.appendChild(top);
     detail.appendChild(timeline);
@@ -726,8 +726,9 @@
 
         var isActive = booking.id === activeId;
         row.className = isActive
-          ? "w-full rounded-2xl border border-[#f3c9ab] bg-[#fff1e6] px-3 py-3 text-left transition"
-          : "w-full rounded-2xl border border-[#d6dfd9] bg-white px-3 py-3 text-left transition hover:bg-[#f4f9f6]";
+          ? "vrs-bookings-row is-active w-full rounded-2xl px-3 py-3 text-left transition"
+          : "vrs-bookings-row w-full rounded-2xl px-3 py-3 text-left transition";
+        row.setAttribute("data-active", isActive ? "true" : "false");
       });
 
       var selected = bookings.find(function (booking) {
@@ -746,7 +747,7 @@
       top.className = "flex items-center justify-between gap-2";
 
       var title = document.createElement("p");
-      title.className = "text-[13px] font-semibold text-white";
+      title.className = "vrs-bookings-row-title text-[13px] font-semibold";
       title.textContent = booking.vehicle;
 
       var status = document.createElement("span");
@@ -754,11 +755,11 @@
       status.textContent = booking.status;
 
       var reference = document.createElement("p");
-      reference.className = "mt-1 text-[11px] text-white/70";
+      reference.className = "vrs-bookings-row-reference mt-1 text-[11px]";
       reference.textContent = booking.reference;
 
       var meta = document.createElement("p");
-      meta.className = "mt-1 text-[11px] text-white/74";
+      meta.className = "vrs-bookings-row-meta mt-1 text-[11px]";
       meta.textContent = booking.pickupDate + " to " + booking.dropoffDate + " • " + booking.amount;
 
       top.appendChild(title);
@@ -785,22 +786,22 @@
 
     var overlay = document.createElement("div");
     overlay.setAttribute("data-bookings-modal-overlay", "true");
-    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(8,24,26,0.54)] opacity-0 transition duration-200";
+    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(7,22,24,0.52)] opacity-0 transition duration-200";
 
     var card = document.createElement("section");
     card.setAttribute("role", "dialog");
     card.setAttribute("aria-modal", "true");
-    card.className = "mx-4 w-full max-w-[1060px] rounded-3xl border border-[rgba(23,57,60,0.18)] bg-[linear-gradient(155deg,#ffffff,#f5eee3)] p-5 text-[#204346] shadow-[0_28px_70px_rgba(0,0,0,0.32)] sm:p-6";
+    card.className = "vrs-bookings-card mx-4 w-full max-w-[1060px] rounded-3xl p-5 shadow-[0_28px_70px_rgba(7,31,34,0.24)] sm:p-6";
 
     var top = document.createElement("div");
     top.className = "flex items-start justify-between gap-3";
 
     var titleWrap = document.createElement("div");
     var heading = document.createElement("h2");
-    heading.className = "text-[22px] font-bold tracking-[-0.01em] text-[#17393d]";
+    heading.className = "vrs-bookings-heading text-[22px] font-bold tracking-[-0.01em]";
     heading.textContent = "Your Bookings";
     var subtitle = document.createElement("p");
-    subtitle.className = "mt-1 text-[13px] text-[#587174]";
+    subtitle.className = "vrs-bookings-subtitle mt-1 text-[13px]";
     subtitle.textContent = "Recent and upcoming reservations in one place.";
     titleWrap.appendChild(heading);
     titleWrap.appendChild(subtitle);
@@ -808,29 +809,29 @@
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.setAttribute("data-bookings-modal-close", "true");
-    closeBtn.className = "rounded-full border border-[#d2ddd8] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2f5559] transition hover:-translate-y-[1px] hover:bg-[#f4f9f6]";
+    closeBtn.className = "vrs-bookings-close rounded-full px-3 py-1.5 text-[12px] font-semibold transition hover:-translate-y-[1px]";
     closeBtn.textContent = "Close";
 
     top.appendChild(titleWrap);
     top.appendChild(closeBtn);
 
     var summary = document.createElement("div");
-    summary.className = "mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold text-[#2f5357]";
+    summary.className = "vrs-bookings-summary mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold";
     summary.innerHTML =
-      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\">Total <span data-bookings-total class=\"ml-1 text-[#17393d]\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#f2c9ac] bg-[#fff2e8] px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"ml-1 text-[#b56734]\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#b8dcc6] bg-[#eef9f2] px-3 py-2\">Completed <span data-bookings-completed class=\"ml-1 text-[#1f6a45]\">0</span></p>";
+      "<p class=\"vrs-bookings-summary-item rounded-xl px-3 py-2\">Total <span data-bookings-total class=\"vrs-bookings-summary-value ml-1\">0</span></p>" +
+      "<p class=\"vrs-bookings-summary-item is-upcoming rounded-xl px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"vrs-bookings-summary-value ml-1\">0</span></p>" +
+      "<p class=\"vrs-bookings-summary-item is-completed rounded-xl px-3 py-2\">Completed <span data-bookings-completed class=\"vrs-bookings-summary-value ml-1\">0</span></p>";
 
     var workspace = document.createElement("div");
     workspace.className = "mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[0.95fr,1.35fr]";
 
     var list = document.createElement("div");
     list.setAttribute("data-bookings-modal-list", "true");
-    list.className = "max-h-[58vh] space-y-2 overflow-y-auto pr-1";
+    list.className = "vrs-bookings-list max-h-[58vh] space-y-2 overflow-y-auto pr-1";
 
     var detail = document.createElement("div");
     detail.setAttribute("data-bookings-modal-detail", "true");
-    detail.className = "max-h-[58vh] overflow-y-auto rounded-2xl border border-[#d6dfd9] bg-[#f9fcfa] p-4";
+    detail.className = "vrs-bookings-detail max-h-[58vh] overflow-y-auto rounded-2xl p-4";
 
     card.appendChild(top);
     card.appendChild(summary);
@@ -1176,20 +1177,23 @@
         "bg-rose-500/15",
         "text-white/90",
         "text-emerald-100",
-        "text-rose-100"
+        "text-rose-100",
+        "profile-note--info",
+        "profile-note--success",
+        "profile-note--error"
       );
 
       if (mode === "success") {
-        note.classList.add("border-emerald-400/90", "bg-emerald-500/15", "text-emerald-100");
+        note.classList.add("profile-note--success");
         return;
       }
 
       if (mode === "error") {
-        note.classList.add("border-rose-400/90", "bg-rose-500/15", "text-rose-100");
+        note.classList.add("profile-note--error");
         return;
       }
 
-      note.classList.add("border-[rgba(229,140,78,0.9)]", "bg-white/10", "text-white/90");
+      note.classList.add("profile-note--info");
     }
 
     function showProfileNoteMessage(message, mode, autoHideMs) {
@@ -1255,6 +1259,7 @@
     function showProfileSaveToast(message, mode, autoHideMs) {
       var toast = ensureProfileSaveToast();
       var tone = String(mode || "success").toLowerCase();
+      var isDarkTheme = document.documentElement && document.documentElement.getAttribute("data-theme") === "dark";
 
       if (profileToastHideTimerId) {
         window.clearTimeout(profileToastHideTimerId);
@@ -1268,12 +1273,16 @@
         toast.style.border = "1px solid rgba(252, 165, 165, 0.5)";
         toast.style.color = "#fff1f2";
       } else if (tone === "info") {
-        toast.style.background = "linear-gradient(145deg, rgba(31, 91, 87, 0.95), rgba(30, 107, 98, 0.95))";
-        toast.style.border = "1px solid rgba(147, 197, 253, 0.4)";
-        toast.style.color = "#ecfeff";
+        toast.style.background = isDarkTheme
+          ? "linear-gradient(145deg, rgba(30, 79, 96, 0.96), rgba(24, 63, 79, 0.96))"
+          : "linear-gradient(145deg, rgba(38, 94, 115, 0.96), rgba(34, 81, 100, 0.96))";
+        toast.style.border = "1px solid rgba(143, 199, 226, 0.45)";
+        toast.style.color = "#eef8fc";
       } else {
-        toast.style.background = "linear-gradient(145deg, rgba(20, 105, 88, 0.96), rgba(18, 94, 82, 0.96))";
-        toast.style.border = "1px solid rgba(110, 231, 183, 0.5)";
+        toast.style.background = isDarkTheme
+          ? "linear-gradient(145deg, rgba(34, 118, 104, 0.96), rgba(24, 96, 86, 0.96))"
+          : "linear-gradient(145deg, rgba(44, 118, 110, 0.96), rgba(28, 96, 90, 0.96))";
+        toast.style.border = "1px solid rgba(166, 223, 191, 0.55)";
         toast.style.color = "#ecfdf5";
       }
 

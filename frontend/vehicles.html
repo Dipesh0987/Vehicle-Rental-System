@@ -8,7 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <link rel="stylesheet" href="assets/css/theme.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="assets/js/theme-manager.js"></script>
     <style>
       :root {
         --public-brand: #145f59;
@@ -120,6 +122,95 @@
 
       #filterPanel {
         scrollbar-gutter: stable;
+      }
+
+      .filters-rail {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(22, 56, 59, 0.14);
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.94), rgba(245, 238, 228, 0.9));
+        box-shadow: 0 20px 40px rgba(9, 33, 36, 0.14);
+      }
+
+      .filters-rail::before {
+        content: "";
+        position: absolute;
+        right: -24px;
+        top: -26px;
+        width: 120px;
+        height: 120px;
+        border-radius: 9999px;
+        background: radial-gradient(circle, rgba(229, 140, 78, 0.2), transparent 70%);
+        pointer-events: none;
+      }
+
+      .filters-rail__header {
+        border-bottom: 1px solid rgba(22, 56, 59, 0.12);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(245, 238, 228, 0.68));
+      }
+
+      .filters-rail__body {
+        min-height: 0;
+      }
+
+      .filters-layout {
+        display: block;
+      }
+
+      :root {
+        --filters-sticky-top: clamp(0.9rem, 1.1vw, 1.25rem);
+        --filters-sticky-bottom-gap: clamp(0.75rem, 1vw, 1rem);
+      }
+
+      .filters-sidebar {
+        display: none;
+      }
+
+      @media (min-width: 992px) {
+        .filters-layout {
+          display: grid;
+          grid-template-columns: minmax(290px, 320px) minmax(0, 1fr);
+          gap: 2rem;
+          align-items: start;
+        }
+
+        .filters-sidebar {
+          display: block;
+          position: sticky;
+          top: var(--filters-sticky-top);
+          height: calc(100vh - var(--filters-sticky-top) - var(--filters-sticky-bottom-gap));
+          height: calc(100dvh - var(--filters-sticky-top) - var(--filters-sticky-bottom-gap));
+        }
+
+        .filters-sidebar > .filters-rail {
+          height: 100%;
+        }
+
+        .filters-rail__body {
+          flex: 1 1 auto;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+
+        .filters-mobile-trigger {
+          display: none !important;
+        }
+      }
+
+      html[data-theme="dark"] .filters-rail {
+        border-color: rgba(148, 176, 188, 0.3);
+        background: linear-gradient(160deg, rgba(20, 31, 38, 0.95), rgba(14, 24, 30, 0.95));
+        box-shadow: 0 22px 44px rgba(0, 0, 0, 0.42);
+      }
+
+      html[data-theme="dark"] .filters-rail::before {
+        background: radial-gradient(circle, rgba(240, 168, 114, 0.26), transparent 72%);
+      }
+
+      html[data-theme="dark"] .filters-rail__header {
+        border-bottom-color: rgba(148, 176, 188, 0.24);
+        background: linear-gradient(145deg, rgba(26, 39, 47, 0.84), rgba(17, 28, 34, 0.62));
       }
 
       #vehicleResults {
@@ -258,7 +349,7 @@
       }
     </style>
   </head>
-  <body class="bg-paper text-slate-900 antialiased">
+  <body class="vrs-page bg-paper text-slate-900 antialiased">
     <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <div class="absolute -left-16 -top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(229,140,78,0.45),rgba(229,140,78,0.08))] blur-sm"></div>
       <div class="absolute right-[-90px] top-36 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_38%_35%,rgba(44,118,110,0.48),rgba(44,118,110,0.08))] blur-sm"></div>
@@ -336,7 +427,7 @@
       <a href="#" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Contact</a>
     </div>
 
-    <main class="mx-auto w-[95%] max-w-[1460px] pb-14 pt-2 lg:pt-4">
+    <main class="vrs-theme-scope mx-auto w-[95%] max-w-[1460px] pb-14 pt-2 lg:pt-4">
       <section class="elite-stage premium-surface relative mb-8 overflow-hidden rounded-[32px] p-6 sm:p-8 lg:p-9">
         <div class="pointer-events-none absolute -right-8 top-8 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(217,136,79,0.24),transparent_70%)]"></div>
         <div class="grid gap-6 lg:grid-cols-[1.25fr,0.9fr] lg:items-end">
@@ -415,12 +506,19 @@
         </div>
       </div>
 
-      <div class="grid gap-8 xl:grid-cols-[320px,1fr] xl:items-start">
-        <aside class="hidden w-full flex-shrink-0 xl:block xl:sticky xl:top-5">
-          <div id="filterPanel" class="h-[calc(100vh-112px)] overflow-y-auto rounded-3xl border border-[#d4ded9] bg-[#fbfdfc] p-5 pr-1 sm:p-6 shadow-[0_18px_36px_rgba(10,31,34,0.12)]"></div>
+      <div class="filters-layout">
+        <aside class="filters-sidebar w-full flex-shrink-0">
+          <section class="filters-rail overflow-hidden rounded-[30px]">
+            <header class="filters-rail__header px-5 py-4 sm:px-6">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5a7377]">Search Intelligence</p>
+              <h3 class="mt-1 text-[22px] font-bold tracking-[-0.015em] text-[#1f4246]">Filters</h3>
+              <p class="mt-1 text-[12px] text-[#5a7377]">Left-side panel on desktop, instant filter drawer on mobile.</p>
+            </header>
+            <div id="filterPanel" class="filters-rail__body px-5 pb-5 pt-4 pr-1 sm:px-6 sm:pb-6"></div>
+          </section>
         </aside>
 
-        <button id="mobileFilterBtn" class="fixed bottom-8 right-8 z-20 rounded-full bg-accent p-4 text-white shadow-[0_16px_30px_rgba(229,140,78,0.45)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 lg:hidden" title="Open Filters">
+        <button id="mobileFilterBtn" class="filters-mobile-trigger fixed bottom-8 right-8 z-20 rounded-full bg-accent p-4 text-white shadow-[0_16px_30px_rgba(229,140,78,0.45)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105" title="Open Filters">
           <i class="fas fa-sliders-h text-xl"></i>
         </button>
 

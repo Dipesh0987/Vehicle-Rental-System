@@ -327,13 +327,15 @@ class SearchFilterManager {
     }
 
     /**
-     * Extract price from string (e.g., "NPR 82 / day" -> 82)
+     * Extract price from string (e.g., "NPR 4,500 / day" -> 4500)
      * @param {string} priceString - Price string
      * @returns {number} Extracted price
      */
     extractPrice(priceString) {
-        const match = priceString.match(/\d+/);
-        return match ? parseInt(match[0]) : 0;
+        const normalized = String(priceString || "").replace(/,/g, "");
+        const match = normalized.match(/-?\d+(?:\.\d+)?/);
+        const parsed = match ? Number(match[0]) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
     }
 
     /**

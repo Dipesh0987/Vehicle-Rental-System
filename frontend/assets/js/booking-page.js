@@ -20,6 +20,15 @@
     return text;
   }
 
+  function escapeHtml(value) {
+    return String(value === null || value === undefined ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function readStoredAuthSession() {
     try {
       var raw = sessionStorage.getItem("vrs_auth_session") || localStorage.getItem("vrs_auth_session");
@@ -713,27 +722,39 @@
       totalAmount: 0,
     };
     var vehicleName = getVehicleDisplayName(state.selectedVehicle || {});
+    var bookingDays = Math.max(0, Math.round(Number(quote.bookingDays || 0)));
+    var safeVehicleName = escapeHtml(vehicleName);
+    var safeStartDate = escapeHtml(formatDatePretty(values.startDate));
+    var safeEndDate = escapeHtml(formatDatePretty(values.endDate));
+    var safePickupTime = escapeHtml(normalizeString(values.pickupTime, "10:00"));
+    var safeDriverOption = escapeHtml(getDriverOptionLabel(values.driverOption));
+    var safePickupLocation = escapeHtml(normalizeString(values.pickupLocation, "-"));
+    var safeCustomerName = escapeHtml(normalizeString(values.customerName, "-"));
+    var safeCustomerPhone = escapeHtml(normalizeString(values.customerPhone, "-"));
+    var safeCustomerEmail = escapeHtml(normalizeString(values.customerEmail, "-"));
+    var safeDurationText = escapeHtml(String(bookingDays) + " day" + (bookingDays === 1 ? "" : "s"));
+    var safeTotalAmount = escapeHtml(formatMoney(quote.totalAmount));
 
     return [
       '<div class="grid gap-2">',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Vehicle</span><span class="font-semibold text-[#183f42]">' + vehicleName + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Vehicle</span><span class="font-semibold">' + safeVehicleName + '</span></div>',
       '<div class="grid gap-2 sm:grid-cols-2">',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Start Date</span><span>' + formatDatePretty(values.startDate) + '</span></div>',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">End Date</span><span>' + formatDatePretty(values.endDate) + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Start Date</span><span>' + safeStartDate + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">End Date</span><span>' + safeEndDate + '</span></div>',
       '</div>',
       '<div class="grid gap-2 sm:grid-cols-2">',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Pickup Time</span><span>' + normalizeString(values.pickupTime, "10:00") + '</span></div>',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Driver Option</span><span>' + getDriverOptionLabel(values.driverOption) + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Pickup Time</span><span>' + safePickupTime + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Driver Option</span><span>' + safeDriverOption + '</span></div>',
       '</div>',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Pick Up Location</span><span>' + normalizeString(values.pickupLocation, '-') + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Pick Up Location</span><span>' + safePickupLocation + '</span></div>',
       '<div class="grid gap-2 sm:grid-cols-2">',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Customer</span><span>' + normalizeString(values.customerName, "-") + '</span></div>',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Phone</span><span>' + normalizeString(values.customerPhone, "-") + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Customer</span><span>' + safeCustomerName + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Phone</span><span>' + safeCustomerPhone + '</span></div>',
       '</div>',
-      '<div class="flex items-center justify-between rounded-xl border border-[#dbe5df] bg-white px-3 py-2"><span class="font-semibold text-[#3a5b5e]">Email</span><span>' + normalizeString(values.customerEmail, "-") + '</span></div>',
-      '<div class="mt-2 rounded-xl border border-[#f2d3bb] bg-[#fff6ef] px-3 py-3">',
-      '<div class="flex items-center justify-between"><span class="font-semibold text-[#7f4c22]">Duration</span><span class="font-semibold text-[#6d3e18]">' + quote.bookingDays + ' day' + (quote.bookingDays === 1 ? '' : 's') + '</span></div>',
-      '<div class="mt-1 flex items-center justify-between"><span class="font-semibold text-[#7f4c22]">Total</span><span class="font-bold text-[#6d3e18]">' + formatMoney(quote.totalAmount) + '</span></div>',
+      '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Email</span><span>' + safeCustomerEmail + '</span></div>',
+      '<div class="booking-review-total mt-2 rounded-xl border px-3 py-3">',
+      '<div class="flex items-center justify-between"><span class="font-semibold">Duration</span><span class="font-semibold">' + safeDurationText + '</span></div>',
+      '<div class="mt-1 flex items-center justify-between"><span class="font-semibold">Total</span><span class="font-bold">' + safeTotalAmount + '</span></div>',
       '</div>',
       '</div>'
     ].join('');
