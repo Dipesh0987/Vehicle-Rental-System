@@ -9,6 +9,7 @@ class SearchFilterManager {
         this.storageKey = "searchFilters:v2";
         this.legacyStorageKey = "searchFilters";
         this.filters = this.initializeFilters();
+        this.dateAvailability = this.initializeDateAvailability();
         this.filteredVehicles = [];
         this.allVehicles = [];
         this.sortOrder = "relevance";
@@ -70,6 +71,49 @@ class SearchFilterManager {
             // Search text
             searchText: "",
         };
+    }
+
+    initializeDateAvailability() {
+        return {
+            active: false,
+            startDate: "",
+            endDate: "",
+            unavailableVehicleIds: new Set(),
+        };
+    }
+
+    setDateAvailability(context = {}) {
+        const startDate = String(context.startDate || "").trim();
+        const endDate = String(context.endDate || "").trim();
+        const sourceIds = context.unavailableVehicleIds;
+        const normalizedIds = [];
+
+        if (sourceIds instanceof Set) {
+            sourceIds.forEach((id) => {
+                const normalized = String(id || "").trim();
+                if (normalized) {
+                    normalizedIds.push(normalized);
+                }
+            });
+        } else if (Array.isArray(sourceIds)) {
+            sourceIds.forEach((id) => {
+                const normalized = String(id || "").trim();
+                if (normalized) {
+                    normalizedIds.push(normalized);
+                }
+            });
+        }
+
+        this.dateAvailability = {
+            active: Boolean(startDate && endDate),
+            startDate,
+            endDate,
+            unavailableVehicleIds: new Set(normalizedIds),
+        };
+    }
+
+    clearDateAvailability() {
+        this.dateAvailability = this.initializeDateAvailability();
     }
 
     /**
@@ -197,6 +241,17 @@ class SearchFilterManager {
             vehicle.availability !== "Available"
         ) {
             return false;
+        }
+
+        if (this.dateAvailability.active) {
+            const vehicleId = String(vehicle && vehicle.id ? vehicle.id : "").trim();
+            if (!vehicleId) {
+                return false;
+            }
+
+            if (this.dateAvailability.unavailableVehicleIds.has(vehicleId)) {
+                return false;
+            }
         }
 
         // Insurance types filter
@@ -354,6 +409,7 @@ class SearchFilterManager {
      */
     clearAllFilters() {
         this.filters = this.initializeFilters();
+        this.clearDateAvailability();
         this.sortOrder = "relevance";
         this.notifyListeners();
     }
