@@ -11,6 +11,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <link rel="stylesheet" href="assets/css/theme.css" />
+    <script src="assets/js/theme-manager.js"></script>
     <style>
       :root {
         --public-brand: #145f59;
@@ -146,8 +148,20 @@
       }
     </style>
   </head>
-  <body class="min-h-screen bg-paper text-slate-900">
-    <main class="relative min-h-screen overflow-hidden pb-12">
+  <body class="vrs-page min-h-screen bg-paper text-slate-900">
+    <main class="vrs-theme-scope relative min-h-screen overflow-hidden pb-12">
+      <div id="vehicleDetailsLoader" class="fixed inset-0 z-[280] flex items-center justify-center bg-[rgba(245,241,232,0.82)] backdrop-blur-[2px]">
+        <div class="relative w-[min(92vw,560px)] overflow-hidden rounded-3xl border border-[rgba(23,57,60,0.14)] bg-[linear-gradient(160deg,#f4f3ef,#ece4da)] p-5 shadow-[0_20px_50px_rgba(7,31,34,0.16)]">
+          <p class="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#315154]">Loading Vehicle Experience</p>
+          <p class="mt-1 text-[14px] font-medium text-[#355053]">Syncing gallery, specs, and booking context...</p>
+          <div class="mt-4 space-y-2">
+            <div class="loader-shimmer relative h-4 overflow-hidden rounded-full bg-white/75"></div>
+            <div class="loader-shimmer relative h-4 w-[78%] overflow-hidden rounded-full bg-white/75"></div>
+            <div class="loader-shimmer relative h-36 overflow-hidden rounded-2xl bg-white/75"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="pointer-events-none absolute left-[-90px] top-[-80px] h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(229,140,78,0.48),rgba(229,140,78,0.08))] blur-[8px]"></div>
       <div class="pointer-events-none absolute bottom-[-100px] right-[-70px] h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle_at_38%_35%,rgba(44,118,110,0.56),rgba(44,118,110,0.1))] blur-[8px]"></div>
 
