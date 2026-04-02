@@ -144,15 +144,17 @@ class SearchUIManager {
         if (!filterPanel) return;
 
         let html = `
-            <div class="space-y-6">
-                <!-- Clear Filters Button -->
-                <button id="clearPanelFilters" class="flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 py-2.5 text-sm font-semibold text-red-600 transition duration-200 hover:-translate-y-0.5 hover:bg-red-100">
-                    <i class="fas fa-times-circle"></i> Clear All Filters
-                </button>
+            <div class="space-y-5">
+                <section class="rounded-3xl border border-[#d4ddd7] bg-[linear-gradient(145deg,#ffffff,#f6f2ea)] px-4 py-4 shadow-[0_12px_24px_rgba(9,30,34,0.1)]">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b7376]">Refine Results</p>
+                    <p class="mt-1 text-[15px] font-bold text-[#1f4043]">Search Filters</p>
+                    <button id="clearPanelFilters" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f0cdb4] bg-[#fff2e8] py-2.5 text-sm font-semibold text-[#b26431] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ffe8d7]">
+                        <i class="fas fa-rotate-left"></i> Reset All Filters
+                    </button>
+                </section>
 
-                <!-- Search in filters -->
                 <div>
-                    <input type="text" id="filterSearch" placeholder="Search filters..." class="w-full rounded-xl border border-[#d4ded9] bg-white px-4 py-2 text-sm font-medium text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25" />
+                    <input type="text" id="filterSearch" placeholder="Search filter categories..." class="w-full rounded-2xl border border-[#d4ddd7] bg-white px-4 py-2.5 text-sm font-medium text-[#203f42] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/25" />
                 </div>
         `;
 
@@ -174,11 +176,13 @@ class SearchUIManager {
      */
     renderFilterCategory(key, config) {
         let html = `
-            <div class="filter-category rounded-2xl border border-[#e2e9e5] bg-[#f8fbf9] px-4 py-4">
+            <div class="filter-category rounded-2xl border border-[#d7e0da] bg-[linear-gradient(150deg,#ffffff,#f7f4ee)] px-4 py-4 shadow-[0_8px_18px_rgba(9,30,34,0.07)]">
                 <div class="filter-toggle mb-3 flex cursor-pointer items-center gap-2" data-filter="${key}">
-                    <i class="fas ${config.icon} text-accent"></i>
-                    <h3 class="flex-1 text-sm font-semibold text-ink">${config.label}</h3>
-                    <i class="fas fa-chevron-down toggle-icon text-xs text-muted transition-transform duration-200"></i>
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#d1ddd8] bg-white text-[#2f5e62]">
+                        <i class="fas ${config.icon} text-[12px]"></i>
+                    </span>
+                    <h3 class="flex-1 text-sm font-semibold text-[#1f4043]">${config.label}</h3>
+                    <i class="fas fa-chevron-down toggle-icon text-xs text-[#698083] transition-transform duration-200"></i>
                 </div>
                 <div class="filter-content space-y-2 pl-1">
         `;
@@ -211,10 +215,10 @@ class SearchUIManager {
         for (const option of config.options) {
             const isChecked = this.filterManager.filters[config.filterKey]?.includes(option.value);
             html += `
-                <label class="flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm text-[#30484b] transition hover:bg-white">
+                <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-transparent bg-white/80 p-2 text-sm text-[#30484b] transition hover:border-[#d4ddd8] hover:bg-white">
                     <input type="checkbox" class="filter-checkbox h-4 w-4 rounded border-[#c7d5cf] text-accent focus:ring-accent/30" data-filter="${config.filterKey}" data-value="${option.value}" ${isChecked ? "checked" : ""} />
-                    ${option.icon ? `<i class="fas ${option.icon} text-muted text-sm"></i>` : ""}
-                    <span class="text-sm">${option.label}</span>
+                    ${option.icon ? `<i class="fas ${option.icon} text-[#6a8184] text-sm"></i>` : ""}
+                    <span class="text-sm font-medium">${option.label}</span>
                 </label>
             `;
         }
@@ -233,10 +237,10 @@ class SearchUIManager {
         let html = `
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold uppercase tracking-wide text-[#4a6568]">
+                    <span class="rounded-full border border-[#d6e0da] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#4a6568]">
                         ${config.display ? config.display(currentMin) : formatNpr(currentMin)}
                     </span>
-                    <span class="text-xs font-semibold uppercase tracking-wide text-[#4a6568]">
+                    <span class="rounded-full border border-[#d6e0da] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#4a6568]">
                         ${config.display && maxKey ? config.display(currentMax) : maxKey ? formatNpr(currentMax) : ""}
                     </span>
                 </div>
@@ -266,9 +270,9 @@ class SearchUIManager {
     renderToggleFilter(config) {
         const isChecked = this.filterManager.filters[config.filterKey];
         return `
-            <label class="flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm text-[#30484b] transition hover:bg-white">
+            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-transparent bg-white/80 p-2 text-sm text-[#30484b] transition hover:border-[#d4ddd8] hover:bg-white">
                 <input type="checkbox" class="filter-toggle-checkbox h-4 w-4 rounded border-[#c7d5cf] text-accent focus:ring-accent/30" data-filter="${config.filterKey}" ${isChecked ? "checked" : ""} />
-                <span class="text-sm">${config.label2}</span>
+                <span class="text-sm font-medium">${config.label2}</span>
             </label>
         `;
     }
@@ -379,7 +383,7 @@ class SearchUIManager {
     createFilterTag(filterKey, value) {
         const displayValue = this.getFilterDisplayName(filterKey, value);
         return `
-            <div class="inline-flex items-center gap-2 rounded-full border border-[#f4cfb3] bg-[#fff4eb] px-3 py-1 text-xs font-semibold text-[#b26530]">
+            <div class="inline-flex items-center gap-2 rounded-full border border-[#d4ddd7] bg-white px-3 py-1 text-xs font-semibold text-[#2f5458] shadow-[0_6px_14px_rgba(9,30,34,0.08)]">
                 <span>${displayValue}</span>
                 <button class="filter-tag-remove text-[#c7773d] transition hover:text-red-600" data-filter="${filterKey}" data-value="${value}">
                     <i class="fas fa-times"></i>
