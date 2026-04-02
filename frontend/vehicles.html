@@ -9,38 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script>
-      window.__legacyTailwindConfig = {
-        theme: {
-          extend: {
-            fontFamily: {
-              poppins: ["Poppins", "sans-serif"],
-            },
-            colors: {
-              accent: "#E58C4E",
-              panel: "#2C766E",
-              ink: "#0E2528",
-              muted: "#6C7074",
-              paper: "#F2F3F1",
-            },
-            keyframes: {
-              fadeIn: {
-                "0%": { opacity: "0", transform: "translateY(10px)" },
-                "100%": { opacity: "1", transform: "translateY(0)" },
-              },
-              glowPulse: {
-                "0%, 100%": { opacity: "0.66" },
-                "50%": { opacity: "1" },
-              },
-            },
-            animation: {
-              fadeIn: "fadeIn 380ms ease-out",
-              glowPulse: "glowPulse 3.8s ease-in-out infinite",
-            },
-          },
-        },
-      };
-    </script>
     <style>
       :root {
         --public-brand: #145f59;
@@ -159,6 +127,82 @@
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
         gap: 2rem;
         align-items: stretch;
+      }
+
+      .elite-stage {
+        animation: stageIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      .elite-search-shell {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .elite-search-shell::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(112deg, transparent 0%, rgba(255, 255, 255, 0.42) 50%, transparent 100%);
+        background-size: 220% 100%;
+        animation: softShimmer 6.8s linear infinite;
+      }
+
+      .vehicle-result-card {
+        position: relative;
+        overflow: hidden;
+        opacity: 0;
+        transform: translate3d(0, 16px, 0) scale(0.992);
+        transition:
+          opacity 360ms ease,
+          transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow 240ms ease;
+        transition-delay: var(--card-stagger-delay, 0ms);
+        will-change: opacity, transform;
+      }
+
+      .vehicle-result-card.is-visible {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      .vehicle-result-card.is-visible:hover {
+        transform: translate3d(0, -6px, 0) scale(1.01);
+      }
+
+      .vehicle-result-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        border: 1px solid rgba(31, 118, 104, 0.08);
+        transition: border-color 220ms ease;
+      }
+
+      .vehicle-result-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+      }
+
+      .vehicle-result-card:hover::before {
+        border-color: rgba(31, 118, 104, 0.24);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .vehicle-result-card {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+
+        .vehicle-result-card.is-visible:hover {
+          transform: none;
+        }
       }
 
       #vehicleResults > * {
