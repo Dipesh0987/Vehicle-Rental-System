@@ -87,6 +87,15 @@
       .trim();
   }
 
+  function formatNprAmount(value) {
+    var numeric = toNumber(value, 0);
+    if (!Number.isFinite(numeric)) {
+      numeric = 0;
+    }
+
+    return "NPR " + Math.round(Math.max(0, numeric)).toLocaleString();
+  }
+
   function deriveBrandFromName(name) {
     var normalizedName = normalizeString(name, "");
     if (!normalizedName) {
@@ -1085,7 +1094,7 @@
       location: location,
       pricePerDay: pricePerDay,
       pricing: {
-        dailyRate: "$" + Math.round(pricePerDay) + " / day",
+        dailyRate: formatNprAmount(pricePerDay) + " / day",
       },
       features: features,
       insuranceOptions: insuranceOptions,
@@ -1119,8 +1128,8 @@
       availability: toTitleCase(vehicle && vehicle.status || "Available"),
       pricePerDay: pricePerDay,
       pricing: {
-        dailyRate: "$" + Math.round(pricePerDay) + " / day",
-        securityDeposit: "$" + Math.max(200, Math.round(pricePerDay * 3)) + " refundable",
+        dailyRate: formatNprAmount(pricePerDay) + " / day",
+        securityDeposit: formatNprAmount(Math.max(200, Math.round(pricePerDay * 3))) + " refundable",
       },
       features: Array.isArray(vehicle && vehicle.features) ? vehicle.features.slice() : [],
       insuranceOptions: Array.isArray(vehicle && vehicle.insuranceOptions)

@@ -103,9 +103,9 @@ export function renderVehiclesModule({ data, query, notify, catalogService, relo
                       <p class="text-xs text-slate-500 dark:text-slate-400">${Number(vehicle.seats || 5)} seats</p>
                     </td>
                     <td class="py-3 pr-3"><span class="${statusClass(vehicle.status)}">${escapeHtml(vehicle.status || 'Available')}</span></td>
-                    <td class="py-3 pr-3">$${Number(vehicle.daily || 0).toLocaleString()}</td>
-                    <td class="py-3 pr-3">$${Number(vehicle.weekly || 0).toLocaleString()}</td>
-                    <td class="py-3 pr-3">$${Number(vehicle.seasonal || 0).toLocaleString()}</td>
+                    <td class="py-3 pr-3">${escapeHtml(formatNpr(vehicle.daily || 0))}</td>
+                    <td class="py-3 pr-3">${escapeHtml(formatNpr(vehicle.weekly || 0))}</td>
+                    <td class="py-3 pr-3">${escapeHtml(formatNpr(vehicle.seasonal || 0))}</td>
                     <td class="py-3 pr-3">
                       <div class="flex gap-2">
                         <button data-delete-id="${escapeHtml(vehicle.id)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 ${
@@ -316,7 +316,7 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
       </div>
 
       <label class="block space-y-1">
-        <span class="text-xs font-semibold">Daily Price (USD) <span class="text-rose-500">*</span></span>
+        <span class="text-xs font-semibold">Daily Price (NPR) <span class="text-rose-500">*</span></span>
         <input name="dailyPrice" type="number" min="${limits.minPricePerDay}" max="${limits.maxPricePerDay}" step="0.01" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" />
         <p data-error-for="pricePerDay" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
       </label>
@@ -657,4 +657,10 @@ function deriveBrandFromVehicleName(vehicleName) {
 
   const firstWord = cleaned.split(/\s+/)[0] || '';
   return firstWord || 'General';
+}
+
+function formatNpr(value) {
+  const amount = Number(value || 0);
+  const normalized = Number.isFinite(amount) ? amount : 0;
+  return `NPR ${Math.round(normalized).toLocaleString()}`;
 }
