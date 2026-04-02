@@ -37,7 +37,7 @@ export function renderPaymentsModule({ data, query, notify }) {
                   <td class="py-3 pr-3 font-bold">${row.id}</td>
                   <td class="py-3 pr-3">${row.booking}</td>
                   <td class="py-3 pr-3">${row.method}</td>
-                  <td class="py-3 pr-3">$${row.amount}</td>
+                  <td class="py-3 pr-3">${formatNpr(row.amount)}</td>
                   <td class="py-3 pr-3"><button data-invoice="${row.invoice}" class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold dark:border-white/10">${row.invoice}</button></td>
                   <td class="py-3 pr-3"><span class="${statusClass(row.status)}">${row.status}</span></td>
                 </tr>`
@@ -90,4 +90,10 @@ function statusClass(status) {
   if (status === 'Paid') return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
   if (status === 'Partially Paid') return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
   return `${base} bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300`;
+}
+
+function formatNpr(value) {
+  const amount = Number(value || 0);
+  const normalized = Number.isFinite(amount) ? amount : 0;
+  return `NPR ${normalized.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

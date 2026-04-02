@@ -15,9 +15,9 @@
   function formatDetailCurrency(value) {
     var numeric = Number(value);
     if (!Number.isFinite(numeric)) {
-      return "$0.00";
+      return "NPR 0.00";
     }
-    return "$" + numeric.toFixed(2);
+    return "NPR " + numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function formatFeatureLabel(value) {
@@ -159,8 +159,8 @@
       ],
       pricing: {
         dailyRate: formatDetailCurrency(pricePerDay) + " / day",
-        securityDeposit: "$500 refundable",
-        extraKm: "$0.50 / km",
+        securityDeposit: formatDetailCurrency(500) + " refundable",
+        extraKm: formatDetailCurrency(0.5) + " / km",
         estimatedTotal: formatDetailCurrency(pricePerDay * 3) + " for 3 days"
       },
       requirements: [
@@ -203,10 +203,10 @@
         "Visit the Vehicles page to view all available options."
       ],
       pricing: {
-        dailyRate: "$0.00 / day",
-        securityDeposit: "$0.00",
-        extraKm: "$0.00 / km",
-        estimatedTotal: "$0.00"
+        dailyRate: "NPR 0.00 / day",
+        securityDeposit: "NPR 0.00",
+        extraKm: "NPR 0.00 / km",
+        estimatedTotal: "NPR 0.00"
       },
       requirements: ["Select another vehicle from the catalog."],
       policies: ["Live availability is shown on the Vehicles page."],
@@ -562,7 +562,7 @@
   }
 
   function formatCurrency(amount) {
-    return "$" + amount.toFixed(2);
+    return "NPR " + amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function wireBookingSidebar(vehicle) {
@@ -593,7 +593,7 @@
 
     var COUPONS = {
       SAVE10: { type: "percent", value: 0.10, label: "10% off applied" },
-      WEEKEND50: { type: "flat", value: 50, label: "$50 off applied" }
+      WEEKEND50: { type: "flat", value: 50, label: "NPR 50 off applied" }
     };
 
     function addDaysToIsoDate(isoDate, days) {
