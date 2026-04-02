@@ -53,7 +53,7 @@ class SearchUIManager {
             },
             priceRange: {
                 label: "Daily Rate",
-                icon: "fa-dollar-sign",
+                icon: "fa-money-bill-wave",
                 type: "range",
                 min: 0,
                 max: 5000,
@@ -234,10 +234,10 @@ class SearchUIManager {
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wide text-[#4a6568]">
-                        ${config.display ? config.display(currentMin) : `$${currentMin}`}
+                        ${config.display ? config.display(currentMin) : formatNpr(currentMin)}
                     </span>
                     <span class="text-xs font-semibold uppercase tracking-wide text-[#4a6568]">
-                        ${config.display && maxKey ? config.display(currentMax) : maxKey ? `$${currentMax}` : ""}
+                        ${config.display && maxKey ? config.display(currentMax) : maxKey ? formatNpr(currentMax) : ""}
                     </span>
                 </div>
         `;
@@ -393,8 +393,8 @@ class SearchUIManager {
      */
     getFilterDisplayName(filterKey, value) {
         // Handle common cases
-        if (filterKey === "minPrice") return `Min: $${value}`;
-        if (filterKey === "maxPrice") return `Max: $${value}`;
+        if (filterKey === "minPrice") return `Min: ${formatNpr(value)}`;
+        if (filterKey === "maxPrice") return `Max: ${formatNpr(value)}`;
         if (filterKey === "minSeats") return `${value}+ seats`;
         if (filterKey === "minRating") return `${value}★+`;
 
@@ -498,7 +498,7 @@ class SearchUIManager {
 
                     <!-- Price -->
                     <div class="mb-4 flex items-baseline gap-2">
-                        <span class="text-2xl font-bold text-accent">$${price}</span>
+                        <span class="text-2xl font-bold text-accent">${formatNpr(price)}</span>
                         <span class="text-sm text-muted">/ day</span>
                     </div>
 
@@ -762,3 +762,9 @@ class SearchUIManager {
 
 // Export as global
 window.SearchUIManager = SearchUIManager;
+
+function formatNpr(value) {
+    const amount = Number(value || 0);
+    const normalized = Number.isFinite(amount) ? amount : 0;
+    return `NPR ${Math.round(normalized).toLocaleString()}`;
+}
