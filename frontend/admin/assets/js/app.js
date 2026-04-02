@@ -278,6 +278,7 @@ function mapCatalogVehicleToAdminRow(vehicle) {
     addedAt: String(vehicle && vehicle.addedDate ? vehicle.addedDate : ''),
     name: formatLabel(vehicle && vehicle.name ? vehicle.name : 'Vehicle'),
     brand: formatLabel(vehicle && vehicle.brand ? vehicle.brand : ''),
+    vehicleNumber: String(vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : '').trim().toUpperCase(),
     category: formatLabel(vehicle && (vehicle.category || vehicle.type) ? (vehicle.category || vehicle.type) : 'Vehicle'),
     status: normalizeStatus(vehicle),
     daily: dailyRate,
