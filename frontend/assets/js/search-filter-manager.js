@@ -4,6 +4,8 @@
  * Features: Multiple filter criteria, persistence, real-time updates
  */
 
+const DEFAULT_MAX_PRICE_NPR = 50000;
+
 class SearchFilterManager {
     constructor() {
         this.storageKey = "searchFilters:v2";
@@ -34,7 +36,7 @@ class SearchFilterManager {
 
             // Price filter
             minPrice: 0,
-            maxPrice: 5000,
+            maxPrice: DEFAULT_MAX_PRICE_NPR,
 
             // Transmission filter
             transmissions: [], // 'manual', 'automatic'
@@ -394,10 +396,20 @@ class SearchFilterManager {
      */
     getActiveFilters() {
         const active = {};
+        const defaults = this.initializeFilters();
+
         for (const [key, value] of Object.entries(this.filters)) {
             if (Array.isArray(value)) {
                 if (value.length > 0) active[key] = value;
-            } else if (value !== "" && value !== 0 && value !== false) {
+            } else if (typeof value === "number") {
+                if (Number(value) !== Number(defaults[key])) {
+                    active[key] = value;
+                }
+            } else if (typeof value === "boolean") {
+                if (Boolean(value) !== Boolean(defaults[key])) {
+                    active[key] = value;
+                }
+            } else if (value !== "") {
                 active[key] = value;
             }
         }
@@ -427,7 +439,7 @@ class SearchFilterManager {
             if (filterName.includes("min")) {
                 this.filters[filterName] = 0;
             } else if (filterName === "maxPrice") {
-                this.filters[filterName] = 5000;
+                this.filters[filterName] = DEFAULT_MAX_PRICE_NPR;
             } else {
                 this.filters[filterName] = 999;
             }
@@ -458,8 +470,8 @@ class SearchFilterManager {
                 this.filters = { ...this.filters, ...JSON.parse(saved) };
 
                 // Ensure old persisted caps do not hide higher-priced DB vehicles.
-                if (!Number.isFinite(this.filters.maxPrice) || this.filters.maxPrice < 5000) {
-                    this.filters.maxPrice = 5000;
+                if (!Number.isFinite(this.filters.maxPrice) || this.filters.maxPrice < DEFAULT_MAX_PRICE_NPR) {
+                    this.filters.maxPrice = DEFAULT_MAX_PRICE_NPR;
                 }
 
                 this.notifyListeners();
