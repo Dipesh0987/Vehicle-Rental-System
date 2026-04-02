@@ -575,7 +575,7 @@
       return;
     }
 
-    container.innerHTML = "<p class=\"rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-[13px] text-white/75\">" + escapeHtml(message || "No records available.") + "</p>";
+    container.innerHTML = "<p class=\"rounded-2xl border border-[#d6dfd9] bg-white px-4 py-3 text-[13px] text-[#406064]\">" + escapeHtml(message || "No records available.") + "</p>";
   }
 
   function renderBookingDetail(detail, booking) {
@@ -590,11 +590,11 @@
 
     var titleWrap = document.createElement("div");
     var title = document.createElement("h3");
-    title.className = "text-[20px] font-bold leading-tight text-white";
+    title.className = "text-[20px] font-bold leading-tight text-[#17393d]";
     title.textContent = booking.vehicle;
 
     var sub = document.createElement("p");
-    sub.className = "mt-1 text-[12px] text-white/72";
+    sub.className = "mt-1 text-[12px] text-[#5f787b]";
     sub.textContent = booking.reference + " • " + booking.category;
     titleWrap.appendChild(title);
     titleWrap.appendChild(sub);
@@ -607,18 +607,18 @@
     top.appendChild(status);
 
     var timeline = document.createElement("div");
-    timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-white/15 bg-white/5 p-3 text-[12px] text-white/85 sm:grid-cols-2";
+    timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-[#d6dfd9] bg-white p-3 text-[12px] text-[#2f5357] sm:grid-cols-2";
     timeline.innerHTML =
-      "<p><span class=\"block text-white/65\">Pick-up</span>" + escapeHtml(booking.pickupDate) + " at " + escapeHtml(booking.pickupTime) + "</p>" +
-      "<p><span class=\"block text-white/65\">Drop-off</span>" + escapeHtml(booking.dropoffDate) + "</p>" +
-      "<p><span class=\"block text-white/65\">From</span>" + escapeHtml(booking.pickupLocation) + "</p>" +
-      "<p><span class=\"block text-white/65\">To</span>" + escapeHtml(booking.dropoffLocation) + "</p>";
+      "<p><span class=\"block text-[#5f787b]\">Pick-up</span>" + escapeHtml(booking.pickupDate) + " at " + escapeHtml(booking.pickupTime) + "</p>" +
+      "<p><span class=\"block text-[#5f787b]\">Drop-off</span>" + escapeHtml(booking.dropoffDate) + "</p>" +
+      "<p><span class=\"block text-[#5f787b]\">From</span>" + escapeHtml(booking.pickupLocation) + "</p>" +
+      "<p><span class=\"block text-[#5f787b]\">To</span>" + escapeHtml(booking.dropoffLocation) + "</p>";
 
     var money = document.createElement("div");
-    money.className = "mt-3 rounded-2xl border border-[#f2c8aa]/35 bg-[rgba(229,140,78,0.08)] p-3 text-[12px]";
+    money.className = "mt-3 rounded-2xl border border-[#f2d2bb] bg-[#fff7ef] p-3 text-[12px]";
     money.innerHTML =
-      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-white/72\">Total Paid</span><strong class=\"text-[16px] text-[#ffd8bd]\">" + escapeHtml(booking.amount) + "</strong></div>" +
-      "<div class=\"space-y-1 text-white/78\">" +
+      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-[#8b5530]\">Total Paid</span><strong class=\"text-[16px] text-[#7b4520]\">" + escapeHtml(booking.amount) + "</strong></div>" +
+      "<div class=\"space-y-1 text-[#6d5b4d]\">" +
       "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + escapeHtml(booking.baseAmount) + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + escapeHtml(booking.serviceFee) + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Tax</span><span>" + escapeHtml(booking.tax) + "</span></p>" +
@@ -626,13 +626,13 @@
       "</div>";
 
     var extra = document.createElement("div");
-    extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-white/82 sm:grid-cols-2";
+    extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-[#35585c] sm:grid-cols-2";
     extra.innerHTML =
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Driver Option</span>" + escapeHtml(booking.driverName) + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Payment</span>" + escapeHtml(booking.paymentMethod) + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Contact Email</span>" + escapeHtml(booking.customerEmail) + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Contact Phone</span>" + escapeHtml(booking.customerPhone) + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
+      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Driver Option</span>" + escapeHtml(booking.driverName) + "</p>" +
+      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Payment</span>" + escapeHtml(booking.paymentMethod) + "</p>" +
+      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Contact Email</span>" + escapeHtml(booking.customerEmail) + "</p>" +
+      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\"><span class=\"block text-[#5f787b]\">Contact Phone</span>" + escapeHtml(booking.customerPhone) + "</p>" +
+      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2 sm:col-span-2\"><span class=\"block text-[#5f787b]\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
 
     detail.appendChild(top);
     detail.appendChild(timeline);
@@ -726,8 +726,8 @@
 
         var isActive = booking.id === activeId;
         row.className = isActive
-          ? "w-full rounded-2xl border border-[#f3c9ab] bg-[rgba(229,140,78,0.12)] px-3 py-3 text-left transition"
-          : "w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:bg-white/10";
+          ? "w-full rounded-2xl border border-[#f3c9ab] bg-[#fff1e6] px-3 py-3 text-left transition"
+          : "w-full rounded-2xl border border-[#d6dfd9] bg-white px-3 py-3 text-left transition hover:bg-[#f4f9f6]";
       });
 
       var selected = bookings.find(function (booking) {
@@ -785,22 +785,22 @@
 
     var overlay = document.createElement("div");
     overlay.setAttribute("data-bookings-modal-overlay", "true");
-    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(5,18,20,0.58)] opacity-0 transition duration-200";
+    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(8,24,26,0.54)] opacity-0 transition duration-200";
 
     var card = document.createElement("section");
     card.setAttribute("role", "dialog");
     card.setAttribute("aria-modal", "true");
-    card.className = "mx-4 w-full max-w-[1060px] rounded-3xl border border-white/20 bg-[linear-gradient(160deg,rgba(23,56,60,0.98),rgba(16,38,42,0.98))] p-5 text-white shadow-[0_28px_70px_rgba(0,0,0,0.42)] sm:p-6";
+    card.className = "mx-4 w-full max-w-[1060px] rounded-3xl border border-[rgba(23,57,60,0.18)] bg-[linear-gradient(155deg,#ffffff,#f5eee3)] p-5 text-[#204346] shadow-[0_28px_70px_rgba(0,0,0,0.32)] sm:p-6";
 
     var top = document.createElement("div");
     top.className = "flex items-start justify-between gap-3";
 
     var titleWrap = document.createElement("div");
     var heading = document.createElement("h2");
-    heading.className = "text-[22px] font-bold tracking-[-0.01em]";
+    heading.className = "text-[22px] font-bold tracking-[-0.01em] text-[#17393d]";
     heading.textContent = "Your Bookings";
     var subtitle = document.createElement("p");
-    subtitle.className = "mt-1 text-[13px] text-white/75";
+    subtitle.className = "mt-1 text-[13px] text-[#587174]";
     subtitle.textContent = "Recent and upcoming reservations in one place.";
     titleWrap.appendChild(heading);
     titleWrap.appendChild(subtitle);
@@ -808,18 +808,18 @@
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.setAttribute("data-bookings-modal-close", "true");
-    closeBtn.className = "rounded-full border border-white/25 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:-translate-y-[1px] hover:bg-white/10";
+    closeBtn.className = "rounded-full border border-[#d2ddd8] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2f5559] transition hover:-translate-y-[1px] hover:bg-[#f4f9f6]";
     closeBtn.textContent = "Close";
 
     top.appendChild(titleWrap);
     top.appendChild(closeBtn);
 
     var summary = document.createElement("div");
-    summary.className = "mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold text-white/88";
+    summary.className = "mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold text-[#2f5357]";
     summary.innerHTML =
-      "<p class=\"rounded-xl border border-white/15 bg-white/5 px-3 py-2\">Total <span data-bookings-total class=\"ml-1 text-white\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#f2c9ac]/35 bg-[rgba(229,140,78,0.1)] px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"ml-1 text-[#ffd8bd]\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#9ad8b2]/30 bg-[rgba(86,170,117,0.1)] px-3 py-2\">Completed <span data-bookings-completed class=\"ml-1 text-[#d2f0dd]\">0</span></p>";
+      "<p class=\"rounded-xl border border-[#d6dfd9] bg-white px-3 py-2\">Total <span data-bookings-total class=\"ml-1 text-[#17393d]\">0</span></p>" +
+      "<p class=\"rounded-xl border border-[#f2c9ac] bg-[#fff2e8] px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"ml-1 text-[#b56734]\">0</span></p>" +
+      "<p class=\"rounded-xl border border-[#b8dcc6] bg-[#eef9f2] px-3 py-2\">Completed <span data-bookings-completed class=\"ml-1 text-[#1f6a45]\">0</span></p>";
 
     var workspace = document.createElement("div");
     workspace.className = "mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[0.95fr,1.35fr]";
@@ -830,7 +830,7 @@
 
     var detail = document.createElement("div");
     detail.setAttribute("data-bookings-modal-detail", "true");
-    detail.className = "max-h-[58vh] overflow-y-auto rounded-2xl border border-white/15 bg-white/6 p-4";
+    detail.className = "max-h-[58vh] overflow-y-auto rounded-2xl border border-[#d6dfd9] bg-[#f9fcfa] p-4";
 
     card.appendChild(top);
     card.appendChild(summary);
