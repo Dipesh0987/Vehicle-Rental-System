@@ -12,12 +12,16 @@ class AdvancedSearchSystem {
         this.locationAutocomplete = new window.LocationAutocomplete(this.apiClient);
         this.pricingCalculator = new window.PricingCalculator();
         this.catalogService = window.VehicleCatalogService || null;
+        this.bookingService = window.VehicleBookingService || null;
         this.vehicles = [];
         this.isInitialized = false;
         this.unsubscribeCatalogSync = null;
         this.vehicleCacheKey = "vrs:search:vehicles:cache:v1";
         this.catalogVersionKey = "vrs:vehicle-catalog-version";
         this.vehicleCacheTTL = 3 * 60 * 1000;
+        this.lastDateFilterKey = "";
+        this.lastAvailabilityRangeKey = "";
+        this.availabilityRequestId = 0;
     }
 
     readCatalogVersion() {
@@ -93,8 +97,7 @@ class AdvancedSearchSystem {
             this.vehicles = fresh;
 
             if (this.isInitialized) {
-                const filtered = this.filterManager.applyFilters(this.vehicles);
-                this.uiManager.renderVehicleResults(filtered);
+                this.applyFiltersAndRender();
             }
         } catch (_error) {
             // Keep existing list when background refresh fails.
@@ -106,6 +109,285 @@ class AdvancedSearchSystem {
      */
     shouldUseHttpApiFallback() {
         return window.SEARCH_API_ENABLED === true;
+    }
+
+    buildDateFilterKey() {
+        const pickup = String(this.filterManager?.filters?.pickupDateTime || "").trim();
+        const dropoff = String(this.filterManager?.filters?.dropoffDateTime || "").trim();
+        return `${pickup}::${dropoff}`;
+    }
+
+    toIsoDateText(value) {
+        const text = String(value || "").trim();
+        if (!text) {
+            return "";
+        }
+
+        return text.split("T")[0] || "";
+    }
+
+    parseLocalDateTime(value) {
+        const text = String(value || "").trim();
+        if (!text) {
+            return null;
+        }
+
+        const parsed = new Date(text);
+        if (Number.isNaN(parsed.getTime())) {
+            return null;
+        }
+
+        return parsed;
+    }
+
+    getDateRangeContext() {
+        const pickupRaw = String(this.filterManager?.filters?.pickupDateTime || "").trim();
+        const dropoffRaw = String(this.filterManager?.filters?.dropoffDateTime || "").trim();
+
+        if (!pickupRaw && !dropoffRaw) {
+            return {
+                hasRange: false,
+                valid: true,
+                rangeKey: "",
+                startDate: "",
+                endDate: "",
+                message: "",
+            };
+        }
+
+        if (!pickupRaw || !dropoffRaw) {
+            return {
+                hasRange: true,
+                valid: false,
+                rangeKey: "",
+                startDate: "",
+                endDate: "",
+                message: "Select both pickup and return dates.",
+            };
+        }
+
+        const pickupDateTime = this.parseLocalDateTime(pickupRaw);
+        const dropoffDateTime = this.parseLocalDateTime(dropoffRaw);
+
+        if (!pickupDateTime || !dropoffDateTime) {
+            return {
+                hasRange: true,
+                valid: false,
+                rangeKey: "",
+                startDate: "",
+                endDate: "",
+                message: "Please provide valid pickup and return dates.",
+            };
+        }
+
+        const now = new Date();
+        if (pickupDateTime <= now || dropoffDateTime <= now) {
+            return {
+                hasRange: true,
+                valid: false,
+                rangeKey: "",
+                startDate: "",
+                endDate: "",
+                message: "Pickup and return dates must be in the future.",
+            };
+        }
+
+        if (dropoffDateTime < pickupDateTime) {
+            return {
+                hasRange: true,
+                valid: false,
+                rangeKey: "",
+                startDate: "",
+                endDate: "",
+                message: "Return date must be after pickup date.",
+            };
+        }
+
+        const startDate = this.toIsoDateText(pickupRaw);
+        const endDate = this.toIsoDateText(dropoffRaw);
+
+        if (!startDate || !endDate) {
+            return {
+                hasRange: true,
+                valid: false,
+                rangeKey: "",
+                startDate: "",
+                endDate: "",
+                message: "Please provide valid pickup and return dates.",
+            };
+        }
+
+        return {
+            hasRange: true,
+            valid: true,
+            rangeKey: `${startDate}::${endDate}`,
+            startDate,
+            endDate,
+            message: "",
+        };
+    }
+
+    formatLocalDateTimeForInput(value) {
+        const date = value instanceof Date ? value : new Date();
+        const normalized = new Date(date.getTime());
+        normalized.setSeconds(0, 0);
+        const yyyy = normalized.getFullYear();
+        const mm = String(normalized.getMonth() + 1).padStart(2, "0");
+        const dd = String(normalized.getDate()).padStart(2, "0");
+        const hh = String(normalized.getHours()).padStart(2, "0");
+        const min = String(normalized.getMinutes()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    }
+
+    applyDateInputConstraints(pickupInput, dropoffInput) {
+        if (!pickupInput && !dropoffInput) {
+            return;
+        }
+
+        const refreshMin = () => {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 1);
+            const minNow = this.formatLocalDateTimeForInput(now);
+
+            if (pickupInput) {
+                pickupInput.min = minNow;
+            }
+
+            if (dropoffInput) {
+                const pickupValue = pickupInput ? String(pickupInput.value || "").trim() : "";
+                dropoffInput.min = pickupValue || minNow;
+
+                if (pickupValue && dropoffInput.value && dropoffInput.value < pickupValue) {
+                    dropoffInput.value = pickupValue;
+                    this.filterManager.updateFilter("dropoffDateTime", pickupValue);
+                }
+            }
+        };
+
+        refreshMin();
+
+        [pickupInput, dropoffInput].forEach((input) => {
+            if (!input) {
+                return;
+            }
+
+            input.addEventListener("focus", refreshMin);
+            input.addEventListener("input", refreshMin);
+            input.addEventListener("change", refreshMin);
+        });
+    }
+
+    async refreshDateAvailabilitySnapshot(options = {}) {
+        const context = this.getDateRangeContext();
+        const quiet = Boolean(options.quiet);
+        const force = Boolean(options.force);
+
+        if (!context.hasRange) {
+            this.filterManager.clearDateAvailability();
+            this.lastAvailabilityRangeKey = "";
+            if (!quiet && this.uiManager?.hideReloadStatus) {
+                this.uiManager.hideReloadStatus();
+            }
+            return { applied: false, reason: "no-range" };
+        }
+
+        if (!context.valid) {
+            this.filterManager.clearDateAvailability();
+            this.lastAvailabilityRangeKey = "";
+            if (this.uiManager?.showReloadStatus) {
+                this.uiManager.showReloadStatus(context.message);
+            }
+            return { applied: false, reason: "invalid-range", message: context.message };
+        }
+
+        if (!force && context.rangeKey === this.lastAvailabilityRangeKey && this.filterManager?.dateAvailability?.active) {
+            return { applied: true, reason: "cached" };
+        }
+
+        if (!this.bookingService || typeof this.bookingService.listBookings !== "function") {
+            this.filterManager.clearDateAvailability();
+            this.lastAvailabilityRangeKey = "";
+            if (this.uiManager?.showReloadStatus) {
+                this.uiManager.showReloadStatus("Availability service is currently unavailable.");
+            }
+            return { applied: false, reason: "booking-service-unavailable" };
+        }
+
+        const requestId = this.availabilityRequestId + 1;
+        this.availabilityRequestId = requestId;
+
+        if (!quiet && this.uiManager?.showReloadStatus) {
+            this.uiManager.showReloadStatus("Checking vehicle availability for selected dates...");
+        }
+
+        try {
+            const rows = await this.bookingService.listBookings({
+                rangeStart: context.startDate,
+                rangeEnd: context.endDate,
+            });
+
+            if (requestId !== this.availabilityRequestId) {
+                return { applied: false, reason: "stale-request" };
+            }
+
+            const activeStatuses = Array.isArray(this.bookingService.activeStatuses) && this.bookingService.activeStatuses.length
+                ? this.bookingService.activeStatuses.map((status) => String(status || "").toLowerCase())
+                : ["pending", "confirmed"];
+
+            const unavailableVehicleIds = new Set();
+            (Array.isArray(rows) ? rows : []).forEach((row) => {
+                const status = String(row && row.status ? row.status : "").toLowerCase();
+                if (!activeStatuses.includes(status)) {
+                    return;
+                }
+
+                const vehicleId = String(row && row.vehicleId ? row.vehicleId : "").trim();
+                if (vehicleId) {
+                    unavailableVehicleIds.add(vehicleId);
+                }
+            });
+
+            this.filterManager.setDateAvailability({
+                startDate: context.startDate,
+                endDate: context.endDate,
+                unavailableVehicleIds,
+            });
+            this.lastAvailabilityRangeKey = context.rangeKey;
+
+            if (this.uiManager?.showReloadStatus) {
+                const blockedCount = unavailableVehicleIds.size;
+                const message = blockedCount
+                    ? `Hiding ${blockedCount} booked vehicle${blockedCount === 1 ? "" : "s"} for selected dates.`
+                    : "All listed vehicles are available for selected dates.";
+                this.uiManager.showReloadStatus(message);
+            }
+
+            return { applied: true, reason: "fetched" };
+        } catch (error) {
+            if (requestId !== this.availabilityRequestId) {
+                return { applied: false, reason: "stale-request" };
+            }
+
+            console.warn("Failed to evaluate booking availability for search dates:", error);
+            this.filterManager.clearDateAvailability();
+            this.lastAvailabilityRangeKey = "";
+            if (this.uiManager?.showReloadStatus) {
+                this.uiManager.showReloadStatus("Unable to verify date availability right now. Please try again.");
+            }
+            return { applied: false, reason: "fetch-error" };
+        }
+    }
+
+    applyFiltersAndRender(options = {}) {
+        const shouldPersist = Boolean(options.persist);
+        const filtered = this.filterManager.applyFilters(this.vehicles);
+        this.uiManager.renderVehicleResults(filtered);
+
+        if (shouldPersist) {
+            this.filterManager.saveState();
+        }
+
+        return filtered;
     }
 
 
@@ -221,10 +503,17 @@ class AdvancedSearchSystem {
         this.setupResetButton();
 
         // Filter changes
-        this.filterManager.onFilterChange(() => {
-            const filtered = this.filterManager.applyFilters(this.vehicles);
-            this.uiManager.renderVehicleResults(filtered);
-            this.filterManager.saveState();
+        this.filterManager.onFilterChange(async () => {
+            const nextDateFilterKey = this.buildDateFilterKey();
+            const hasDateChange = nextDateFilterKey !== this.lastDateFilterKey;
+
+            this.lastDateFilterKey = nextDateFilterKey;
+
+            if (hasDateChange) {
+                await this.refreshDateAvailabilitySnapshot();
+            }
+
+            this.applyFiltersAndRender({ persist: true });
         });
 
         // Wishlist changes
@@ -271,8 +560,7 @@ class AdvancedSearchSystem {
 
             this.vehicles = catalogVehicles;
             this.writeVehicleCache(this.vehicles);
-            const filtered = this.filterManager.applyFilters(this.vehicles);
-            this.uiManager.renderVehicleResults(filtered);
+            this.applyFiltersAndRender();
         } catch (error) {
             console.warn("Failed to refresh vehicles from catalog service:", error);
         }
@@ -287,6 +575,8 @@ class AdvancedSearchSystem {
         const pickupDateTime = document.getElementById("pickupDateTime");
         const dropoffDateTime = document.getElementById("dropoffDateTime");
         const searchBtn = document.getElementById("searchBtn");
+
+        this.applyDateInputConstraints(pickupDateTime, dropoffDateTime);
 
         // Location autocomplete
         if (pickupLocation) {
@@ -321,7 +611,7 @@ class AdvancedSearchSystem {
         // Search button
         if (searchBtn) {
             searchBtn.addEventListener("click", () => {
-                this.performSearch();
+                void this.performSearch();
             });
         }
     }
@@ -434,8 +724,8 @@ class AdvancedSearchSystem {
                 });
 
                 // Filter with empty criteria
-                const filtered = this.filterManager.applyFilters(this.vehicles);
-                this.uiManager.renderVehicleResults(filtered);
+                this.lastDateFilterKey = this.buildDateFilterKey();
+                this.applyFiltersAndRender();
             });
         }
     }
@@ -458,8 +748,8 @@ class AdvancedSearchSystem {
                 this.filterManager.clearAllFilters();
                 this.uiManager.renderFilterPanel();
                 this.uiManager.updateActiveFilterTags();
-                const filtered = this.filterManager.applyFilters(this.vehicles);
-                this.uiManager.renderVehicleResults(filtered);
+                this.lastDateFilterKey = this.buildDateFilterKey();
+                this.applyFiltersAndRender();
             });
         }
     }
@@ -467,10 +757,30 @@ class AdvancedSearchSystem {
     /**
      * Perform search with current filters
      */
-    performSearch() {
+    async performSearch() {
         console.log("Searching with filters:", this.filterManager.filters);
-        const filtered = this.filterManager.applyFilters(this.vehicles);
-        this.uiManager.renderVehicleResults(filtered);
+
+        if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
+            this.uiManager.showReloadStatus("Refining results...");
+        }
+
+        if (this.uiManager && typeof this.uiManager.showLoadingSkeleton === "function") {
+            this.uiManager.showLoadingSkeleton();
+        }
+
+        const availabilityState = await this.refreshDateAvailabilitySnapshot({ force: true, quiet: true });
+
+        window.setTimeout(() => {
+            this.applyFiltersAndRender();
+
+            const shouldKeepStatusVisible =
+                availabilityState &&
+                ["invalid-range", "booking-service-unavailable", "fetch-error"].includes(availabilityState.reason);
+
+            if (!shouldKeepStatusVisible && this.uiManager && typeof this.uiManager.hideReloadStatus === "function") {
+                this.uiManager.hideReloadStatus();
+            }
+        }, 260);
     }
 
     /**
