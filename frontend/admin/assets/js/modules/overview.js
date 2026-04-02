@@ -9,7 +9,7 @@ export function renderOverviewModule({ data }) {
     { label: 'Total Vehicles', value: data.metrics.totalVehicles, delta: '+3.2% this week' },
     { label: 'Active Rentals', value: data.metrics.activeRentals, delta: '+8 currently in transit' },
     { label: 'Daily Bookings', value: data.metrics.dailyBookings, delta: '+14.5% vs yesterday' },
-    { label: 'Revenue', value: `$${data.metrics.revenue.toLocaleString()}`, delta: '+12.1% MTD' },
+    { label: 'Revenue', value: formatNpr(data.metrics.revenue), delta: '+12.1% MTD' },
     { label: 'Cancellations', value: data.metrics.cancellations, delta: '-2.4% reduced churn' },
   ];
 
@@ -110,4 +110,10 @@ export function renderOverviewModule({ data }) {
   });
 
   return host;
+}
+
+function formatNpr(value) {
+  const amount = Number(value || 0);
+  const normalized = Number.isFinite(amount) ? amount : 0;
+  return `NPR ${Math.round(normalized).toLocaleString()}`;
 }

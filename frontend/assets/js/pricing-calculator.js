@@ -19,10 +19,10 @@ class PricingCalculator {
                 comprehensive: 0.35, // 35% of daily rate
             },
             driver: {
-                "with-driver": 50, // Fixed $50 per day
+                "with-driver": 50, // Fixed NPR 50 per day
             },
             mileage: {
-                limited: 0.1, // $0.10 per km over limit
+                limited: 0.1, // NPR 0.10 per km over limit
             },
             discounts: {
                 weekly: 0.1, // 10% discount for 7+ days
@@ -196,22 +196,22 @@ class PricingCalculator {
 
         for (const [key, item] of Object.entries(cost.breakdown)) {
             if (item) {
-                str += `${item.label}: $${item.amount.toFixed(2)}\n`;
+                str += `${item.label}: NPR ${item.amount.toFixed(2)}\n`;
             }
         }
 
         if (cost.discounts.length > 0) {
             str += "\n--- DISCOUNTS ---\n";
             cost.discounts.forEach((discount) => {
-                str += `${discount.name}: -$${discount.amount.toFixed(2)}\n`;
+                str += `${discount.name}: -NPR ${discount.amount.toFixed(2)}\n`;
             });
         }
 
-        str += `\nSubtotal: $${cost.subtotal.toFixed(2)}\n`;
-        str += `Tax (8%): $${cost.estimatedTax.toFixed(2)}\n`;
-        str += `Total Rental: $${cost.total.toFixed(2)}\n`;
-        str += `Security Deposit (Refundable): $${cost.securityDeposit.toFixed(2)}\n`;
-        str += `GRAND TOTAL: $${cost.grandTotal.toFixed(2)}`;
+        str += `\nSubtotal: NPR ${cost.subtotal.toFixed(2)}\n`;
+        str += `Tax (8%): NPR ${cost.estimatedTax.toFixed(2)}\n`;
+        str += `Total Rental: NPR ${cost.total.toFixed(2)}\n`;
+        str += `Security Deposit (Refundable): NPR ${cost.securityDeposit.toFixed(2)}\n`;
+        str += `GRAND TOTAL: NPR ${cost.grandTotal.toFixed(2)}`;
 
         return str;
     }

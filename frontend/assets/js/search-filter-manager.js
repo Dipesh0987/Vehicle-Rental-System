@@ -270,7 +270,7 @@ class SearchFilterManager {
     }
 
     /**
-     * Extract price from string (e.g., "$82 / day" -> 82)
+     * Extract price from string (e.g., "NPR 82 / day" -> 82)
      * @param {string} priceString - Price string
      * @returns {number} Extracted price
      */

@@ -48,8 +48,8 @@
       if (this.transmission) tags.push({ label: `${this.capitalize(this.transmission)}`, key: "transmission" });
       if (this.availability) tags.push({ label: `${this.availability === 'available' ? 'Available Now' : 'Limited Stock'}`, key: "availability" });
       if (this.minSeats !== null) tags.push({ label: `Seats: ${this.minSeats}+`, key: "minSeats" });
-      if (this.minPrice !== null) tags.push({ label: `Min: $${this.minPrice}`, key: "minPrice" });
-      if (this.maxPrice !== null) tags.push({ label: `Max: $${this.maxPrice}`, key: "maxPrice" });
+      if (this.minPrice !== null) tags.push({ label: `Min: NPR ${this.minPrice}`, key: "minPrice" });
+      if (this.maxPrice !== null) tags.push({ label: `Max: NPR ${this.maxPrice}`, key: "maxPrice" });
       return tags;
     },
 
@@ -60,7 +60,7 @@
 
   // Extract price from daily rate string
   function extractPrice(pricingText) {
-    const match = String(pricingText || "").match(/\$(\d+)/);
+    const match = String(pricingText || "").match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   }
 

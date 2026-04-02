@@ -68,7 +68,7 @@
       numeric = 0;
     }
 
-    return "$" + numeric.toFixed(2);
+    return "NPR " + numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function getQueryParam(key) {
@@ -205,7 +205,7 @@
         meta.textContent = "";
       }
       if (price) {
-        price.textContent = "$0 / day";
+        price.textContent = "NPR 0 / day";
       }
       return;
     }
@@ -223,7 +223,7 @@
       meta.textContent = "";
     }
     if (price) {
-      price.textContent = "$" + Math.round(dailyRate) + " / day";
+      price.textContent = "NPR " + Math.round(dailyRate).toLocaleString() + " / day";
     }
   }
 
@@ -308,7 +308,7 @@
         var name = getVehicleDisplayName(vehicle);
         var dailyRate = Math.round(parseDailyRate(vehicle));
         var selected = id === selectedId ? " selected" : "";
-        return '<option value="' + id + '"' + selected + '>' + name + ' - $' + dailyRate + '/day</option>';
+        return '<option value="' + id + '"' + selected + '>' + name + ' - NPR ' + dailyRate.toLocaleString() + '/day</option>';
       })
       .join("");
   }
