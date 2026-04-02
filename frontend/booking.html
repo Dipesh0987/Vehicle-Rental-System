@@ -11,6 +11,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <link rel="stylesheet" href="assets/css/theme.css" />
+    <script src="assets/js/theme-manager.js"></script>
     <style>
       :root {
         --public-brand: #145f59;
@@ -46,10 +48,85 @@
       .text-panel {
         color: var(--public-brand) !important;
       }
+
+      .booking-solid-panel {
+        background: linear-gradient(165deg, rgba(255, 255, 255, 0.97), rgba(248, 241, 231, 0.97));
+        border-color: rgba(22, 56, 59, 0.16) !important;
+      }
+
+      .booking-review-card {
+        border-color: rgba(23, 57, 60, 0.2) !important;
+        background: linear-gradient(155deg, rgba(255, 255, 255, 0.99), rgba(246, 239, 228, 0.99)) !important;
+      }
+
+      .booking-review-summary {
+        border-color: #d8e3de !important;
+        background: #ffffff !important;
+      }
+
+      .booking-review-row {
+        border-color: #dbe5df !important;
+        background: #ffffff !important;
+        color: #284d50 !important;
+      }
+
+      .booking-review-total {
+        border-color: #f2d3bb !important;
+        background: #fff6ef !important;
+        color: #6d3e18 !important;
+      }
+
+      html[data-theme="dark"] .booking-solid-panel {
+        background: linear-gradient(160deg, rgba(20, 30, 36, 0.96), rgba(15, 24, 30, 0.96)) !important;
+        border-color: rgba(150, 176, 188, 0.32) !important;
+        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4) !important;
+      }
+
+      html[data-theme="dark"] .booking-review-card {
+        border-color: rgba(157, 186, 198, 0.34) !important;
+        background: linear-gradient(160deg, rgba(22, 33, 40, 0.98), rgba(16, 26, 33, 0.98)) !important;
+        color: #e6eef2 !important;
+      }
+
+      html[data-theme="dark"] .booking-review-kicker {
+        color: #9ec1cc !important;
+      }
+
+      html[data-theme="dark"] .booking-review-title {
+        color: #f1f7fa !important;
+      }
+
+      html[data-theme="dark"] .booking-review-cancel {
+        border-color: rgba(157, 186, 198, 0.34) !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: #d6e5eb !important;
+      }
+
+      html[data-theme="dark"] .booking-review-cancel:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+      }
+
+      html[data-theme="dark"] .booking-review-summary {
+        border-color: rgba(157, 186, 198, 0.32) !important;
+        background: rgba(14, 23, 29, 0.96) !important;
+        color: #d7e6ec !important;
+      }
+
+      html[data-theme="dark"] .booking-review-row {
+        border-color: rgba(157, 186, 198, 0.28) !important;
+        background: rgba(18, 29, 36, 0.95) !important;
+        color: #dcebf1 !important;
+      }
+
+      html[data-theme="dark"] .booking-review-total {
+        border-color: rgba(240, 168, 114, 0.32) !important;
+        background: rgba(107, 61, 32, 0.32) !important;
+        color: #ffd9bf !important;
+      }
     </style>
   </head>
   <body
-    class="min-h-screen bg-paper text-ink antialiased"
+    class="vrs-page min-h-screen bg-paper text-ink antialiased"
     style="font-family: 'Manrope', sans-serif;"
   >
     <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
@@ -161,7 +238,7 @@
       <a href="#" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Contact</a>
     </div>
 
-    <main class="mx-auto w-[95%] max-w-[1390px] pb-14">
+    <main class="vrs-theme-scope mx-auto w-[95%] max-w-[1390px] pb-14">
       <section class="rounded-[34px] border border-[rgba(23,57,60,0.14)] bg-[linear-gradient(150deg,rgba(255,255,255,0.93),rgba(246,239,229,0.84))] p-5 shadow-[0_24px_52px_rgba(10,31,34,0.1)] backdrop-blur-sm sm:p-7">
         <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -264,7 +341,7 @@
           </section>
 
           <aside class="space-y-4">
-            <article class="rounded-3xl border border-[#d5e0db] bg-[linear-gradient(165deg,#ffffff,#f9f4eb)] p-4 shadow-[0_14px_30px_rgba(10,31,34,0.1)] sm:p-5 lg:sticky lg:top-5">
+            <article class="booking-solid-panel rounded-3xl border border-[#d5e0db] bg-[linear-gradient(165deg,#ffffff,#f9f4eb)] p-4 shadow-[0_14px_30px_rgba(10,31,34,0.1)] sm:p-5 lg:sticky lg:top-5">
               <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Selected Vehicle</p>
               <h2 id="bookingVehicleTitle" class="mt-3 text-[24px] font-bold leading-tight text-[#14373b]">Vehicle</h2>
               <p id="bookingVehicleMeta" class="hidden text-[13px] text-[#456467]"></p>
@@ -273,7 +350,7 @@
                 <p id="bookingVehiclePrice" class="mt-1 text-[22px] font-extrabold text-[#1f5b57]">NPR 0 / day</p>
               </div>
 
-              <div class="mt-4 rounded-3xl border border-[#d5e0db] bg-white/95 p-4 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:p-5">
+              <div class="booking-solid-panel mt-4 rounded-3xl border border-[#d5e0db] bg-white/95 p-4 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:p-5">
               <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Pricing Summary</p>
               <div class="mt-3 space-y-2 text-[13px] text-[#3d5f61]">
                 <div class="flex items-center justify-between"><span>Duration</span><span id="bookingDurationText" class="font-semibold text-[#24484b]">0 days</span></div>
@@ -296,13 +373,13 @@
     </main>
 
     <div id="bookingConfirmModal" class="pointer-events-none fixed inset-0 z-[260] flex items-center justify-center bg-[rgba(8,22,24,0.62)] px-4 opacity-0 transition duration-200" aria-hidden="true">
-      <div id="bookingConfirmCard" class="w-full max-w-[560px] translate-y-2 scale-[0.985] rounded-[26px] border border-[rgba(23,57,60,0.18)] bg-[linear-gradient(155deg,#ffffff,#f6efe4)] p-5 shadow-[0_30px_80px_rgba(2,14,16,0.46)] transition duration-200 sm:p-6">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Confirm Reservation</p>
-        <h3 class="mt-1 text-[26px] font-extrabold text-[#14373b]">Review Booking Details</h3>
+      <div id="bookingConfirmCard" class="booking-review-card w-full max-w-[560px] translate-y-2 scale-[0.985] rounded-[26px] border border-[rgba(23,57,60,0.18)] bg-[linear-gradient(155deg,#ffffff,#f6efe4)] p-5 shadow-[0_30px_80px_rgba(2,14,16,0.46)] transition duration-200 sm:p-6">
+        <p class="booking-review-kicker text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Confirm Reservation</p>
+        <h3 class="booking-review-title mt-1 text-[26px] font-extrabold text-[#14373b]">Review Booking Details</h3>
         <div id="bookingConfirmError" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-semibold text-rose-700"></div>
-        <div id="bookingConfirmSummary" class="mt-3 rounded-2xl border border-[#d8e3de] bg-white p-4 text-[13px] text-[#375c5f] shadow-[0_10px_20px_rgba(10,31,34,0.08)]"></div>
+        <div id="bookingConfirmSummary" class="booking-review-summary mt-3 rounded-2xl border border-[#d8e3de] bg-white p-4 text-[13px] text-[#375c5f] shadow-[0_10px_20px_rgba(10,31,34,0.08)]"></div>
         <div class="mt-4 flex flex-wrap justify-end gap-2">
-          <button id="bookingConfirmCancel" type="button" class="rounded-full border border-[#d0ddd8] px-4 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">Back</button>
+          <button id="bookingConfirmCancel" type="button" class="booking-review-cancel rounded-full border border-[#d0ddd8] px-4 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">Back</button>
           <button id="bookingConfirmSubmit" type="button" class="rounded-full bg-accent px-5 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70">Submit Booking</button>
         </div>
       </div>
