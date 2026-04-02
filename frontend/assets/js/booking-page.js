@@ -399,10 +399,10 @@
       if (quote.couponCode) {
         applyCouponStatus(quote.couponMessage);
       } else {
-        applyCouponStatus("Coupon not recognized");
+        applyCouponStatus("Promo code not recognized. Try SAVE10 or WEEKEND50.");
       }
     } else {
-      applyCouponStatus("Try SAVE10 or WEEKEND50");
+      applyCouponStatus("Enter a promo code like SAVE10 or WEEKEND50, then click Apply.");
     }
   }
 
