@@ -462,64 +462,54 @@ class SearchUIManager {
         const displayName = this.getVehicleDisplayName(vehicle);
 
         let html = `
-            <div class="vehicle-result-card group cursor-pointer overflow-hidden rounded-2xl border border-[#d4ded9] bg-white shadow-[0_12px_28px_rgba(10,31,34,0.09)] transition-[box-shadow,border-color] duration-300 hover:shadow-[0_20px_36px_rgba(10,31,34,0.15)]" style="--card-stagger-delay:${animationDelay}ms" data-vehicle-id="${vehicle.id}" role="link" tabindex="0" aria-label="Open details for ${displayName}">
-                <!-- Vehicle Image -->
-                <div class="relative h-48 overflow-hidden bg-gradient-to-br from-panel to-[#1f5659]">
+            <div class="vehicle-result-card group cursor-pointer overflow-hidden rounded-[24px] border border-[#d4ddd7] bg-[linear-gradient(165deg,#ffffff,#f8f3ea)] shadow-[0_14px_30px_rgba(10,31,34,0.1)] transition-[box-shadow,border-color] duration-300 hover:shadow-[0_24px_42px_rgba(10,31,34,0.16)]" style="--card-stagger-delay:${animationDelay}ms" data-vehicle-id="${vehicle.id}" role="link" tabindex="0" aria-label="Open details for ${displayName}">
+                <div class="relative h-52 overflow-hidden bg-gradient-to-br from-panel to-[#1f5659]">
                     <img src="${imageUrl || fallbackImage}" alt="${displayName}" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" onerror="this.src='${fallbackImage}'" />
-                    <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0d2528]/55 via-transparent to-transparent"></div>
-                    ${vehicle.available !== false ? '<div class="absolute right-4 top-4 rounded-full border border-[#b7e1c7] bg-[#e9fff1] px-3 py-1 text-[11px] font-semibold text-[#1b6a3d]"><i class="fas fa-check-circle mr-1"></i>Available</div>' : ""}
+                    <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0d2528]/62 via-[#0d2528]/10 to-transparent"></div>
+                    ${vehicle.available !== false ? '<div class="absolute left-4 top-4 rounded-full border border-[#b7e1c7] bg-[#e9fff1] px-3 py-1 text-[11px] font-semibold text-[#1b6a3d]"><i class="fas fa-check-circle mr-1"></i>Available</div>' : '<div class="absolute left-4 top-4 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-700"><i class="fas fa-clock mr-1"></i>Booked</div>'}
+                    <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2 rounded-xl border border-white/25 bg-[#10292b]/52 px-3 py-2 text-white backdrop-blur-sm">
+                        <p class="truncate text-[11px] font-semibold uppercase tracking-[0.12em]">${vehicle.type || "Vehicle"}</p>
+                        <p class="text-[11px] font-semibold">${formatNpr(price)} / day</p>
+                    </div>
                 </div>
 
-                <!-- Card Content -->
                 <div class="p-5">
-                    <!-- Header -->
-                    <div class="flex items-start justify-between mb-2">
+                    <div class="mb-2 flex items-start justify-between gap-2">
                         <div>
-                            <h3 class="font-bold text-lg text-ink">${displayName}</h3>
-                            <p class="text-xs text-muted font-semibold uppercase">${vehicle.type || "Vehicle"}</p>
+                            <h3 class="text-[20px] font-bold leading-tight text-ink">${displayName}</h3>
+                            <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#628083]">${vehicle.vehicleNumber ? `Vehicle No. ${vehicle.vehicleNumber}` : "Verified fleet listing"}</p>
                         </div>
-                        <button class="wishlist-icon rounded-full p-2 transition ${isWishlisted ? "bg-red-50 text-red-500" : "text-muted hover:bg-[#f5f8f7] hover:text-red-500"}" data-vehicle-id="${vehicle.id}">
+                        <button class="wishlist-icon rounded-full border border-[#d5ddd8] p-2 transition ${isWishlisted ? "bg-red-50 text-red-500" : "text-muted hover:bg-white hover:text-red-500"}" data-vehicle-id="${vehicle.id}">
                             <i class="${isWishlisted ? "fas" : "far"} fa-heart text-lg"></i>
                         </button>
                     </div>
 
-                    <!-- Quick Specs -->
-                    <div class="grid grid-cols-2 gap-2 mb-4 text-xs text-muted font-semibold">
-                        <div><i class="fas fa-gears mr-1"></i>${vehicle.transmission || "Auto"}</div>
-                        <div><i class="fas fa-gas-pump mr-1"></i>${vehicle.fuelType || "Petrol"}</div>
-                        <div><i class="fas fa-person mr-1"></i>${vehicle.seats || 5} Seats</div>
-                        ${vehicle.features ? `<div><i class="fas fa-list-check mr-1"></i>${vehicle.features.length} Features</div>` : ""}
+                    <div class="mb-4 grid grid-cols-2 gap-2 text-[12px] text-[#4f686b] font-semibold">
+                        <div class="rounded-xl border border-[#d7dfda] bg-white px-2.5 py-2"><i class="fas fa-gears mr-1 text-[#5a7477]"></i>${vehicle.transmission || "Auto"}</div>
+                        <div class="rounded-xl border border-[#d7dfda] bg-white px-2.5 py-2"><i class="fas fa-gas-pump mr-1 text-[#5a7477]"></i>${vehicle.fuelType || "Petrol"}</div>
+                        <div class="rounded-xl border border-[#d7dfda] bg-white px-2.5 py-2"><i class="fas fa-person mr-1 text-[#5a7477]"></i>${vehicle.seats || 5} Seats</div>
+                        ${vehicle.features ? `<div class="rounded-xl border border-[#d7dfda] bg-white px-2.5 py-2"><i class="fas fa-list-check mr-1 text-[#5a7477]"></i>${vehicle.features.length} Features</div>` : ""}
                     </div>
 
-                    <!-- Rating -->
-                    <div class="flex items-center gap-2 mb-4">
+                    <div class="mb-4 flex items-center justify-between gap-2 rounded-xl border border-[#dde5df] bg-white px-3 py-2">
                         <div class="flex gap-1">
                             ${this.renderStars(rating)}
                         </div>
-                        <span class="text-sm font-bold text-ink">${rating.toFixed(1)}</span>
-                        <span class="text-xs text-muted">(${reviewCount} reviews)</span>
+                        <span class="text-[12px] font-semibold text-[#2d4e52]">${rating.toFixed(1)} rating · ${reviewCount} reviews</span>
                     </div>
 
-                    <!-- Price -->
-                    <div class="mb-4 flex items-baseline gap-2">
-                        <span class="text-2xl font-bold text-accent">${formatNpr(price)}</span>
-                        <span class="text-sm text-muted">/ day</span>
-                    </div>
-
-                    <!-- Features Tags -->
                     ${vehicle.features ? `
-                        <div class="mb-4 flex flex-wrap gap-1">
-                            ${vehicle.features.slice(0, 3).map(f => `<span class="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full font-semibold">${this.formatFeatureLabel(f)}</span>`).join("")}
-                            ${vehicle.features.length > 3 ? `<span class="text-xs bg-gray-100 text-muted px-2 py-1 rounded-full font-semibold">+${vehicle.features.length - 3}</span>` : ""}
+                        <div class="mb-4 flex flex-wrap gap-1.5">
+                            ${vehicle.features.slice(0, 3).map(f => `<span class="rounded-full border border-[#d7dfda] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#406064]">${this.formatFeatureLabel(f)}</span>`).join("")}
+                            ${vehicle.features.length > 3 ? `<span class="rounded-full border border-[#d7dfda] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#6a8184]">+${vehicle.features.length - 3}</span>` : ""}
                         </div>
                     ` : ""}
 
-                    <!-- Buttons -->
                     <div class="flex gap-2">
-                        <button class="view-details flex-1 rounded-lg bg-accent py-2 font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105" data-vehicle-id="${vehicle.id}">
+                        <button class="view-details flex-1 rounded-xl border border-[#d7dfda] bg-white py-2.5 font-semibold text-[#22494d] transition duration-200 hover:-translate-y-0.5 hover:border-[#8ea8ab]" data-vehicle-id="${vehicle.id}">
                             View Details
                         </button>
-                        <button class="book-vehicle book-now-btn flex-1 rounded-lg border border-[#1f7668] bg-white py-2 font-semibold text-[#1f7668] transition duration-200 hover:-translate-y-0.5 hover:border-[#16584d] hover:bg-[#1f7668] hover:text-white hover:shadow-[0_10px_22px_rgba(31,118,104,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(44,118,110,0.38)]" data-vehicle-id="${vehicle.id}">
+                        <button class="book-vehicle book-now-btn flex-1 rounded-xl border border-[#1f7668] bg-white py-2.5 font-semibold text-[#1f7668] transition duration-200 hover:-translate-y-0.5 hover:border-[#16584d] hover:bg-[#1f7668] hover:text-white hover:shadow-[0_10px_22px_rgba(31,118,104,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(44,118,110,0.38)]" data-vehicle-id="${vehicle.id}">
                             Book Now
                         </button>
                     </div>
@@ -743,7 +733,24 @@ class SearchUIManager {
         let html = "";
         for (let i = 0; i < 6; i++) {
             html += `
-                <div class="h-96 animate-pulse rounded-2xl border border-[#d4ded9] bg-gradient-to-r from-[#eef3f1] via-[#f7faf9] to-[#eef3f1]"></div>
+                <article class="overflow-hidden rounded-[24px] border border-[#d4ddd7] bg-[linear-gradient(165deg,#ffffff,#f8f3ea)] shadow-[0_12px_24px_rgba(10,31,34,0.08)]">
+                    <div class="h-[230px] animate-pulse bg-gradient-to-r from-[#ecf2ef] via-[#f8fbfa] to-[#ecf2ef]"></div>
+                    <div class="space-y-3 p-5">
+                        <div class="h-5 w-[55%] animate-pulse rounded-full bg-[#edf3f0]"></div>
+                        <div class="h-3 w-[42%] animate-pulse rounded-full bg-[#edf3f0]"></div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div class="h-10 animate-pulse rounded-xl bg-[#edf3f0]"></div>
+                            <div class="h-10 animate-pulse rounded-xl bg-[#edf3f0]"></div>
+                            <div class="h-10 animate-pulse rounded-xl bg-[#edf3f0]"></div>
+                            <div class="h-10 animate-pulse rounded-xl bg-[#edf3f0]"></div>
+                        </div>
+                        <div class="h-10 animate-pulse rounded-xl bg-[#edf3f0]"></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="h-11 animate-pulse rounded-xl bg-[#edf3f0]"></div>
+                            <div class="h-11 animate-pulse rounded-xl bg-[#edf3f0]"></div>
+                        </div>
+                    </div>
+                </article>
             `;
         }
         resultsDiv.innerHTML = html;
