@@ -10,7 +10,7 @@
 
   var COUPON_RULES = {
     SAVE10: { type: "percent", value: 0.1, label: "10% off applied" },
-    WEEKEND50: { type: "flat", value: 50, label: "$50 off applied" },
+    WEEKEND50: { type: "flat", value: 50, label: "NPR 50 off applied" },
   };
 
   var cachedBookingTable = null;
@@ -332,7 +332,7 @@
       totalAmount: totalAmount,
       couponCode: couponCode,
       couponMessage: couponMessage,
-      currency: "USD",
+      currency: "NPR",
       dailyRate: dailyRate,
     };
   }
@@ -548,7 +548,7 @@
         taxAmount: toFixedAmount(row.tax_amount),
         discountAmount: toFixedAmount(row.discount_amount),
         totalAmount: toFixedAmount(row.total_amount),
-        currency: normalizeString(row.currency, "USD"),
+        currency: normalizeString(row.currency, "NPR"),
       },
       createdAt: normalizeString(row.created_at, ""),
     };
