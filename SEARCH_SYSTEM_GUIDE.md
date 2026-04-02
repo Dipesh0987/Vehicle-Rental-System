@@ -39,7 +39,7 @@ frontend/
 **Usage**:
 ```javascript
 const apiClient = window.AdvancedSearch.apiClient;
-const vehicles = await apiClient.searchVehicles({ maxPrice: 100 });
+const vehicles = await apiClient.searchVehicles({ maxPrice: 7000 });
 const availability = await apiClient.checkAvailability(vehicleId, startDate, endDate);
 ```
 
@@ -52,7 +52,7 @@ const availability = await apiClient.checkAvailability(vehicleId, startDate, end
 - Location: `pickupLocation`, `dropoffLocation`, `pickupDateTime`, `dropoffDateTime`
 - Vehicle: `vehicleTypes`, `brands`, `models`, `transmission`, `fuelType`, `seats`
 - Features: `features[]` (AC, GPS, Bluetooth, etc.)
-- Price: `minPrice`, `maxPrice` (0-500)
+- Price: `minPrice`, `maxPrice` (NPR 0-NPR 50,000)
 - Rating: `minRating` (0-5 stars)
 - Options: `insuranceTypes[]`, `driverOptions[]`, `mileagePolicy[]`
 - Other: `availabilityOnly`, `minEVRange`, `searchText`
@@ -62,7 +62,7 @@ const availability = await apiClient.checkAvailability(vehicleId, startDate, end
 const filterMgr = window.AdvancedSearch.filterManager;
 
 // Update filters
-filterMgr.updateFilter('minPrice', 50);
+filterMgr.updateFilter('minPrice', 5000);
 filterMgr.toggleFilter('features', 'gps');
 
 // Apply and sort
@@ -90,7 +90,7 @@ filterMgr.onFilterChange((results, filters) => {
 - Vehicle Type (Economy, Sedan, SUV, Luxury, Van)
 - Transmission (Manual, Automatic)
 - Fuel Type (Petrol, Diesel, Electric, Hybrid)
-- Price Range (Slider: $0-$500)
+- Price Range (Slider: NPR 0-NPR 50,000)
 - Seating (1-9 seats)
 - User Rating (0-5 stars)
 - Features (AC, GPS, Bluetooth, Reverse Camera, Child Seat)
@@ -124,7 +124,7 @@ wishlist.onWishlistChange((event) => {
 **Purpose**: Common helper functions
 
 **Key Functions**:
-- `formatCurrency(amount)` - Format dollar amounts
+- `formatCurrency(amount)` - Format NPR amounts
 - `formatDate(dateString)` - Format dates
 - `calculateDays(start, end)` - Calculate rental duration
 - `debounce(fn, wait)` - Debounce function calls
@@ -159,7 +159,7 @@ locationAC.init('#pickupLocation', (location) => {
 **Features**:
 - Base rental rate calculation
 - Insurance cost calculation (15%-35% of daily rate)
-- Professional driver charges ($50/day)
+- Professional driver charge support (NPR per day)
 - Discount application:
   - 10% discount for 7+ days
   - 20% discount for 30+ days

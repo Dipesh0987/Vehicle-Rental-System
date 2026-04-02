@@ -21,3 +21,16 @@ This directory contains the enterprise-grade admin console for the Vehicle Renta
 - Desktop-first responsive layout with mobile sidebar and adaptive cards.
 - Light/dark mode support with persistent state.
 - Consistent card system, spacing, interaction states, and feedback toasts.
+
+## Vehicle Bulk Add
+
+- In Vehicle Management, the Add Vehicle drawer now supports bulk creation.
+- Use one row per vehicle in the `Bulk Add Multiple Vehicles` textarea.
+- Expected format:
+
+```text
+name|vehicleNumber|type|fuelType|seats|dailyPrice|status(optional)|transmission(optional)|location(optional)|features(optional)
+```
+
+- When bulk rows are provided, single-vehicle form fields are ignored for that submission.
+- Bulk add uses catalog save mode and creates each row sequentially with validation per line.
