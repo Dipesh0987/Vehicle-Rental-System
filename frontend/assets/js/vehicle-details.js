@@ -387,7 +387,7 @@
     }
 
     target.innerHTML = (vehicle.badges || []).map(function (badge) {
-      return '<span class="rounded-full border border-[#d2dfd9] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#355255]">' + badge + '</span>';
+      return '<span class="rounded-full border border-[#d5ddd8] bg-[#f3f8f5] px-3 py-1.5 text-[11px] font-semibold text-[#2f5a5d]">' + badge + '</span>';
     }).join("");
   }
 
@@ -399,7 +399,7 @@
 
     var specs = vehicle.quickSpecs || {};
     target.innerHTML = Object.keys(specs).map(function (key) {
-      return '<div class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-3 py-2">' +
+      return '<div class="rounded-2xl border border-[#d7e0da] bg-white px-3 py-2 shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' +
         '<p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#597175]">' + key + '</p>' +
         '<p class="mt-1 text-[14px] font-semibold text-[#244447]">' + specs[key] + '</p>' +
         '</div>';
@@ -413,7 +413,7 @@
     }
 
     target.innerHTML = (vehicle.included || []).map(function (item) {
-      return '<div class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#2f4d50]">' + item + '</div>';
+      return '<div class="rounded-2xl border border-[#d7e0da] bg-white px-4 py-3 text-[13px] font-medium text-[#2f4d50] shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' + item + '</div>';
     }).join("");
   }
 
@@ -430,7 +430,7 @@
     }
 
     target.innerHTML = features.map(function (feature) {
-      return '<span class="rounded-full border border-[#cfe0d9] bg-[#eef6f2] px-3 py-1.5 text-[12px] font-semibold text-[#2a5b57]">' + feature + '</span>';
+      return '<span class="rounded-full border border-[#d2ddd8] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2a5b57]">' + feature + '</span>';
     }).join("");
   }
 
@@ -450,7 +450,7 @@
     target.innerHTML = rows.map(function (row, index) {
       var tone = index === rows.length - 1
         ? "border-[#f2c8ab] bg-[#fff6ef]"
-        : "border-[#d8e3de] bg-[#fbfdfc]";
+        : "border-[#d8e3de] bg-white";
 
       return '<div class="flex items-center justify-between rounded-2xl border px-4 py-3 ' + tone + '">' +
         '<p class="text-[13px] font-medium text-[#385356]">' + row[0] + '</p>' +
@@ -466,7 +466,7 @@
     }
 
     target.innerHTML = (items || []).map(function (item) {
-      return '<li class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#2f4d50]">' + item + '</li>';
+      return '<li class="rounded-2xl border border-[#d8e3de] bg-white px-4 py-3 text-[13px] font-medium text-[#2f4d50] shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' + item + '</li>';
     }).join("");
   }
 
@@ -487,7 +487,7 @@
       var priceLabel = String(item && item.priceLabel ? item.priceLabel : "View pricing");
       var href = id ? "vehicle-details.html?id=" + encodeURIComponent(id) : "vehicles.html";
 
-      return '<a href="' + href + '" class="flex items-center justify-between gap-3 rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 transition hover:-translate-y-[1px]">' +
+      return '<a href="' + href + '" class="flex items-center justify-between gap-3 rounded-2xl border border-[#d8e3de] bg-white px-4 py-3 transition hover:-translate-y-[1px] hover:shadow-[0_10px_18px_rgba(9,30,34,0.08)]">' +
         '<span class="min-w-0">' +
           '<span class="block truncate text-[13px] font-semibold text-[#29494c]">' + name + '</span>' +
           '<span class="block truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5a7376]">' + type + '</span>' +
@@ -515,7 +515,7 @@
       var rating = Number(review && review.rating ? review.rating : 0);
       var ratingLabel = rating > 0 ? rating.toFixed(1) + " / 5" : "Verified";
 
-      return '<article class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3">' +
+      return '<article class="rounded-2xl border border-[#d8e3de] bg-white px-4 py-3 shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' +
         '<div class="flex items-center justify-between gap-2">' +
           '<p class="text-[12px] font-semibold text-[#2f4d50]">' + reviewer + '</p>' +
           '<p class="text-[11px] font-semibold text-[#1f5b57]">' + ratingLabel + '</p>' +
