@@ -255,6 +255,96 @@ function getCatalogLimits(catalogService) {
   };
 }
 
+function normalizeBulkEnum(value, options, fallback) {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  const match = options.find((option) => option.toLowerCase() === normalized.toLowerCase());
+  return match || fallback;
+}
+
+function parseBulkFeatures(raw) {
+  return String(raw || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseBulkVehicleRows(rawText, limits) {
+  const lines = String(rawText || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const rows = [];
+  const errors = [];
+
+  lines.forEach((line, index) => {
+    const lineNo = index + 1;
+    const columns = line.split('|').map((item) => item.trim());
+
+    if (columns.length < 6) {
+      errors.push(`Line ${lineNo}: Expected at least 6 values (name|vehicleNumber|type|fuelType|seats|dailyPrice).`);
+      return;
+    }
+
+    const [name, vehicleNumberRaw, type, fuelType, seatsRaw, dailyPriceRaw, statusRaw, transmissionRaw, locationRaw, featuresRaw] = columns;
+    const vehicleNumber = String(vehicleNumberRaw || '').toUpperCase();
+    const seats = Number(seatsRaw);
+    const pricePerDay = Number(dailyPriceRaw);
+
+    if (!name) {
+      errors.push(`Line ${lineNo}: Vehicle name is required.`);
+      return;
+    }
+
+    if (!vehicleNumber) {
+      errors.push(`Line ${lineNo}: Vehicle number is required.`);
+      return;
+    }
+
+    if (!type) {
+      errors.push(`Line ${lineNo}: Vehicle type is required.`);
+      return;
+    }
+
+    if (!fuelType) {
+      errors.push(`Line ${lineNo}: Fuel type is required.`);
+      return;
+    }
+
+    if (!Number.isFinite(seats) || seats < limits.minSeats || seats > limits.maxSeats) {
+      errors.push(`Line ${lineNo}: Seats must be between ${limits.minSeats} and ${limits.maxSeats}.`);
+      return;
+    }
+
+    if (!Number.isFinite(pricePerDay) || pricePerDay < limits.minPricePerDay || pricePerDay > limits.maxPricePerDay) {
+      errors.push(`Line ${lineNo}: Daily price must be between ${limits.minPricePerDay} and ${limits.maxPricePerDay}.`);
+      return;
+    }
+
+    rows.push({
+      name,
+      vehicleNumber,
+      type,
+      fuelType,
+      seats,
+      pricePerDay,
+      status: normalizeBulkEnum(statusRaw, STATUS_OPTIONS, 'Available'),
+      transmission: normalizeBulkEnum(transmissionRaw, ['Automatic', 'Manual'], 'Automatic'),
+      location: String(locationRaw || '').trim(),
+      features: parseBulkFeatures(featuresRaw),
+    });
+  });
+
+  return {
+    rows,
+    errors,
+  };
+}
+
 function renderVehicleCreateForm({ limits, fuelTypes }) {
   return `
     <form id="vehicleCatalogForm" class="space-y-4 pb-6" novalidate>
@@ -330,6 +420,19 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
         <span class="text-xs font-semibold">Features (comma separated)</span>
         <input name="features" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="AC, GPS, Bluetooth" />
       </label>
+
+      <div class="space-y-2 rounded-2xl border border-[#d8e1dc] bg-[#f7fbf9] px-3 py-3 dark:border-white/10 dark:bg-white/5">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">Bulk Add Multiple Vehicles</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Provide one vehicle per line. When bulk rows are present, single-vehicle fields above are ignored.</p>
+        <textarea
+          name="bulkRows"
+          rows="5"
+          class="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-[12px] dark:border-white/10 dark:bg-white/5"
+          placeholder="Toyota Yaris|BA-2-CHA-1111|Sedan|Petrol|5|4500|Available|Automatic|Kathmandu|AC, GPS&#10;Hyundai Creta|BA-3-PA-2222|SUV|Diesel|7|6200|Available|Automatic|Pokhara|Bluetooth, Reverse Camera"
+        ></textarea>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">Format: name|vehicleNumber|type|fuelType|seats|dailyPrice|status(optional)|transmission(optional)|location(optional)|features(optional)</p>
+        <p data-error-for="bulkRows" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
+      </div>
 
       <div class="space-y-2">
         <label class="block text-xs font-semibold">Vehicle Images <span class="text-rose-500">*</span></label>
@@ -415,7 +518,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
   };
 
   const applyErrors = (errors) => {
-    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'images'].forEach((key) => {
+    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'images', 'bulkRows'].forEach((key) => {
       setFieldError(key, errors[key] || '');
     });
   };
@@ -507,6 +610,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
     }
 
     const formData = new FormData(form);
+    const bulkRowsRaw = String(formData.get('bulkRows') || '').trim();
 
     const values = {
       name: String(formData.get('name') || '').trim(),
@@ -524,6 +628,80 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
         .filter(Boolean),
       images: state.files.slice(),
     };
+
+    if (bulkRowsRaw) {
+      const parsedBulk = parseBulkVehicleRows(bulkRowsRaw, limits);
+      const bulkErrors = {};
+
+      if (!parsedBulk.rows.length) {
+        bulkErrors.bulkRows = parsedBulk.errors[0] || 'Provide at least one valid bulk row.';
+      } else if (parsedBulk.errors.length) {
+        bulkErrors.bulkRows = parsedBulk.errors[0];
+      }
+
+      applyErrors(bulkErrors);
+
+      if (Object.keys(bulkErrors).length) {
+        const summaryMessage = parsedBulk.errors.slice(0, 2).join(' ');
+        setGlobalError(summaryMessage || 'Bulk input validation failed.');
+        notify('Please resolve bulk input errors before submitting.', 'warn');
+        return;
+      }
+
+      submitBtn?.setAttribute('disabled', 'true');
+      submitBtn?.classList.add('opacity-70', 'cursor-not-allowed');
+
+      try {
+        if (typeof catalogService.saveVehicle !== 'function') {
+          throw new Error('Bulk add requires catalog save mode.');
+        }
+
+        let createdCount = 0;
+
+        for (let i = 0; i < parsedBulk.rows.length; i += 1) {
+          const row = parsedBulk.rows[i];
+          // eslint-disable-next-line no-await-in-loop
+          await catalogService.saveVehicle({
+            brand: deriveBrandFromVehicleName(row.name),
+            name: row.name,
+            vehicleNumber: row.vehicleNumber,
+            category: row.type,
+            type: row.type,
+            status: row.status,
+            transmission: row.transmission,
+            fuelType: row.fuelType,
+            seats: row.seats,
+            daily: row.pricePerDay,
+            pricePerDay: row.pricePerDay,
+            imageUrls: [DEFAULT_IMAGE_URL],
+            primaryImageUrl: DEFAULT_IMAGE_URL,
+            features: row.features,
+            location: row.location,
+            rating: 4.6,
+          });
+          createdCount += 1;
+        }
+
+        notify(`${createdCount} vehicles added to database`, 'success');
+        closeOverlay();
+        if (typeof reloadVehiclesData === 'function') {
+          await reloadVehiclesData();
+        }
+      } catch (error) {
+        const errorMessage =
+          catalogService && typeof catalogService.toPublicError === 'function'
+            ? catalogService.toPublicError(error, 'Unable to save bulk vehicles right now.')
+            : String(error?.message || 'Unable to save bulk vehicles right now.');
+
+        setGlobalError(errorMessage);
+        notify(errorMessage, 'error');
+      } finally {
+        submitBtn?.removeAttribute('disabled');
+        submitBtn?.classList.remove('opacity-70', 'cursor-not-allowed');
+      }
+
+      return;
+    }
 
     const errors = {};
 
