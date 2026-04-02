@@ -80,6 +80,13 @@
     return "";
   }
 
+  function normalizeVehicleNumber(value) {
+    return normalizeString(value, "")
+      .toUpperCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   function deriveBrandFromName(name) {
     var normalizedName = normalizeString(name, "");
     if (!normalizedName) {
@@ -389,6 +396,10 @@
   function toPublicError(error, fallback) {
     var message = errorMessage(error).toLowerCase();
 
+    if (String(error && error.code || "") === "23505" && message.indexOf("vehicle_number") >= 0) {
+      return "Vehicle number already exists. Please use a unique vehicle number.";
+    }
+
     if (message.indexOf("permission denied") >= 0 || message.indexOf("row-level security") >= 0) {
       return "Your account is not authorized to manage vehicles.";
     }
@@ -446,6 +457,7 @@
 
     var brand = normalizeString(payload.brand, "");
     var name = normalizeString(payload.name, "");
+    var vehicleNumber = normalizeVehicleNumber(payload.vehicleNumber || payload.vehicle_number);
     var type = normalizeString(payload.type || payload.category, "");
     var seatsRaw = Number(payload.seats);
     var seats = Number.isFinite(seatsRaw) ? Math.trunc(seatsRaw) : NaN;
@@ -455,6 +467,10 @@
 
     if (!name) {
       errors.name = "Vehicle name is required.";
+    }
+
+    if (!vehicleNumber) {
+      errors.vehicleNumber = "Vehicle number is required.";
     }
 
     var identity = normalizeVehicleIdentity(brand, name, true);
@@ -507,6 +523,7 @@
       normalized: {
         brand: brand,
         name: name,
+        vehicleNumber: vehicleNumber,
         type: type,
         seats: seats,
         pricePerDay: Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : 0,
@@ -696,6 +713,7 @@
       var saved = await saveVehicle({
         brand: normalized.brand,
         name: normalized.name,
+        vehicleNumber: normalized.vehicleNumber,
         category: normalized.type,
         type: normalized.type,
         transmission: normalized.transmission,
@@ -938,6 +956,20 @@
     );
     var brand = identity.brand;
     var name = identity.name;
+    var vehicleNumber = normalizeVehicleNumber(
+      pickFirst(
+        row,
+        [
+          "vehicle_number",
+          "vehicleNumber",
+          "registration_number",
+          "registrationNumber",
+          "plate_number",
+          "plateNumber",
+        ],
+        ""
+      )
+    );
 
     var rawType = normalizeString(
       pickFirst(row, ["type", "category", "vehicle_type"], "sedan"),
@@ -1040,6 +1072,7 @@
       id: id,
       brand: brand,
       name: name,
+      vehicleNumber: vehicleNumber,
       type: type,
       category: category,
       transmission: transmission,
@@ -1075,6 +1108,7 @@
       id: normalizeString(vehicle && vehicle.id, ""),
       brand: brand,
       name: name,
+      vehicleNumber: normalizeVehicleNumber(vehicle && vehicle.vehicleNumber),
       type: normalizeString(vehicle && vehicle.type, "sedan"),
       transmission: toTitleCase(vehicle && vehicle.transmission || "Automatic"),
       fuelType: toTitleCase(vehicle && vehicle.fuelType || "Petrol"),
@@ -1147,6 +1181,14 @@
     var identity = normalizeVehicleIdentity(input.brand, input.name, true);
     var brand = identity.brand;
     var name = identity.name;
+    var hasVehicleNumberInput =
+      Object.prototype.hasOwnProperty.call(input, "vehicleNumber") ||
+      Object.prototype.hasOwnProperty.call(input, "vehicle_number") ||
+      Object.prototype.hasOwnProperty.call(input, "registrationNumber") ||
+      Object.prototype.hasOwnProperty.call(input, "registration_number");
+    var vehicleNumber = normalizeVehicleNumber(
+      input.vehicleNumber || input.vehicle_number || input.registrationNumber || input.registration_number
+    );
 
     var rawType = normalizeString(input.type || input.category || "sedan", "sedan");
     var type = rawType.toLowerCase().replace(/\s+/g, "-");
@@ -1190,6 +1232,10 @@
       image_urls: imageUrls,
       updated_at: nowIso,
     };
+
+    if (hasVehicleNumberInput || includeCreatedAt) {
+      payload.vehicle_number = vehicleNumber || null;
+    }
 
     if (includeCreatedAt) {
       payload.created_at = nowIso;

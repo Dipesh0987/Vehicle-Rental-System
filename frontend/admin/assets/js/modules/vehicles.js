@@ -17,6 +17,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, relo
   const filtered = filterRows(data.vehicles, query, [
     'id',
     'name',
+    'vehicleNumber',
     'brand',
     'category',
     'status',
@@ -69,6 +70,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, relo
           <thead>
             <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:text-slate-400">
               <th class="pb-2 pr-3">Vehicle</th>
+              <th class="pb-2 pr-3">Vehicle No.</th>
               <th class="pb-2 pr-3">Category</th>
               <th class="pb-2 pr-3">Specs</th>
               <th class="pb-2 pr-3">Status</th>
@@ -92,6 +94,9 @@ export function renderVehiclesModule({ data, query, notify, catalogService, relo
                         </div>
                       </div>
                     </td>
+                    <td class="py-3 pr-3">
+                      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(vehicle.vehicleNumber || '-')}</span>
+                    </td>
                     <td class="py-3 pr-3">${escapeHtml(vehicle.category || 'Vehicle')}</td>
                     <td class="py-3 pr-3">
                       <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(vehicle.transmission || 'Automatic')} | ${escapeHtml(vehicle.fuelType || 'Petrol')}</p>
@@ -111,7 +116,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, relo
                   </tr>`
                 )
                 .join('')
-              : `<tr><td colspan="8" class="py-6">${renderEmptyState({ title: 'No vehicles found', message: 'Try changing your search query or clear filters.', actionLabel: 'Reset search', actionId: 'resetVehicleSearch' })}</td></tr>`}
+              : `<tr><td colspan="9" class="py-6">${renderEmptyState({ title: 'No vehicles found', message: 'Try changing your search query or clear filters.', actionLabel: 'Reset search', actionId: 'resetVehicleSearch' })}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -261,6 +266,12 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
         <p data-error-for="name" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
       </label>
 
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">Vehicle Number <span class="text-rose-500">*</span></span>
+        <input name="vehicleNumber" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="BA-2-CHA-1234" />
+        <p data-error-for="vehicleNumber" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
+      </label>
+
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label class="block space-y-1">
           <span class="text-xs font-semibold">Vehicle Type <span class="text-rose-500">*</span></span>
@@ -404,7 +415,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
   };
 
   const applyErrors = (errors) => {
-    ['name', 'type', 'fuelType', 'seats', 'pricePerDay', 'images'].forEach((key) => {
+    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'images'].forEach((key) => {
       setFieldError(key, errors[key] || '');
     });
   };
@@ -499,6 +510,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
 
     const values = {
       name: String(formData.get('name') || '').trim(),
+      vehicleNumber: String(formData.get('vehicleNumber') || '').trim().toUpperCase(),
       type: String(formData.get('category') || '').trim(),
       status: String(formData.get('status') || 'Available').trim(),
       transmission: String(formData.get('transmission') || 'Automatic').trim(),
@@ -516,6 +528,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
     const errors = {};
 
     if (!values.name) errors.name = 'Vehicle name is required.';
+    if (!values.vehicleNumber) errors.vehicleNumber = 'Vehicle number is required.';
     if (!values.type) errors.type = 'Vehicle type is required.';
     if (!values.fuelType) errors.fuelType = 'Fuel type is required.';
 
@@ -569,6 +582,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
         await catalogService.saveVehicle({
           brand: deriveBrandFromVehicleName(values.name),
           name: values.name,
+          vehicleNumber: values.vehicleNumber,
           category: values.type,
           type: values.type,
           status: values.status,

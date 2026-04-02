@@ -125,6 +125,12 @@
     );
 
     var featureHighlights = normalizeFeatureHighlights(vehicle && vehicle.features);
+    var vehicleNumber = String(vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : "").trim();
+    var badges = [type, fuelType, seats + " Seats"];
+
+    if (vehicleNumber) {
+      badges.push("No. " + vehicleNumber);
+    }
 
     return {
       id: String(vehicle && vehicle.id ? vehicle.id : ""),
@@ -135,8 +141,9 @@
       heroImage: images.heroImage,
       gallery: images.gallery,
       featureHighlights: featureHighlights,
-      badges: [type, fuelType, seats + " Seats"],
+      badges: badges,
       quickSpecs: {
+        "Vehicle Number": vehicleNumber || "Not Assigned",
         "Fuel Type": fuelType,
         Transmission: "Automatic",
         Mileage: "As per vehicle profile",
