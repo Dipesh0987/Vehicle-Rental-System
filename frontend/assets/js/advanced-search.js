@@ -655,7 +655,8 @@ class AdvancedSearchSystem {
         switch (preset) {
             case "budget":
                 this.filterManager.updateFilters({
-                    maxPrice: 80,
+                    minPrice: 0,
+                    maxPrice: 7000,
                     vehicleTypes: ["economy"],
                 });
                 break;
@@ -669,7 +670,8 @@ class AdvancedSearchSystem {
 
             case "luxury":
                 this.filterManager.updateFilters({
-                    minPrice: 150,
+                    minPrice: 12000,
+                    maxPrice: 50000,
                     vehicleTypes: ["luxury"],
                     minRating: 4.5,
                 });
