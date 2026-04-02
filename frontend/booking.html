@@ -162,12 +162,12 @@
     </div>
 
     <main class="mx-auto w-[95%] max-w-[1390px] pb-14">
-      <section class="rounded-[28px] border border-[rgba(23,57,60,0.14)] bg-white/85 p-5 shadow-[0_18px_44px_rgba(10,31,34,0.08)] backdrop-blur-sm sm:p-7">
+      <section class="rounded-[34px] border border-[rgba(23,57,60,0.14)] bg-[linear-gradient(150deg,rgba(255,255,255,0.93),rgba(246,239,229,0.84))] p-5 shadow-[0_24px_52px_rgba(10,31,34,0.1)] backdrop-blur-sm sm:p-7">
         <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3c6667]">Premium Reservation</p>
-            <h1 class="mt-1 text-[30px] font-extrabold leading-tight text-[#12373b] sm:text-[36px]">Secure Vehicle Booking</h1>
-            <p class="mt-1 max-w-[720px] text-[14px] text-[#3d5f61]">Choose dates, verify availability, review your booking details, and submit with confidence.</p>
+            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3c6667]">Booking Command Center</p>
+            <h1 class="mt-1 text-[30px] font-extrabold leading-tight text-[#12373b] sm:text-[38px]">Secure Vehicle Reservation Flow</h1>
+            <p class="mt-1 max-w-[720px] text-[14px] text-[#3d5f61]">Set dates, confirm live availability, and finalize your booking with a guided review sequence.</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <a href="vehicles.html" class="rounded-full border border-[#d0dbd6] bg-white px-4 py-2 text-[13px] font-semibold text-[#264447] transition duration-200 hover:-translate-y-[1px] hover:bg-[#f3f8f6] hover:text-[#183b3f]">
@@ -180,8 +180,8 @@
           </div>
         </div>
 
-        <div class="grid gap-5 lg:grid-cols-[1.35fr,0.95fr]">
-          <section class="space-y-4 rounded-3xl border border-[#d5e0db] bg-white/95 p-4 sm:p-5">
+        <div class="grid gap-5 lg:grid-cols-[1.35fr,0.95fr] lg:items-start">
+          <section class="space-y-4 rounded-3xl border border-[#d5e0db] bg-[linear-gradient(165deg,#ffffff,#f9f4eb)] p-4 shadow-[0_14px_30px_rgba(10,31,34,0.08)] sm:p-5">
             <div id="bookingFormError" class="hidden rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-semibold text-rose-700"></div>
 
             <div class="grid gap-3 sm:grid-cols-3">
@@ -251,12 +251,12 @@
             </label>
 
             <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div id="bookingAvailabilityStatus" class="inline-flex items-center gap-2 rounded-full border border-[#d5e2dc] bg-[#f6faf8] px-3 py-1.5 text-[12px] font-semibold text-[#2e5e5a]">
+              <div id="bookingAvailabilityStatus" class="inline-flex items-center gap-2 rounded-full border border-[#d5e2dc] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2e5e5a] shadow-[0_8px_16px_rgba(10,31,34,0.07)]">
                 <span class="inline-flex h-2.5 w-2.5 rounded-full bg-[#2c766e]"></span>
                 <span>Choose dates to check availability</span>
               </div>
 
-              <button id="bookingReviewBtn" type="button" class="group inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-[13px] font-semibold text-white shadow-[0_12px_24px_rgba(229,140,78,0.26)] transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_16px_30px_rgba(229,140,78,0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(229,140,78,0.45)]">
+              <button id="bookingReviewBtn" type="button" class="group inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-[13px] font-semibold text-white shadow-[0_14px_28px_rgba(217,136,79,0.3)] transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_18px_34px_rgba(217,136,79,0.36)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(229,140,78,0.45)]">
                 <span>Review Booking</span>
                 <span class="transition group-hover:translate-x-[2px]">&rarr;</span>
               </button>
@@ -264,7 +264,7 @@
           </section>
 
           <aside class="space-y-4">
-            <article class="rounded-3xl border border-[#d5e0db] bg-white/95 p-4 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:p-5">
+            <article class="rounded-3xl border border-[#d5e0db] bg-[linear-gradient(165deg,#ffffff,#f9f4eb)] p-4 shadow-[0_14px_30px_rgba(10,31,34,0.1)] sm:p-5 lg:sticky lg:top-5">
               <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Selected Vehicle</p>
               <h2 id="bookingVehicleTitle" class="mt-3 text-[24px] font-bold leading-tight text-[#14373b]">Vehicle</h2>
               <p id="bookingVehicleMeta" class="hidden text-[13px] text-[#456467]"></p>
@@ -272,9 +272,8 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8e5228]">Price Per Day</p>
                 <p id="bookingVehiclePrice" class="mt-1 text-[22px] font-extrabold text-[#1f5b57]">NPR 0 / day</p>
               </div>
-            </article>
 
-            <article class="rounded-3xl border border-[#d5e0db] bg-white/95 p-4 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:p-5">
+              <div class="mt-4 rounded-3xl border border-[#d5e0db] bg-white/95 p-4 shadow-[0_12px_28px_rgba(10,31,34,0.08)] sm:p-5">
               <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Pricing Summary</p>
               <div class="mt-3 space-y-2 text-[13px] text-[#3d5f61]">
                 <div class="flex items-center justify-between"><span>Duration</span><span id="bookingDurationText" class="font-semibold text-[#24484b]">0 days</span></div>
@@ -289,6 +288,7 @@
                   <span id="bookingTotalAmount" class="text-[16px] font-bold">NPR 0.00</span>
                 </div>
               </div>
+              </div>
             </article>
           </aside>
         </div>
@@ -296,11 +296,11 @@
     </main>
 
     <div id="bookingConfirmModal" class="pointer-events-none fixed inset-0 z-[260] flex items-center justify-center bg-[rgba(8,22,24,0.62)] px-4 opacity-0 transition duration-200" aria-hidden="true">
-      <div id="bookingConfirmCard" class="w-full max-w-[560px] translate-y-2 scale-[0.985] rounded-[24px] border border-[rgba(23,57,60,0.18)] bg-white p-5 shadow-[0_30px_80px_rgba(2,14,16,0.46)] transition duration-200 sm:p-6">
+      <div id="bookingConfirmCard" class="w-full max-w-[560px] translate-y-2 scale-[0.985] rounded-[26px] border border-[rgba(23,57,60,0.18)] bg-[linear-gradient(155deg,#ffffff,#f6efe4)] p-5 shadow-[0_30px_80px_rgba(2,14,16,0.46)] transition duration-200 sm:p-6">
         <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3c6667]">Confirm Reservation</p>
         <h3 class="mt-1 text-[26px] font-extrabold text-[#14373b]">Review Booking Details</h3>
         <div id="bookingConfirmError" class="mt-3 hidden rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-semibold text-rose-700"></div>
-        <div id="bookingConfirmSummary" class="mt-3 rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] p-4 text-[13px] text-[#375c5f]"></div>
+        <div id="bookingConfirmSummary" class="mt-3 rounded-2xl border border-[#d8e3de] bg-white p-4 text-[13px] text-[#375c5f] shadow-[0_10px_20px_rgba(10,31,34,0.08)]"></div>
         <div class="mt-4 flex flex-wrap justify-end gap-2">
           <button id="bookingConfirmCancel" type="button" class="rounded-full border border-[#d0ddd8] px-4 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">Back</button>
           <button id="bookingConfirmSubmit" type="button" class="rounded-full bg-accent px-5 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70">Submit Booking</button>
@@ -309,12 +309,12 @@
     </div>
 
     <div id="bookingSuccessModal" class="pointer-events-none fixed inset-0 z-[270] flex items-center justify-center bg-[rgba(8,22,24,0.66)] px-4 opacity-0 transition duration-200" aria-hidden="true">
-      <div id="bookingSuccessCard" class="w-full max-w-[560px] translate-y-2 scale-[0.985] overflow-hidden rounded-[24px] border border-[rgba(16,46,49,0.18)] bg-white p-6 shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200">
+      <div id="bookingSuccessCard" class="w-full max-w-[560px] translate-y-2 scale-[0.985] overflow-hidden rounded-[26px] border border-[rgba(16,46,49,0.18)] bg-[linear-gradient(155deg,#ffffff,#f6efe4)] p-6 shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200">
         <div class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#2c766e,#1f5b57)] text-[26px] text-white shadow-[0_14px_32px_rgba(31,91,87,0.34)]">&#10003;</div>
         <h3 class="mt-4 text-[28px] font-extrabold leading-tight text-[#133438]">Reservation Confirmed</h3>
         <p id="bookingSuccessMessage" class="mt-2 text-[14px] leading-relaxed text-[#2e5255]">Your reservation has been saved successfully.</p>
 
-        <div class="mt-4 rounded-2xl border border-[#d7e3de] bg-[#f9fcfb] p-4">
+        <div class="mt-4 rounded-2xl border border-[#d7e3de] bg-white p-4 shadow-[0_10px_20px_rgba(10,31,34,0.08)]">
           <div class="flex items-center justify-between border-b border-[#e4ece8] pb-2 text-[13px]">
             <span class="font-semibold text-[#456064]">Reservation ID</span>
             <span id="bookingSuccessReservationCode" class="font-bold text-[#1f5b57]">-</span>
