@@ -322,6 +322,28 @@ html[data-theme="dark"] body.vrs-page .vrs-auth-policy {
   color: #c0d4dd !important;
 }
 
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase {
+  border-color: rgba(154, 179, 190, 0.34) !important;
+  background: linear-gradient(156deg, rgba(20, 32, 39, 0.94), rgba(15, 25, 31, 0.94)) !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase-media {
+  border-bottom-color: rgba(154, 179, 190, 0.28) !important;
+  background: radial-gradient(circle at 80% 24%, rgba(126, 173, 192, 0.18), rgba(126, 173, 192, 0) 48%),
+    linear-gradient(145deg, rgba(23, 37, 45, 0.96), rgba(17, 29, 35, 0.96)) !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase-caption {
+  border-top: 1px solid rgba(154, 179, 190, 0.22);
+  background: linear-gradient(160deg, rgba(22, 35, 42, 0.96), rgba(16, 27, 33, 0.96));
+  color: #dbe9ef !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase-badge {
+  border-color: rgba(141, 194, 187, 0.42) !important;
+  background: rgba(59, 123, 113, 0.3) !important;
+  color: #d2eee8 !important;
+}
 html[data-theme="dark"] body.vrs-page .vrs-auth-modal-card {
   border-color: rgba(154, 179, 190, 0.34) !important;
   background: linear-gradient(160deg, rgba(20, 31, 38, 0.98), rgba(14, 24, 30, 0.98)) !important;
