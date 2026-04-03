@@ -172,11 +172,19 @@ html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav {
   color: #d9e6ec !important;
 }
 
+html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link,
+html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link {
+  color: #d4e2e8 !important;
+  text-shadow: 0 1px 1px rgba(3, 12, 14, 0.24);
+}
 html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link:hover,
+html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link:focus-visible,
 html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link.text-accent,
 html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link:hover,
+html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link:focus-visible,
 html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link.text-accent {
-  color: #f2ae79 !important;
+  color: #ffd0a2 !important;
+    text-shadow: 0 0 18px rgba(241, 177, 130, 0.28);
 }
 
 html[data-theme="dark"] .vrs-theme-scope .home-logo-wordmark,
