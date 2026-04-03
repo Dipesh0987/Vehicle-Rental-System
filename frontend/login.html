@@ -14,86 +14,20 @@
     <link rel="stylesheet" href="assets/css/tailwind.css" />
     <link rel="stylesheet" href="assets/css/theme.css" />
     <script src="assets/js/theme-manager.js"></script>
-    <script>
-      window.__legacyTailwindConfig = {
-        theme: {
-          extend: {
-            fontFamily: {
-              poppins: ["Poppins", "sans-serif"],
-            },
-            colors: {
-              accent: "#E58C4E",
-              panel: "#2C766E",
-              ink: "#0E2528",
-              muted: "#6C7074",
-              paper: "#F2F3F1",
-            },
-            keyframes: {
-              drift: {
-                "0%, 100%": { transform: "translate3d(0, 0, 0)" },
-                "50%": { transform: "translate3d(0, -8px, 0)" },
-              },
-              loginStageIn: {
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0) scale(1)",
-                },
-              },
-              loginSectionIn: {
-                from: {
-                  opacity: "0",
-                  transform: "translateY(14px)",
-                },
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0)",
-                },
-              },
-              vehicleReveal: {
-                from: {
-                  opacity: "0",
-                  transform: "translateY(16px) scale(0.985)",
-                },
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0) scale(1)",
-                },
-              },
-              vehicleFloat: {
-                "0%, 100%": { transform: "translateY(0)" },
-                "50%": { transform: "translateY(-4px)" },
-              },
-              accentPulse: {
-                "0%, 100%": { opacity: "0.5", transform: "scaleX(1)" },
-                "50%": { opacity: "1", transform: "scaleX(1.08)" },
-              },
-            },
-            animation: {
-              drift: "drift 8s ease-in-out infinite",
-              loginStageIn: "loginStageIn 720ms cubic-bezier(0.19, 1, 0.22, 1) forwards",
-              loginSectionIn: "loginSectionIn 640ms ease forwards",
-              vehicleReveal: "vehicleReveal 760ms cubic-bezier(0.18, 0.88, 0.2, 1) 260ms both",
-              vehicleFloat: "vehicleFloat 6.2s ease-in-out 900ms infinite",
-              accentPulse: "accentPulse 3s ease-in-out infinite",
-            },
-          },
-        },
-      };
-    </script>
   </head>
   <body
     class="vrs-page min-h-screen overflow-hidden bg-paper font-poppins text-ink"
     style="background: radial-gradient(circle at 88% 8%, rgba(19, 87, 81, 0.34), transparent 42%), radial-gradient(circle at 10% 88%, rgba(229, 140, 78, 0.24), transparent 36%), linear-gradient(148deg, #f8faf8 0%, #eef3ef 50%, #e7edeb 100%);"
   >
-    <main id="loginMain" class="vrs-theme-scope relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8 transition duration-200">
+    <main id="loginMain" class="vrs-theme-scope vrs-auth-layout relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8 transition duration-200">
       <div class="pointer-events-none absolute right-[-100px] top-[-95px] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle_at_32%_28%,rgba(229,140,78,0.78),rgba(229,140,78,0.12))] opacity-75 blur-[12px] animate-drift" aria-hidden="true"></div>
       <div class="pointer-events-none absolute bottom-[-95px] left-[-85px] h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(44,118,110,0.62),rgba(44,118,110,0.16))] opacity-75 blur-[12px] [animation-delay:600ms] animate-drift" aria-hidden="true"></div>
       <div class="pointer-events-none absolute right-[-36px] top-[-55px] h-[210px] w-[210px] rounded-full bg-[rgba(44,118,110,0.14)] blur-[5px]" aria-hidden="true"></div>
 
-      <section class="relative w-full max-w-[1040px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-6 opacity-0 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] animate-loginStageIn sm:p-8">
+      <section class="vrs-auth-shell relative w-full max-w-[1040px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-6 opacity-0 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] animate-loginStageIn sm:p-8">
         <div class="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-[linear-gradient(90deg,rgba(229,140,78,0.2),rgba(44,118,110,0.75),rgba(229,140,78,0.2))]"></div>
         <div class="grid gap-8 lg:grid-cols-[1.06fr,0.94fr] lg:items-center">
-          <aside class="space-y-4 opacity-0 animate-loginSectionIn [animation-delay:120ms]">
+          <aside class="vrs-auth-story space-y-4 opacity-0 animate-loginSectionIn [animation-delay:120ms]">
             <a href="index.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#3f5557] transition hover:text-panel">← Back to Home</a>
             <p class="inline-block rounded-full border border-[rgba(44,118,110,0.2)] bg-[#e8f2ef] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-panel">
               Secure Access
@@ -139,12 +73,12 @@
             </figure>
           </aside>
 
-          <div class="rounded-[24px] border border-white/70 bg-white/90 p-4 opacity-0 shadow-[0_20px_42px_rgba(10,31,34,0.14)] animate-loginSectionIn [animation-delay:220ms] sm:p-6">
+          <div class="vrs-auth-panel rounded-[24px] border border-white/70 bg-white/90 p-4 opacity-0 shadow-[0_20px_42px_rgba(10,31,34,0.14)] animate-loginSectionIn [animation-delay:220ms] sm:p-6">
             <div class="mb-3 rounded-2xl bg-[linear-gradient(110deg,rgba(15,70,67,0.08),rgba(229,140,78,0.08))] px-4 py-3">
               <p class="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2f6a66]">Account Sign In</p>
               <p class="mt-1 text-[13px] text-[#345154]">Use your registered credentials to continue.</p>
             </div>
-            <div id="loginBanner" class="hidden rounded-xl px-3 py-2 text-[13px]"></div>
+            <div id="loginBanner" class="vrs-auth-banner hidden rounded-xl px-3 py-2 text-[13px]"></div>
 
             <form id="loginForm" class="mt-1 space-y-4" novalidate>
           <label class="block" for="email">
@@ -229,6 +163,62 @@
       </section>
     </main>
 
+    <div
+      id="forgotAssistModal"
+      class="fixed inset-0 z-[300] hidden items-center justify-center bg-[rgba(5,18,20,0.68)] px-4 py-6 opacity-0 pointer-events-none backdrop-blur-[10px] transition-opacity duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="forgotAssistTitle"
+    >
+      <div
+        id="forgotAssistCard"
+        class="vrs-auth-modal-card relative w-full max-w-[520px] overflow-hidden rounded-[24px] border border-[rgba(16,46,49,0.2)] bg-white p-6 shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200 ease-out translate-y-3 scale-[0.985] sm:p-7"
+      >
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-[4px] bg-[linear-gradient(90deg,#2c766e,#e58c4e)]"></div>
+        <button
+          id="forgotAssistClose"
+          type="button"
+          aria-label="Close forgot password help"
+          class="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(23,57,60,0.2)] bg-white text-[#244649] transition hover:scale-105 hover:bg-[#f2f7f5]"
+        >
+          <span class="text-lg leading-none">&times;</span>
+        </button>
+
+        <div class="inline-flex items-center gap-2 rounded-full border border-[rgba(44,118,110,0.2)] bg-[rgba(44,118,110,0.08)] px-3 py-1">
+          <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-panel text-[11px] font-bold text-white">!</span>
+          <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2f6862]">Password Assistance</span>
+        </div>
+
+        <h2 id="forgotAssistTitle" class="mt-3 text-[26px] font-bold leading-tight text-[#0f3438] sm:text-[30px]">
+          Password Reset Needs Verification
+        </h2>
+        <p class="mt-3 text-[15px] leading-relaxed text-[#2a4c50] sm:text-[16px]">
+          For your security, password recovery is handled manually. An admin will contact you and complete verification before account access is restored.
+        </p>
+
+        <div class="mt-5 rounded-2xl border border-[rgba(23,57,60,0.14)] bg-[#f8fbfa] p-4">
+          <p class="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#1f5551]">Verification Types</p>
+          <ul class="mt-3 space-y-2 text-[15px] text-[#1f3f42]">
+            <li class="flex items-start gap-2"><span class="mt-[3px] text-[#2c766e]">&#10003;</span><span>Registered email ownership confirmation</span></li>
+            <li class="flex items-start gap-2"><span class="mt-[3px] text-[#2c766e]">&#10003;</span><span>Mobile or identity validation by support team</span></li>
+            <li class="flex items-start gap-2"><span class="mt-[3px] text-[#2c766e]">&#10003;</span><span>Recent booking and account activity cross-check</span></li>
+          </ul>
+        </div>
+
+        <div class="mt-6">
+          <button
+            id="forgotAssistPrimary"
+            type="button"
+            class="w-full rounded-full bg-panel px-8 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105"
+          >
+            OK, I Understand
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/supabase.config.local.js"></script>
     <script src="assets/js/supabase.config.js"></script>
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>
