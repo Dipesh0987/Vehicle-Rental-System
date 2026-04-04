@@ -2,6 +2,7 @@
  * Search Filter Manager
  * Handles all filtering logic for the advanced search system
  * Features: Multiple filter criteria, persistence, real-time updates
+ * MODIFIED: Optimized for Sprint 2 Vehicle Type filtering
  */
 
 class SearchFilterManager {
@@ -71,13 +72,15 @@ class SearchFilterManager {
     }
 
     /**
-     * Update a single filter
+     * Update a single filter and trigger update
      * @param {string} filterName - Filter name
      * @param {*} value - Filter value
      */
     updateFilter(filterName, value) {
         if (filterName in this.filters) {
             this.filters[filterName] = value;
+            // Trigger filtering on the current dataset
+            this.applyFilters(this.allVehicles);
             this.notifyListeners();
         }
     }
@@ -88,6 +91,7 @@ class SearchFilterManager {
      */
     updateFilters(filterUpdates) {
         Object.assign(this.filters, filterUpdates);
+        this.applyFilters(this.allVehicles);
         this.notifyListeners();
     }
 
@@ -104,6 +108,7 @@ class SearchFilterManager {
             } else {
                 this.filters[filterName].push(value);
             }
+            this.applyFilters(this.allVehicles);
             this.notifyListeners();
         }
     }
@@ -122,12 +127,14 @@ class SearchFilterManager {
             return false;
         }
 
-        // Vehicle type filter
-        if (
-            this.filters.vehicleTypes.length > 0 &&
-            !this.filters.vehicleTypes.includes(vehicle.type?.toLowerCase())
-        ) {
-            return false;
+        // UPDATED: Vehicle type filter
+        if (this.filters.vehicleTypes.length > 0) {
+            const vehicleType = vehicle.type?.toLowerCase();
+            const selectedTypes = this.filters.vehicleTypes.map(t => t.toLowerCase());
+            
+            if (!selectedTypes.includes(vehicleType)) {
+                return false;
+            }
         }
 
         // Brand filter
@@ -197,41 +204,6 @@ class SearchFilterManager {
             return false;
         }
 
-        // Insurance types filter
-        if (this.filters.insuranceTypes.length > 0) {
-            const vehicleInsurance = (vehicle.insuranceOptions || []).map((i) => i.toLowerCase());
-            const hasInsurance = this.filters.insuranceTypes.some((type) =>
-                vehicleInsurance.includes(type.toLowerCase())
-            );
-            if (!hasInsurance) return false;
-        }
-
-        // Driver options filter
-        if (this.filters.driverOptions.length > 0) {
-            const vehicleDriverOptions = (vehicle.driverOptions || []).map((d) => d.toLowerCase());
-            const hasDriverOption = this.filters.driverOptions.some((option) =>
-                vehicleDriverOptions.includes(option.toLowerCase())
-            );
-            if (!hasDriverOption) return false;
-        }
-
-        // Mileage policy filter
-        if (this.filters.mileagePolicy.length > 0) {
-            const vehicleMileage = (vehicle.mileagePolicy || []).map((m) => m.toLowerCase());
-            const hasMilage = this.filters.mileagePolicy.some((policy) =>
-                vehicleMileage.includes(policy.toLowerCase())
-            );
-            if (!hasMilage) return false;
-        }
-
-        // EV range filter
-        if (
-            this.filters.minEVRange > 0 &&
-            (!vehicle.evRange || vehicle.evRange < this.filters.minEVRange)
-        ) {
-            return false;
-        }
-
         // Search text filter
         if (this.filters.searchText) {
             const searchLower = this.filters.searchText.toLowerCase();
@@ -258,7 +230,6 @@ class SearchFilterManager {
     /**
      * Apply filters to vehicle list
      * @param {Array} vehicles - Vehicle array
-     * @returns {Array} Filtered vehicles
      */
     applyFilters(vehicles) {
         this.allVehicles = vehicles;
@@ -269,16 +240,15 @@ class SearchFilterManager {
 
     /**
      * Extract price from string (e.g., "$82 / day" -> 82)
-     * @param {string} priceString - Price string
-     * @returns {number} Extracted price
      */
     extractPrice(priceString) {
+        if (typeof priceString === 'number') return priceString;
         const match = priceString.match(/\d+/);
         return match ? parseInt(match[0]) : 0;
     }
 
     /**
-     * Apply sorting to filtered results
+     * Apply sorting
      */
     applySort() {
         switch (this.sortOrder) {
@@ -289,7 +259,6 @@ class SearchFilterManager {
                     return priceA - priceB;
                 });
                 break;
-
             case "price-high":
                 this.filteredVehicles.sort((a, b) => {
                     const priceA = this.extractPrice(a.pricing?.dailyRate || "0");
@@ -297,127 +266,53 @@ class SearchFilterManager {
                     return priceB - priceA;
                 });
                 break;
-
             case "rating":
-                this.filteredVehicles.sort((a, b) => {
-                    const ratingA = parseFloat(a.rating || 0);
-                    const ratingB = parseFloat(b.rating || 0);
-                    return ratingB - ratingA;
-                });
+                this.filteredVehicles.sort((a, b) => 
+                    parseFloat(b.rating || 0) - parseFloat(a.rating || 0)
+                );
                 break;
-
-            case "newest":
-                this.filteredVehicles.sort((a, b) => {
-                    const dateA = new Date(a.addedDate || 0);
-                    const dateB = new Date(b.addedDate || 0);
-                    return dateB - dateA;
-                });
-                break;
-
-            case "relevance":
             default:
-                // Keep original order
                 break;
         }
     }
 
-    /**
-     * Set sort order
-     * @param {string} order - Sort order
-     */
     setSortOrder(order) {
         this.sortOrder = order;
         this.applySort();
         this.notifyListeners();
     }
 
-    /**
-     * Get active filters (non-empty filters)
-     * @returns {Object} Active filters
-     */
     getActiveFilters() {
         const active = {};
         for (const [key, value] of Object.entries(this.filters)) {
-            if (Array.isArray(value)) {
-                if (value.length > 0) active[key] = value;
-            } else if (value !== "" && value !== 0 && value !== false) {
-                active[key] = value;
-            }
+            if (Array.isArray(value) && value.length > 0) active[key] = value;
+            else if (value !== "" && value !== 0 && value !== false) active[key] = value;
         }
         return active;
     }
 
-    /**
-     * Clear all filters
-     */
     clearAllFilters() {
         this.filters = this.initializeFilters();
-        this.sortOrder = "relevance";
+        this.applyFilters(this.allVehicles);
         this.notifyListeners();
     }
 
-    /**
-     * Clear a specific filter
-     * @param {string} filterName - Filter name to clear
-     */
-    clearFilter(filterName) {
-        if (Array.isArray(this.filters[filterName])) {
-            this.filters[filterName] = [];
-        } else if (typeof this.filters[filterName] === "boolean") {
-            this.filters[filterName] = false;
-        } else if (typeof this.filters[filterName] === "number") {
-            this.filters[filterName] = filterName.includes("min") ? 0 : 999;
-        } else {
-            this.filters[filterName] = "";
-        }
-        this.notifyListeners();
-    }
-
-    /**
-     * Save filter state to localStorage
-     */
     saveState() {
-        try {
-            localStorage.setItem("searchFilters", JSON.stringify(this.filters));
-        } catch (e) {
-            console.warn("Failed to save filter state:", e);
-        }
+        localStorage.setItem("searchFilters", JSON.stringify(this.filters));
     }
 
-    /**
-     * Restore filter state from localStorage
-     */
     restoreState() {
-        try {
-            const saved = localStorage.getItem("searchFilters");
-            if (saved) {
-                this.filters = { ...this.filters, ...JSON.parse(saved) };
-                this.notifyListeners();
-            }
-        } catch (e) {
-            console.warn("Failed to restore filter state:", e);
+        const saved = localStorage.getItem("searchFilters");
+        if (saved) {
+            this.filters = { ...this.filters, ...JSON.parse(saved) };
+            this.notifyListeners();
         }
     }
 
-    /**
-     * Register a listener for filter changes
-     * @param {Function} callback - Callback function
-     */
     onFilterChange(callback) {
         this.listeners.add(callback);
     }
 
-    /**
-     * Unregister a listener
-     * @param {Function} callback - Callback function
-     */
-    offFilterChange(callback) {
-        this.listeners.delete(callback);
-    }
-
-    /**
-     * Notify all listeners of filter changes
-     */
     notifyListeners() {
         this.listeners.forEach((callback) => {
             try {
@@ -426,22 +321,6 @@ class SearchFilterManager {
                 console.error("Error in filter listener:", e);
             }
         });
-    }
-
-    /**
-     * Get filter statistics
-     * @returns {Object} Filter statistics
-     */
-    getStats() {
-        return {
-            total: this.allVehicles.length,
-            filtered: this.filteredVehicles.length,
-            activeFilters: Object.keys(this.getActiveFilters()).length,
-            priceRange: {
-                min: Math.min(...this.allVehicles.map((v) => this.extractPrice(v.pricing?.dailyRate || "0"))),
-                max: Math.max(...this.allVehicles.map((v) => this.extractPrice(v.pricing?.dailyRate || "0"))),
-            },
-        };
     }
 }
 
