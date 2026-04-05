@@ -13,27 +13,8 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
-  const filtered = filterRows(data.vehicles, query, [
-    'id',
-    'name',
-    'vehicleNumber',
-    'brand',
-    'category',
-    'status',
-    'fuelType',
-    'transmission',
-  ]);
-  const sorted = [...filtered].sort((a, b) => {
-    const dateA = new Date(a?.addedAt || a?.addedDate || 0).getTime();
-    const dateB = new Date(b?.addedAt || b?.addedDate || 0).getTime();
-
-    if (dateA !== dateB) {
-      return dateB - dateA;
-    }
-
-    return String(a?.name || '').localeCompare(String(b?.name || ''));
-  });
-  const paged = paginateRows(sorted, 1, 6);
+  const filtered = filterRows(data.vehicles, query, ['id', 'name', 'category', 'status']);
+  const paged = paginateRows(filtered, 1, 6);
 
   const canCreateCatalog =
     Boolean(catalogService) &&
@@ -77,7 +58,6 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
           <thead>
             <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:text-slate-400">
               <th class="pb-2 pr-3">Vehicle</th>
-              <th class="pb-2 pr-3">Vehicle No.</th>
               <th class="pb-2 pr-3">Category</th>
               <th class="pb-2 pr-3">Specs</th>
               <th class="pb-2 pr-3">Status</th>
@@ -97,30 +77,23 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
                           <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(vehicle.id)}</p>
                         </div>
                       </div>
-                    </td>
-                    <td class="py-3 pr-3">
-                      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(vehicle.vehicleNumber || '-')}</span>
-                    </td>
-                    <td class="py-3 pr-3">${escapeHtml(vehicle.category || 'Vehicle')}</td>
-                    <td class="py-3 pr-3">
-                      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(vehicle.transmission || 'Automatic')} | ${escapeHtml(vehicle.fuelType || 'Petrol')}</p>
-                      <p class="text-xs text-slate-500 dark:text-slate-400">${Number(vehicle.seats || 5)} seats</p>
-                    </td>
-                    <td class="py-3 pr-3"><span class="${statusClass(vehicle.status)}">${escapeHtml(vehicle.status || 'Available')}</span></td>
-                    <td class="py-3 pr-3">${escapeHtml(formatNpr(vehicle.daily || 0))}</td>
-                    <td class="py-3 pr-3">${escapeHtml(formatNpr(vehicle.weekly || 0))}</td>
-                    <td class="py-3 pr-3">${escapeHtml(formatNpr(vehicle.seasonal || 0))}</td>
-                    <td class="py-3 pr-3">
-                      <div class="flex gap-2">
-                        <button data-delete-id="${escapeHtml(vehicle.id)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 ${
-                          canDeleteCatalog ? '' : 'opacity-60 cursor-not-allowed'
-                        }" ${canDeleteCatalog ? '' : 'disabled'}>Delete</button>
-                      </div>
-                    </td>
-                  </tr>`
-                )
-                .join('')
-              : `<tr><td colspan="9" class="py-6">${renderEmptyState({ title: 'No vehicles found', message: 'Try changing your search query or clear filters.', actionLabel: 'Reset search', actionId: 'resetVehicleSearch' })}</td></tr>`}
+                    </div>
+                  </td>
+                  <td class="py-3 pr-3">${vehicle.category}</td>
+                  <td class="py-3 pr-3"><span class="${statusClass(vehicle.status)}">${vehicle.status}</span></td>
+                  <td class="py-3 pr-3">$${vehicle.daily}</td>
+                  <td class="py-3 pr-3">$${vehicle.weekly}</td>
+                  <td class="py-3 pr-3">$${vehicle.seasonal}</td>
+                  <td class="py-3 pr-3">
+                    <div class="flex gap-2">
+                      <button data-edit-id="${vehicle.id}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Edit</button>
+                      <button data-delete-id="${vehicle.id}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50" ${canWriteCatalog ? '' : 'disabled title="No write access"'}>Delete</button>
+                    </div>
+                  </td>
+                </tr>`
+              )
+              .join('')
+              : `<tr><td colspan="7" class="py-6">${renderEmptyState({ title: 'No vehicles found', message: 'Try changing your search query or clear filters.', actionLabel: 'Reset search', actionId: 'resetVehicleSearch' })}</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -272,218 +245,9 @@ function reloadVehicles({ seedVehicles, notify, requestRender }) {
   requestRender?.();
 }
 
-function normalizeBulkEnum(value, options, fallback) {
-  const normalized = String(value || '').trim();
-  if (!normalized) {
-    return fallback;
-  }
-
-  const match = options.find((option) => option.toLowerCase() === normalized.toLowerCase());
-  return match || fallback;
-}
-
-function parseBulkFeatures(raw) {
-  return String(raw || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function parseBulkVehicleRows(rawText, limits) {
-  const lines = String(rawText || '')
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const rows = [];
-  const errors = [];
-
-  lines.forEach((line, index) => {
-    const lineNo = index + 1;
-    const columns = line.split('|').map((item) => item.trim());
-
-    if (columns.length < 6) {
-      errors.push(`Line ${lineNo}: Expected at least 6 values (name|vehicleNumber|type|fuelType|seats|dailyPrice).`);
-      return;
-    }
-
-    const [name, vehicleNumberRaw, type, fuelType, seatsRaw, dailyPriceRaw, statusRaw, transmissionRaw, locationRaw, featuresRaw] = columns;
-    const vehicleNumber = String(vehicleNumberRaw || '').toUpperCase();
-    const seats = Number(seatsRaw);
-    const pricePerDay = Number(dailyPriceRaw);
-
-    if (!name) {
-      errors.push(`Line ${lineNo}: Vehicle name is required.`);
-      return;
-    }
-
-    if (!vehicleNumber) {
-      errors.push(`Line ${lineNo}: Vehicle number is required.`);
-      return;
-    }
-
-    if (!type) {
-      errors.push(`Line ${lineNo}: Vehicle type is required.`);
-      return;
-    }
-
-    if (!fuelType) {
-      errors.push(`Line ${lineNo}: Fuel type is required.`);
-      return;
-    }
-
-    if (!Number.isFinite(seats) || seats < limits.minSeats || seats > limits.maxSeats) {
-      errors.push(`Line ${lineNo}: Seats must be between ${limits.minSeats} and ${limits.maxSeats}.`);
-      return;
-    }
-
-    if (!Number.isFinite(pricePerDay) || pricePerDay < limits.minPricePerDay || pricePerDay > limits.maxPricePerDay) {
-      errors.push(`Line ${lineNo}: Daily price must be between ${limits.minPricePerDay} and ${limits.maxPricePerDay}.`);
-      return;
-    }
-
-    rows.push({
-      name,
-      vehicleNumber,
-      type,
-      fuelType,
-      seats,
-      pricePerDay,
-      status: normalizeBulkEnum(statusRaw, STATUS_OPTIONS, 'Available'),
-      transmission: normalizeBulkEnum(transmissionRaw, ['Automatic', 'Manual'], 'Automatic'),
-      location: String(locationRaw || '').trim(),
-      features: parseBulkFeatures(featuresRaw),
-    });
-  });
-
-  return {
-    rows,
-    errors,
-  };
-}
-
-function renderVehicleCreateForm({ limits, fuelTypes }) {
-  return `
-    <form id="vehicleCatalogForm" class="space-y-4 pb-6" novalidate>
-      <div id="vehicleGlobalError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-300"></div>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Vehicle Name <span class="text-rose-500">*</span></span>
-        <input name="name" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="Toyota Corolla" />
-        <p data-error-for="name" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Vehicle Number <span class="text-rose-500">*</span></span>
-        <input name="vehicleNumber" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="BA-2-CHA-1234" />
-        <p data-error-for="vehicleNumber" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-      </label>
-
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label class="block space-y-1">
-          <span class="text-xs font-semibold">Vehicle Type <span class="text-rose-500">*</span></span>
-          <select name="category" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-            <option value="">Select category</option>
-            ${TYPE_OPTIONS.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join('')}
-          </select>
-          <p data-error-for="type" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-        </label>
-
-        <label class="block space-y-1">
-          <span class="text-xs font-semibold">Status</span>
-          <select name="status" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-            ${STATUS_OPTIONS.map((status) => `<option value="${escapeHtml(status)}" ${status === 'Available' ? 'selected' : ''}>${escapeHtml(status)}</option>`).join('')}
-          </select>
-        </label>
-      </div>
-
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label class="block space-y-1">
-          <span class="text-xs font-semibold">Transmission</span>
-          <select name="transmission" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-            <option value="Automatic">Automatic</option>
-            <option value="Manual">Manual</option>
-          </select>
-        </label>
-
-        <label class="block space-y-1">
-          <span class="text-xs font-semibold">Fuel Type <span class="text-rose-500">*</span></span>
-          <select name="fuelType" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-            <option value="">Select fuel</option>
-            ${fuelTypes.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join('')}
-          </select>
-          <p data-error-for="fuelType" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-        </label>
-
-        <label class="block space-y-1">
-          <span class="text-xs font-semibold">Seats <span class="text-rose-500">*</span></span>
-          <input name="seats" type="number" min="${limits.minSeats}" max="${limits.maxSeats}" value="5" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" />
-          <p data-error-for="seats" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-        </label>
-      </div>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Daily Price (NPR) <span class="text-rose-500">*</span></span>
-        <input name="dailyPrice" type="number" min="${limits.minPricePerDay}" max="${limits.maxPricePerDay}" step="0.01" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" />
-        <p data-error-for="pricePerDay" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Location</span>
-        <input name="location" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="Kathmandu" />
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Features (comma separated)</span>
-        <input name="features" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="AC, GPS, Bluetooth" />
-      </label>
-
-      <div class="space-y-2 rounded-2xl border border-[#d8e1dc] bg-[#f7fbf9] px-3 py-3 dark:border-white/10 dark:bg-white/5">
-        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">Bulk Add Multiple Vehicles</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Provide one vehicle per line. When bulk rows are present, single-vehicle fields above are ignored.</p>
-        <textarea
-          name="bulkRows"
-          rows="5"
-          class="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-[12px] dark:border-white/10 dark:bg-white/5"
-          placeholder="Toyota Yaris|BA-2-CHA-1111|Sedan|Petrol|5|4500|Available|Automatic|Kathmandu|AC, GPS&#10;Hyundai Creta|BA-3-PA-2222|SUV|Diesel|7|6200|Available|Automatic|Pokhara|Bluetooth, Reverse Camera"
-        ></textarea>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400">Format: name|vehicleNumber|type|fuelType|seats|dailyPrice|status(optional)|transmission(optional)|location(optional)|features(optional)</p>
-        <p data-error-for="bulkRows" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-      </div>
-
-      <div class="space-y-2">
-        <label class="block text-xs font-semibold">Vehicle Images <span class="text-rose-500">*</span></label>
-        <input id="vehicleImageInput" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" />
-        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <p>Required. Up to ${limits.maxImages} images, max ${(limits.maxImageSizeBytes / (1024 * 1024)).toFixed(0)} MB each.</p>
-          <p id="vehicleImageCount" class="font-semibold text-brand-700 dark:text-brand-200">0 / ${limits.maxImages}</p>
-        </div>
-        <p data-error-for="images" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-        <div id="vehicleImagePreviewGrid" class="grid grid-cols-2 gap-2"></div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-2">
-        <button id="vehicleFormCancel" type="button" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Cancel</button>
-        <button id="vehicleFormSubmit" type="submit" class="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white">Add Vehicle</button>
-      </div>
-    </form>
-  `;
-}
-
-function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
-  const limits = getCatalogLimits(catalogService);
-  const runtimeFuelTypes = Array.isArray(catalogService?.fuelTypes) && catalogService.fuelTypes.length
-    ? catalogService.fuelTypes
-    : REQUIRED_FUEL_TYPES;
-  const fuelTypes = REQUIRED_FUEL_TYPES.filter((fuel) =>
-    runtimeFuelTypes.some((candidate) => String(candidate).toLowerCase() === fuel.toLowerCase())
-  );
-
-  const allowedImageMimeTypes = Array.isArray(catalogService?.allowedImageMimeTypes) && catalogService.allowedImageMimeTypes.length
-    ? catalogService.allowedImageMimeTypes.map((item) => String(item).toLowerCase())
-    : FALLBACK_ALLOWED_IMAGE_MIME_TYPES;
-
-  const state = {
+function openVehicleCreationDrawer({ notify, onCreated }) {
+  const fuelTypes = getFuelTypeOptions();
+  const localState = {
     files: [],
     previewUrls: [],
     submitting: false,
@@ -565,11 +329,12 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       target.textContent = message || '';
     }
 
-  const applyErrors = (errors) => {
-    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'images', 'bulkRows'].forEach((key) => {
-      setFieldError(key, errors[key] || '');
-    });
-  };
+    if (input) {
+      input.classList.toggle('border-rose-400', hasError);
+      input.classList.toggle('focus:border-rose-500', hasError);
+      input.classList.toggle('focus:ring-rose-200', hasError);
+    }
+  }
 
   function setGlobalError(message) {
     if (!globalError) {
@@ -684,147 +449,8 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
     event.preventDefault();
     setGlobalError('');
 
-    if (!catalogService || (typeof catalogService.createVehicle !== 'function' && typeof catalogService.saveVehicle !== 'function')) {
-      notify('Catalog write mode is unavailable', 'error');
-      return;
-    }
-
-    const formData = new FormData(form);
-    const bulkRowsRaw = String(formData.get('bulkRows') || '').trim();
-
-    const values = {
-      name: String(formData.get('name') || '').trim(),
-      vehicleNumber: String(formData.get('vehicleNumber') || '').trim().toUpperCase(),
-      type: String(formData.get('category') || '').trim(),
-      status: String(formData.get('status') || 'Available').trim(),
-      transmission: String(formData.get('transmission') || 'Automatic').trim(),
-      fuelType: String(formData.get('fuelType') || '').trim(),
-      seats: Number(formData.get('seats') || NaN),
-      pricePerDay: Number(formData.get('dailyPrice') || NaN),
-      location: String(formData.get('location') || '').trim(),
-      features: String(formData.get('features') || '')
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean),
-      images: state.files.slice(),
-    };
-
-    if (bulkRowsRaw) {
-      const parsedBulk = parseBulkVehicleRows(bulkRowsRaw, limits);
-      const bulkErrors = {};
-
-      if (!parsedBulk.rows.length) {
-        bulkErrors.bulkRows = parsedBulk.errors[0] || 'Provide at least one valid bulk row.';
-      } else if (parsedBulk.errors.length) {
-        bulkErrors.bulkRows = parsedBulk.errors[0];
-      }
-
-      applyErrors(bulkErrors);
-
-      if (Object.keys(bulkErrors).length) {
-        const summaryMessage = parsedBulk.errors.slice(0, 2).join(' ');
-        setGlobalError(summaryMessage || 'Bulk input validation failed.');
-        notify('Please resolve bulk input errors before submitting.', 'warn');
-        return;
-      }
-
-      submitBtn?.setAttribute('disabled', 'true');
-      submitBtn?.classList.add('opacity-70', 'cursor-not-allowed');
-
-      try {
-        if (typeof catalogService.saveVehicle !== 'function') {
-          throw new Error('Bulk add requires catalog save mode.');
-        }
-
-        let createdCount = 0;
-
-        for (let i = 0; i < parsedBulk.rows.length; i += 1) {
-          const row = parsedBulk.rows[i];
-          // eslint-disable-next-line no-await-in-loop
-          await catalogService.saveVehicle({
-            brand: deriveBrandFromVehicleName(row.name),
-            name: row.name,
-            vehicleNumber: row.vehicleNumber,
-            category: row.type,
-            type: row.type,
-            status: row.status,
-            transmission: row.transmission,
-            fuelType: row.fuelType,
-            seats: row.seats,
-            daily: row.pricePerDay,
-            pricePerDay: row.pricePerDay,
-            imageUrls: [DEFAULT_IMAGE_URL],
-            primaryImageUrl: DEFAULT_IMAGE_URL,
-            features: row.features,
-            location: row.location,
-            rating: 4.6,
-          });
-          createdCount += 1;
-        }
-
-        notify(`${createdCount} vehicles added to database`, 'success');
-        closeOverlay();
-        if (typeof reloadVehiclesData === 'function') {
-          await reloadVehiclesData();
-        }
-      } catch (error) {
-        const errorMessage =
-          catalogService && typeof catalogService.toPublicError === 'function'
-            ? catalogService.toPublicError(error, 'Unable to save bulk vehicles right now.')
-            : String(error?.message || 'Unable to save bulk vehicles right now.');
-
-        setGlobalError(errorMessage);
-        notify(errorMessage, 'error');
-      } finally {
-        submitBtn?.removeAttribute('disabled');
-        submitBtn?.classList.remove('opacity-70', 'cursor-not-allowed');
-      }
-
-      return;
-    }
-
-    const errors = {};
-
-    if (!values.name) errors.name = 'Vehicle name is required.';
-    if (!values.vehicleNumber) errors.vehicleNumber = 'Vehicle number is required.';
-    if (!values.type) errors.type = 'Vehicle type is required.';
-    if (!values.fuelType) errors.fuelType = 'Fuel type is required.';
-
-    if (!Number.isFinite(values.seats) || values.seats < limits.minSeats || values.seats > limits.maxSeats) {
-      errors.seats = `Seats must be between ${limits.minSeats} and ${limits.maxSeats}.`;
-    }
-
-    if (!Number.isFinite(values.pricePerDay) || values.pricePerDay < limits.minPricePerDay || values.pricePerDay > limits.maxPricePerDay) {
-      errors.pricePerDay = `Daily price must be between ${limits.minPricePerDay} and ${limits.maxPricePerDay}.`;
-    }
-
-    if (!values.images.length) {
-      errors.images = 'At least one image is required.';
-    } else if (values.images.length > limits.maxImages) {
-      errors.images = `You can upload up to ${limits.maxImages} images.`;
-    }
-
-    if (!errors.images) {
-      for (let i = 0; i < values.images.length; i += 1) {
-        const file = values.images[i];
-        const mime = String(file.type || '').toLowerCase();
-        const size = Number(file.size || 0);
-
-        if (!allowedImageMimeTypes.includes(mime)) {
-          errors.images = 'Only JPG, PNG, and WEBP images are allowed.';
-          break;
-        }
-
-        if (!Number.isFinite(size) || size <= 0 || size > limits.maxImageSizeBytes) {
-          errors.images = `Each image must be less than ${(limits.maxImageSizeBytes / (1024 * 1024)).toFixed(0)} MB.`;
-          break;
-        }
-      }
-    }
-
-    applyErrors(errors);
-
-    if (Object.keys(errors).length) {
+    const validation = syncValidation();
+    if (!validation.valid) {
       notify('Please resolve form validation errors before submitting.', 'warn');
       return;
     }
@@ -832,35 +458,10 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
     setSubmitting(true);
 
     try {
-      if (typeof catalogService.createVehicle === 'function') {
-        await catalogService.createVehicle(values);
-      } else {
-        const imageUrls = await readFilesAsDataUrls(values.images);
-        await catalogService.saveVehicle({
-          brand: deriveBrandFromVehicleName(values.name),
-          name: values.name,
-          vehicleNumber: values.vehicleNumber,
-          category: values.type,
-          type: values.type,
-          status: values.status,
-          transmission: values.transmission,
-          fuelType: values.fuelType,
-          seats: values.seats,
-          daily: values.pricePerDay,
-          pricePerDay: values.pricePerDay,
-          imageUrls,
-          primaryImageUrl: imageUrls[0] || DEFAULT_IMAGE_URL,
-          features: values.features,
-          location: values.location,
-          rating: 4.6,
-        });
-      }
-
-      notify('Vehicle added to database', 'success');
-      closeOverlay();
-      if (typeof reloadVehiclesData === 'function') {
-        await reloadVehiclesData();
-      }
+      const created = await createAdminVehicle(getDraft());
+      notify('Vehicle saved successfully and published for booking.', 'success');
+      onCreated?.(created);
+      closeDrawer?.();
     } catch (error) {
       const message = normalizeVehicleServiceError(error, 'Unable to save vehicle right now.');
       setGlobalError(message);
@@ -1046,10 +647,4 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-}
-
-function formatNpr(value) {
-  const amount = Number(value || 0);
-  const normalized = Number.isFinite(amount) ? amount : 0;
-  return `NPR ${Math.round(normalized).toLocaleString()}`;
 }
