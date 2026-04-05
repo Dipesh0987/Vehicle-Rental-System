@@ -140,10 +140,6 @@ class AdvancedSearchSystem {
         return parsed;
     }
 
-    invalidateAvailabilityRequests() {
-        this.availabilityRequestId += 1;
-    }
-
     getDateRangeContext() {
         const pickupRaw = String(this.filterManager?.filters?.pickupDateTime || "").trim();
         const dropoffRaw = String(this.filterManager?.filters?.dropoffDateTime || "").trim();
@@ -287,7 +283,6 @@ class AdvancedSearchSystem {
         const force = Boolean(options.force);
 
         if (!context.hasRange) {
-            this.invalidateAvailabilityRequests();
             this.filterManager.clearDateAvailability();
             this.lastAvailabilityRangeKey = "";
             if (!quiet && this.uiManager?.hideReloadStatus) {
@@ -297,7 +292,6 @@ class AdvancedSearchSystem {
         }
 
         if (!context.valid) {
-            this.invalidateAvailabilityRequests();
             this.filterManager.clearDateAvailability();
             this.lastAvailabilityRangeKey = "";
             if (this.uiManager?.showReloadStatus) {
@@ -311,7 +305,6 @@ class AdvancedSearchSystem {
         }
 
         if (!this.bookingService || typeof this.bookingService.listBookings !== "function") {
-            this.invalidateAvailabilityRequests();
             this.filterManager.clearDateAvailability();
             this.lastAvailabilityRangeKey = "";
             if (this.uiManager?.showReloadStatus) {
