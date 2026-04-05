@@ -3,77 +3,12 @@
 
   var STORAGE_SESSION = "vrs_auth_session";
   var STORAGE_PROFILE = "vrs_profile";
+  var STORAGE_PROFILE_PREFIX = "vrs_profile::";
   var STORAGE_ATTEMPTS = "vrs_login_attempts";
   var PROFILE_UPDATED_EVENT = "vrs:profile-updated";
   var MAX_ATTEMPTS_WARNING = 3;
-  var STATIC_BOOKINGS = [
-    {
-      id: "bk-24003",
-      reference: "VRS-2026-24003",
-      vehicle: "Toyota Camry Hybrid",
-      category: "Sedan",
-      pickupDate: "2026-03-28",
-      pickupTime: "10:00",
-      dropoffDate: "2026-03-31",
-      dropoffTime: "09:30",
-      pickupLocation: "Downtown Vehicle Hub",
-      dropoffLocation: "Airport Return Bay",
-      driverName: "Alex Morgan",
-      paymentMethod: "Visa ending 4421",
-      addOns: ["Child Seat", "Basic Insurance"],
-      status: "Upcoming",
-      amount: "$186.00",
-      baseAmount: "$150.00",
-      serviceFee: "$18.00",
-      tax: "$18.00",
-      discount: "-$0.00",
-      lastUpdated: "2026-03-26",
-    },
-    {
-      id: "bk-24002",
-      reference: "VRS-2026-24002",
-      vehicle: "Honda CR-V Touring",
-      category: "SUV",
-      pickupDate: "2026-03-12",
-      pickupTime: "09:30",
-      dropoffDate: "2026-03-15",
-      dropoffTime: "11:15",
-      pickupLocation: "City Center Parking",
-      dropoffLocation: "City Center Parking",
-      driverName: "Alex Morgan",
-      paymentMethod: "Visa ending 4421",
-      addOns: ["Premium Insurance"],
-      status: "Completed",
-      amount: "$264.00",
-      baseAmount: "$220.00",
-      serviceFee: "$22.00",
-      tax: "$26.00",
-      discount: "-$4.00",
-      lastUpdated: "2026-03-16",
-    },
-    {
-      id: "bk-24001",
-      reference: "VRS-2026-24001",
-      vehicle: "Ford Mustang GT",
-      category: "Sport",
-      pickupDate: "2026-02-20",
-      pickupTime: "13:00",
-      dropoffDate: "2026-02-22",
-      dropoffTime: "12:45",
-      pickupLocation: "North Business District",
-      dropoffLocation: "North Business District",
-      driverName: "Alex Morgan",
-      paymentMethod: "Mastercard ending 1197",
-      addOns: ["Roadside Assistance", "Additional Driver"],
-      status: "Completed",
-      amount: "$310.00",
-      baseAmount: "$260.00",
-      serviceFee: "$24.00",
-      tax: "$30.00",
-      discount: "-$4.00",
-      lastUpdated: "2026-02-23",
-    },
-  ];
+  var BOOKING_GUARD_REDIRECT_TIMER = null;
+  var BOOKING_GUARD_TOAST_HIDE_TIMER = null;
 
   function safeParse(raw, fallback) {
     try {
@@ -106,11 +41,52 @@
     sessionStorage.removeItem(STORAGE_SESSION);
   }
 
+  function getProfileOwnerKey(sessionLike) {
+    var session = sessionLike || getSession();
+    var userId = String(session && session.userId ? session.userId : "").trim();
+    if (userId) {
+      return "uid:" + userId;
+    }
+
+    var email = String(session && session.email ? session.email : "").trim().toLowerCase();
+    if (email) {
+      return "email:" + email;
+    }
+
+    return "";
+  }
+
+  function getScopedProfileStorageKey(sessionLike) {
+    var owner = getProfileOwnerKey(sessionLike);
+    return owner ? STORAGE_PROFILE_PREFIX + owner : "";
+  }
+
+  function readLegacyProfileForSession(sessionLike) {
+    var legacy = safeParse(localStorage.getItem(STORAGE_PROFILE), null);
+    if (!legacy || typeof legacy !== "object") {
+      return null;
+    }
+
+    var session = sessionLike || getSession();
+    var sessionEmail = String(session && session.email ? session.email : "").trim().toLowerCase();
+    if (!sessionEmail) {
+      return null;
+    }
+
+    var legacyEmail = String(legacy.email || "").trim().toLowerCase();
+    if (legacyEmail && legacyEmail === sessionEmail) {
+      return toLocalProfileShape(legacy);
+    }
+
+    return null;
+  }
+
   function getProfile() {
+    var session = getSession();
     var fallback = {
       username: "Guest User",
       avatarDataUrl: "",
-      email: "",
+      email: String(session && session.email ? session.email : ""),
     };
 
     return Object.assign(fallback, safeParse(localStorage.getItem(STORAGE_PROFILE), {}));
@@ -123,7 +99,12 @@
       email: "",
     };
 
-    localStorage.setItem(STORAGE_PROFILE, JSON.stringify(nextProfile));
+    if (scopedKey) {
+      localStorage.setItem(scopedKey, JSON.stringify(nextProfile));
+      localStorage.removeItem(STORAGE_PROFILE);
+    } else {
+      localStorage.setItem(STORAGE_PROFILE, JSON.stringify(nextProfile));
+    }
 
     try {
       window.dispatchEvent(new CustomEvent(PROFILE_UPDATED_EVENT, {
@@ -310,14 +291,291 @@
       .finally(finish);
   }
 
-  function getStaticBookingHistory() {
-    return STATIC_BOOKINGS.slice();
+  function isBucketNotFoundUploadError(error) {
+    var message = String(error && error.message ? error.message : "").toLowerCase();
+    var status = Number(error && (error.status || error.statusCode));
+
+    return (
+      message.indexOf("bucket not found") >= 0 ||
+      (status === 404 && message.indexOf("bucket") >= 0)
+    );
+  }
+
+  function ensureBookingGuardToast() {
+    var toast = document.querySelector("[data-booking-guard-toast]");
+    if (toast) {
+      return toast;
+    }
+
+    toast = document.createElement("div");
+    toast.setAttribute("data-booking-guard-toast", "true");
+    toast.className = "pointer-events-none fixed bottom-5 left-1/2 z-[260] w-[min(92vw,520px)] -translate-x-1/2 translate-y-2 rounded-2xl border px-4 py-3 text-[13px] font-semibold shadow-[0_20px_48px_rgba(0,0,0,0.34)] opacity-0 transition duration-200";
+    document.body.appendChild(toast);
+    return toast;
+  }
+
+  function showBookingGuardToast(message, mode) {
+    var toast = ensureBookingGuardToast();
+    toast.textContent = String(message || "Please register or sign in to continue.");
+
+    if (mode === "error") {
+      toast.style.background = "linear-gradient(145deg, rgba(127, 29, 29, 0.97), rgba(153, 27, 27, 0.97))";
+      toast.style.borderColor = "rgba(252, 165, 165, 0.56)";
+      toast.style.color = "#fff1f2";
+    } else {
+      toast.style.background = "linear-gradient(145deg, rgba(18, 94, 82, 0.97), rgba(15, 76, 67, 0.97))";
+      toast.style.borderColor = "rgba(110, 231, 183, 0.56)";
+      toast.style.color = "#ecfdf5";
+    }
+
+    toast.style.opacity = "1";
+    toast.style.transform = "translate(-50%, 0)";
+
+    if (BOOKING_GUARD_TOAST_HIDE_TIMER) {
+      window.clearTimeout(BOOKING_GUARD_TOAST_HIDE_TIMER);
+    }
+
+    BOOKING_GUARD_TOAST_HIDE_TIMER = window.setTimeout(function () {
+      toast.style.opacity = "0";
+      toast.style.transform = "translate(-50%, 8px)";
+    }, 2200);
+  }
+
+  function requireBookingAccess(options) {
+    var session = getSession();
+    var hasAccount = Boolean(
+      session &&
+      (
+        String(session.userId || "").trim() ||
+        String(session.email || "").trim()
+      )
+    );
+
+    if (hasAccount) {
+      return true;
+    }
+
+    var opts = options || {};
+    var redirectEnabled = opts.autoRedirect !== false;
+    var delayMs = Number(opts.delayMs || 650);
+    if (!Number.isFinite(delayMs) || delayMs < 0) {
+      delayMs = 650;
+    }
+
+    showBookingGuardToast(
+      opts.message || "Please register or sign in to continue with vehicle booking. Redirecting to registration...",
+      opts.mode || "info"
+    );
+
+    if (!redirectEnabled) {
+      return false;
+    }
+
+    var registrationUrl = String(opts.redirectUrl || "registration.html").trim() || "registration.html";
+    var pathname = String(window.location.pathname || "").toLowerCase();
+    if (pathname.indexOf("registration.html") >= 0) {
+      return false;
+    }
+
+    if (BOOKING_GUARD_REDIRECT_TIMER) {
+      window.clearTimeout(BOOKING_GUARD_REDIRECT_TIMER);
+    }
+
+    BOOKING_GUARD_REDIRECT_TIMER = window.setTimeout(function () {
+      window.location.href = registrationUrl;
+    }, delayMs);
+
+    return false;
+  }
+
+  function bookingStatusMeta(statusValue) {
+    var normalized = String(statusValue || "").toLowerCase();
+    if (normalized === "pending") {
+      return { key: "upcoming", label: "Pending" };
+    }
+    if (normalized === "confirmed" || normalized === "upcoming") {
+      return { key: "upcoming", label: "Confirmed" };
+    }
+    if (normalized === "completed") {
+      return { key: "completed", label: "Completed" };
+    }
+    if (normalized === "cancelled") {
+      return { key: "cancelled", label: "Cancelled" };
+    }
+
+    return { key: "upcoming", label: "Confirmed" };
   }
 
   function bookingStatusPillClass(status) {
-    return String(status).toLowerCase() === "upcoming"
-      ? "rounded-full border border-[#f5c7a5] bg-[rgba(229,140,78,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#ffd7ba]"
-      : "rounded-full border border-[#95d6ae] bg-[rgba(86,170,117,0.18)] px-2 py-0.5 text-[10px] font-semibold text-[#d2f0dd]";
+    var meta = bookingStatusMeta(status);
+    if (meta.key === "completed") {
+      return "vrs-booking-status vrs-booking-status--completed rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
+    }
+
+    if (meta.key === "cancelled") {
+      return "vrs-booking-status vrs-booking-status--cancelled rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
+    }
+
+    return "vrs-booking-status vrs-booking-status--upcoming rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
+  }
+
+  function formatBookingMoney(value) {
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      numeric = 0;
+    }
+
+    return "$" + numeric.toFixed(2);
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatBookingDate(value) {
+    var text = String(value || "").trim();
+    if (!text) {
+      return "-";
+    }
+
+    var parsed = new Date(text + "T00:00:00");
+    if (Number.isNaN(parsed.getTime())) {
+      parsed = new Date(text);
+    }
+
+    if (Number.isNaN(parsed.getTime())) {
+      return text;
+    }
+
+    try {
+      return parsed.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (_error) {
+      return text;
+    }
+  }
+
+  function formatBookingDateTime(value) {
+    var text = String(value || "").trim();
+    if (!text) {
+      return "-";
+    }
+
+    var parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) {
+      return text;
+    }
+
+    try {
+      return parsed.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (_error) {
+      return text;
+    }
+  }
+
+  function normalizeBookingHistoryItem(row, index) {
+    var booking = row || {};
+    var quote = booking.quote || {};
+    var statusMeta = bookingStatusMeta(booking.status || booking.statusLabel);
+    var bookingId = String(booking.id || "").trim();
+    var reference = String(booking.bookingCode || booking.reference || bookingId || ("BK-" + String(index + 1))).trim();
+    var pickupLocation = String(booking.pickupLocation || "").trim() || "Location not specified";
+
+    return {
+      id: bookingId || reference,
+      reference: reference,
+      vehicle: String(booking.vehicleName || booking.vehicle || "Vehicle").trim() || "Vehicle",
+      category: String(booking.type || booking.category || "Vehicle").trim() || "Vehicle",
+      pickupDate: formatBookingDate(booking.startDate || booking.pickupDate),
+      pickupTime: String(booking.pickupTime || "10:00").trim() || "10:00",
+      dropoffDate: formatBookingDate(booking.endDate || booking.dropoffDate),
+      dropoffTime: String(booking.dropoffTime || "-").trim() || "-",
+      pickupLocation: pickupLocation,
+      dropoffLocation: pickupLocation,
+      status: statusMeta.label,
+      statusKey: statusMeta.key,
+      amount: formatBookingMoney(quote.totalAmount || booking.totalAmount),
+      baseAmount: formatBookingMoney(quote.baseAmount || booking.baseAmount),
+      serviceFee: formatBookingMoney(quote.serviceFee || booking.serviceFee),
+      tax: formatBookingMoney(quote.taxAmount || booking.taxAmount),
+      discount: "-" + formatBookingMoney(quote.discountAmount || booking.discountAmount),
+      driverName: String(booking.driverOptionLabel || booking.driverOption || "Self Drive").trim() || "Self Drive",
+      paymentMethod: "Online",
+      customerEmail: String(booking.customerEmail || "").trim() || "Not provided",
+      customerPhone: String(booking.customerPhone || "").trim() || "Not provided",
+      addOns: [],
+      createdAtRaw: String(booking.createdAt || booking.lastUpdated || ""),
+      lastUpdated: formatBookingDateTime(booking.createdAt || booking.lastUpdated),
+      customerUserId: String(booking.customerUserId || "").trim(),
+    };
+  }
+
+  async function loadCurrentUserBookings() {
+    var session = getSession();
+    var currentEmail = String(session && session.email ? session.email : "").trim().toLowerCase();
+    var currentUserId = String(session && session.userId ? session.userId : "").trim();
+
+    if (!currentEmail && !currentUserId) {
+      return [];
+    }
+
+    if (!window.VehicleBookingService || typeof window.VehicleBookingService.listBookings !== "function") {
+      return [];
+    }
+
+    var rows = await window.VehicleBookingService.listBookings();
+    if (!Array.isArray(rows)) {
+      return [];
+    }
+
+    var filtered = rows.filter(function (row) {
+      var bookingUserId = String(row && row.customerUserId ? row.customerUserId : "").trim();
+      if (currentUserId && bookingUserId && bookingUserId === currentUserId) {
+        return true;
+      }
+
+      var bookingEmail = String(row && row.customerEmail ? row.customerEmail : "").trim().toLowerCase();
+      if (currentEmail && bookingEmail && bookingEmail === currentEmail) {
+        return true;
+      }
+
+      return false;
+    }).map(normalizeBookingHistoryItem);
+
+    filtered.sort(function (a, b) {
+      var dateA = Date.parse(String(a && a.createdAtRaw ? a.createdAtRaw : ""));
+      var dateB = Date.parse(String(b && b.createdAtRaw ? b.createdAtRaw : ""));
+
+      if (Number.isFinite(dateA) && Number.isFinite(dateB) && dateA !== dateB) {
+        return dateB - dateA;
+      }
+
+      return String(b && b.reference ? b.reference : "").localeCompare(String(a && a.reference ? a.reference : ""));
+    });
+
+    return filtered;
+  }
+
+  function renderBookingsWorkspaceMessage(container, message) {
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = "<p class=\"vrs-bookings-message rounded-2xl px-4 py-3 text-[13px]\">" + escapeHtml(message || "No records available.") + "</p>";
   }
 
   function renderBookingDetail(detail, booking) {
@@ -332,10 +590,11 @@
 
     var titleWrap = document.createElement("div");
     var title = document.createElement("h3");
-    title.className = "text-[20px] font-bold leading-tight text-white";
+    title.className = "text-[20px] font-bold leading-tight";
     title.textContent = booking.vehicle;
+
     var sub = document.createElement("p");
-    sub.className = "mt-1 text-[12px] text-white/72";
+    sub.className = "vrs-bookings-subline mt-1 text-[12px]";
     sub.textContent = booking.reference + " • " + booking.category;
     titleWrap.appendChild(title);
     titleWrap.appendChild(sub);
@@ -348,31 +607,32 @@
     top.appendChild(status);
 
     var timeline = document.createElement("div");
-    timeline.className = "mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-white/15 bg-white/5 p-3 text-[12px] text-white/85 sm:grid-cols-2";
+    timeline.className = "vrs-bookings-detail-grid mt-4 grid grid-cols-1 gap-2 rounded-2xl p-3 text-[12px] sm:grid-cols-2";
     timeline.innerHTML =
-      "<p><span class=\"block text-white/65\">Pick-up</span>" + booking.pickupDate + " at " + booking.pickupTime + "</p>" +
-      "<p><span class=\"block text-white/65\">Drop-off</span>" + booking.dropoffDate + " at " + booking.dropoffTime + "</p>" +
-      "<p><span class=\"block text-white/65\">From</span>" + booking.pickupLocation + "</p>" +
-      "<p><span class=\"block text-white/65\">To</span>" + booking.dropoffLocation + "</p>";
+      "<p><span class=\"vrs-bookings-field-label block\">Pick-up</span>" + escapeHtml(booking.pickupDate) + " at " + escapeHtml(booking.pickupTime) + "</p>" +
+      "<p><span class=\"vrs-bookings-field-label block\">Drop-off</span>" + escapeHtml(booking.dropoffDate) + "</p>" +
+      "<p><span class=\"vrs-bookings-field-label block\">From</span>" + escapeHtml(booking.pickupLocation) + "</p>" +
+      "<p><span class=\"vrs-bookings-field-label block\">To</span>" + escapeHtml(booking.dropoffLocation) + "</p>";
 
     var money = document.createElement("div");
-    money.className = "mt-3 rounded-2xl border border-[#f2c8aa]/35 bg-[rgba(229,140,78,0.08)] p-3 text-[12px]";
+    money.className = "vrs-bookings-money mt-3 rounded-2xl p-3 text-[12px]";
     money.innerHTML =
-      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"text-white/72\">Total Paid</span><strong class=\"text-[16px] text-[#ffd8bd]\">" + booking.amount + "</strong></div>" +
-      "<div class=\"space-y-1 text-white/78\">" +
-      "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + booking.baseAmount + "</span></p>" +
-      "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + booking.serviceFee + "</span></p>" +
-      "<p class=\"flex justify-between\"><span>Tax</span><span>" + booking.tax + "</span></p>" +
-      "<p class=\"flex justify-between\"><span>Discount</span><span>" + booking.discount + "</span></p>" +
+      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"vrs-bookings-money-label\">Total Paid</span><strong class=\"vrs-bookings-money-total text-[16px]\">" + escapeHtml(booking.amount) + "</strong></div>" +
+      "<div class=\"vrs-bookings-money-lines space-y-1\">" +
+      "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + escapeHtml(booking.baseAmount) + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + escapeHtml(booking.serviceFee) + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Tax</span><span>" + escapeHtml(booking.tax) + "</span></p>" +
+      "<p class=\"flex justify-between\"><span>Discount</span><span>" + escapeHtml(booking.discount) + "</span></p>" +
       "</div>";
 
     var extra = document.createElement("div");
-    extra.className = "mt-3 grid grid-cols-1 gap-2 text-[12px] text-white/82 sm:grid-cols-2";
+    extra.className = "vrs-bookings-extra mt-3 grid grid-cols-1 gap-2 text-[12px] sm:grid-cols-2";
     extra.innerHTML =
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Driver</span>" + booking.driverName + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2\"><span class=\"block text-white/65\">Payment Method</span>" + booking.paymentMethod + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Add-ons</span>" + booking.addOns.join(", ") + "</p>" +
-      "<p class=\"rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:col-span-2\"><span class=\"block text-white/65\">Last Updated</span>" + booking.lastUpdated + "</p>";
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Driver Option</span>" + escapeHtml(booking.driverName) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Payment</span>" + escapeHtml(booking.paymentMethod) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Contact Email</span>" + escapeHtml(booking.customerEmail) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Contact Phone</span>" + escapeHtml(booking.customerPhone) + "</p>" +
+      "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2 sm:col-span-2\"><span class=\"vrs-bookings-field-label block\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
 
     detail.appendChild(top);
     detail.appendChild(timeline);
@@ -380,43 +640,84 @@
     detail.appendChild(extra);
   }
 
-  function renderBookingsWorkspace(modalRoot) {
+  async function renderBookingsWorkspace(modalRoot) {
     var list = modalRoot.querySelector("[data-bookings-modal-list]");
     var detail = modalRoot.querySelector("[data-bookings-modal-detail]");
     var total = modalRoot.querySelector("[data-bookings-total]");
     var upcoming = modalRoot.querySelector("[data-bookings-upcoming]");
     var completed = modalRoot.querySelector("[data-bookings-completed]");
-    var bookings = getStaticBookingHistory();
 
     if (!list || !detail) {
       return;
     }
 
-    list.innerHTML = "";
+    if (total) {
+      total.textContent = "0";
+    }
+    if (upcoming) {
+      upcoming.textContent = "0";
+    }
+    if (completed) {
+      completed.textContent = "0";
+    }
+
+    renderBookingsWorkspaceMessage(list, "Loading your bookings...");
+    renderBookingsWorkspaceMessage(detail, "Preparing booking details...");
+
+    var session = getSession();
+    if (!session) {
+      renderBookingsWorkspaceMessage(list, "Please sign in to view your bookings.");
+      renderBookingsWorkspaceMessage(detail, "Booking details will appear here after you sign in.");
+      return;
+    }
+
+    if (!window.VehicleBookingService || typeof window.VehicleBookingService.listBookings !== "function") {
+      renderBookingsWorkspaceMessage(list, "Booking service is not available on this page.");
+      renderBookingsWorkspaceMessage(detail, "Reload the page and try again.");
+      return;
+    }
+
+    var bookings = [];
+
+    try {
+      bookings = await loadCurrentUserBookings();
+    } catch (error) {
+      var errorMessage =
+        window.VehicleBookingService && typeof window.VehicleBookingService.toPublicError === "function"
+          ? window.VehicleBookingService.toPublicError(error, "Unable to load bookings right now.")
+          : "Unable to load bookings right now.";
+      renderBookingsWorkspaceMessage(list, errorMessage);
+      renderBookingsWorkspaceMessage(detail, "Please try again in a moment.");
+      return;
+    }
+
     if (total) {
       total.textContent = String(bookings.length);
     }
     if (upcoming) {
       upcoming.textContent = String(bookings.filter(function (booking) {
-        return String(booking.status).toLowerCase() === "upcoming";
+        return String(booking.statusKey || "").toLowerCase() === "upcoming";
       }).length);
     }
     if (completed) {
       completed.textContent = String(bookings.filter(function (booking) {
-        return String(booking.status).toLowerCase() === "completed";
+        return String(booking.statusKey || "").toLowerCase() === "completed";
       }).length);
     }
 
     if (!bookings.length) {
-      detail.innerHTML = "<p class=\"rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-[13px] text-white/75\">No bookings yet. Once you reserve a vehicle, details will appear here.</p>";
+      renderBookingsWorkspaceMessage(list, "No bookings found for your account yet.");
+      renderBookingsWorkspaceMessage(detail, "Once you complete a reservation, full details will appear here.");
       return;
     }
 
+    list.innerHTML = "";
     var activeId = bookings[0].id;
     var rowLookup = {};
 
     function setActive(id) {
       activeId = id;
+
       bookings.forEach(function (booking) {
         var row = rowLookup[booking.id];
         if (!row) {
@@ -425,8 +726,9 @@
 
         var isActive = booking.id === activeId;
         row.className = isActive
-          ? "w-full rounded-2xl border border-[#f3c9ab] bg-[rgba(229,140,78,0.12)] px-3 py-3 text-left transition"
-          : "w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:bg-white/10";
+          ? "vrs-bookings-row is-active w-full rounded-2xl px-3 py-3 text-left transition"
+          : "vrs-bookings-row w-full rounded-2xl px-3 py-3 text-left transition";
+        row.setAttribute("data-active", isActive ? "true" : "false");
       });
 
       var selected = bookings.find(function (booking) {
@@ -445,20 +747,25 @@
       top.className = "flex items-center justify-between gap-2";
 
       var title = document.createElement("p");
-      title.className = "text-[13px] font-semibold text-white";
+      title.className = "vrs-bookings-row-title text-[13px] font-semibold";
       title.textContent = booking.vehicle;
 
       var status = document.createElement("span");
       status.className = bookingStatusPillClass(booking.status);
       status.textContent = booking.status;
 
+      var reference = document.createElement("p");
+      reference.className = "vrs-bookings-row-reference mt-1 text-[11px]";
+      reference.textContent = booking.reference;
+
       var meta = document.createElement("p");
-      meta.className = "mt-1 text-[11px] text-white/74";
+      meta.className = "vrs-bookings-row-meta mt-1 text-[11px]";
       meta.textContent = booking.pickupDate + " to " + booking.dropoffDate + " • " + booking.amount;
 
       top.appendChild(title);
       top.appendChild(status);
       row.appendChild(top);
+      row.appendChild(reference);
       row.appendChild(meta);
       list.appendChild(row);
 
@@ -479,22 +786,22 @@
 
     var overlay = document.createElement("div");
     overlay.setAttribute("data-bookings-modal-overlay", "true");
-    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(5,18,20,0.58)] opacity-0 transition duration-200";
+    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(7,22,24,0.52)] opacity-0 transition duration-200";
 
     var card = document.createElement("section");
     card.setAttribute("role", "dialog");
     card.setAttribute("aria-modal", "true");
-    card.className = "mx-4 w-full max-w-[1060px] rounded-3xl border border-white/20 bg-[linear-gradient(160deg,rgba(23,56,60,0.98),rgba(16,38,42,0.98))] p-5 text-white shadow-[0_28px_70px_rgba(0,0,0,0.42)] sm:p-6";
+    card.className = "vrs-bookings-card mx-4 w-full max-w-[1060px] rounded-3xl p-5 shadow-[0_28px_70px_rgba(7,31,34,0.24)] sm:p-6";
 
     var top = document.createElement("div");
     top.className = "flex items-start justify-between gap-3";
 
     var titleWrap = document.createElement("div");
     var heading = document.createElement("h2");
-    heading.className = "text-[22px] font-bold tracking-[-0.01em]";
+    heading.className = "vrs-bookings-heading text-[22px] font-bold tracking-[-0.01em]";
     heading.textContent = "Your Bookings";
     var subtitle = document.createElement("p");
-    subtitle.className = "mt-1 text-[13px] text-white/75";
+    subtitle.className = "vrs-bookings-subtitle mt-1 text-[13px]";
     subtitle.textContent = "Recent and upcoming reservations in one place.";
     titleWrap.appendChild(heading);
     titleWrap.appendChild(subtitle);
@@ -502,29 +809,29 @@
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.setAttribute("data-bookings-modal-close", "true");
-    closeBtn.className = "rounded-full border border-white/25 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:-translate-y-[1px] hover:bg-white/10";
+    closeBtn.className = "vrs-bookings-close rounded-full px-3 py-1.5 text-[12px] font-semibold transition hover:-translate-y-[1px]";
     closeBtn.textContent = "Close";
 
     top.appendChild(titleWrap);
     top.appendChild(closeBtn);
 
     var summary = document.createElement("div");
-    summary.className = "mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold text-white/88";
+    summary.className = "vrs-bookings-summary mt-4 grid grid-cols-3 gap-2 text-[12px] font-semibold";
     summary.innerHTML =
-      "<p class=\"rounded-xl border border-white/15 bg-white/5 px-3 py-2\">Total <span data-bookings-total class=\"ml-1 text-white\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#f2c9ac]/35 bg-[rgba(229,140,78,0.1)] px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"ml-1 text-[#ffd8bd]\">0</span></p>" +
-      "<p class=\"rounded-xl border border-[#9ad8b2]/30 bg-[rgba(86,170,117,0.1)] px-3 py-2\">Completed <span data-bookings-completed class=\"ml-1 text-[#d2f0dd]\">0</span></p>";
+      "<p class=\"vrs-bookings-summary-item rounded-xl px-3 py-2\">Total <span data-bookings-total class=\"vrs-bookings-summary-value ml-1\">0</span></p>" +
+      "<p class=\"vrs-bookings-summary-item is-upcoming rounded-xl px-3 py-2\">Upcoming <span data-bookings-upcoming class=\"vrs-bookings-summary-value ml-1\">0</span></p>" +
+      "<p class=\"vrs-bookings-summary-item is-completed rounded-xl px-3 py-2\">Completed <span data-bookings-completed class=\"vrs-bookings-summary-value ml-1\">0</span></p>";
 
     var workspace = document.createElement("div");
     workspace.className = "mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[0.95fr,1.35fr]";
 
     var list = document.createElement("div");
     list.setAttribute("data-bookings-modal-list", "true");
-    list.className = "max-h-[58vh] space-y-2 overflow-y-auto pr-1";
+    list.className = "vrs-bookings-list max-h-[58vh] space-y-2 overflow-y-auto pr-1";
 
     var detail = document.createElement("div");
     detail.setAttribute("data-bookings-modal-detail", "true");
-    detail.className = "max-h-[58vh] overflow-y-auto rounded-2xl border border-white/15 bg-white/6 p-4";
+    detail.className = "vrs-bookings-detail max-h-[58vh] overflow-y-auto rounded-2xl p-4";
 
     card.appendChild(top);
     card.appendChild(summary);
@@ -539,7 +846,7 @@
 
   function openBookingsModal() {
     var overlay = ensureBookingsModal();
-    renderBookingsWorkspace(overlay);
+    void renderBookingsWorkspace(overlay);
 
     overlay.classList.remove("opacity-0", "pointer-events-none");
     overlay.classList.add("opacity-100", "pointer-events-auto");
@@ -570,6 +877,15 @@
     bookingsNavLinks.forEach(function (link) {
       link.addEventListener("click", function (event) {
         event.preventDefault();
+
+        if (!requireBookingAccess({
+          message: "Please register or sign in to view your bookings. Redirecting to registration...",
+          autoRedirect: true,
+          delayMs: 700,
+        })) {
+          return;
+        }
+
         openBookingsModal();
       });
     });
@@ -590,6 +906,44 @@
       if (event.key === "Escape") {
         closeBookingsModal();
       }
+    });
+  }
+
+  function wireBookingAccessGuards() {
+    var bookingLinks = document.querySelectorAll("a[href]");
+    if (!bookingLinks.length) {
+      return;
+    }
+
+    bookingLinks.forEach(function (link) {
+      var href = String(link.getAttribute("href") || "").toLowerCase();
+      if (href.indexOf("booking.html") < 0) {
+        return;
+      }
+
+      link.addEventListener("click", function (event) {
+        if (event.defaultPrevented) {
+          return;
+        }
+
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+
+        if (event.button !== 0) {
+          return;
+        }
+
+        if (requireBookingAccess({
+          message: "Please register or sign in before booking a vehicle. Redirecting to registration...",
+          autoRedirect: true,
+          delayMs: 700,
+        })) {
+          return;
+        }
+
+        event.preventDefault();
+      });
     });
   }
 
@@ -634,6 +988,8 @@
     var session = getSession();
     var guest = document.querySelector("[data-auth-guest]");
     var user = document.querySelector("[data-auth-user]");
+    var profilePanel = document.querySelector("[data-profile-panel]");
+    var profileTrigger = document.querySelector("[data-profile-trigger]");
     var bookingsLinks = document.querySelectorAll("[data-auth-bookings-link]");
 
     document.body.classList.remove("auth-logged-in", "auth-guest");
@@ -664,6 +1020,16 @@
       bookingsLinks.forEach(function (link) {
         link.classList.add("hidden");
       });
+
+      if (profilePanel) {
+        profilePanel.classList.remove("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
+        profilePanel.classList.add("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
+        profilePanel.setAttribute("aria-hidden", "true");
+      }
+
+      if (profileTrigger) {
+        profileTrigger.setAttribute("aria-expanded", "false");
+      }
     }
 
     renderProfileChip();
@@ -675,6 +1041,7 @@
     var email = String(profile.email || (session && session.email) || "");
     var nameEl = document.querySelector("[data-profile-name]");
     var avatarEl = document.querySelector("[data-profile-avatar]");
+    var panelAvatarPreviewEl = document.querySelector("[data-profile-avatar-preview]");
     var emailEls = document.querySelectorAll("[data-profile-email]");
 
     if (nameEl) {
@@ -698,7 +1065,9 @@
       } else {
         avatarEl.textContent = getInitials(profile.username);
       }
-    }
+    });
+
+    renderAvatarImage(panelAvatarPreviewEl, avatarUrl, profile.username);
 
     var panelName = document.getElementById("profileName");
     if (panelName && !panelName.value) {
@@ -727,7 +1096,7 @@
         return;
       }
 
-      if (event.key === STORAGE_PROFILE) {
+      if (event.key === STORAGE_PROFILE || (typeof event.key === "string" && event.key.indexOf(STORAGE_PROFILE_PREFIX) === 0)) {
         renderProfileChip();
         return;
       }
@@ -773,7 +1142,201 @@
     var saveBtn = document.getElementById("saveProfile");
     var nameInput = document.getElementById("profileName");
     var photoInput = document.getElementById("profilePhoto");
+    var photoFileLabel = document.getElementById("profileFileLabel");
+    var photoShell = panel ? panel.querySelector(".profile-photo-shell") : null;
     var note = document.getElementById("profileNote");
+    var noteDefaultText = note ? String(note.textContent || "").trim() : "";
+    var noteFadeTimerId = null;
+    var noteResetTimerId = null;
+    var profileToastNode = null;
+    var profileToastHideTimerId = null;
+
+    function clearProfileNoteTimers() {
+      if (noteFadeTimerId) {
+        window.clearTimeout(noteFadeTimerId);
+        noteFadeTimerId = null;
+      }
+
+      if (noteResetTimerId) {
+        window.clearTimeout(noteResetTimerId);
+        noteResetTimerId = null;
+      }
+    }
+
+    function setProfileNoteTone(mode) {
+      if (!note) {
+        return;
+      }
+
+      note.classList.remove(
+        "border-[rgba(229,140,78,0.9)]",
+        "border-emerald-400/90",
+        "border-rose-400/90",
+        "bg-white/10",
+        "bg-emerald-500/15",
+        "bg-rose-500/15",
+        "text-white/90",
+        "text-emerald-100",
+        "text-rose-100",
+        "profile-note--info",
+        "profile-note--success",
+        "profile-note--error"
+      );
+
+      if (mode === "success") {
+        note.classList.add("profile-note--success");
+        return;
+      }
+
+      if (mode === "error") {
+        note.classList.add("profile-note--error");
+        return;
+      }
+
+      note.classList.add("profile-note--info");
+    }
+
+    function showProfileNoteMessage(message, mode, autoHideMs) {
+      if (!note) {
+        return;
+      }
+
+      clearProfileNoteTimers();
+      setProfileNoteTone(mode || "info");
+      note.textContent = String(message || noteDefaultText || "");
+      note.style.transition = "opacity 360ms ease, transform 360ms ease";
+      note.style.opacity = "1";
+      note.style.transform = "translateY(0)";
+
+      var hideDelay = Number(autoHideMs || 0);
+      if (hideDelay <= 0) {
+        return;
+      }
+
+      noteFadeTimerId = window.setTimeout(function () {
+        note.style.opacity = "0";
+        note.style.transform = "translateY(-3px)";
+
+        noteResetTimerId = window.setTimeout(function () {
+          setProfileNoteTone("info");
+          note.textContent = noteDefaultText;
+          note.style.opacity = "1";
+          note.style.transform = "translateY(0)";
+          noteResetTimerId = null;
+        }, 380);
+
+        noteFadeTimerId = null;
+      }, hideDelay);
+    }
+
+    function ensureProfileSaveToast() {
+      if (profileToastNode && document.body.contains(profileToastNode)) {
+        return profileToastNode;
+      }
+
+      profileToastNode = document.createElement("div");
+      profileToastNode.setAttribute("data-profile-save-toast", "true");
+      profileToastNode.setAttribute("aria-live", "polite");
+      profileToastNode.style.position = "fixed";
+      profileToastNode.style.top = "18px";
+      profileToastNode.style.right = "18px";
+      profileToastNode.style.zIndex = "280";
+      profileToastNode.style.maxWidth = "min(92vw, 360px)";
+      profileToastNode.style.padding = "11px 14px";
+      profileToastNode.style.borderRadius = "12px";
+      profileToastNode.style.boxShadow = "0 14px 30px rgba(6, 19, 24, 0.28)";
+      profileToastNode.style.fontSize = "13px";
+      profileToastNode.style.fontWeight = "700";
+      profileToastNode.style.opacity = "0";
+      profileToastNode.style.transform = "translateY(8px)";
+      profileToastNode.style.pointerEvents = "none";
+      profileToastNode.style.transition = "opacity 260ms ease, transform 260ms ease";
+      document.body.appendChild(profileToastNode);
+
+      return profileToastNode;
+    }
+
+    function showProfileSaveToast(message, mode, autoHideMs) {
+      var toast = ensureProfileSaveToast();
+      var tone = String(mode || "success").toLowerCase();
+      var isDarkTheme = document.documentElement && document.documentElement.getAttribute("data-theme") === "dark";
+
+      if (profileToastHideTimerId) {
+        window.clearTimeout(profileToastHideTimerId);
+        profileToastHideTimerId = null;
+      }
+
+      toast.textContent = String(message || "Profile updated");
+
+      if (tone === "error") {
+        toast.style.background = "linear-gradient(145deg, rgba(127, 29, 29, 0.95), rgba(153, 27, 27, 0.95))";
+        toast.style.border = "1px solid rgba(252, 165, 165, 0.5)";
+        toast.style.color = "#fff1f2";
+      } else if (tone === "info") {
+        toast.style.background = isDarkTheme
+          ? "linear-gradient(145deg, rgba(30, 79, 96, 0.96), rgba(24, 63, 79, 0.96))"
+          : "linear-gradient(145deg, rgba(38, 94, 115, 0.96), rgba(34, 81, 100, 0.96))";
+        toast.style.border = "1px solid rgba(143, 199, 226, 0.45)";
+        toast.style.color = "#eef8fc";
+      } else {
+        toast.style.background = isDarkTheme
+          ? "linear-gradient(145deg, rgba(34, 118, 104, 0.96), rgba(24, 96, 86, 0.96))"
+          : "linear-gradient(145deg, rgba(44, 118, 110, 0.96), rgba(28, 96, 90, 0.96))";
+        toast.style.border = "1px solid rgba(166, 223, 191, 0.55)";
+        toast.style.color = "#ecfdf5";
+      }
+
+      toast.style.opacity = "1";
+      toast.style.transform = "translateY(0)";
+
+      profileToastHideTimerId = window.setTimeout(function () {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(8px)";
+        profileToastHideTimerId = null;
+      }, Math.max(1200, Number(autoHideMs || 3000)));
+    }
+
+    function forceHideNativeFileInput(input) {
+      if (!input) {
+        return;
+      }
+
+      input.setAttribute("aria-hidden", "true");
+      input.setAttribute("tabindex", "-1");
+      input.style.position = "absolute";
+      input.style.width = "1px";
+      input.style.height = "1px";
+      input.style.padding = "0";
+      input.style.margin = "-1px";
+      input.style.overflow = "hidden";
+      input.style.clip = "rect(0, 0, 0, 0)";
+      input.style.whiteSpace = "nowrap";
+      input.style.border = "0";
+      input.style.opacity = "0";
+    }
+
+    function setPhotoFileLabel(fileName) {
+      if (!photoFileLabel) {
+        return;
+      }
+
+      photoFileLabel.textContent = String(fileName || "No file selected");
+    }
+
+    function setPhotoDropState(isDragOver) {
+      if (!photoShell) {
+        return;
+      }
+
+      var active = Boolean(isDragOver);
+      photoShell.classList.toggle("border-[#2c766e]", active);
+      photoShell.classList.toggle("bg-[rgba(44,118,110,0.28)]", active);
+      photoShell.classList.toggle("border-white/20", !active);
+      photoShell.classList.toggle("bg-[linear-gradient(145deg,rgba(44,118,110,0.2),rgba(255,255,255,0.08))]", !active);
+    }
+
+    setPhotoFileLabel();
+    forceHideNativeFileInput(photoInput);
 
     function readCurrentProfileEmail() {
       var profile = getProfile();
@@ -781,7 +1344,8 @@
       return String(profile.email || (session && session.email) || "");
     }
 
-    async function saveProfileData(avatarDataUrl) {
+    async function saveProfileData(avatarDataUrl, options) {
+      var opts = options || {};
       var current = getProfile();
       var nextProfile = {
         username: (nameInput && nameInput.value.trim()) || current.username || "User",
@@ -812,11 +1376,13 @@
         }
       }
 
-      if (note) {
-        note.textContent = cloudSynced
-          ? "Profile updated and synced to Supabase."
-          : "Profile updated locally.";
+      if (!opts.silentFeedback) {
+        showProfileNoteMessage("Profile updated", "success", 0);
       }
+
+      return {
+        cloudSynced: cloudSynced,
+      };
     }
 
     function previewSelectedImage(file, previousProfile) {
@@ -844,66 +1410,167 @@
 
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
-        Promise.resolve(saveProfileData())
-          .finally(function () {
+        Promise.resolve(saveProfileData(undefined, { silentFeedback: true }))
+          .then(function (result) {
             closePanel();
+            showProfileSaveToast("Profile updated", "success", 3000);
+          })
+          .catch(function (error) {
+            var auth = getAuthService();
+            if (auth && typeof auth.toPublicError === "function") {
+              showProfileNoteMessage(
+                auth.toPublicError(error, "Unable to save profile right now."),
+                "error",
+                0
+              );
+              return;
+            }
+
+            showProfileNoteMessage(
+              String(error && error.message ? error.message : "Unable to save profile right now."),
+              "error",
+              0
+            );
           });
       });
+    }
+
+    function handleSelectedPhotoFile(file) {
+      if (!file) {
+        setPhotoFileLabel();
+        return;
+      }
+
+      setPhotoFileLabel(file.name);
+
+      var auth = getAuthService();
+      if (auth && typeof auth.uploadProfileImage === "function") {
+        var previousProfile = getProfile();
+
+        previewSelectedImage(file, previousProfile);
+
+        if (note) {
+          showProfileNoteMessage("Uploading and optimizing profile image...", "info", 0);
+        }
+
+        auth.uploadProfileImage(file)
+          .then(function (avatarUrl) {
+            return saveProfileData(avatarUrl);
+          })
+          .catch(function (error) {
+            if (isBucketNotFoundUploadError(error)) {
+              var currentPreview = getProfile();
+              if (currentPreview && normalizeAvatarValue(currentPreview.avatarDataUrl)) {
+                saveProfileData(currentPreview.avatarDataUrl)
+                  .then(function () {
+                    showProfileNoteMessage(
+                      "Storage bucket is missing, so profile image was saved in profile data fallback.",
+                      "info",
+                      0
+                    );
+                  })
+                  .catch(function () {
+                    setProfile(previousProfile);
+                    renderProfileChip();
+                    showProfileNoteMessage("Profile image upload failed.", "error", 0);
+                  });
+                return;
+              }
+            }
+
+            setProfile(previousProfile);
+            renderProfileChip();
+
+            if (auth && typeof auth.toPublicError === "function") {
+              showProfileNoteMessage(auth.toPublicError(error, "Profile image upload failed."), "error", 0);
+            } else {
+              showProfileNoteMessage(
+                String(error && error.message ? error.message : "Profile image upload failed."),
+                "error",
+                0
+              );
+            }
+          })
+          .finally(function () {
+            if (photoInput) {
+              photoInput.value = "";
+            }
+            setPhotoFileLabel();
+            setPhotoDropState(false);
+          });
+        return;
+      }
+
+      var fallbackMaxBytes = 1024 * 1024 * 5;
+      if (file.size > fallbackMaxBytes) {
+        showProfileNoteMessage("Image is too large. Please choose a file under 5 MB.", "error", 0);
+        if (photoInput) {
+          photoInput.value = "";
+        }
+        setPhotoFileLabel();
+        setPhotoDropState(false);
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = function (event) {
+        saveProfileData(String(event.target && event.target.result ? event.target.result : ""));
+        if (photoInput) {
+          photoInput.value = "";
+        }
+        setPhotoFileLabel();
+        setPhotoDropState(false);
+      };
+      reader.readAsDataURL(file);
     }
 
     if (photoInput) {
       photoInput.addEventListener("change", function () {
         var file = photoInput.files && photoInput.files[0];
-        if (!file) {
+        handleSelectedPhotoFile(file);
+      });
+    }
+
+    if (photoShell) {
+      ["dragenter", "dragover"].forEach(function (eventName) {
+        photoShell.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          setPhotoDropState(true);
+        });
+      });
+
+      ["dragleave", "dragend"].forEach(function (eventName) {
+        photoShell.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          setPhotoDropState(false);
+        });
+      });
+
+      photoShell.addEventListener("drop", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        setPhotoDropState(false);
+
+        var droppedFile = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        if (!droppedFile) {
           return;
         }
 
-        var auth = getAuthService();
-        if (auth && typeof auth.uploadProfileImage === "function") {
-          var previousProfile = getProfile();
-
-          previewSelectedImage(file, previousProfile);
-
-          if (note) {
-            note.textContent = "Uploading and optimizing profile image...";
+        if (photoInput) {
+          try {
+            if (typeof DataTransfer === "function") {
+              var transfer = new DataTransfer();
+              transfer.items.add(droppedFile);
+              photoInput.files = transfer.files;
+            }
+          } catch (_dropError) {
+            // Fallback to direct handler if assignment fails.
           }
-
-          auth.uploadProfileImage(file)
-            .then(function (avatarUrl) {
-              return saveProfileData(avatarUrl);
-            })
-            .catch(function (error) {
-              setProfile(previousProfile);
-              renderProfileChip();
-
-              if (!note) {
-                return;
-              }
-
-              if (auth && typeof auth.toPublicError === "function") {
-                note.textContent = auth.toPublicError(error, "Profile image upload failed.");
-              } else {
-                note.textContent = String(
-                  error && error.message ? error.message : "Profile image upload failed."
-                );
-              }
-            });
-          return;
         }
 
-        var fallbackMaxBytes = 1024 * 1024 * 5;
-        if (file.size > fallbackMaxBytes) {
-          if (note) {
-            note.textContent = "Image is too large. Please choose a file under 5 MB.";
-          }
-          return;
-        }
-
-        var reader = new FileReader();
-        reader.onload = function (event) {
-          saveProfileData(String(event.target && event.target.result ? event.target.result : ""));
-        };
-        reader.readAsDataURL(file);
+        handleSelectedPhotoFile(droppedFile);
       });
     }
 
@@ -923,10 +1590,11 @@
 
     var banner = document.getElementById("loginBanner");
     var forgot = document.getElementById("forgotPassword");
-    var forgotPanel = document.getElementById("forgotPanel");
-    var resetEmail = document.getElementById("resetEmail");
-    var sendReset = document.getElementById("sendResetLink");
-    var cancelReset = document.getElementById("cancelReset");
+    var forgotAssistModal = document.getElementById("forgotAssistModal");
+    var forgotAssistCard = document.getElementById("forgotAssistCard");
+    var forgotAssistClose = document.getElementById("forgotAssistClose");
+    var forgotAssistPrimary = document.getElementById("forgotAssistPrimary");
+    var loginMain = document.getElementById("loginMain");
     var rememberMe = document.getElementById("rememberMe");
     var passwordInput = document.getElementById("password");
     var passwordToggle = document.getElementById("passwordToggle");
@@ -979,29 +1647,88 @@
       });
     }
 
-    function openForgotPanel() {
-      if (!forgotPanel) {
+    var forgotModalHideTimer = null;
+
+    function setForgotModalBackgroundState(isOpen) {
+      if (!loginMain) {
         return;
       }
 
-      forgotPanel.classList.remove("mt-[-0.25rem]", "max-h-0", "opacity-0", "-translate-y-2", "pointer-events-none");
-      forgotPanel.classList.add("mt-0", "max-h-52", "opacity-100", "translate-y-0", "pointer-events-auto");
-      forgotPanel.setAttribute("aria-hidden", "false");
-      if (forgot) {
-        forgot.setAttribute("aria-expanded", "true");
+      if (isOpen) {
+        loginMain.style.filter = "blur(4px)";
+        loginMain.style.transform = "scale(0.992)";
+        loginMain.style.pointerEvents = "none";
+      } else {
+        loginMain.style.removeProperty("filter");
+        loginMain.style.removeProperty("transform");
+        loginMain.style.removeProperty("pointer-events");
       }
     }
 
-    function closeForgotPanel() {
-      if (!forgotPanel) {
+    function openForgotModal() {
+      if (!forgotAssistModal || !forgotAssistCard) {
         return;
       }
 
-      forgotPanel.classList.remove("mt-0", "max-h-52", "opacity-100", "translate-y-0", "pointer-events-auto");
-      forgotPanel.classList.add("mt-[-0.25rem]", "max-h-0", "opacity-0", "-translate-y-2", "pointer-events-none");
-      forgotPanel.setAttribute("aria-hidden", "true");
+      if (forgotModalHideTimer) {
+        clearTimeout(forgotModalHideTimer);
+        forgotModalHideTimer = null;
+      }
+
+      forgotAssistModal.classList.remove("hidden");
+      forgotAssistModal.classList.add("flex");
+      forgotAssistModal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("overflow-hidden");
+      setForgotModalBackgroundState(true);
+
+      requestAnimationFrame(function () {
+        forgotAssistModal.classList.remove("opacity-0", "pointer-events-none");
+        forgotAssistModal.classList.add("opacity-100", "pointer-events-auto");
+        forgotAssistCard.classList.remove("translate-y-3", "scale-[0.985]");
+        forgotAssistCard.classList.add("translate-y-0", "scale-100");
+      });
+
+      if (forgot) {
+        forgot.setAttribute("aria-expanded", "true");
+      }
+
+      if (forgotAssistPrimary) {
+        forgotAssistPrimary.focus();
+      }
+    }
+
+    function closeForgotModal() {
+      if (!forgotAssistModal || !forgotAssistCard) {
+        return;
+      }
+
+      forgotAssistModal.classList.remove("opacity-100", "pointer-events-auto");
+      forgotAssistModal.classList.add("opacity-0", "pointer-events-none");
+      forgotAssistCard.classList.remove("translate-y-0", "scale-100");
+      forgotAssistCard.classList.add("translate-y-3", "scale-[0.985]");
+      forgotAssistModal.setAttribute("aria-hidden", "true");
+      setForgotModalBackgroundState(false);
+      document.body.classList.remove("overflow-hidden");
+
+      if (forgotModalHideTimer) {
+        clearTimeout(forgotModalHideTimer);
+      }
+
+      forgotModalHideTimer = setTimeout(function () {
+        forgotAssistModal.classList.remove("flex");
+        forgotAssistModal.classList.add("hidden");
+      }, 220);
+
       if (forgot) {
         forgot.setAttribute("aria-expanded", "false");
+        forgot.focus();
+      }
+    }
+
+    function onForgotModalKeyDown(event) {
+      if (event.key === "Escape" && forgotAssistModal && forgotAssistModal.getAttribute("aria-hidden") === "false") {
+        event.preventDefault();
+        closeForgotModal();
       }
     }
 
@@ -1009,63 +1736,32 @@
       forgot.addEventListener("click", function (event) {
         event.preventDefault();
 
-        if (!forgotPanel) {
-          return;
-        }
-
-        var isOpen = forgotPanel.classList.contains("max-h-52");
-        if (!isOpen) {
-          openForgotPanel();
-
-          if (resetEmail) {
-            var currentEmail = String(form.email.value || "").trim();
-            if (currentEmail) {
-              resetEmail.value = currentEmail;
-            }
-            resetEmail.focus();
-          }
-        } else {
-          closeForgotPanel();
-        }
-
+        openForgotModal();
         setBanner(banner, "", "error");
       });
     }
 
-    if (sendReset) {
-      sendReset.addEventListener("click", async function () {
-        var email = String(resetEmail && resetEmail.value ? resetEmail.value : form.email.value || "").trim();
+    if (forgotAssistClose) {
+      forgotAssistClose.addEventListener("click", function () {
+        closeForgotModal();
+      });
+    }
 
-        if (!isValidEmail(email)) {
-          setBanner(banner, "Enter a valid email before sending a reset link.", "error");
-          return;
-        }
+    if (forgotAssistPrimary) {
+      forgotAssistPrimary.addEventListener("click", function () {
+        closeForgotModal();
+      });
+    }
 
-        if (!auth || typeof auth.sendPasswordReset !== "function") {
-          setBanner(banner, "Password reset service is unavailable. Please refresh and try again.", "error");
-          return;
-        }
-
-        try {
-          await auth.sendPasswordReset(email, "login.html");
-
-          if (form.email && !form.email.value) {
-            form.email.value = email;
-          }
-
-          setBanner(banner, "Reset link sent to " + email + ". Please check your inbox.", "success");
-          closeForgotPanel();
-        } catch (error) {
-          setBanner(banner, auth.toPublicError(error, "Unable to send reset link right now."), "error");
+    if (forgotAssistModal) {
+      forgotAssistModal.addEventListener("click", function (event) {
+        if (event.target === forgotAssistModal) {
+          closeForgotModal();
         }
       });
     }
 
-    if (cancelReset) {
-      cancelReset.addEventListener("click", function () {
-        closeForgotPanel();
-      });
-    }
+    document.addEventListener("keydown", onForgotModalKeyDown);
 
     if (google) {
       google.addEventListener("click", async function () {
@@ -1174,6 +1870,7 @@
     renderNavbarAuth();
     wireProfilePanel();
     wireBookingsModal();
+    wireBookingAccessGuards();
 
     if (pageType === "login") {
       runLoginFlow();
@@ -1190,6 +1887,7 @@
 
   window.VehicleAuthUI = {
     init: init,
+    requireBookingAccess: requireBookingAccess,
     logout: function () {
       performLogout();
     },

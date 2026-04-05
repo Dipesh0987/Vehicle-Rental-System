@@ -1,0 +1,808 @@
+:root {
+  --vrs-bg: radial-gradient(circle at 88% 10%, rgba(31, 118, 104, 0.22), transparent 42%),
+    radial-gradient(circle at 12% 88%, rgba(229, 140, 78, 0.2), transparent 38%),
+    linear-gradient(150deg, #f8f6ef 0%, #f2ece2 48%, #ece4d8 100%);
+  --vrs-text: #1a2a2f;
+  --vrs-muted: #5f7378;
+  --vrs-surface: rgba(255, 255, 255, 0.9);
+  --vrs-surface-soft: rgba(245, 240, 231, 0.82);
+  --vrs-border: rgba(24, 54, 58, 0.16);
+  --vrs-shadow: 0 18px 42px rgba(10, 29, 33, 0.12);
+  --vrs-accent: #d9884f;
+  --vrs-accent-strong: #c47337;
+  --vrs-panel: #145f59;
+  --vrs-panel-soft: #2f7b73;
+  --vrs-toggle-bg: rgba(255, 255, 255, 0.92);
+  --vrs-toggle-border: rgba(24, 54, 58, 0.18);
+  --vrs-toggle-ink: #2f4f53;
+  --vrs-toggle-track: rgba(20, 95, 89, 0.14);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --vrs-bg: radial-gradient(circle at 85% 8%, rgba(72, 119, 142, 0.26), transparent 42%),
+    radial-gradient(circle at 9% 88%, rgba(167, 106, 68, 0.2), transparent 36%),
+    linear-gradient(150deg, #111820 0%, #0d141a 48%, #0a1016 100%);
+  --vrs-text: #e6eef2;
+  --vrs-muted: #9fb2ba;
+  --vrs-surface: rgba(19, 28, 34, 0.86);
+  --vrs-surface-soft: rgba(24, 35, 42, 0.76);
+  --vrs-border: rgba(152, 176, 187, 0.28);
+  --vrs-shadow: 0 20px 48px rgba(0, 0, 0, 0.44);
+  --vrs-accent: #e29a66;
+  --vrs-accent-strong: #f0aa76;
+  --vrs-panel: #4aa399;
+  --vrs-panel-soft: #65b8ac;
+  --vrs-toggle-bg: rgba(19, 28, 34, 0.92);
+  --vrs-toggle-border: rgba(152, 176, 187, 0.32);
+  --vrs-toggle-ink: #d8e5ea;
+  --vrs-toggle-track: rgba(101, 184, 172, 0.28);
+}
+
+body.vrs-page {
+  background: var(--vrs-bg) !important;
+  color: var(--vrs-text);
+}
+
+.vrs-theme-toggle {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 300;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.48rem 0.7rem 0.48rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid var(--vrs-toggle-border);
+  background: var(--vrs-toggle-bg);
+  color: var(--vrs-toggle-ink);
+  box-shadow: 0 10px 26px rgba(6, 24, 28, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+}
+
+.vrs-theme-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(6, 24, 28, 0.28);
+}
+
+.vrs-theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.82), 0 0 0 7px rgba(74, 163, 153, 0.4);
+}
+
+.vrs-theme-toggle__track {
+  position: relative;
+  width: 2.2rem;
+  height: 1.18rem;
+  border-radius: 9999px;
+  border: 1px solid var(--vrs-toggle-border);
+  background: var(--vrs-toggle-track);
+}
+
+.vrs-theme-toggle__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 9999px;
+  background: linear-gradient(145deg, #ffffff, #dce8eb);
+  box-shadow: 0 2px 6px rgba(4, 17, 20, 0.28);
+  transform: translateX(0);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms ease;
+}
+
+.vrs-theme-toggle__label {
+  min-width: 3.8rem;
+  text-align: left;
+}
+
+html[data-theme="dark"] .vrs-theme-toggle__thumb {
+  transform: translateX(1rem);
+  background: linear-gradient(145deg, #e6f2f5, #8ab8c1);
+}
+
+.vrs-theme-toggle.is-switching {
+  animation: vrsThemeTogglePop 280ms cubic-bezier(0.2, 1, 0.22, 1);
+}
+
+@keyframes vrsThemeTogglePop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  45% {
+    transform: translateY(-1px) scale(1.05);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+html.vrs-theme-switching *,
+html.vrs-theme-switching *::before,
+html.vrs-theme-switching *::after {
+  transition: background-color 260ms ease, color 220ms ease, border-color 220ms ease, box-shadow 260ms ease, filter 260ms ease;
+}
+
+html[data-theme="dark"] .vrs-theme-scope {
+  color: var(--vrs-text);
+}
+
+html[data-theme="dark"] .vrs-theme-scope [class*="text-[#"],
+html[data-theme="dark"] .vrs-theme-scope .text-ink,
+html[data-theme="dark"] .vrs-theme-scope .text-slate-900,
+html[data-theme="dark"] .vrs-theme-scope .text-slate-800,
+html[data-theme="dark"] .vrs-theme-scope .text-slate-700,
+html[data-theme="dark"] .vrs-theme-scope .text-slate-600,
+html[data-theme="dark"] .vrs-theme-scope .text-slate-500 {
+  color: #e6eef2 !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .text-muted,
+html[data-theme="dark"] .vrs-theme-scope [class*="text-white/"],
+html[data-theme="dark"] .vrs-theme-scope .text-slate-400 {
+  color: #b6c8cf !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope [class*="bg-white"],
+html[data-theme="dark"] .vrs-theme-scope [class*="bg-[#f"],
+html[data-theme="dark"] .vrs-theme-scope [class*="bg-[#F"],
+html[data-theme="dark"] .vrs-theme-scope [class*="bg-[#e"],
+html[data-theme="dark"] .vrs-theme-scope [class*="bg-[#E"],
+html[data-theme="dark"] .vrs-theme-scope .bg-paper,
+html[data-theme="dark"] .vrs-theme-scope .premium-surface,
+html[data-theme="dark"] .vrs-theme-scope .detail-shell,
+html[data-theme="dark"] .vrs-theme-scope .elite-glass {
+  background: linear-gradient(155deg, var(--vrs-surface), var(--vrs-surface-soft)) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .home-side-panel {
+  background-color: rgba(44, 118, 110, 0.62) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .home-nav,
+html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav {
+  color: #d9e6ec !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link,
+html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link {
+  color: #d4e2e8 !important;
+  text-shadow: 0 1px 1px rgba(3, 12, 14, 0.24);
+}
+html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link:hover,
+html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link:focus-visible,
+html[data-theme="dark"] .vrs-theme-scope .home-nav .home-nav-link.text-accent,
+html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link:hover,
+html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link:focus-visible,
+html[data-theme="dark"] .vrs-theme-scope .vrs-global-nav .vrs-global-nav-link.text-accent {
+  color: #ffd0a2 !important;
+    text-shadow: 0 0 18px rgba(241, 177, 130, 0.28);
+}
+
+html[data-theme="dark"] .vrs-theme-scope .home-logo-wordmark,
+html[data-theme="dark"] .vrs-theme-scope .vrs-brand-wordmark {
+  background-image: linear-gradient(120deg, #f6fbfd, #cce7ec 45%, #95dacb) !important;
+  filter: drop-shadow(0 8px 22px rgba(8, 21, 24, 0.35));
+}
+
+html[data-theme="dark"] .vrs-theme-scope .home-logo-tagline,
+html[data-theme="dark"] .vrs-theme-scope .vrs-brand-tagline {
+  color: #bfd2da !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .home-logo-underline,
+html[data-theme="dark"] .vrs-theme-scope .vrs-brand-underline {
+  background-image: linear-gradient(90deg, #f1b182, #6fc5b7) !important;
+  opacity: 0.92;
+}
+
+html[data-theme="dark"] .vrs-theme-scope ::selection {
+  background: rgba(229, 140, 78, 0.4);
+  color: #f5fbff;
+}
+
+html[data-theme="dark"] .vrs-theme-scope ::-moz-selection {
+  background: rgba(229, 140, 78, 0.4);
+  color: #f5fbff;
+}
+html[data-theme="dark"] .vrs-theme-scope [class*="border-[#"],
+html[data-theme="dark"] .vrs-theme-scope .border-slate-200,
+html[data-theme="dark"] .vrs-theme-scope .border-slate-300,
+html[data-theme="dark"] .vrs-theme-scope .border-white,
+html[data-theme="dark"] .vrs-theme-scope [class*="border-white/"] {
+  border-color: var(--vrs-border) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope [class*="shadow-["],
+html[data-theme="dark"] .vrs-theme-scope .shadow-soft,
+html[data-theme="dark"] .vrs-theme-scope .shadow-panel {
+  box-shadow: var(--vrs-shadow) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .bg-accent,
+html[data-theme="dark"] .vrs-theme-scope .text-accent,
+html[data-theme="dark"] .vrs-theme-scope .border-accent {
+  color: var(--vrs-accent) !important;
+  border-color: var(--vrs-accent) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope button.bg-accent,
+html[data-theme="dark"] .vrs-theme-scope a.bg-accent,
+html[data-theme="dark"] .vrs-theme-scope .bg-accent.text-white {
+  background: linear-gradient(135deg, var(--vrs-accent), var(--vrs-accent-strong)) !important;
+  color: #fff !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope input,
+html[data-theme="dark"] .vrs-theme-scope textarea,
+html[data-theme="dark"] .vrs-theme-scope select {
+  background-color: rgba(12, 18, 22, 0.82) !important;
+  color: #e6eef2 !important;
+  border-color: var(--vrs-border) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope input::placeholder,
+html[data-theme="dark"] .vrs-theme-scope textarea::placeholder {
+  color: #90a6af !important;
+}
+
+body.vrs-page .vrs-auth-shell {
+  border-color: rgba(255, 255, 255, 0.58);
+  background: linear-gradient(152deg, rgba(255, 255, 255, 0.92), rgba(242, 247, 244, 0.76));
+}
+
+body.vrs-page .vrs-auth-panel {
+  border-color: rgba(255, 255, 255, 0.74);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.93), rgba(248, 251, 249, 0.88));
+}
+
+body.vrs-page .vrs-auth-banner {
+  border-width: 1px;
+  border-style: solid;
+  border-color: transparent;
+}
+
+body.vrs-page .vrs-auth-policy {
+  border-color: rgba(44, 118, 110, 0.26);
+  background: rgba(228, 240, 236, 0.68);
+  color: #264d4f;
+}
+
+body.vrs-page .vrs-auth-modal-card {
+  border-color: rgba(16, 46, 49, 0.2);
+  background: linear-gradient(158deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 246, 0.98));
+  color: #1f4144;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-shell {
+  border-color: rgba(154, 179, 190, 0.34) !important;
+  background: linear-gradient(155deg, rgba(21, 31, 38, 0.95), rgba(14, 22, 28, 0.92)) !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-panel {
+  border-color: rgba(154, 179, 190, 0.32) !important;
+  background: linear-gradient(156deg, rgba(19, 29, 35, 0.93), rgba(14, 23, 29, 0.92)) !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.44) !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-story [class*="text-[#"] {
+  color: #d8e7ed !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-banner {
+  border-color: rgba(154, 179, 190, 0.34) !important;
+  background: rgba(17, 28, 34, 0.9) !important;
+  color: #d7e5eb !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-banner.text-[#be3b3b] {
+  border-color: rgba(243, 128, 128, 0.46) !important;
+  background: rgba(131, 40, 52, 0.24) !important;
+  color: #ffc9cf !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-banner.text-[#275f3f] {
+  border-color: rgba(126, 218, 167, 0.4) !important;
+  background: rgba(39, 107, 77, 0.22) !important;
+  color: #d4f3e3 !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-policy {
+  border-color: rgba(154, 179, 190, 0.34) !important;
+  background: rgba(23, 38, 45, 0.88) !important;
+  color: #c0d4dd !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase {
+  border-color: rgba(154, 179, 190, 0.34) !important;
+  background: linear-gradient(156deg, rgba(20, 32, 39, 0.94), rgba(15, 25, 31, 0.94)) !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase-media {
+  border-bottom-color: rgba(154, 179, 190, 0.28) !important;
+  background: radial-gradient(circle at 80% 24%, rgba(126, 173, 192, 0.18), rgba(126, 173, 192, 0) 48%),
+    linear-gradient(145deg, rgba(23, 37, 45, 0.96), rgba(17, 29, 35, 0.96)) !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase-caption {
+  border-top: 1px solid rgba(154, 179, 190, 0.22);
+  background: linear-gradient(160deg, rgba(22, 35, 42, 0.96), rgba(16, 27, 33, 0.96));
+  color: #dbe9ef !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-showcase-badge {
+  border-color: rgba(141, 194, 187, 0.42) !important;
+  background: rgba(59, 123, 113, 0.3) !important;
+  color: #d2eee8 !important;
+}
+html[data-theme="dark"] body.vrs-page .vrs-auth-modal-card {
+  border-color: rgba(154, 179, 190, 0.34) !important;
+  background: linear-gradient(160deg, rgba(20, 31, 38, 0.98), rgba(14, 24, 30, 0.98)) !important;
+  color: #d8e7ed !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-auth-modal-card [class*="bg-[#f8"] {
+  border-color: rgba(154, 179, 190, 0.3) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+html[data-theme="dark"] .vrs-theme-scope img,
+html[data-theme="dark"] .vrs-theme-scope video {
+  filter: brightness(0.9) contrast(1.06);
+}
+
+body.vrs-page [data-profile-panel] {
+  border-color: rgba(21, 57, 61, 0.18) !important;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(246, 239, 229, 0.98)) !important;
+  color: #214548 !important;
+  box-shadow: 0 24px 54px rgba(7, 31, 34, 0.2) !important;
+}
+
+body.vrs-page [data-profile-panel] [class*="text-white"],
+body.vrs-page [data-profile-panel] [class*="text-white/"] {
+  color: #335a5e !important;
+}
+
+body.vrs-page [data-profile-panel] [data-profile-panel-close] {
+  border-color: rgba(22, 57, 60, 0.18) !important;
+  color: #2f565a !important;
+  background: rgba(255, 255, 255, 0.62) !important;
+}
+
+body.vrs-page [data-profile-panel] [data-profile-panel-close]:hover {
+  background: #f5faf7 !important;
+}
+
+body.vrs-page [data-profile-panel] [data-profile-avatar-preview] {
+  border-color: rgba(28, 96, 90, 0.38) !important;
+  background: linear-gradient(135deg, #2c766e, #2f5f7b) !important;
+}
+
+body.vrs-page [data-profile-panel] .profile-photo-shell {
+  border-color: rgba(36, 87, 83, 0.18) !important;
+  background: linear-gradient(145deg, rgba(44, 118, 110, 0.1), rgba(255, 255, 255, 0.85)) !important;
+}
+
+body.vrs-page [data-profile-panel] #profileName,
+body.vrs-page [data-profile-panel] #profileEmail {
+  border-color: #d3dfda !important;
+  background: #ffffff !important;
+  color: #1f4043 !important;
+}
+
+body.vrs-page [data-profile-panel] #profileEmail {
+  background: #f4f8f6 !important;
+  color: #4c676a !important;
+}
+
+body.vrs-page [data-profile-panel] #profileName::placeholder,
+body.vrs-page [data-profile-panel] #profileEmail::placeholder {
+  color: #8ba1a7 !important;
+}
+
+body.vrs-page [data-profile-panel] #profileFileLabel {
+  color: #46676b !important;
+}
+
+body.vrs-page [data-profile-panel] #saveProfile {
+  background: linear-gradient(135deg, #d9884f, #c8763f) !important;
+  color: #ffffff !important;
+}
+
+body.vrs-page [data-profile-panel] #logoutBtn {
+  border-color: rgba(25, 63, 67, 0.25) !important;
+  color: #23494d !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+}
+
+body.vrs-page [data-profile-panel] #logoutBtn:hover {
+  background: #f5faf7 !important;
+}
+
+body.vrs-page [data-profile-panel] #profileNote.profile-note--info {
+  border-left-color: rgba(229, 140, 78, 0.95) !important;
+  background: rgba(229, 140, 78, 0.12) !important;
+  color: #7f4c22 !important;
+}
+
+body.vrs-page [data-profile-panel] #profileNote.profile-note--success {
+  border-left-color: rgba(52, 152, 106, 0.95) !important;
+  background: rgba(52, 152, 106, 0.14) !important;
+  color: #1f6a45 !important;
+}
+
+body.vrs-page [data-profile-panel] #profileNote.profile-note--error {
+  border-left-color: rgba(190, 59, 59, 0.95) !important;
+  background: rgba(190, 59, 59, 0.14) !important;
+  color: #9f2e2e !important;
+}
+
+body.vrs-page [data-profile-save-toast] {
+  border-radius: 12px;
+}
+
+body.vrs-page [data-bookings-modal-overlay] {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+body.vrs-page .vrs-bookings-card {
+  border: 1px solid rgba(22, 58, 61, 0.18);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.985), rgba(246, 239, 229, 0.985));
+  color: #1f4144;
+}
+
+body.vrs-page .vrs-bookings-heading {
+  color: #14373b;
+}
+
+body.vrs-page .vrs-bookings-subtitle {
+  color: #4e6b6f;
+}
+
+body.vrs-page .vrs-bookings-close {
+  border: 1px solid #d4dfda;
+  background: #ffffff;
+  color: #2f565a;
+}
+
+body.vrs-page .vrs-bookings-close:hover {
+  background: #f4faf7;
+}
+
+body.vrs-page .vrs-bookings-summary {
+  color: #2f5659;
+}
+
+body.vrs-page .vrs-bookings-summary-item {
+  border: 1px solid #d5e0db;
+  background: #ffffff;
+}
+
+body.vrs-page .vrs-bookings-summary-item.is-upcoming {
+  border-color: #f2cfb4;
+  background: #fff5ec;
+  color: #8b5530;
+}
+
+body.vrs-page .vrs-bookings-summary-item.is-completed {
+  border-color: #b8dfc8;
+  background: #eef9f2;
+  color: #2a6b49;
+}
+
+body.vrs-page .vrs-bookings-summary-value {
+  color: #17393d;
+}
+
+body.vrs-page .vrs-bookings-list {
+  scrollbar-gutter: stable;
+}
+
+body.vrs-page .vrs-bookings-row {
+  border: 1px solid #d6dfd9;
+  background: #ffffff;
+}
+
+body.vrs-page .vrs-bookings-row:hover {
+  border-color: #c9d8d2;
+  background: #f5faf7;
+}
+
+body.vrs-page .vrs-bookings-row[data-active="true"] {
+  border-color: #f3c9ab;
+  background: #fff1e6;
+}
+
+body.vrs-page .vrs-bookings-row-title {
+  color: #17393d;
+}
+
+body.vrs-page .vrs-bookings-row-reference,
+body.vrs-page .vrs-bookings-row-meta,
+body.vrs-page .vrs-bookings-subline,
+body.vrs-page .vrs-bookings-message,
+body.vrs-page .vrs-bookings-extra {
+  color: #547073;
+}
+
+body.vrs-page .vrs-bookings-message {
+  border: 1px solid #d6dfd9;
+  background: #ffffff;
+}
+
+body.vrs-page .vrs-bookings-detail {
+  border: 1px solid #d6dfd9;
+  background: #f9fcfa;
+}
+
+body.vrs-page .vrs-bookings-detail-grid {
+  border: 1px solid #d6dfd9;
+  background: #ffffff;
+  color: #2f5357;
+}
+
+body.vrs-page .vrs-bookings-field-label {
+  color: #5f787b;
+}
+
+body.vrs-page .vrs-bookings-money {
+  border: 1px solid #f2d2bb;
+  background: #fff7ef;
+}
+
+body.vrs-page .vrs-bookings-money-label {
+  color: #8b5530;
+}
+
+body.vrs-page .vrs-bookings-money-total {
+  color: #7b4520;
+}
+
+body.vrs-page .vrs-bookings-money-lines {
+  color: #6d5b4d;
+}
+
+body.vrs-page .vrs-bookings-extra-item {
+  border: 1px solid #d6dfd9;
+  background: #ffffff;
+}
+
+body.vrs-page .vrs-booking-status {
+  border: 1px solid #f5c7a5;
+  background: rgba(229, 140, 78, 0.18);
+  color: #9f5825;
+}
+
+body.vrs-page .vrs-booking-status--completed {
+  border-color: #95d6ae;
+  background: rgba(86, 170, 117, 0.16);
+  color: #1f6a45;
+}
+
+body.vrs-page .vrs-booking-status--cancelled {
+  border-color: #f1a6a6;
+  background: rgba(185, 46, 61, 0.15);
+  color: #a73344;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] {
+  border-color: rgba(150, 176, 188, 0.3) !important;
+  background: linear-gradient(160deg, rgba(20, 31, 38, 0.98), rgba(14, 24, 30, 0.98)) !important;
+  color: #d8e7ed !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] [class*="text-white"],
+html[data-theme="dark"] body.vrs-page [data-profile-panel] [class*="text-white/"] {
+  color: #c3d5dd !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] [data-profile-panel-close] {
+  border-color: rgba(150, 176, 188, 0.3) !important;
+  color: #d3e3e9 !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] [data-profile-panel-close]:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] .profile-photo-shell {
+  border-color: rgba(150, 176, 188, 0.28) !important;
+  background: linear-gradient(145deg, rgba(44, 118, 110, 0.22), rgba(255, 255, 255, 0.04)) !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #profileName,
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #profileEmail {
+  border-color: rgba(150, 176, 188, 0.3) !important;
+  background: rgba(13, 22, 28, 0.9) !important;
+  color: #e3eef3 !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #profileEmail {
+  background: rgba(17, 27, 33, 0.9) !important;
+  color: #c2d4dc !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #profileFileLabel {
+  color: #b6cad3 !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #logoutBtn {
+  border-color: rgba(150, 176, 188, 0.3) !important;
+  color: #d8e7ed !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #profileNote.profile-note--info {
+  border-left-color: rgba(240, 168, 114, 0.9) !important;
+  background: rgba(201, 114, 58, 0.2) !important;
+  color: #ffd9bf !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #profileNote.profile-note--success {
+  border-left-color: rgba(129, 221, 170, 0.92) !important;
+  background: rgba(43, 126, 87, 0.24) !important;
+  color: #d5f4e3 !important;
+}
+
+html[data-theme="dark"] body.vrs-page [data-profile-panel] #profileNote.profile-note--error {
+  border-left-color: rgba(249, 136, 136, 0.9) !important;
+  background: rgba(143, 41, 53, 0.24) !important;
+  color: #ffd5d9 !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-card {
+  border-color: rgba(150, 176, 188, 0.3);
+  background: linear-gradient(160deg, rgba(21, 32, 39, 0.98), rgba(14, 24, 30, 0.98));
+  color: #d9e8ee;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-heading {
+  color: #edf5f8;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-subtitle {
+  color: #9fb5bf;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-close {
+  border-color: rgba(150, 176, 188, 0.32);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d3e4ea;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-summary {
+  color: #d5e5eb;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-summary-item {
+  border-color: rgba(150, 176, 188, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-summary-item.is-upcoming {
+  border-color: rgba(240, 168, 114, 0.34);
+  background: rgba(201, 114, 58, 0.2);
+  color: #ffd9bf;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-summary-item.is-completed {
+  border-color: rgba(129, 221, 170, 0.3);
+  background: rgba(43, 126, 87, 0.22);
+  color: #d5f4e3;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-summary-value {
+  color: #edf5f8;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-row {
+  border-color: rgba(150, 176, 188, 0.22);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-row:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-row[data-active="true"] {
+  border-color: rgba(240, 168, 114, 0.38);
+  background: rgba(201, 114, 58, 0.2);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-row-title {
+  color: #edf5f8;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-row-reference,
+html[data-theme="dark"] body.vrs-page .vrs-bookings-row-meta,
+html[data-theme="dark"] body.vrs-page .vrs-bookings-subline,
+html[data-theme="dark"] body.vrs-page .vrs-bookings-message,
+html[data-theme="dark"] body.vrs-page .vrs-bookings-extra {
+  color: #aac0c9;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-message {
+  border-color: rgba(150, 176, 188, 0.24);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-detail {
+  border-color: rgba(150, 176, 188, 0.26);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-detail-grid {
+  border-color: rgba(150, 176, 188, 0.24);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d3e4ea;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-field-label {
+  color: #9eb5be;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-money {
+  border-color: rgba(240, 168, 114, 0.34);
+  background: rgba(201, 114, 58, 0.2);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-money-label {
+  color: #ffd9bf;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-money-total {
+  color: #ffe6d2;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-money-lines {
+  color: #f2d8c3;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-extra-item {
+  border-color: rgba(150, 176, 188, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-booking-status {
+  border-color: rgba(240, 168, 114, 0.34);
+  background: rgba(201, 114, 58, 0.2);
+  color: #ffd9bf;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-booking-status--completed {
+  border-color: rgba(129, 221, 170, 0.3);
+  background: rgba(43, 126, 87, 0.24);
+  color: #d5f4e3;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-booking-status--cancelled {
+  border-color: rgba(249, 136, 136, 0.36);
+  background: rgba(143, 41, 53, 0.24);
+  color: #ffd5d9;
+}
+
+@media (max-width: 640px) {
+  .vrs-theme-toggle {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.44rem 0.62rem 0.44rem 0.5rem;
+  }
+}
