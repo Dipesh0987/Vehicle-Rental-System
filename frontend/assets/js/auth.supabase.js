@@ -8,6 +8,17 @@
   var PROFILE_IMAGE_MAX_SOURCE_BYTES = 20 * 1024 * 1024;
   var PROFILE_IMAGE_MAX_DIMENSION = 768;
   var PROFILE_IMAGE_QUALITY = 0.86;
+  var PROFILE_IMAGE_MAX_DATA_URL_CHARS = 7 * 1024 * 1024;
+
+  (function resolveProfileImageBucket() {
+    var localConfig = window.SUPABASE_LOCAL_CONFIG || {};
+    var runtimeConfig = window.SUPABASE_CONFIG || {};
+    var configured = trim(localConfig.profileImageBucket || runtimeConfig.profileImageBucket);
+
+    if (configured) {
+      PROFILE_IMAGE_BUCKET = configured;
+    }
+  })();
 
   function trim(value) {
     return String(value || "").trim();
@@ -15,6 +26,31 @@
 
   function getErrorMessage(error) {
     return String(error && error.message ? error.message : "").toLowerCase();
+  }
+
+  function isBucketNotFoundStorageError(error) {
+    var message = getErrorMessage(error);
+    var status = Number(error && (error.status || error.statusCode));
+
+    return (
+      status === 404 && message.indexOf("bucket") >= 0
+    ) || (
+      message.indexOf("bucket not found") >= 0
+    );
+  }
+
+  function isKnownPlaceholderAvatarUrl(value) {
+    var raw = trim(value);
+    if (!raw) {
+      return false;
+    }
+
+    var normalized = raw.split("#")[0].split("?")[0].toLowerCase();
+    return (
+      normalized.indexOf("assets/images/car-transparent.png") >= 0 ||
+      normalized.indexOf("default-avatar") >= 0 ||
+      normalized.indexOf("avatar-placeholder") >= 0
+    );
   }
 
   function parseRetryAfterSeconds(error) {
@@ -360,6 +396,19 @@
     });
   }
 
+  function readBlobAsDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function (event) {
+        resolve(String(event && event.target && event.target.result ? event.target.result : ""));
+      };
+      reader.onerror = function () {
+        reject(new Error("Unable to process profile image."));
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
+
   function loadImageFromDataUrl(dataUrl) {
     return new Promise(function (resolve, reject) {
       var image = new Image();
@@ -612,6 +661,17 @@
       });
 
     if (upload.error) {
+      if (isBucketNotFoundStorageError(upload.error)) {
+        var dataUrlFallback = await readBlobAsDataUrl(optimizedBlob);
+        var normalizedFallback = normalizeDataImageUrlForStorage(dataUrlFallback);
+
+        if (!normalizedFallback) {
+          throw new Error("Storage bucket missing and data fallback failed. Configure profile image bucket and retry.");
+        }
+
+        return normalizedFallback;
+      }
+
       throw upload.error;
     }
 

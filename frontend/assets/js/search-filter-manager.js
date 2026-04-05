@@ -5,9 +5,14 @@
  * MODIFIED: Optimized for Sprint 2 Vehicle Type filtering
  */
 
+const DEFAULT_MAX_PRICE_NPR = 50000;
+
 class SearchFilterManager {
     constructor() {
+        this.storageKey = "searchFilters:v2";
+        this.legacyStorageKey = "searchFilters";
         this.filters = this.initializeFilters();
+        this.dateAvailability = this.initializeDateAvailability();
         this.filteredVehicles = [];
         this.allVehicles = [];
         this.sortOrder = "relevance";
@@ -32,7 +37,7 @@ class SearchFilterManager {
 
             // Price filter
             minPrice: 0,
-            maxPrice: 500,
+            maxPrice: DEFAULT_MAX_PRICE_NPR,
 
             // Transmission filter
             transmissions: [], // 'manual', 'automatic'
@@ -69,6 +74,49 @@ class SearchFilterManager {
             // Search text
             searchText: "",
         };
+    }
+
+    initializeDateAvailability() {
+        return {
+            active: false,
+            startDate: "",
+            endDate: "",
+            unavailableVehicleIds: new Set(),
+        };
+    }
+
+    setDateAvailability(context = {}) {
+        const startDate = String(context.startDate || "").trim();
+        const endDate = String(context.endDate || "").trim();
+        const sourceIds = context.unavailableVehicleIds;
+        const normalizedIds = [];
+
+        if (sourceIds instanceof Set) {
+            sourceIds.forEach((id) => {
+                const normalized = String(id || "").trim();
+                if (normalized) {
+                    normalizedIds.push(normalized);
+                }
+            });
+        } else if (Array.isArray(sourceIds)) {
+            sourceIds.forEach((id) => {
+                const normalized = String(id || "").trim();
+                if (normalized) {
+                    normalizedIds.push(normalized);
+                }
+            });
+        }
+
+        this.dateAvailability = {
+            active: Boolean(startDate && endDate),
+            startDate,
+            endDate,
+            unavailableVehicleIds: new Set(normalizedIds),
+        };
+    }
+
+    clearDateAvailability() {
+        this.dateAvailability = this.initializeDateAvailability();
     }
 
     /**
@@ -204,6 +252,52 @@ class SearchFilterManager {
             return false;
         }
 
+        if (this.dateAvailability.active) {
+            const vehicleId = String(vehicle && vehicle.id ? vehicle.id : "").trim();
+            if (!vehicleId) {
+                return false;
+            }
+
+            if (this.dateAvailability.unavailableVehicleIds.has(vehicleId)) {
+                return false;
+            }
+        }
+
+        // Insurance types filter
+        if (this.filters.insuranceTypes.length > 0) {
+            const vehicleInsurance = (vehicle.insuranceOptions || []).map((i) => i.toLowerCase());
+            const hasInsurance = this.filters.insuranceTypes.some((type) =>
+                vehicleInsurance.includes(type.toLowerCase())
+            );
+            if (!hasInsurance) return false;
+        }
+
+        // Driver options filter
+        if (this.filters.driverOptions.length > 0) {
+            const vehicleDriverOptions = (vehicle.driverOptions || []).map((d) => d.toLowerCase());
+            const hasDriverOption = this.filters.driverOptions.some((option) =>
+                vehicleDriverOptions.includes(option.toLowerCase())
+            );
+            if (!hasDriverOption) return false;
+        }
+
+        // Mileage policy filter
+        if (this.filters.mileagePolicy.length > 0) {
+            const vehicleMileage = (vehicle.mileagePolicy || []).map((m) => m.toLowerCase());
+            const hasMilage = this.filters.mileagePolicy.some((policy) =>
+                vehicleMileage.includes(policy.toLowerCase())
+            );
+            if (!hasMilage) return false;
+        }
+
+        // EV range filter
+        if (
+            this.filters.minEVRange > 0 &&
+            (!vehicle.evRange || vehicle.evRange < this.filters.minEVRange)
+        ) {
+            return false;
+        }
+
         // Search text filter
         if (this.filters.searchText) {
             const searchLower = this.filters.searchText.toLowerCase();
@@ -239,12 +333,15 @@ class SearchFilterManager {
     }
 
     /**
-     * Extract price from string (e.g., "$82 / day" -> 82)
+     * Extract price from string (e.g., "NPR 4,500 / day" -> 4500)
+     * @param {string} priceString - Price string
+     * @returns {number} Extracted price
      */
     extractPrice(priceString) {
-        if (typeof priceString === 'number') return priceString;
-        const match = priceString.match(/\d+/);
-        return match ? parseInt(match[0]) : 0;
+        const normalized = String(priceString || "").replace(/,/g, "");
+        const match = normalized.match(/-?\d+(?:\.\d+)?/);
+        const parsed = match ? Number(match[0]) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
     }
 
     /**
@@ -284,28 +381,82 @@ class SearchFilterManager {
 
     getActiveFilters() {
         const active = {};
+        const defaults = this.initializeFilters();
+
         for (const [key, value] of Object.entries(this.filters)) {
-            if (Array.isArray(value) && value.length > 0) active[key] = value;
-            else if (value !== "" && value !== 0 && value !== false) active[key] = value;
+            if (Array.isArray(value)) {
+                if (value.length > 0) active[key] = value;
+            } else if (typeof value === "number") {
+                if (Number(value) !== Number(defaults[key])) {
+                    active[key] = value;
+                }
+            } else if (typeof value === "boolean") {
+                if (Boolean(value) !== Boolean(defaults[key])) {
+                    active[key] = value;
+                }
+            } else if (value !== "") {
+                active[key] = value;
+            }
         }
         return active;
     }
 
     clearAllFilters() {
         this.filters = this.initializeFilters();
-        this.applyFilters(this.allVehicles);
+        this.clearDateAvailability();
+        this.sortOrder = "relevance";
         this.notifyListeners();
     }
 
+    /**
+     * Clear a specific filter
+     * @param {string} filterName - Filter name to clear
+     */
+    clearFilter(filterName) {
+        if (Array.isArray(this.filters[filterName])) {
+            this.filters[filterName] = [];
+        } else if (typeof this.filters[filterName] === "boolean") {
+            this.filters[filterName] = false;
+        } else if (typeof this.filters[filterName] === "number") {
+            if (filterName.includes("min")) {
+                this.filters[filterName] = 0;
+            } else if (filterName === "maxPrice") {
+                this.filters[filterName] = DEFAULT_MAX_PRICE_NPR;
+            } else {
+                this.filters[filterName] = 999;
+            }
+        } else {
+            this.filters[filterName] = "";
+        }
+        this.notifyListeners();
+    }
+
+    /**
+     * Save filter state to localStorage
+     */
     saveState() {
-        localStorage.setItem("searchFilters", JSON.stringify(this.filters));
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(this.filters));
+        } catch (e) {
+            console.warn("Failed to save filter state:", e);
+        }
     }
 
     restoreState() {
-        const saved = localStorage.getItem("searchFilters");
-        if (saved) {
-            this.filters = { ...this.filters, ...JSON.parse(saved) };
-            this.notifyListeners();
+        try {
+            const saved = localStorage.getItem(this.storageKey) || localStorage.getItem(this.legacyStorageKey);
+            if (saved) {
+                this.filters = { ...this.filters, ...JSON.parse(saved) };
+
+                // Ensure old persisted caps do not hide higher-priced DB vehicles.
+                if (!Number.isFinite(this.filters.maxPrice) || this.filters.maxPrice < DEFAULT_MAX_PRICE_NPR) {
+                    this.filters.maxPrice = DEFAULT_MAX_PRICE_NPR;
+                }
+
+                this.notifyListeners();
+            }
+        } catch (e) {
+            console.warn("Failed to restore filter state:", e);
         }
     }
 
