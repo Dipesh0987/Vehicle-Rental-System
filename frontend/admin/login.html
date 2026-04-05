@@ -111,14 +111,14 @@
           <div class="mt-4 rounded-2xl bg-[linear-gradient(120deg,rgba(31,118,104,0.11),rgba(240,143,95,0.12))] px-4 py-3">
             <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-700">Admin Sign In</p>
             <h1 class="mt-1 text-[28px] font-extrabold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[32px]">Secure Dashboard Access</h1>
-            <p class="mt-2 text-sm text-slate-700">Sign in with your admin username and password to continue.</p>
+            <p class="mt-2 text-sm text-slate-700">Sign in with your admin email (or admin username alias) and password to continue.</p>
           </div>
 
           <div id="adminLoginBanner" class="hidden mt-4"></div>
 
           <form id="adminLoginForm" class="mt-4 space-y-4" novalidate>
             <label class="block" for="adminUsername">
-              <span class="mb-2 block text-sm font-semibold text-slate-800">Username</span>
+              <span class="mb-2 block text-sm font-semibold text-slate-800">Admin Email or Username</span>
               <div class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 transition focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
                 <input
                   id="adminUsername"
@@ -126,7 +126,7 @@
                   type="text"
                   autocomplete="username"
                   class="w-full border-0 bg-transparent text-sm font-semibold text-slate-900 outline-none"
-                  placeholder="Enter admin username"
+                  placeholder="admin or admin@vehicle-rental.local"
                   required
                 />
               </div>
@@ -175,7 +175,7 @@
           </form>
 
           <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-            Use username <strong>admin</strong> and password <strong>admin123</strong>. On first login, the app auto-bootstraps a clean admin auth account if needed.
+            Admin access is granted only to allowlisted admin emails. Configure <strong>adminEmails</strong> in <strong>frontend/assets/js/supabase.config.local.js</strong> for local development.
           </div>
         </section>
       </main>
