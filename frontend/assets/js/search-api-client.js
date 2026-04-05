@@ -2,6 +2,7 @@
  * Search API Client
  * Handles all backend API calls for the advanced search system
  * Features: Debouncing, caching, error handling, request validation
+ * MODIFIED: Added Supabase 'type' filtering for Sprint 2
  */
 
 class SearchAPIClient {
@@ -25,9 +26,6 @@ class SearchAPIClient {
 
     /**
      * Debounce API calls to reduce server load
-     * @param {string} key - Unique debounce key
-     * @param {Function} fn - Function to debounce
-     * @param {number} delay - Delay in milliseconds
      */
     debounce(key, fn, delay = 500) {
         if (this.debounceTimers[key]) {
@@ -41,9 +39,6 @@ class SearchAPIClient {
 
     /**
      * Cache a response with TTL
-     * @param {string} key - Cache key
-     * @param {*} value - Value to cache
-     * @param {number} ttl - Time to live in milliseconds (default: 5 minutes)
      */
     setCache(key, value, ttl = 5 * 60 * 1000) {
         this.cache.set(key, {
@@ -54,8 +49,6 @@ class SearchAPIClient {
 
     /**
      * Get cached value if not expired
-     * @param {string} key - Cache key
-     * @returns {*} Cached value or null if expired
      */
     getCache(key) {
         const cached = this.cache.get(key);
@@ -86,9 +79,6 @@ class SearchAPIClient {
 
     /**
      * Make an API request with retry logic
-     * @param {string} endpoint - API endpoint
-     * @param {Object} options - Fetch options
-     * @returns {Promise<Object>} API response
      */
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
@@ -161,21 +151,38 @@ class SearchAPIClient {
     }
 
     /**
-     * Search vehicles with filters
-     * @param {Object} filters - Filter criteria
-     * @returns {Promise<Array>} Matching vehicles
+     * MODIFIED: Search vehicles with filters
+     * Integrates Supabase for vehicle type filtering
      */
     async searchVehicles(filters = {}) {
-        return this.request("/vehicles/search", {
-            method: "POST",
-            body: JSON.stringify(filters),
-        });
+        try {
+            // 1. Start Supabase query
+            let query = supabase.from('vehicles').select('*');
+
+            // 2. Apply Type filter if it exists in the manager
+            if (filters.vehicleTypes && filters.vehicleTypes.length > 0) {
+                query = query.in('type', filters.vehicleTypes);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            
+            // Return data from Supabase
+            return data;
+
+        } catch (error) {
+            console.warn("Supabase failed, using legacy API request:", error);
+            // Fallback to your original request method if Supabase isn't set up
+            return this.request("/vehicles/search", {
+                method: "POST",
+                body: JSON.stringify(filters),
+            });
+        }
     }
 
     /**
      * Get vehicle details
-     * @param {string} vehicleId - Vehicle ID
-     * @returns {Promise<Object>} Vehicle details
      */
     async getVehicleDetails(vehicleId) {
         return this.request(`/vehicles/${vehicleId}`);
@@ -183,10 +190,6 @@ class SearchAPIClient {
 
     /**
      * Check vehicle availability
-     * @param {string} vehicleId - Vehicle ID
-     * @param {string} startDate - Start date (ISO format)
-     * @param {string} endDate - End date (ISO format)
-     * @returns {Promise<Object>} Availability status
      */
     async checkAvailability(vehicleId, startDate, endDate) {
         return this.request("/vehicles/availability", {
@@ -197,10 +200,6 @@ class SearchAPIClient {
 
     /**
      * Get price estimate
-     * @param {string} vehicleId - Vehicle ID
-     * @param {string} startDate - Start date (ISO format)
-     * @param {string} endDate - End date (ISO format)
-     * @returns {Promise<Object>} Price estimate
      */
     async getPriceEstimate(vehicleId, startDate, endDate) {
         return this.request("/bookings/estimate", {
@@ -211,8 +210,6 @@ class SearchAPIClient {
 
     /**
      * Search locations with autocomplete
-     * @param {string} query - Search query
-     * @returns {Promise<Array>} Matching locations
      */
     async searchLocations(query) {
         return this.request("/locations/search", {
@@ -223,7 +220,6 @@ class SearchAPIClient {
 
     /**
      * Get vehicle brands
-     * @returns {Promise<Array>} Available brands
      */
     async getBrands() {
         return this.request("/vehicles/brands");
@@ -231,16 +227,13 @@ class SearchAPIClient {
 
     /**
      * Get vehicle models by brand
-     * @param {string} brand - Brand name
-     * @returns {Promise<Array>} Available models
      */
     async getModels(brand) {
         return this.request(`/vehicles/brands/${brand}/models`);
     }
 
     /**
-     * Get filter options (for dynamic filter rendering)
-     * @returns {Promise<Object>} Available filter options
+     * Get filter options
      */
     async getFilterOptions() {
         return this.request("/vehicles/filters");
