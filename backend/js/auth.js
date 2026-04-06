@@ -129,7 +129,7 @@
       return normalized;
     }
 
-    return "not_submitted";
+    return "pending";
   }
 
   function normalizeVerificationGender(value) {
@@ -230,10 +230,40 @@
 
     return {
       key: "not_submitted",
-      label: "Not Submitted",
-      toneClass: "bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200",
-      description: "Complete account verification to unlock full access."
+      label: "Pending",
+      toneClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
+      description: "Complete verification details and submit for admin approval."
     };
+  }
+
+  function setQuickVerifyButtonState(node, meta, hasSubmission) {
+    if (!node || !meta) {
+      return;
+    }
+
+    node.className = "inline-flex items-center gap-1 rounded-full px-3 py-2 text-[12px] font-semibold transition duration-200 hover:-translate-y-[1px]";
+    node.disabled = false;
+
+    if (meta.key === "approved") {
+      node.classList.add("bg-emerald-100", "text-emerald-700", "dark:bg-emerald-500/20", "dark:text-emerald-300");
+      node.innerHTML = "<svg viewBox=\"0 0 20 20\" fill=\"currentColor\" aria-hidden=\"true\" class=\"h-3.5 w-3.5\"><path fill-rule=\"evenodd\" d=\"M16.704 5.29a1 1 0 010 1.415l-7.2 7.2a1 1 0 01-1.415 0l-3-3a1 1 0 011.415-1.414L8.8 11.786l6.493-6.496a1 1 0 011.41 0z\" clip-rule=\"evenodd\"></path></svg><span>Approved</span>";
+      return;
+    }
+
+    if (meta.key === "rejected") {
+      node.classList.add("bg-rose-100", "text-rose-700", "dark:bg-rose-500/20", "dark:text-rose-300");
+      node.textContent = "Verify Account";
+      return;
+    }
+
+    if (hasSubmission) {
+      node.classList.add("bg-amber-100", "text-amber-700", "dark:bg-amber-500/20", "dark:text-amber-300");
+      node.textContent = "Pending Review";
+      return;
+    }
+
+    node.classList.add("bg-accent", "text-white", "hover:brightness-105");
+    node.textContent = "Verify Account";
   }
 
   function setVerificationBadgeState(node, meta, compact) {
@@ -277,25 +307,40 @@
     var profile = toLocalProfileShape(profileLike);
     var email = String(emailLike || profile.email || "").trim();
     var statusMeta = profileVerificationStatusMeta(profile.verificationStatus);
+    var hasSubmission = Boolean(String(profile.verificationSubmittedAt || "").trim());
+    var isPendingSetup =
+      statusMeta.key === "not_submitted" ||
+      (statusMeta.key === "pending" && !hasSubmission);
+    var effectiveStatusLabel = isPendingSetup ? "Pending" : statusMeta.label;
 
     var headerBadge = document.querySelector("[data-profile-identity-status]");
     if (headerBadge) {
       setVerificationBadgeState(headerBadge, statusMeta, true);
+      if (isPendingSetup) {
+        headerBadge.textContent = "Pending";
+      }
     }
 
     var panelBadge = document.querySelector("[data-profile-verification-badge]");
     if (panelBadge) {
       setVerificationBadgeState(panelBadge, statusMeta, false);
+      if (isPendingSetup) {
+        panelBadge.textContent = "Pending";
+      }
     }
 
     var statusText = document.querySelector("[data-profile-verification-status-text]");
     if (statusText) {
-      statusText.textContent = statusMeta.label;
+      statusText.textContent = effectiveStatusLabel;
     }
 
     var statusSubText = document.querySelector("[data-profile-verification-status-subtext]");
     if (statusSubText) {
-      statusSubText.textContent = statusMeta.description;
+      if (isPendingSetup) {
+        statusSubText.textContent = "Verification details are pending. Click Verify Account to continue.";
+      } else {
+        statusSubText.textContent = statusMeta.description;
+      }
     }
 
     var submittedText = document.querySelector("[data-profile-verification-submitted]");
@@ -321,10 +366,37 @@
     if (verifyToggle) {
       if (statusMeta.key === "approved") {
         verifyToggle.textContent = "Update Verification";
-      } else if (statusMeta.key === "pending") {
+      } else if (statusMeta.key === "pending" && hasSubmission) {
         verifyToggle.textContent = "View Submission";
       } else {
         verifyToggle.textContent = "Verify Account";
+      }
+    }
+
+    var quickVerifyBtn = document.querySelector("[data-profile-verify-cta]");
+    if (quickVerifyBtn) {
+      setQuickVerifyButtonState(quickVerifyBtn, statusMeta, hasSubmission);
+    }
+
+    var modalStatusBadge = document.querySelector("[data-profile-verification-modal-badge]");
+    if (modalStatusBadge) {
+      setVerificationBadgeState(modalStatusBadge, statusMeta, false);
+      if (isPendingSetup) {
+        modalStatusBadge.textContent = "Pending";
+      }
+    }
+
+    var modalStatusText = document.querySelector("[data-profile-verification-modal-status]");
+    if (modalStatusText) {
+      modalStatusText.textContent = effectiveStatusLabel;
+    }
+
+    var modalStatusNote = document.querySelector("[data-profile-verification-modal-subtext]");
+    if (modalStatusNote) {
+      if (isPendingSetup) {
+        modalStatusNote.textContent = "Verification details are pending. Submit your profile for admin review.";
+      } else {
+        modalStatusNote.textContent = statusMeta.description;
       }
     }
 
@@ -738,7 +810,7 @@
       verificationStatus: normalizeVerificationStatus(
         (remoteProfile && remoteProfile.verification_status) ||
         fallback.verificationStatus ||
-        "not_submitted"
+        "pending"
       ),
       verificationSubmittedAt: normalizeShortText(
         (remoteProfile && remoteProfile.verification_submitted_at) ||
@@ -807,7 +879,7 @@
             documentType: existingProfile.documentType || "",
             documentNumber: existingProfile.documentNumber || "",
             documentExpiryDate: existingProfile.documentExpiryDate || "",
-            verificationStatus: existingProfile.verificationStatus || "not_submitted",
+            verificationStatus: existingProfile.verificationStatus || "pending",
             verificationSubmittedAt: existingProfile.verificationSubmittedAt || "",
             verificationReviewedAt: existingProfile.verificationReviewedAt || "",
             verificationNote: existingProfile.verificationNote || "",
@@ -1695,8 +1767,29 @@
     var statusChip = document.createElement("span");
     statusChip.setAttribute("data-profile-identity-status", "true");
     statusChip.className = "mt-1 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700";
-    statusChip.textContent = "Not Submitted";
+    statusChip.textContent = "Pending";
     metaWrap.appendChild(statusChip);
+  }
+
+  function ensureProfileQuickVerifyButton(trigger) {
+    if (!trigger || !trigger.parentNode) {
+      return null;
+    }
+
+    var container = trigger.parentNode;
+    var existing = container.querySelector("[data-profile-verify-cta]");
+    if (existing) {
+      return existing;
+    }
+
+    var button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-profile-verify-cta", "true");
+    button.className = "ml-3 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105";
+    button.textContent = "Verify Account";
+
+    container.insertBefore(button, trigger.nextSibling);
+    return button;
   }
 
   function ensureVerificationPanelMarkup(panel) {
@@ -1709,85 +1802,15 @@
         <div class="flex items-start justify-between gap-2">
           <div>
             <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70">Account Verification</p>
-            <p data-profile-verification-status-text class="mt-1 text-[13px] font-semibold text-white">Not Submitted</p>
-            <p data-profile-verification-status-subtext class="mt-1 text-[11px] text-white/75">Complete account verification to unlock full access.</p>
+            <p data-profile-verification-status-text class="mt-1 text-[13px] font-semibold text-white">Pending</p>
+            <p data-profile-verification-status-subtext class="mt-1 text-[11px] text-white/75">Verification details are pending. Click Verify Account to continue.</p>
           </div>
-          <span data-profile-verification-badge class="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700">Not Submitted</span>
+          <span data-profile-verification-badge class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Pending</span>
         </div>
         <p data-profile-verification-submitted class="mt-2 hidden text-[11px] text-white/80"></p>
         <p data-profile-verification-note class="mt-1 hidden text-[11px] text-rose-200"></p>
         <p data-profile-document-label class="mt-1 text-[11px] text-white/70">No document submitted</p>
         <button type="button" data-profile-verification-toggle class="mt-3 inline-flex items-center rounded-full bg-accent px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105">Verify Account</button>
-
-        <form data-profile-verification-form class="mt-3 hidden space-y-3 border-t border-white/15 pt-3" novalidate>
-          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Full Name</span>
-              <input data-verify-full-name type="text" readonly class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white/90 outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Email</span>
-              <input data-verify-email type="email" readonly class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white/90 outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Phone Number *</span>
-              <input data-verify-phone type="tel" required placeholder="e.g. +977 98XXXXXXXX" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Gender *</span>
-              <select data-verify-gender required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none">
-                <option value="" class="text-slate-900">Select</option>
-                <option value="male" class="text-slate-900">Male</option>
-                <option value="female" class="text-slate-900">Female</option>
-              </select>
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Date of Birth *</span>
-              <input data-verify-dob type="date" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-            <label class="space-y-1 sm:col-span-2">
-              <span class="text-[11px] text-white/80">Address Line *</span>
-              <input data-verify-address type="text" required placeholder="Street, area" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">City *</span>
-              <input data-verify-city type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Country *</span>
-              <input data-verify-country type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Postal Code</span>
-              <input data-verify-postal type="text" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Document Type *</span>
-              <select data-verify-document-type required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none">
-                <option value="" class="text-slate-900">Select</option>
-                <option value="driving_license" class="text-slate-900">Driving License</option>
-                <option value="national_id" class="text-slate-900">National ID</option>
-                <option value="passport" class="text-slate-900">Passport</option>
-                <option value="other" class="text-slate-900">Other</option>
-              </select>
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Document Number *</span>
-              <input data-verify-document-number type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-            <label class="space-y-1">
-              <span class="text-[11px] text-white/80">Document Expiry</span>
-              <input data-verify-document-expiry type="date" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
-            </label>
-          </div>
-
-          <p data-profile-verification-error class="hidden rounded-lg border border-rose-300/40 bg-rose-500/20 px-3 py-2 text-[11px] text-rose-100"></p>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <button type="submit" data-profile-verification-submit class="rounded-full bg-accent px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105">Submit Verification</button>
-            <button type="button" data-profile-verification-cancel class="rounded-full border border-white/35 px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">Cancel</button>
-          </div>
-        </form>
       </div>
     `;
 
@@ -1798,6 +1821,124 @@
     }
 
     panel.insertAdjacentHTML("beforeend", verificationMarkup);
+  }
+
+  function ensureVerificationModalMarkup() {
+    var existing = document.querySelector("[data-profile-verification-modal]");
+    if (existing) {
+      return existing;
+    }
+
+    var modalMarkup = `
+      <div data-profile-verification-modal role="dialog" aria-modal="true" aria-hidden="true" class="fixed inset-0 z-[240] hidden items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div data-profile-verification-modal-backdrop class="absolute inset-0 bg-slate-950/60 opacity-0 backdrop-blur-md transition duration-300"></div>
+        <div data-profile-verification-modal-card class="relative z-10 w-full max-w-6xl overflow-hidden rounded-[30px] border border-white/25 bg-[linear-gradient(155deg,rgba(17,48,52,0.98),rgba(10,28,31,0.98))] text-white shadow-[0_45px_110px_rgba(0,0,0,0.45)] opacity-0 translate-y-4 scale-[0.98] transition duration-300">
+          <div class="flex items-start justify-between gap-4 border-b border-white/15 px-5 py-4 sm:px-7 sm:py-5">
+            <div class="space-y-1">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Account Verification</p>
+              <h3 class="text-lg font-semibold sm:text-xl">Secure Identity Check</h3>
+              <p data-profile-verification-modal-status class="text-sm font-semibold text-amber-200">Pending</p>
+              <p data-profile-verification-modal-subtext class="text-[12px] text-white/75">Submit your details for admin approval and unlock full booking features.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span data-profile-verification-modal-badge class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Pending</span>
+              <button type="button" data-profile-verification-modal-close aria-label="Close verification form" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/35 text-white/80 transition duration-200 hover:bg-white/10 hover:text-white">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" class="h-4 w-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <path d="M5 5l10 10"></path>
+                  <path d="M15 5L5 15"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid max-h-[calc(92vh-98px)] grid-cols-1 overflow-y-auto lg:grid-cols-[0.92fr_1.08fr]">
+            <aside class="border-b border-white/15 bg-white/5 px-5 py-5 sm:px-7 lg:border-b-0 lg:border-r lg:border-r-white/15">
+              <p class="text-sm text-white/80">Verification helps us keep bookings secure and ensures a faster approval process for every reservation.</p>
+              <ul class="mt-4 space-y-2 text-[12px] text-white/75">
+                <li class="rounded-xl border border-white/10 bg-white/5 px-3 py-2">Use your legal full name and matching document details.</li>
+                <li class="rounded-xl border border-white/10 bg-white/5 px-3 py-2">Phone number and address are required for booking validation.</li>
+                <li class="rounded-xl border border-white/10 bg-white/5 px-3 py-2">Approved profiles are marked with a verified badge.</li>
+              </ul>
+            </aside>
+
+            <form data-profile-verification-form class="space-y-4 px-5 py-5 sm:px-7" novalidate>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Full Name</span>
+                  <input data-verify-full-name type="text" readonly class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white/90 outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Email</span>
+                  <input data-verify-email type="email" readonly class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white/90 outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Phone Number *</span>
+                  <input data-verify-phone type="tel" required placeholder="e.g. +977 98XXXXXXXX" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Gender *</span>
+                  <select data-verify-gender required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none">
+                    <option value="" class="text-slate-900">Select</option>
+                    <option value="male" class="text-slate-900">Male</option>
+                    <option value="female" class="text-slate-900">Female</option>
+                    <option value="other" class="text-slate-900">Other</option>
+                    <option value="prefer_not_to_say" class="text-slate-900">Prefer not to say</option>
+                  </select>
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Date of Birth *</span>
+                  <input data-verify-dob type="date" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+                <label class="space-y-1 sm:col-span-2">
+                  <span class="text-[11px] text-white/80">Address Line *</span>
+                  <input data-verify-address type="text" required placeholder="Street, area" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">City *</span>
+                  <input data-verify-city type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Country *</span>
+                  <input data-verify-country type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Postal Code</span>
+                  <input data-verify-postal type="text" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Document Type *</span>
+                  <select data-verify-document-type required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none">
+                    <option value="" class="text-slate-900">Select</option>
+                    <option value="driving_license" class="text-slate-900">Driving License</option>
+                    <option value="national_id" class="text-slate-900">National ID</option>
+                    <option value="passport" class="text-slate-900">Passport</option>
+                    <option value="other" class="text-slate-900">Other</option>
+                  </select>
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Document Number *</span>
+                  <input data-verify-document-number type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-[11px] text-white/80">Document Expiry</span>
+                  <input data-verify-document-expiry type="date" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+                </label>
+              </div>
+
+              <p data-profile-verification-error class="hidden rounded-lg border border-rose-300/40 bg-rose-500/20 px-3 py-2 text-[11px] text-rose-100"></p>
+
+              <div class="flex flex-wrap items-center gap-2 pt-1">
+                <button type="submit" data-profile-verification-submit class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105">Submit Verification</button>
+                <button type="button" data-profile-verification-cancel class="rounded-full border border-white/35 px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalMarkup);
+    return document.querySelector("[data-profile-verification-modal]");
   }
 
   function refreshProfileFromCloud() {
@@ -1834,14 +1975,21 @@
 
     ensureProfileIdentityVerificationChip(trigger);
     ensureVerificationPanelMarkup(panel);
+    var quickVerifyBtn = ensureProfileQuickVerifyButton(trigger);
+    var verificationModal = ensureVerificationModalMarkup();
 
     var verificationToggleBtn = panel.querySelector("[data-profile-verification-toggle]");
-    var verificationForm = panel.querySelector("[data-profile-verification-form]");
-    var verificationCancelBtn = panel.querySelector("[data-profile-verification-cancel]");
-    var verificationSubmitBtn = panel.querySelector("[data-profile-verification-submit]");
-    var verificationErrorEl = panel.querySelector("[data-profile-verification-error]");
+    var verificationForm = verificationModal ? verificationModal.querySelector("[data-profile-verification-form]") : null;
+    var verificationCancelBtn = verificationModal ? verificationModal.querySelector("[data-profile-verification-cancel]") : null;
+    var verificationSubmitBtn = verificationModal ? verificationModal.querySelector("[data-profile-verification-submit]") : null;
+    var verificationErrorEl = verificationModal ? verificationModal.querySelector("[data-profile-verification-error]") : null;
+    var verificationModalCloseBtn = verificationModal ? verificationModal.querySelector("[data-profile-verification-modal-close]") : null;
+    var verificationModalBackdrop = verificationModal ? verificationModal.querySelector("[data-profile-verification-modal-backdrop]") : null;
+    var verificationModalCard = verificationModal ? verificationModal.querySelector("[data-profile-verification-modal-card]") : null;
     var verificationFormVisible = false;
     var verificationSubmitting = false;
+    var verificationModalHideTimerId = null;
+    var verificationFocusSource = null;
 
     var isPanelOpen = false;
     var restoreTimerId = null;
@@ -2027,7 +2175,9 @@
         document.body.classList.add("overflow-hidden");
       } else {
         hideMobileBackdrop();
-        document.body.classList.remove("overflow-hidden");
+        if (!verificationFormVisible) {
+          document.body.classList.remove("overflow-hidden");
+        }
         clearMobilePanelStyles();
         restorePanelPlacement();
       }
@@ -2066,7 +2216,9 @@
       if (isMobileViewport()) {
         applyMobilePanelStyles(false);
         hideMobileBackdrop();
-        document.body.classList.remove("overflow-hidden");
+        if (!verificationFormVisible) {
+          document.body.classList.remove("overflow-hidden");
+        }
 
         if (restoreTimerId) {
           window.clearTimeout(restoreTimerId);
@@ -2125,6 +2277,11 @@
 
     document.addEventListener("keydown", function (event) {
       if (event.key === "Escape") {
+        if (verificationFormVisible) {
+          toggleVerificationForm(false);
+          return;
+        }
+
         closePanel();
       }
     });
@@ -2138,7 +2295,9 @@
           document.body.classList.add("overflow-hidden");
         } else {
           hideMobileBackdrop();
-          document.body.classList.remove("overflow-hidden");
+          if (!verificationFormVisible) {
+            document.body.classList.remove("overflow-hidden");
+          }
           clearMobilePanelStyles();
           restorePanelPlacement();
         }
@@ -2146,7 +2305,9 @@
       }
 
       hideMobileBackdrop();
-      document.body.classList.remove("overflow-hidden");
+      if (!verificationFormVisible) {
+        document.body.classList.remove("overflow-hidden");
+      }
       clearMobilePanelStyles();
       restorePanelPlacement();
     });
@@ -2178,18 +2339,95 @@
       verificationErrorEl.classList.remove("hidden");
     }
 
+    function clearVerificationModalHideTimer() {
+      if (!verificationModalHideTimerId) {
+        return;
+      }
+
+      window.clearTimeout(verificationModalHideTimerId);
+      verificationModalHideTimerId = null;
+    }
+
     function toggleVerificationForm(nextVisible) {
-      if (!verificationForm) {
+      if (!verificationModal || !verificationForm) {
         verificationFormVisible = false;
         return;
       }
 
-      verificationFormVisible = Boolean(nextVisible);
-      verificationForm.classList.toggle("hidden", !verificationFormVisible);
+      var shouldOpen = Boolean(nextVisible);
+      clearVerificationModalHideTimer();
 
-      if (!verificationFormVisible) {
+      if (!shouldOpen && !verificationFormVisible && verificationModal.classList.contains("hidden")) {
         setVerificationError("");
+        return;
       }
+
+      if (shouldOpen) {
+        verificationFormVisible = true;
+        verificationFocusSource = document.activeElement;
+        setVerificationError("");
+        verificationModal.classList.remove("hidden");
+        verificationModal.classList.add("flex");
+        verificationModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("overflow-hidden");
+
+        window.requestAnimationFrame(function () {
+          if (!verificationFormVisible) {
+            return;
+          }
+
+          if (verificationModalBackdrop) {
+            verificationModalBackdrop.classList.remove("opacity-0");
+            verificationModalBackdrop.classList.add("opacity-100");
+          }
+
+          if (verificationModalCard) {
+            verificationModalCard.classList.remove("opacity-0", "translate-y-4", "scale-[0.98]");
+            verificationModalCard.classList.add("opacity-100", "translate-y-0", "scale-100");
+          }
+
+          var firstEditableField = verificationForm.querySelector("[data-verify-phone]");
+          if (firstEditableField && typeof firstEditableField.focus === "function") {
+            firstEditableField.focus();
+          }
+        });
+
+        return;
+      }
+
+      verificationFormVisible = false;
+      setVerificationError("");
+      verificationModal.setAttribute("aria-hidden", "true");
+
+      if (verificationModalBackdrop) {
+        verificationModalBackdrop.classList.add("opacity-0");
+        verificationModalBackdrop.classList.remove("opacity-100");
+      }
+
+      if (verificationModalCard) {
+        verificationModalCard.classList.add("opacity-0", "translate-y-4", "scale-[0.98]");
+        verificationModalCard.classList.remove("opacity-100", "translate-y-0", "scale-100");
+      }
+
+      verificationModalHideTimerId = window.setTimeout(function () {
+        if (verificationFormVisible) {
+          return;
+        }
+
+        verificationModal.classList.remove("flex");
+        verificationModal.classList.add("hidden");
+
+        if (!(isPanelOpen && isMobileViewport())) {
+          document.body.classList.remove("overflow-hidden");
+        }
+
+        if (verificationFocusSource && typeof verificationFocusSource.focus === "function") {
+          verificationFocusSource.focus();
+        }
+        verificationFocusSource = null;
+        verificationModalHideTimerId = null;
+      }, 260);
+
     }
 
     function setVerificationSubmitting(isSubmitting) {
@@ -2206,19 +2444,28 @@
     }
 
     function readVerificationFormPayload() {
+      function readVerificationField(selector) {
+        if (!verificationForm) {
+          return "";
+        }
+
+        var input = verificationForm.querySelector(selector);
+        return input ? input.value : "";
+      }
+
       return {
-        fullName: panel.querySelector("[data-verify-full-name]") ? panel.querySelector("[data-verify-full-name]").value : "",
-        email: panel.querySelector("[data-verify-email]") ? panel.querySelector("[data-verify-email]").value : "",
-        phoneNumber: panel.querySelector("[data-verify-phone]") ? panel.querySelector("[data-verify-phone]").value : "",
-        gender: panel.querySelector("[data-verify-gender]") ? panel.querySelector("[data-verify-gender]").value : "",
-        dateOfBirth: panel.querySelector("[data-verify-dob]") ? panel.querySelector("[data-verify-dob]").value : "",
-        addressLine: panel.querySelector("[data-verify-address]") ? panel.querySelector("[data-verify-address]").value : "",
-        city: panel.querySelector("[data-verify-city]") ? panel.querySelector("[data-verify-city]").value : "",
-        country: panel.querySelector("[data-verify-country]") ? panel.querySelector("[data-verify-country]").value : "",
-        postalCode: panel.querySelector("[data-verify-postal]") ? panel.querySelector("[data-verify-postal]").value : "",
-        documentType: panel.querySelector("[data-verify-document-type]") ? panel.querySelector("[data-verify-document-type]").value : "",
-        documentNumber: panel.querySelector("[data-verify-document-number]") ? panel.querySelector("[data-verify-document-number]").value : "",
-        documentExpiryDate: panel.querySelector("[data-verify-document-expiry]") ? panel.querySelector("[data-verify-document-expiry]").value : "",
+        fullName: readVerificationField("[data-verify-full-name]"),
+        email: readVerificationField("[data-verify-email]"),
+        phoneNumber: readVerificationField("[data-verify-phone]"),
+        gender: readVerificationField("[data-verify-gender]"),
+        dateOfBirth: readVerificationField("[data-verify-dob]"),
+        addressLine: readVerificationField("[data-verify-address]"),
+        city: readVerificationField("[data-verify-city]"),
+        country: readVerificationField("[data-verify-country]"),
+        postalCode: readVerificationField("[data-verify-postal]"),
+        documentType: readVerificationField("[data-verify-document-type]"),
+        documentNumber: readVerificationField("[data-verify-document-number]"),
+        documentExpiryDate: readVerificationField("[data-verify-document-expiry]"),
       };
     }
 
@@ -2684,18 +2931,43 @@
       });
     }
 
+    if (quickVerifyBtn) {
+      quickVerifyBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!hasAuthenticatedSession()) {
+          closePanel();
+          return;
+        }
+
+        void refreshProfileFromCloud();
+        toggleVerificationForm(true);
+      });
+    }
+
     if (verificationToggleBtn) {
       verificationToggleBtn.addEventListener("click", function () {
-        var nextVisible = !verificationFormVisible;
-        toggleVerificationForm(nextVisible);
+        void refreshProfileFromCloud();
+        toggleVerificationForm(true);
+      });
+    }
 
-        if (nextVisible) {
-          void refreshProfileFromCloud();
-          var firstEditableField = panel.querySelector("[data-verify-phone]");
-          if (firstEditableField && typeof firstEditableField.focus === "function") {
-            firstEditableField.focus();
-          }
-        }
+    if (verificationModalCloseBtn) {
+      verificationModalCloseBtn.addEventListener("click", function () {
+        toggleVerificationForm(false);
+      });
+    }
+
+    if (verificationModalBackdrop) {
+      verificationModalBackdrop.addEventListener("click", function () {
+        toggleVerificationForm(false);
+      });
+    }
+
+    if (verificationModalCard) {
+      verificationModalCard.addEventListener("click", function (event) {
+        event.stopPropagation();
       });
     }
 
