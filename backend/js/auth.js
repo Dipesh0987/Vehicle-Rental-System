@@ -321,6 +321,14 @@
       }
     }
 
+    var panelHeadingBadge = document.querySelector("[data-profile-panel-heading-status]");
+    if (panelHeadingBadge) {
+      setVerificationBadgeState(panelHeadingBadge, statusMeta, true);
+      if (isPendingSetup) {
+        panelHeadingBadge.textContent = "Pending";
+      }
+    }
+
     var panelBadge = document.querySelector("[data-profile-verification-badge]");
     if (panelBadge) {
       setVerificationBadgeState(panelBadge, statusMeta, false);
@@ -365,7 +373,13 @@
     var verifyToggle = document.querySelector("[data-profile-verification-toggle]");
     if (verifyToggle) {
       if (statusMeta.key === "approved") {
-        verifyToggle.textContent = "Update Verification";
+        verifyToggle.classList.add("hidden");
+      } else {
+        verifyToggle.classList.remove("hidden");
+      }
+
+      if (statusMeta.key === "approved") {
+        verifyToggle.textContent = "Verify Account";
       } else if (statusMeta.key === "pending" && hasSubmission) {
         verifyToggle.textContent = "View Submission";
       } else {
@@ -375,7 +389,12 @@
 
     var quickVerifyBtn = document.querySelector("[data-profile-verify-cta]");
     if (quickVerifyBtn) {
-      setQuickVerifyButtonState(quickVerifyBtn, statusMeta, hasSubmission);
+      if (statusMeta.key === "approved") {
+        quickVerifyBtn.classList.add("hidden");
+      } else {
+        quickVerifyBtn.classList.remove("hidden");
+        setQuickVerifyButtonState(quickVerifyBtn, statusMeta, hasSubmission);
+      }
     }
 
     var modalStatusBadge = document.querySelector("[data-profile-verification-modal-badge]");
@@ -1755,20 +1774,62 @@
       return;
     }
 
-    var metaWrap = trigger.querySelector(".flex.flex-col");
-    if (!metaWrap) {
+    var existing = trigger.querySelector("[data-profile-identity-status]");
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+  }
+
+  function ensureProfilePanelHeaderStatusBadge(panel) {
+    if (!panel) {
       return;
     }
 
-    if (metaWrap.querySelector("[data-profile-identity-status]")) {
-      return;
+    var panelHeading = panel.querySelector("p.text-[16px].font-semibold");
+    if (!panelHeading) {
+      return null;
+    }
+
+    panelHeading.classList.add("flex", "w-full", "items-center", "justify-between", "gap-3");
+
+    var existing = panelHeading.querySelector("[data-profile-panel-heading-status]");
+    if (existing) {
+      return existing;
     }
 
     var statusChip = document.createElement("span");
-    statusChip.setAttribute("data-profile-identity-status", "true");
-    statusChip.className = "mt-1 inline-flex self-start w-auto max-w-max items-center justify-center gap-1 whitespace-nowrap text-center rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold leading-none text-amber-700";
+    statusChip.setAttribute("data-profile-panel-heading-status", "true");
+    statusChip.className = "inline-flex w-auto max-w-max items-center justify-center whitespace-nowrap rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold leading-none text-amber-700";
     statusChip.textContent = "Pending";
-    metaWrap.appendChild(statusChip);
+    panelHeading.appendChild(statusChip);
+
+    return statusChip;
+  }
+
+  function ensureProfileViewProfileButton(panel) {
+    if (!panel) {
+      return null;
+    }
+
+    var saveBtn = panel.querySelector("#saveProfile");
+    if (!saveBtn || !saveBtn.parentNode) {
+      return null;
+    }
+
+    var actionRow = saveBtn.parentNode;
+    var existing = actionRow.querySelector("[data-profile-view-profile]");
+    if (existing) {
+      return existing;
+    }
+
+    var viewProfileBtn = document.createElement("button");
+    viewProfileBtn.type = "button";
+    viewProfileBtn.setAttribute("data-profile-view-profile", "true");
+    viewProfileBtn.className = "rounded-full border border-white/40 bg-white/10 px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:bg-white/20";
+    viewProfileBtn.textContent = "View Profile";
+    actionRow.insertBefore(viewProfileBtn, saveBtn);
+
+    return viewProfileBtn;
   }
 
   function ensureProfileQuickVerifyButton(trigger) {
@@ -1974,8 +2035,10 @@
     }
 
     ensureProfileIdentityVerificationChip(trigger);
+    ensureProfilePanelHeaderStatusBadge(panel);
     ensureVerificationPanelMarkup(panel);
     var quickVerifyBtn = ensureProfileQuickVerifyButton(trigger);
+    var viewProfileBtn = ensureProfileViewProfileButton(panel);
     var verificationModal = null;
 
     var verificationToggleBtn = panel.querySelector("[data-profile-verification-toggle]");
@@ -2957,8 +3020,25 @@
       });
     }
 
+    if (viewProfileBtn) {
+      viewProfileBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+
+        if (!hasAuthenticatedSession()) {
+          closePanel();
+          return;
+        }
+
+        closePanel();
+        openVerificationPage();
+      });
+    }
+
     if (verificationToggleBtn) {
-      verificationToggleBtn.addEventListener("click", function () {
+      verificationToggleBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
         if (!hasAuthenticatedSession()) {
           closePanel();
           return;
