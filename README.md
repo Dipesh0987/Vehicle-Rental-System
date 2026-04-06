@@ -27,6 +27,7 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `database/migrations/004_vehicle_catalog_and_images.sql` - SQL migration for vehicle catalog tables, image table, and vehicle image storage policies
 - `database/migrations/005_vehicle_catalog_schema_hotfix.sql` - SQL migration to backfill required vehicle columns/defaults for legacy projects
 - `database/migrations/006_vehicle_bookings_system.sql` - SQL migration for secure booking persistence and overlap prevention
+- `database/migrations/012_user_profile_verification_workflow.sql` - SQL migration for customer KYC fields, verification statuses, and admin approval RPC
 
 ## Run
 
@@ -58,12 +59,20 @@ Run this SQL in Supabase SQL Editor:
 4. `database/migrations/004_vehicle_catalog_and_images.sql`
 5. `database/migrations/005_vehicle_catalog_schema_hotfix.sql`
 6. `database/migrations/006_vehicle_bookings_system.sql`
+7. `database/migrations/012_user_profile_verification_workflow.sql`
 
 This creates `public.user_profiles`, `public.vehicles`, `public.vehicle_images`, and `public.vehicle_bookings`, plus storage policies for both `profile-images` and `vehicle-images` buckets.
 
 For compatibility with the current frontend admin runtime, migration `004_vehicle_catalog_and_images.sql` uses permissive public write policies for vehicle catalog objects. Tighten these policies before production.
 
 Migration `006_vehicle_bookings_system.sql` adds database-level overlap protection through an exclusion constraint so double-booking is blocked even under concurrent requests.
+
+Migration `012_user_profile_verification_workflow.sql` adds a production-style customer verification workflow:
+
+1. Customers submit verification details from their profile panel.
+2. Verification status moves to `pending`.
+3. Admin reviews in the Customers module and sets `approved`/`rejected`.
+4. Customers see the live verification badge in their profile.
 
 ## Profile Image Best Practice
 
