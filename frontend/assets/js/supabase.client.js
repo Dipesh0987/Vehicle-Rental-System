@@ -3,14 +3,57 @@
 
   var clientInitPromise = null;
 
-  function hasConfig() {
+  function trim(value) {
+    return String(value || "").trim();
+  }
+
+  function isPlaceholderValue(value) {
+    var normalized = trim(value).toLowerCase();
+    if (!normalized) {
+      return true;
+    }
+
     return (
-      window.SUPABASE_CONFIG &&
-      typeof window.SUPABASE_CONFIG.url === "string" &&
-      typeof window.SUPABASE_CONFIG.anonKey === "string" &&
-      window.SUPABASE_CONFIG.url.trim() !== "" &&
-      window.SUPABASE_CONFIG.anonKey.trim() !== ""
+      normalized.indexOf("your_project_id") >= 0 ||
+      normalized.indexOf("your_supabase_anon_key") >= 0 ||
+      normalized.indexOf("replace_with") >= 0
     );
+  }
+
+  function isUsableConfigValue(value) {
+    return trim(value) !== "" && !isPlaceholderValue(value);
+  }
+
+  function resolveConfig() {
+    var runtimeConfig = window.SUPABASE_CONFIG || {};
+    var localConfig = window.SUPABASE_LOCAL_CONFIG || {};
+    var runtimeUrl = trim(runtimeConfig.url);
+    var runtimeAnonKey = trim(runtimeConfig.anonKey);
+    var localUrl = trim(localConfig.url);
+    var localAnonKey = trim(localConfig.anonKey);
+    var useLocalCredentials = isUsableConfigValue(localUrl) && isUsableConfigValue(localAnonKey);
+
+    var resolved = {
+      url: useLocalCredentials ? localUrl : runtimeUrl,
+      anonKey: useLocalCredentials ? localAnonKey : runtimeAnonKey,
+      profileImageBucket: trim(localConfig.profileImageBucket || runtimeConfig.profileImageBucket),
+      projectLabel: trim(localConfig.projectLabel || runtimeConfig.projectLabel),
+    };
+
+    if (!isUsableConfigValue(resolved.url) && isUsableConfigValue(localUrl)) {
+      resolved.url = localUrl;
+    }
+
+    if (!isUsableConfigValue(resolved.anonKey) && isUsableConfigValue(localAnonKey)) {
+      resolved.anonKey = localAnonKey;
+    }
+
+    return resolved;
+  }
+
+  function hasConfig() {
+    var config = resolveConfig();
+    return isUsableConfigValue(config.url) && isUsableConfigValue(config.anonKey);
   }
 
   function getRuntimeBaseUrl() {
@@ -36,6 +79,48 @@
     }
 
     return new URL("vendor/supabase.min.js", base).toString();
+  }
+
+  function getLocalSupabaseConfigUrl() {
+    var base = getRuntimeBaseUrl();
+    if (!base) {
+      return "assets/js/supabase.config.local.js";
+    }
+
+    return new URL("supabase.config.local.js", base).toString();
+  }
+
+  function loadLocalConfigIfAvailable() {
+    return new Promise(function (resolve) {
+      if (window.SUPABASE_LOCAL_CONFIG) {
+        resolve();
+        return;
+      }
+
+      var existing = document.querySelector('script[data-supabase-config-runtime="local"]');
+      if (existing) {
+        existing.addEventListener("load", function () {
+          resolve();
+        }, { once: true });
+        existing.addEventListener("error", function () {
+          resolve();
+        }, { once: true });
+        return;
+      }
+
+      var script = document.createElement("script");
+      script.src = getLocalSupabaseConfigUrl();
+      script.async = true;
+      script.dataset.supabaseConfigRuntime = "local";
+      script.addEventListener("load", function () {
+        resolve();
+      }, { once: true });
+      script.addEventListener("error", function () {
+        resolve();
+      }, { once: true });
+
+      document.head.appendChild(script);
+    });
   }
 
   function loadScript(url, tag) {
@@ -102,18 +187,22 @@
       return clientInitPromise;
     }
 
-    if (!hasConfig()) {
-      throw new Error("Missing SUPABASE_CONFIG values");
-    }
-
     clientInitPromise = (async function () {
+      await loadLocalConfigIfAvailable();
+
+      var config = resolveConfig();
+      if (!isUsableConfigValue(config.url) || !isUsableConfigValue(config.anonKey)) {
+        throw new Error("Missing Supabase URL/anon key. Set frontend/assets/js/supabase.config.local.js with valid values.");
+      }
+
       await loadSupabaseRuntime();
 
       if (window.SupabaseRuntime && window.SupabaseRuntime.client) {
         return window.SupabaseRuntime.client;
       }
 
-      var config = window.SUPABASE_CONFIG;
+      window.SUPABASE_CONFIG = Object.assign({}, window.SUPABASE_CONFIG || {}, config);
+
       var client = window.supabase.createClient(config.url, config.anonKey, {
         auth: {
           persistSession: true,

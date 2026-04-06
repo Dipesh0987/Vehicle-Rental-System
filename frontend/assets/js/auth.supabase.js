@@ -14,7 +14,7 @@
   var VERIFICATION_DOCUMENT_TYPES = ["driving_license", "national_id", "passport", "other"];
   var PROFILE_COLUMNS_SELECT = "id,email,full_name,avatar_url,updated_at";
   var PROFILE_COLUMNS_WITHOUT_AVATAR_SELECT = "id,email,full_name,updated_at";
-  var VERIFICATION_COLUMNS_SELECT = "phone_number,gender,date_of_birth,address_line,city,country,postal_code,document_type,document_number,document_expiry_date,verification_status,verification_submitted_at,verification_reviewed_at,verification_reviewed_by,verification_note";
+  var VERIFICATION_COLUMNS_SELECT = "phone_number,gender,date_of_birth,address_line,city,country,postal_code,document_type,document_number,document_image_url,document_expiry_date,verification_status,verification_submitted_at,verification_reviewed_at,verification_reviewed_by,verification_note";
   var PROFILE_COLUMNS_WITH_VERIFICATION_SELECT = PROFILE_COLUMNS_SELECT + "," + VERIFICATION_COLUMNS_SELECT;
 
   (function resolveProfileImageBucket() {
@@ -164,7 +164,7 @@
     var message = getErrorMessage(error);
 
     if (isMissingVerificationColumnError(error)) {
-      return "User verification workflow is not enabled yet. Run database/migrations/012_user_profile_verification_workflow.sql in Supabase SQL Editor.";
+      return "User verification workflow schema is missing. Run database/migrations/012_user_profile_verification_workflow.sql and database/migrations/013_verification_document_image_url.sql in Supabase SQL Editor.";
     }
 
     if (
@@ -205,6 +205,16 @@
       }
 
       return "Signup is temporarily rate-limited by Supabase. Please retry shortly; for production, increase Auth rate limits in the Supabase dashboard.";
+    }
+
+    if (
+      message.indexOf("failed to fetch") >= 0 ||
+      message.indexOf("networkerror") >= 0 ||
+      message.indexOf("name_not_resolved") >= 0 ||
+      message.indexOf("missing supabase url") >= 0 ||
+      message.indexOf("missing supabase_config") >= 0
+    ) {
+      return "Cannot connect to Supabase. Check frontend/assets/js/supabase.config.local.js and verify url/anonKey are valid.";
     }
 
     if (message.indexOf("invalid login credentials") >= 0) {
@@ -302,6 +312,7 @@
       message.indexOf("address_line") >= 0 ||
       message.indexOf("document_type") >= 0 ||
       message.indexOf("document_number") >= 0 ||
+      message.indexOf("document_image_url") >= 0 ||
       message.indexOf("verification_status") >= 0 ||
       message.indexOf("verification_submitted_at") >= 0 ||
       message.indexOf("verification_reviewed_at") >= 0 ||
@@ -369,6 +380,7 @@
     var postalCode = trim(payload.postalCode || payload.postal_code);
     var documentType = normalizeVerificationDocumentType(payload.documentType || payload.document_type);
     var documentNumber = trim(payload.documentNumber || payload.document_number).toUpperCase();
+    var documentImageUrl = trim(payload.documentImageUrl || payload.document_image_url);
     var documentExpiryDate = normalizeIsoDate(payload.documentExpiryDate || payload.document_expiry_date);
 
     if (!phoneNumber || phoneDigits.length < 7 || phoneDigits.length > 15) {
@@ -399,6 +411,17 @@
       throw new Error("Document number is required.");
     }
 
+    if (!documentImageUrl) {
+      throw new Error("Document image is required.");
+    }
+
+    if (documentImageUrl.indexOf("data:image/") === 0) {
+      documentImageUrl = normalizeDataImageUrlForStorage(documentImageUrl);
+      if (!documentImageUrl) {
+        throw new Error("Document image data is invalid. Please upload the image again.");
+      }
+    }
+
     return {
       phone_number: phoneNumber,
       gender: gender,
@@ -409,6 +432,7 @@
       postal_code: postalCode || null,
       document_type: documentType,
       document_number: documentNumber,
+      document_image_url: documentImageUrl,
       document_expiry_date: documentExpiryDate,
       verification_status: "pending",
       verification_submitted_at: new Date().toISOString(),
@@ -435,6 +459,7 @@
       postal_code: trim(source.postal_code) || null,
       document_type: normalizeVerificationDocumentType(source.document_type) || null,
       document_number: trim(source.document_number) || null,
+      document_image_url: trim(source.document_image_url) || null,
       document_expiry_date: normalizeIsoDate(source.document_expiry_date),
       verification_status: normalizeVerificationStatus(source.verification_status),
       verification_submitted_at: source.verification_submitted_at || null,
@@ -496,6 +521,24 @@
     return "jpg";
   }
 
+  function normalizeDataImageUrlForStorage(value) {
+    var raw = trim(value);
+    if (!raw || raw.length > PROFILE_IMAGE_MAX_DATA_URL_CHARS) {
+      return "";
+    }
+
+    var headerMatch = raw.match(/^data:(image\/[a-z0-9.+-]+);base64,/i);
+    if (!headerMatch || !headerMatch[1]) {
+      return "";
+    }
+
+    if (!isSupportedProfileImageMime(headerMatch[1])) {
+      return "";
+    }
+
+    return raw;
+  }
+
   async function listStoredProfileImagePaths(storageBucket, userId) {
     var paths = [];
     var offset = 0;
@@ -534,10 +577,20 @@
     return paths;
   }
 
-  async function removeOldProfileImages(storageBucket, userId, keepPath) {
+  async function removeOldProfileImages(storageBucket, userId, keepPath, filePrefix) {
     var existingPaths = await listStoredProfileImagePaths(storageBucket, userId);
+    var normalizedPrefix = trim(filePrefix).toLowerCase();
     var stalePaths = existingPaths.filter(function (path) {
-      return path !== keepPath;
+      if (path === keepPath) {
+        return false;
+      }
+
+      if (!normalizedPrefix) {
+        return true;
+      }
+
+      var name = String(path || "").split("/").pop().toLowerCase();
+      return name.indexOf(normalizedPrefix) === 0;
     });
 
     if (!stalePaths.length) {
@@ -853,9 +906,81 @@
     }
 
     try {
-      await removeOldProfileImages(storageBucket, session.user.id, objectPath);
+      await removeOldProfileImages(storageBucket, session.user.id, objectPath, "avatar-");
     } catch (cleanupError) {
       console.warn("Old profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
+    }
+
+    return publicUrl + "?v=" + Date.now();
+  }
+
+  async function uploadVerificationDocumentImage(file) {
+    if (!file) {
+      throw new Error("No document image selected.");
+    }
+
+    var mimeType = String(file.type || "").toLowerCase();
+    if (!isSupportedProfileImageMime(mimeType)) {
+      throw new Error("Please select a JPG, PNG, or WEBP document image.");
+    }
+
+    if (Number(file.size || 0) > PROFILE_IMAGE_MAX_SOURCE_BYTES) {
+      throw new Error("Document image is too large. Please choose a file under 20 MB.");
+    }
+
+    var optimizedBlob = await optimizeProfileImage(file);
+    if (Number(optimizedBlob.size || 0) > PROFILE_IMAGE_MAX_BYTES) {
+      throw new Error("Document image is too large after optimization. Please choose a smaller image.");
+    }
+
+    var client = await getClient();
+    var session = await getSession();
+
+    if (!session || !session.user) {
+      throw new Error("You must be signed in to upload a verification document image.");
+    }
+
+    var extension = getProfileImageExtension(optimizedBlob.type || mimeType);
+    var uniqueSuffix = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+    var filePrefix = "verification-document-";
+    var objectPath = session.user.id + "/" + filePrefix + uniqueSuffix + "." + extension;
+    var storageBucket = client.storage.from(PROFILE_IMAGE_BUCKET);
+
+    var upload = await storageBucket
+      .upload(objectPath, optimizedBlob, {
+        upsert: false,
+        contentType: optimizedBlob.type || "image/jpeg",
+        cacheControl: "3600",
+      });
+
+    if (upload.error) {
+      if (isBucketNotFoundStorageError(upload.error)) {
+        var dataUrlFallback = await readBlobAsDataUrl(optimizedBlob);
+        var normalizedFallback = normalizeDataImageUrlForStorage(dataUrlFallback);
+
+        if (!normalizedFallback) {
+          throw new Error("Storage bucket missing and document image fallback failed. Configure profile image bucket and retry.");
+        }
+
+        return normalizedFallback;
+      }
+
+      throw upload.error;
+    }
+
+    var publicUrlResponse = storageBucket.getPublicUrl(objectPath);
+    var publicUrl = publicUrlResponse && publicUrlResponse.data
+      ? String(publicUrlResponse.data.publicUrl || "")
+      : "";
+
+    if (!publicUrl) {
+      throw new Error("Document image upload succeeded but URL generation failed.");
+    }
+
+    try {
+      await removeOldProfileImages(storageBucket, session.user.id, objectPath, filePrefix);
+    } catch (cleanupError) {
+      console.warn("Old verification document cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
     }
 
     return publicUrl + "?v=" + Date.now();
@@ -1020,6 +1145,7 @@
       postal_code: normalizedVerification.postal_code,
       document_type: normalizedVerification.document_type,
       document_number: normalizedVerification.document_number,
+      document_image_url: normalizedVerification.document_image_url,
       document_expiry_date: normalizedVerification.document_expiry_date,
       verification_status: normalizedVerification.verification_status,
       verification_submitted_at: normalizedVerification.verification_submitted_at,
@@ -1071,6 +1197,7 @@
     getSession: getSession,
     getProfile: getProfile,
     uploadProfileImage: uploadProfileImage,
+    uploadVerificationDocumentImage: uploadVerificationDocumentImage,
     signUp: signUp,
     signIn: signIn,
     signOut: signOut,

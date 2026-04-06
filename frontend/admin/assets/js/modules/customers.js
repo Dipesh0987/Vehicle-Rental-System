@@ -151,6 +151,7 @@ function renderCustomerRow(row, serviceReady) {
   const statusMeta = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted');
   const documentText = formatDocumentText(row);
   const submittedAt = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '');
+  const documentPreview = renderDocumentPreview(row);
 
   return `<tr class="border-b border-slate-100 dark:border-white/5">
     <td class="py-3 pr-3">
@@ -165,6 +166,7 @@ function renderCustomerRow(row, serviceReady) {
       <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(documentText)}</p>
       <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.gender ? `Gender: ${row.gender}` : 'Gender: -')}</p>
       <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.city ? `${row.city}${row.country ? ', ' + row.country : ''}` : (row && row.country ? row.country : '-'))}</p>
+      ${documentPreview}
     </td>
     <td class="py-3 pr-3">
       <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(submittedAt || 'Pending')}</p>
@@ -172,6 +174,19 @@ function renderCustomerRow(row, serviceReady) {
     </td>
     <td class="py-3 pr-3">${renderActionButtons(row, statusMeta, serviceReady)}</td>
   </tr>`;
+}
+
+function renderDocumentPreview(row) {
+  const imageUrl = normalizeDocumentImageUrl(row && row.documentImageUrl ? row.documentImageUrl : '');
+  if (!imageUrl) {
+    return '<p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500">No document image uploaded</p>';
+  }
+
+  const escapedUrl = escapeHtml(imageUrl);
+  return `<div class="mt-2 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
+    <img src="${escapedUrl}" alt="Document preview" class="h-12 w-20 rounded-md border border-slate-200 object-cover dark:border-white/10" />
+    <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-emerald-300 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10">Open</a>
+  </div>`;
 }
 
 function renderStatusBadge(meta) {
@@ -272,6 +287,24 @@ function formatDocumentText(row) {
   }
 
   return `${docLabel} (${docNumber})`;
+}
+
+function normalizeDocumentImageUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  if (
+    raw.indexOf('data:image/') === 0 ||
+    raw.indexOf('https://') === 0 ||
+    raw.indexOf('http://') === 0 ||
+    raw.charAt(0) === '/'
+  ) {
+    return raw;
+  }
+
+  return '';
 }
 
 function shortUserId(value) {

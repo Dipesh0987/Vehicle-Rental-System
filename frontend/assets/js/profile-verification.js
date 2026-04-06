@@ -6,6 +6,10 @@
   var STORAGE_PROFILE_PREFIX = "vrs_profile::";
   var ALLOWED_GENDERS = ["male", "female", "other", "prefer_not_to_say"];
   var ALLOWED_DOCUMENT_TYPES = ["driving_license", "national_id", "passport", "other"];
+  var ALLOWED_PROFILE_IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  var MAX_PROFILE_IMAGE_SOURCE_BYTES = 20 * 1024 * 1024;
+  var ALLOWED_DOCUMENT_IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  var MAX_DOCUMENT_IMAGE_SOURCE_BYTES = 20 * 1024 * 1024;
   var FIELD_ORDER = [
     "fullName",
     "email",
@@ -19,6 +23,7 @@
     "documentType",
     "documentNumber",
     "documentExpiryDate",
+    "documentImage",
   ];
 
   var form = document.getElementById("profileVerificationForm");
@@ -27,6 +32,24 @@
   var successPanel = document.getElementById("verifySuccessPanel");
   var statusBadge = document.getElementById("verificationStatusBadge");
   var statusSubtext = document.getElementById("verificationStatusSubtext");
+  var profileAvatarFrame = document.getElementById("verifyProfileAvatarFrame");
+  var profileAvatarImage = document.getElementById("verifyProfileAvatarImage");
+  var profileAvatarInitial = document.getElementById("verifyProfileAvatarInitial");
+  var profileNameDisplay = document.getElementById("verifyProfileNameDisplay");
+  var profileEmailDisplay = document.getElementById("verifyProfileEmailDisplay");
+  var profileImageInput = document.getElementById("verifyProfileImage");
+  var profileImageEditBtn = document.getElementById("verifyProfileImageEditBtn");
+  var profileImageOptions = document.getElementById("verifyProfileImageOptions");
+  var profileImageReplaceBtn = document.getElementById("verifyProfileImageReplaceBtn");
+  var profileImageRemoveBtn = document.getElementById("verifyProfileImageRemoveBtn");
+  var documentImageInput = document.getElementById("verifyDocumentImage");
+  var documentPreviewImage = document.getElementById("verifyDocumentPreview");
+  var documentPreviewEmpty = document.getElementById("verifyDocumentPreviewEmpty");
+  var documentPreviewShell = document.getElementById("verifyDocumentPreviewShell");
+  var documentFileName = document.getElementById("verifyDocumentFileName");
+  var documentOpenLink = document.getElementById("verifyDocumentOpenLink");
+  var documentClearBtn = document.getElementById("verifyDocumentClearBtn");
+  var documentReplaceBtn = document.getElementById("verifyDocumentReplaceBtn");
 
   if (!form || !banner || !submitBtn || !statusBadge || !statusSubtext) {
     return;
@@ -34,7 +57,16 @@
 
   var auth = window.VehicleAuthService || null;
   var activeSessionData = null;
+  var currentProfileRecord = null;
   var isSubmitting = false;
+  var profileImageBusy = false;
+  var profileImageOptionsOpen = false;
+  var selectedProfileImageFile = null;
+  var persistedProfileImageUrl = "";
+  var temporaryProfilePreviewUrl = "";
+  var selectedDocumentImageFile = null;
+  var persistedDocumentImageUrl = "";
+  var temporaryDocumentPreviewUrl = "";
 
   function safeParse(raw, fallback) {
     try {
@@ -46,6 +78,277 @@
 
   function trim(value) {
     return String(value || "").trim();
+  }
+
+  function hasOwn(source, key) {
+    return Object.prototype.hasOwnProperty.call(source || {}, key);
+  }
+
+  function isAllowedProfileImageMime(mimeType) {
+    return ALLOWED_PROFILE_IMAGE_MIME_TYPES.indexOf(String(mimeType || "").toLowerCase()) >= 0;
+  }
+
+  function isAllowedDocumentImageMime(mimeType) {
+    return ALLOWED_DOCUMENT_IMAGE_MIME_TYPES.indexOf(String(mimeType || "").toLowerCase()) >= 0;
+  }
+
+  function normalizeDocumentImageUrl(value) {
+    var raw = trim(value);
+    if (!raw) {
+      return "";
+    }
+
+    var lowered = raw.toLowerCase();
+    if (lowered === "null" || lowered === "undefined" || lowered === "[object object]") {
+      return "";
+    }
+
+    if (
+      raw.indexOf("data:image/") === 0 ||
+      raw.indexOf("https://") === 0 ||
+      raw.indexOf("http://") === 0 ||
+      raw.charAt(0) === "/"
+    ) {
+      return raw;
+    }
+
+    return "";
+  }
+
+  function normalizeProfileImageUrl(value) {
+    return normalizeDocumentImageUrl(value);
+  }
+
+  function clearTemporaryProfilePreviewUrl() {
+    if (!temporaryProfilePreviewUrl) {
+      return;
+    }
+
+    try {
+      URL.revokeObjectURL(temporaryProfilePreviewUrl);
+    } catch (_error) {
+      // No-op when browser has already released the object URL.
+    }
+
+    temporaryProfilePreviewUrl = "";
+  }
+
+  function deriveProfileIdentityName(name, email) {
+    var trimmedName = trim(name);
+    if (trimmedName) {
+      return trimmedName;
+    }
+
+    return getDisplayNameFromEmail(email);
+  }
+
+  function deriveProfileInitials(name, email) {
+    var label = deriveProfileIdentityName(name, email);
+    var parts = label.split(/\s+/).filter(Boolean);
+
+    if (!parts.length) {
+      return "U";
+    }
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  function setProfileImageOptionsOpen(open) {
+    profileImageOptionsOpen = Boolean(open);
+
+    if (profileImageOptions) {
+      profileImageOptions.classList.toggle("hidden", !profileImageOptionsOpen);
+      profileImageOptions.classList.toggle("flex", profileImageOptionsOpen);
+    }
+
+    if (profileImageEditBtn) {
+      profileImageEditBtn.setAttribute("aria-expanded", profileImageOptionsOpen ? "true" : "false");
+    }
+  }
+
+  function setProfileImageBusyState(isBusy) {
+    profileImageBusy = Boolean(isBusy);
+
+    if (profileImageEditBtn) {
+      profileImageEditBtn.disabled = profileImageBusy;
+      profileImageEditBtn.classList.toggle("opacity-70", profileImageBusy);
+      profileImageEditBtn.classList.toggle("cursor-not-allowed", profileImageBusy);
+    }
+
+    if (profileImageReplaceBtn) {
+      profileImageReplaceBtn.disabled = profileImageBusy;
+      profileImageReplaceBtn.classList.toggle("opacity-70", profileImageBusy);
+      profileImageReplaceBtn.classList.toggle("cursor-not-allowed", profileImageBusy);
+    }
+
+    if (profileImageRemoveBtn) {
+      var canRemove = Boolean(persistedProfileImageUrl || selectedProfileImageFile);
+      profileImageRemoveBtn.disabled = profileImageBusy || !canRemove;
+      profileImageRemoveBtn.classList.toggle("opacity-70", profileImageRemoveBtn.disabled);
+      profileImageRemoveBtn.classList.toggle("cursor-not-allowed", profileImageRemoveBtn.disabled);
+    }
+  }
+
+  function renderProfileIdentity(previewImageUrl, fromSelection) {
+    var fullName = trim(getField("fullName") && getField("fullName").value) || trim(currentProfileRecord && currentProfileRecord.full_name);
+    var email = trim(getField("email") && getField("email").value) || trim(currentProfileRecord && currentProfileRecord.email);
+    var displayName = deriveProfileIdentityName(fullName, email);
+    var normalizedImage = normalizeProfileImageUrl(previewImageUrl);
+
+    if (!fromSelection) {
+      clearTemporaryProfilePreviewUrl();
+    }
+
+    if (profileNameDisplay) {
+      profileNameDisplay.textContent = displayName || "User Profile";
+    }
+
+    if (profileEmailDisplay) {
+      profileEmailDisplay.textContent = email || "Signed-in account";
+    }
+
+    if (profileAvatarImage) {
+      if (normalizedImage) {
+        profileAvatarImage.src = normalizedImage;
+        profileAvatarImage.classList.remove("hidden");
+      } else {
+        profileAvatarImage.removeAttribute("src");
+        profileAvatarImage.classList.add("hidden");
+      }
+    }
+
+    if (profileAvatarInitial) {
+      profileAvatarInitial.textContent = deriveProfileInitials(displayName, email);
+      profileAvatarInitial.classList.toggle("hidden", Boolean(normalizedImage));
+    }
+
+    setProfileImageBusyState(profileImageBusy);
+  }
+
+  function setPersistedProfileImage(url) {
+    persistedProfileImageUrl = normalizeProfileImageUrl(url);
+    renderProfileIdentity(persistedProfileImageUrl, false);
+  }
+
+  function clearProfileImageSelection() {
+    selectedProfileImageFile = null;
+
+    if (profileImageInput) {
+      profileImageInput.value = "";
+    }
+
+    clearTemporaryProfilePreviewUrl();
+    renderProfileIdentity(persistedProfileImageUrl, false);
+  }
+
+  function openProfileImagePicker() {
+    if (profileImageBusy || !profileImageInput) {
+      return;
+    }
+
+    profileImageInput.click();
+  }
+
+  function isRenderableDocumentImageUrl(value) {
+    return Boolean(normalizeDocumentImageUrl(value));
+  }
+
+  function clearTemporaryDocumentPreviewUrl() {
+    if (!temporaryDocumentPreviewUrl) {
+      return;
+    }
+
+    try {
+      URL.revokeObjectURL(temporaryDocumentPreviewUrl);
+    } catch (_error) {
+      // No-op when browser has already released the object URL.
+    }
+
+    temporaryDocumentPreviewUrl = "";
+  }
+
+  function getFileNameFromImageUrl(url) {
+    var normalized = normalizeDocumentImageUrl(url);
+    if (!normalized) {
+      return "No image selected";
+    }
+
+    if (normalized.indexOf("data:image/") === 0) {
+      return "Uploaded image";
+    }
+
+    var withoutQuery = normalized.split("?")[0];
+    var parts = withoutQuery.split("/");
+    return trim(parts[parts.length - 1]) || "Uploaded image";
+  }
+
+  function renderDocumentPreview(imageUrl, labelText, fromSelection) {
+    var normalized = normalizeDocumentImageUrl(imageUrl);
+
+    if (!fromSelection) {
+      clearTemporaryDocumentPreviewUrl();
+    }
+
+    if (documentPreviewImage) {
+      if (normalized) {
+        documentPreviewImage.src = normalized;
+        documentPreviewImage.classList.remove("hidden");
+      } else {
+        documentPreviewImage.removeAttribute("src");
+        documentPreviewImage.classList.add("hidden");
+      }
+    }
+
+    if (documentPreviewEmpty) {
+      documentPreviewEmpty.classList.toggle("hidden", Boolean(normalized));
+    }
+
+    if (documentOpenLink) {
+      if (normalized) {
+        documentOpenLink.href = normalized;
+        documentOpenLink.classList.remove("hidden");
+        documentOpenLink.classList.add("inline-flex");
+      } else {
+        documentOpenLink.removeAttribute("href");
+        documentOpenLink.classList.add("hidden");
+        documentOpenLink.classList.remove("inline-flex");
+      }
+    }
+
+    if (documentFileName) {
+      documentFileName.textContent = trim(labelText) || getFileNameFromImageUrl(normalized);
+    }
+
+    if (documentReplaceBtn) {
+      documentReplaceBtn.disabled = false;
+      documentReplaceBtn.classList.remove("opacity-60", "cursor-not-allowed");
+    }
+
+    if (documentClearBtn) {
+      documentClearBtn.disabled = !normalized && !selectedDocumentImageFile;
+      documentClearBtn.classList.toggle("opacity-60", documentClearBtn.disabled);
+      documentClearBtn.classList.toggle("cursor-not-allowed", documentClearBtn.disabled);
+    }
+  }
+
+  function setPersistedDocumentImage(url) {
+    persistedDocumentImageUrl = normalizeDocumentImageUrl(url);
+    renderDocumentPreview(persistedDocumentImageUrl, "", false);
+  }
+
+  function clearDocumentImageState() {
+    selectedDocumentImageFile = null;
+    persistedDocumentImageUrl = "";
+
+    if (documentImageInput) {
+      documentImageInput.value = "";
+    }
+
+    renderDocumentPreview("", "No image selected", false);
   }
 
   function normalizeSession(session) {
@@ -114,6 +417,9 @@
     var payload = {
       username: trim(profile && profile.full_name),
       email: trim(profile && profile.email),
+      avatarUrl: normalizeProfileImageUrl(
+        (profile && profile.avatar_url) || (profile && profile.avatarUrl)
+      ),
       phoneNumber: trim(profile && profile.phone_number),
       gender: trim(profile && profile.gender),
       dateOfBirth: trim(profile && profile.date_of_birth),
@@ -123,6 +429,7 @@
       postalCode: trim(profile && profile.postal_code),
       documentType: trim(profile && profile.document_type),
       documentNumber: trim(profile && profile.document_number),
+      documentImageUrl: normalizeDocumentImageUrl(profile && profile.document_image_url),
       documentExpiryDate: trim(profile && profile.document_expiry_date),
       verificationStatus: trim(profile && profile.verification_status) || "pending",
       verificationSubmittedAt: trim(profile && profile.verification_submitted_at),
@@ -143,7 +450,14 @@
     return form.elements.namedItem(name);
   }
 
+  function getErrorNode(fieldName) {
+    return form.querySelector('[data-error-for="' + fieldName + '"]') ||
+      document.querySelector('[data-error-for="' + fieldName + '"]');
+  }
+
   function setBanner(mode, text) {
+    var isDarkTheme = document.documentElement.getAttribute("data-theme") === "dark";
+
     banner.classList.remove("hidden");
     banner.textContent = String(text || "");
 
@@ -151,22 +465,22 @@
     banner.style.borderStyle = "solid";
 
     if (mode === "success") {
-      banner.style.borderColor = "rgba(74,159,108,0.42)";
-      banner.style.backgroundColor = "rgba(74,159,108,0.14)";
-      banner.style.color = "#1f6a43";
+      banner.style.borderColor = isDarkTheme ? "rgba(115,193,152,0.52)" : "rgba(74,159,108,0.42)";
+      banner.style.backgroundColor = isDarkTheme ? "rgba(35,80,61,0.5)" : "rgba(74,159,108,0.14)";
+      banner.style.color = isDarkTheme ? "#dcf7e8" : "#1f6a43";
       return;
     }
 
     if (mode === "error") {
-      banner.style.borderColor = "rgba(190,59,59,0.36)";
-      banner.style.backgroundColor = "rgba(190,59,59,0.1)";
-      banner.style.color = "#9f2d2d";
+      banner.style.borderColor = isDarkTheme ? "rgba(224,112,112,0.52)" : "rgba(190,59,59,0.36)";
+      banner.style.backgroundColor = isDarkTheme ? "rgba(90,35,35,0.48)" : "rgba(190,59,59,0.1)";
+      banner.style.color = isDarkTheme ? "#ffe1e1" : "#9f2d2d";
       return;
     }
 
-    banner.style.borderColor = "rgba(44,118,110,0.28)";
-    banner.style.backgroundColor = "rgba(44,118,110,0.1)";
-    banner.style.color = "#1f5551";
+    banner.style.borderColor = isDarkTheme ? "rgba(111,170,175,0.46)" : "rgba(44,118,110,0.28)";
+    banner.style.backgroundColor = isDarkTheme ? "rgba(26,52,60,0.55)" : "rgba(44,118,110,0.1)";
+    banner.style.color = isDarkTheme ? "#dcedf1" : "#1f5551";
   }
 
   function setSubmitState(loading, label) {
@@ -205,7 +519,7 @@
 
   function clearFieldError(fieldName) {
     var field = getField(fieldName);
-    var errorNode = form.querySelector('[data-error-for="' + fieldName + '"]');
+    var errorNode = getErrorNode(fieldName);
 
     if (field) {
       field.style.removeProperty("border-color");
@@ -217,11 +531,23 @@
       errorNode.textContent = "";
       errorNode.classList.add("hidden");
     }
+
+    if (fieldName === "documentImage" && documentPreviewShell) {
+      documentPreviewShell.style.removeProperty("border-color");
+      documentPreviewShell.style.removeProperty("box-shadow");
+      documentPreviewShell.style.removeProperty("background-color");
+    }
+
+    if (fieldName === "profileImage" && profileAvatarFrame) {
+      profileAvatarFrame.style.removeProperty("border-color");
+      profileAvatarFrame.style.removeProperty("box-shadow");
+      profileAvatarFrame.style.removeProperty("background-color");
+    }
   }
 
   function setFieldError(fieldName, message) {
     var field = getField(fieldName);
-    var errorNode = form.querySelector('[data-error-for="' + fieldName + '"]');
+    var errorNode = getErrorNode(fieldName);
 
     if (field) {
       field.style.borderColor = "rgba(244,63,94,0.8)";
@@ -232,6 +558,18 @@
     if (errorNode) {
       errorNode.textContent = String(message || "Invalid value.");
       errorNode.classList.remove("hidden");
+    }
+
+    if (fieldName === "documentImage" && documentPreviewShell) {
+      documentPreviewShell.style.borderColor = "rgba(244,63,94,0.8)";
+      documentPreviewShell.style.boxShadow = "0 0 0 3px rgba(244,63,94,0.14)";
+      documentPreviewShell.style.backgroundColor = "rgba(255,241,242,0.42)";
+    }
+
+    if (fieldName === "profileImage" && profileAvatarFrame) {
+      profileAvatarFrame.style.borderColor = "rgba(244,63,94,0.8)";
+      profileAvatarFrame.style.boxShadow = "0 0 0 4px rgba(244,63,94,0.18)";
+      profileAvatarFrame.style.backgroundColor = "rgba(255,241,242,0.55)";
     }
   }
 
@@ -286,6 +624,8 @@
       documentType: trim(payload.documentType).toLowerCase(),
       documentNumber: trim(payload.documentNumber).toUpperCase(),
       documentExpiryDate: trim(payload.documentExpiryDate),
+      documentImageUrl: normalizeDocumentImageUrl(payload.documentImageUrl),
+      hasSelectedDocumentImage: Boolean(payload.hasSelectedDocumentImage),
     };
   }
 
@@ -416,6 +756,18 @@
       return "";
     }
 
+    if (fieldName === "documentImage") {
+      if (!payload.documentImageUrl && !payload.hasSelectedDocumentImage) {
+        return "Document image is required.";
+      }
+
+      if (payload.documentImageUrl && !isRenderableDocumentImageUrl(payload.documentImageUrl)) {
+        return "Document image format is invalid.";
+      }
+
+      return "";
+    }
+
     return "";
   }
 
@@ -452,6 +804,8 @@
       documentType: getField("documentType") ? getField("documentType").value : "",
       documentNumber: getField("documentNumber") ? getField("documentNumber").value : "",
       documentExpiryDate: getField("documentExpiryDate") ? getField("documentExpiryDate").value : "",
+      documentImageUrl: persistedDocumentImageUrl,
+      hasSelectedDocumentImage: Boolean(selectedDocumentImageFile),
     });
   }
 
@@ -468,6 +822,7 @@
     return {
       full_name: trim(source.full_name || source.username),
       email: trim(source.email),
+      avatar_url: normalizeProfileImageUrl(source.avatar_url || source.avatarUrl),
       phone_number: trim(source.phone_number || source.phoneNumber),
       gender: trim(source.gender).toLowerCase(),
       date_of_birth: trim(source.date_of_birth || source.dateOfBirth),
@@ -477,6 +832,7 @@
       postal_code: trim(source.postal_code || source.postalCode),
       document_type: trim(source.document_type || source.documentType).toLowerCase(),
       document_number: trim(source.document_number || source.documentNumber),
+      document_image_url: normalizeDocumentImageUrl(source.document_image_url || source.documentImageUrl),
       document_expiry_date: trim(source.document_expiry_date || source.documentExpiryDate),
       verification_status: trim(source.verification_status || source.verificationStatus).toLowerCase() || "pending",
       verification_submitted_at: trim(source.verification_submitted_at || source.verificationSubmittedAt),
@@ -496,6 +852,7 @@
     return {
       full_name: fullName || getDisplayNameFromEmail(email),
       email: email,
+      avatar_url: normalizeProfileImageUrl(remote.avatar_url || local.avatar_url),
       phone_number: trim(remote.phone_number || local.phone_number),
       gender: trim(remote.gender || local.gender).toLowerCase(),
       date_of_birth: trim(remote.date_of_birth || local.date_of_birth),
@@ -505,6 +862,7 @@
       postal_code: trim(remote.postal_code || local.postal_code),
       document_type: trim(remote.document_type || local.document_type).toLowerCase(),
       document_number: trim(remote.document_number || local.document_number),
+      document_image_url: normalizeDocumentImageUrl(remote.document_image_url || local.document_image_url),
       document_expiry_date: trim(remote.document_expiry_date || local.document_expiry_date),
       verification_status: trim(remote.verification_status || local.verification_status).toLowerCase() || "pending",
       verification_submitted_at: trim(remote.verification_submitted_at || local.verification_submitted_at),
@@ -514,6 +872,8 @@
 
   function fillForm(profile) {
     var source = profile || {};
+
+    currentProfileRecord = Object.assign({}, currentProfileRecord || {}, source);
 
     if (getField("fullName")) getField("fullName").value = trim(source.full_name);
     if (getField("email")) getField("email").value = trim(source.email);
@@ -527,6 +887,22 @@
     if (getField("documentType")) getField("documentType").value = trim(source.document_type).toLowerCase();
     if (getField("documentNumber")) getField("documentNumber").value = trim(source.document_number).toUpperCase();
     if (getField("documentExpiryDate")) getField("documentExpiryDate").value = trim(source.document_expiry_date);
+
+    if (hasOwn(source, "avatar_url") || hasOwn(source, "avatarUrl")) {
+      setPersistedProfileImage(source.avatar_url || source.avatarUrl);
+    } else {
+      renderProfileIdentity(persistedProfileImageUrl, false);
+    }
+
+    setPersistedDocumentImage(source.document_image_url);
+
+    selectedDocumentImageFile = null;
+    if (documentImageInput) {
+      documentImageInput.value = "";
+    }
+
+    clearFieldError("profileImage");
+    clearFieldError("documentImage");
   }
 
   function bindLiveValidation() {
@@ -566,6 +942,273 @@
         clearFieldError(fieldName);
       });
     });
+  }
+
+  function resolvePublicError(error, fallbackMessage) {
+    if (auth && typeof auth.toPublicError === "function") {
+      return auth.toPublicError(error, fallbackMessage);
+    }
+
+    return String((error && error.message) || fallbackMessage || "Something went wrong.");
+  }
+
+  function getResolvedProfileName() {
+    return trim(getField("fullName") && getField("fullName").value) ||
+      trim(currentProfileRecord && currentProfileRecord.full_name) ||
+      "User";
+  }
+
+  function applyProfileRecordUpdate(update) {
+    var payload = update && typeof update === "object" ? update : {};
+    currentProfileRecord = Object.assign({}, currentProfileRecord || {}, payload);
+
+    if (!trim(currentProfileRecord.full_name)) {
+      currentProfileRecord.full_name = getResolvedProfileName();
+    }
+
+    if (!trim(currentProfileRecord.email)) {
+      currentProfileRecord.email = trim(getField("email") && getField("email").value);
+    }
+  }
+
+  async function uploadAndPersistProfileImage(file) {
+    if (!file || profileImageBusy) {
+      return;
+    }
+
+    if (!auth || typeof auth.uploadProfileImage !== "function" || typeof auth.upsertProfile !== "function") {
+      var serviceError = "Profile image service is unavailable. Please refresh and try again.";
+      setFieldError("profileImage", serviceError);
+      renderProfileIdentity(persistedProfileImageUrl, false);
+      return;
+    }
+
+    setProfileImageBusyState(true);
+
+    try {
+      var liveSession = await auth.getSession();
+      if (!liveSession || !liveSession.user) {
+        throw new Error("Your session expired. Please sign in again before updating profile image.");
+      }
+      activeSessionData = liveSession;
+
+      var uploadedAvatarUrl = await auth.uploadProfileImage(file);
+      var upsertResult = await auth.upsertProfile({
+        fullName: getResolvedProfileName(),
+        avatarUrl: uploadedAvatarUrl,
+      });
+
+      if (!upsertResult || !upsertResult.success) {
+        throw (upsertResult && upsertResult.error) || new Error("Unable to save profile image right now.");
+      }
+
+      var updatedProfile = upsertResult.data || {};
+      if (!trim(updatedProfile.avatar_url)) {
+        updatedProfile.avatar_url = uploadedAvatarUrl;
+      }
+
+      applyProfileRecordUpdate(updatedProfile);
+      setPersistedProfileImage(updatedProfile.avatar_url);
+
+      selectedProfileImageFile = null;
+      if (profileImageInput) {
+        profileImageInput.value = "";
+      }
+
+      clearFieldError("profileImage");
+      setProfileImageOptionsOpen(false);
+
+      var storedSession = getStoredSession();
+      persistProfileCache(currentProfileRecord, storedSession, activeSessionData);
+    } catch (error) {
+      var readable = resolvePublicError(error, "Unable to update profile image right now.");
+      selectedProfileImageFile = null;
+
+      if (profileImageInput) {
+        profileImageInput.value = "";
+      }
+
+      clearTemporaryProfilePreviewUrl();
+      renderProfileIdentity(persistedProfileImageUrl, false);
+      setFieldError("profileImage", readable);
+    } finally {
+      setProfileImageBusyState(false);
+    }
+  }
+
+  async function removePersistedProfileImage() {
+    if (profileImageBusy) {
+      return;
+    }
+
+    if (!persistedProfileImageUrl && !selectedProfileImageFile) {
+      return;
+    }
+
+    if (!auth || typeof auth.upsertProfile !== "function") {
+      var serviceError = "Profile update service is unavailable. Please refresh and try again.";
+      setFieldError("profileImage", serviceError);
+      return;
+    }
+
+    setProfileImageBusyState(true);
+
+    try {
+      var liveSession = await auth.getSession();
+      if (!liveSession || !liveSession.user) {
+        throw new Error("Your session expired. Please sign in again before removing profile image.");
+      }
+      activeSessionData = liveSession;
+
+      var upsertResult = await auth.upsertProfile({
+        fullName: getResolvedProfileName(),
+        avatarUrl: null,
+      });
+
+      if (!upsertResult || !upsertResult.success) {
+        throw (upsertResult && upsertResult.error) || new Error("Unable to remove profile image right now.");
+      }
+
+      applyProfileRecordUpdate(upsertResult.data || {});
+      currentProfileRecord.avatar_url = "";
+
+      setPersistedProfileImage("");
+      clearProfileImageSelection();
+
+      clearFieldError("profileImage");
+      setProfileImageOptionsOpen(false);
+
+      var storedSession = getStoredSession();
+      persistProfileCache(currentProfileRecord, storedSession, activeSessionData);
+    } catch (error) {
+      var readable = resolvePublicError(error, "Unable to remove profile image right now.");
+      setFieldError("profileImage", readable);
+    } finally {
+      setProfileImageBusyState(false);
+      renderProfileIdentity(persistedProfileImageUrl, false);
+    }
+  }
+
+  function bindProfileImageControls() {
+    if (!profileImageInput) {
+      renderProfileIdentity(persistedProfileImageUrl, false);
+      return;
+    }
+
+    if (profileImageEditBtn) {
+      profileImageEditBtn.addEventListener("click", function () {
+        if (profileImageBusy) {
+          return;
+        }
+
+        setProfileImageOptionsOpen(!profileImageOptionsOpen);
+      });
+    }
+
+    if (profileImageReplaceBtn) {
+      profileImageReplaceBtn.addEventListener("click", openProfileImagePicker);
+    }
+
+    profileImageInput.addEventListener("change", function () {
+      var file = profileImageInput.files && profileImageInput.files.length
+        ? profileImageInput.files[0]
+        : null;
+
+      if (!file) {
+        selectedProfileImageFile = null;
+        renderProfileIdentity(persistedProfileImageUrl, false);
+        return;
+      }
+
+      var mimeType = String(file.type || "").toLowerCase();
+      if (!isAllowedProfileImageMime(mimeType)) {
+        profileImageInput.value = "";
+        selectedProfileImageFile = null;
+        setFieldError("profileImage", "Only JPG, PNG, or WEBP profile images are allowed.");
+        renderProfileIdentity(persistedProfileImageUrl, false);
+        return;
+      }
+
+      if (Number(file.size || 0) > MAX_PROFILE_IMAGE_SOURCE_BYTES) {
+        profileImageInput.value = "";
+        selectedProfileImageFile = null;
+        setFieldError("profileImage", "Profile image must be under 20 MB.");
+        renderProfileIdentity(persistedProfileImageUrl, false);
+        return;
+      }
+
+      clearFieldError("profileImage");
+      clearTemporaryProfilePreviewUrl();
+      temporaryProfilePreviewUrl = URL.createObjectURL(file);
+      selectedProfileImageFile = file;
+      renderProfileIdentity(temporaryProfilePreviewUrl, true);
+
+      void uploadAndPersistProfileImage(file);
+    });
+
+    if (profileImageRemoveBtn) {
+      profileImageRemoveBtn.addEventListener("click", function () {
+        clearFieldError("profileImage");
+        void removePersistedProfileImage();
+      });
+    }
+
+    setProfileImageOptionsOpen(false);
+    renderProfileIdentity(persistedProfileImageUrl, false);
+  }
+
+  function bindDocumentImageControls() {
+    if (!documentImageInput) {
+      return;
+    }
+
+    documentImageInput.addEventListener("change", function () {
+      var file = documentImageInput.files && documentImageInput.files.length
+        ? documentImageInput.files[0]
+        : null;
+
+      if (!file) {
+        selectedDocumentImageFile = null;
+        renderDocumentPreview(persistedDocumentImageUrl, "", false);
+        return;
+      }
+
+      var mimeType = String(file.type || "").toLowerCase();
+      if (!isAllowedDocumentImageMime(mimeType)) {
+        documentImageInput.value = "";
+        selectedDocumentImageFile = null;
+        setFieldError("documentImage", "Only JPG, PNG, or WEBP document images are allowed.");
+        return;
+      }
+
+      if (Number(file.size || 0) > MAX_DOCUMENT_IMAGE_SOURCE_BYTES) {
+        documentImageInput.value = "";
+        selectedDocumentImageFile = null;
+        setFieldError("documentImage", "Document image must be under 20 MB.");
+        return;
+      }
+
+      clearFieldError("documentImage");
+      clearTemporaryDocumentPreviewUrl();
+      temporaryDocumentPreviewUrl = URL.createObjectURL(file);
+      selectedDocumentImageFile = file;
+      renderDocumentPreview(temporaryDocumentPreviewUrl, file.name, true);
+    });
+
+    if (documentReplaceBtn) {
+      documentReplaceBtn.addEventListener("click", function () {
+        if (documentImageInput) {
+          documentImageInput.click();
+        }
+      });
+    }
+
+    if (documentClearBtn) {
+      documentClearBtn.addEventListener("click", function () {
+        clearFieldError("documentImage");
+        clearDocumentImageState();
+      });
+    }
   }
 
   async function initializePage() {
@@ -659,6 +1302,11 @@
 
     if (firstInvalid) {
       setBanner("error", "Please correct highlighted fields before submitting verification.");
+      if (firstInvalid === "documentImage" && documentReplaceBtn && typeof documentReplaceBtn.focus === "function") {
+        documentReplaceBtn.focus();
+        return;
+      }
+
       var firstInvalidField = getField(firstInvalid);
       if (firstInvalidField && typeof firstInvalidField.focus === "function") {
         firstInvalidField.focus();
@@ -667,10 +1315,24 @@
     }
 
     isSubmitting = true;
-    setSubmitState(true, "Submitting verification...");
-    setBanner("info", "Submitting verification details securely...");
+    setSubmitState(true, "Preparing submission...");
+    setBanner("info", "Preparing verification details...");
 
     try {
+      if (selectedDocumentImageFile) {
+        if (!auth || typeof auth.uploadVerificationDocumentImage !== "function") {
+          throw new Error("Verification image upload service is unavailable. Please refresh and try again.");
+        }
+
+        setSubmitState(true, "Uploading document image...");
+        setBanner("info", "Uploading document image securely...");
+        payload.documentImageUrl = await auth.uploadVerificationDocumentImage(selectedDocumentImageFile);
+        payload.hasSelectedDocumentImage = false;
+      }
+
+      setSubmitState(true, "Submitting verification...");
+      setBanner("info", "Submitting verification details securely...");
+
       var result = await auth.submitVerification(payload);
       if (!result || !result.success || !result.data) {
         throw (result && result.error) || new Error("Unable to submit verification details right now.");
@@ -678,6 +1340,12 @@
 
       fillForm(result.data);
       setStatusBadge(result.data.verification_status, result.data.verification_submitted_at);
+
+      setPersistedDocumentImage(result.data.document_image_url || payload.documentImageUrl);
+      selectedDocumentImageFile = null;
+      if (documentImageInput) {
+        documentImageInput.value = "";
+      }
 
       var storedSession = getStoredSession();
       persistProfileCache(result.data, storedSession, activeSessionData);
@@ -700,6 +1368,14 @@
     }
   });
 
+  window.addEventListener("beforeunload", function () {
+    clearTemporaryProfilePreviewUrl();
+    clearTemporaryDocumentPreviewUrl();
+  });
+
   bindLiveValidation();
+  bindProfileImageControls();
+  bindDocumentImageControls();
+  renderDocumentPreview("", "No image selected", false);
   initializePage();
 })();
