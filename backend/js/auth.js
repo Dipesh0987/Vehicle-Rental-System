@@ -1976,7 +1976,7 @@
     ensureProfileIdentityVerificationChip(trigger);
     ensureVerificationPanelMarkup(panel);
     var quickVerifyBtn = ensureProfileQuickVerifyButton(trigger);
-    var verificationModal = ensureVerificationModalMarkup();
+    var verificationModal = null;
 
     var verificationToggleBtn = panel.querySelector("[data-profile-verification-toggle]");
     var verificationForm = verificationModal ? verificationModal.querySelector("[data-profile-verification-form]") : null;
@@ -2117,6 +2117,17 @@
       }
 
       return Boolean(String(session.email || "").trim());
+    }
+
+    function openVerificationPage() {
+      var targetPath = "profile-verification.html";
+      var currentPath = String(window.location.pathname || "").toLowerCase();
+
+      if (currentPath.indexOf("profile-verification.html") >= 0) {
+        return;
+      }
+
+      window.location.href = targetPath;
     }
 
     function clearHidePanelTimer() {
@@ -2941,15 +2952,20 @@
           return;
         }
 
-        void refreshProfileFromCloud();
-        toggleVerificationForm(true);
+        closePanel();
+        openVerificationPage();
       });
     }
 
     if (verificationToggleBtn) {
       verificationToggleBtn.addEventListener("click", function () {
-        void refreshProfileFromCloud();
-        toggleVerificationForm(true);
+        if (!hasAuthenticatedSession()) {
+          closePanel();
+          return;
+        }
+
+        closePanel();
+        openVerificationPage();
       });
     }
 
