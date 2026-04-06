@@ -9,6 +9,13 @@
   var PROFILE_IMAGE_MAX_DIMENSION = 768;
   var PROFILE_IMAGE_QUALITY = 0.86;
   var PROFILE_IMAGE_MAX_DATA_URL_CHARS = 7 * 1024 * 1024;
+  var VERIFICATION_STATUSES = ["not_submitted", "pending", "approved", "rejected"];
+  var VERIFICATION_GENDERS = ["male", "female", "other", "prefer_not_to_say"];
+  var VERIFICATION_DOCUMENT_TYPES = ["driving_license", "national_id", "passport", "other"];
+  var PROFILE_COLUMNS_SELECT = "id,email,full_name,avatar_url,updated_at";
+  var PROFILE_COLUMNS_WITHOUT_AVATAR_SELECT = "id,email,full_name,updated_at";
+  var VERIFICATION_COLUMNS_SELECT = "phone_number,gender,date_of_birth,address_line,city,country,postal_code,document_type,document_number,document_expiry_date,verification_status,verification_submitted_at,verification_reviewed_at,verification_reviewed_by,verification_note";
+  var PROFILE_COLUMNS_WITH_VERIFICATION_SELECT = PROFILE_COLUMNS_SELECT + "," + VERIFICATION_COLUMNS_SELECT;
 
   (function resolveProfileImageBucket() {
     var localConfig = window.SUPABASE_LOCAL_CONFIG || {};
@@ -156,6 +163,10 @@
 
     var message = getErrorMessage(error);
 
+    if (isMissingVerificationColumnError(error)) {
+      return "User verification workflow is not enabled yet. Run database/migrations/012_user_profile_verification_workflow.sql in Supabase SQL Editor.";
+    }
+
     if (
       message.indexOf("profile-images") >= 0 &&
       (message.indexOf("bucket") >= 0 || message.indexOf("not found") >= 0)
@@ -276,6 +287,162 @@
       message.indexOf("column") >= 0 &&
       message.indexOf("does not exist") >= 0
     );
+  }
+
+  function isMissingVerificationColumnError(error) {
+    var message = getErrorMessage(error);
+    if (message.indexOf("column") < 0 || message.indexOf("does not exist") < 0) {
+      return false;
+    }
+
+    return (
+      message.indexOf("phone_number") >= 0 ||
+      message.indexOf("gender") >= 0 ||
+      message.indexOf("date_of_birth") >= 0 ||
+      message.indexOf("address_line") >= 0 ||
+      message.indexOf("document_type") >= 0 ||
+      message.indexOf("document_number") >= 0 ||
+      message.indexOf("verification_status") >= 0 ||
+      message.indexOf("verification_submitted_at") >= 0 ||
+      message.indexOf("verification_reviewed_at") >= 0 ||
+      message.indexOf("verification_reviewed_by") >= 0 ||
+      message.indexOf("verification_note") >= 0
+    );
+  }
+
+  function normalizeVerificationStatus(value) {
+    var normalized = trim(value).toLowerCase();
+    if (VERIFICATION_STATUSES.indexOf(normalized) >= 0) {
+      return normalized;
+    }
+
+    return "not_submitted";
+  }
+
+  function normalizeVerificationGender(value) {
+    var normalized = trim(value).toLowerCase();
+    if (VERIFICATION_GENDERS.indexOf(normalized) >= 0) {
+      return normalized;
+    }
+
+    return "";
+  }
+
+  function normalizeVerificationDocumentType(value) {
+    var normalized = trim(value).toLowerCase();
+    if (VERIFICATION_DOCUMENT_TYPES.indexOf(normalized) >= 0) {
+      return normalized;
+    }
+
+    return "";
+  }
+
+  function normalizeIsoDate(value) {
+    var normalized = trim(value);
+    if (!normalized) {
+      return null;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+      return null;
+    }
+
+    return normalized;
+  }
+
+  function normalizePhoneNumber(value) {
+    return trim(value)
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function normalizeVerificationSubmissionPayload(input) {
+    var payload = input && typeof input === "object" ? input : {};
+
+    var phoneNumber = normalizePhoneNumber(payload.phoneNumber || payload.phone_number);
+    var phoneDigits = phoneNumber.replace(/[^\d]/g, "");
+    var gender = normalizeVerificationGender(payload.gender);
+    var dateOfBirth = normalizeIsoDate(payload.dateOfBirth || payload.date_of_birth);
+    var addressLine = trim(payload.addressLine || payload.address_line);
+    var city = trim(payload.city);
+    var country = trim(payload.country) || "Nepal";
+    var postalCode = trim(payload.postalCode || payload.postal_code);
+    var documentType = normalizeVerificationDocumentType(payload.documentType || payload.document_type);
+    var documentNumber = trim(payload.documentNumber || payload.document_number).toUpperCase();
+    var documentExpiryDate = normalizeIsoDate(payload.documentExpiryDate || payload.document_expiry_date);
+
+    if (!phoneNumber || phoneDigits.length < 7 || phoneDigits.length > 15) {
+      throw new Error("Phone number must contain 7 to 15 digits.");
+    }
+
+    if (!gender) {
+      throw new Error("Gender is required.");
+    }
+
+    if (!dateOfBirth) {
+      throw new Error("Date of birth is required.");
+    }
+
+    if (!addressLine) {
+      throw new Error("Address line is required.");
+    }
+
+    if (!city) {
+      throw new Error("City is required.");
+    }
+
+    if (!documentType) {
+      throw new Error("Document type is required.");
+    }
+
+    if (!documentNumber || documentNumber.length < 4) {
+      throw new Error("Document number is required.");
+    }
+
+    return {
+      phone_number: phoneNumber,
+      gender: gender,
+      date_of_birth: dateOfBirth,
+      address_line: addressLine,
+      city: city,
+      country: country,
+      postal_code: postalCode || null,
+      document_type: documentType,
+      document_number: documentNumber,
+      document_expiry_date: documentExpiryDate,
+      verification_status: "pending",
+      verification_submitted_at: new Date().toISOString(),
+      verification_reviewed_at: null,
+      verification_reviewed_by: null,
+      verification_note: null,
+    };
+  }
+
+  function mapProfileRow(row) {
+    var source = row || {};
+
+    return {
+      id: source.id,
+      email: source.email,
+      full_name: source.full_name,
+      avatar_url: source.avatar_url || null,
+      phone_number: trim(source.phone_number) || null,
+      gender: normalizeVerificationGender(source.gender) || null,
+      date_of_birth: normalizeIsoDate(source.date_of_birth),
+      address_line: trim(source.address_line) || null,
+      city: trim(source.city) || null,
+      country: trim(source.country) || "Nepal",
+      postal_code: trim(source.postal_code) || null,
+      document_type: normalizeVerificationDocumentType(source.document_type) || null,
+      document_number: trim(source.document_number) || null,
+      document_expiry_date: normalizeIsoDate(source.document_expiry_date),
+      verification_status: normalizeVerificationStatus(source.verification_status),
+      verification_submitted_at: source.verification_submitted_at || null,
+      verification_reviewed_at: source.verification_reviewed_at || null,
+      verification_reviewed_by: source.verification_reviewed_by || null,
+      verification_note: trim(source.verification_note) || null,
+      updated_at: source.updated_at,
+    };
   }
 
   function normalizeProfilePayload(profileInput, session) {
@@ -704,14 +871,22 @@
 
     var response = await client
       .from("user_profiles")
-      .select("id, email, full_name, avatar_url, updated_at")
+      .select(PROFILE_COLUMNS_WITH_VERIFICATION_SELECT)
       .eq("id", session.user.id)
       .maybeSingle();
+
+    if (response.error && (isMissingVerificationColumnError(response.error) || isMissingAvatarColumnError(response.error))) {
+      response = await client
+        .from("user_profiles")
+        .select(PROFILE_COLUMNS_SELECT)
+        .eq("id", session.user.id)
+        .maybeSingle();
+    }
 
     if (response.error && isMissingAvatarColumnError(response.error)) {
       response = await client
         .from("user_profiles")
-        .select("id, email, full_name, updated_at")
+        .select(PROFILE_COLUMNS_WITHOUT_AVATAR_SELECT)
         .eq("id", session.user.id)
         .maybeSingle();
     }
@@ -725,13 +900,7 @@
       return null;
     }
 
-    return {
-      id: response.data.id,
-      email: response.data.email,
-      full_name: response.data.full_name,
-      avatar_url: response.data.avatar_url || null,
-      updated_at: response.data.updated_at,
-    };
+    return mapProfileRow(response.data);
   }
 
   async function upsertProfile(profileInput) {
@@ -758,8 +927,16 @@
     var response = await client
       .from("user_profiles")
       .upsert(payload, { onConflict: "id" })
-      .select("id, email, full_name, avatar_url, updated_at")
+      .select(PROFILE_COLUMNS_WITH_VERIFICATION_SELECT)
       .single();
+
+    if (response.error && (isMissingVerificationColumnError(response.error) || isMissingAvatarColumnError(response.error))) {
+      response = await client
+        .from("user_profiles")
+        .upsert(payload, { onConflict: "id" })
+        .select(PROFILE_COLUMNS_SELECT)
+        .single();
+    }
 
     if (response.error && isMissingAvatarColumnError(response.error)) {
       var legacyPayload = {
@@ -772,7 +949,7 @@
       response = await client
         .from("user_profiles")
         .upsert(legacyPayload, { onConflict: "id" })
-        .select("id, email, full_name, updated_at")
+        .select(PROFILE_COLUMNS_WITHOUT_AVATAR_SELECT)
         .single();
     }
 
@@ -787,13 +964,104 @@
 
     return {
       success: true,
-      data: {
-        id: response.data.id,
-        email: response.data.email,
-        full_name: response.data.full_name,
-        avatar_url: response.data.avatar_url || null,
-        updated_at: response.data.updated_at,
-      },
+      data: mapProfileRow(response.data),
+      error: null,
+    };
+  }
+
+  async function submitVerification(verificationInput) {
+    var client = await getClient();
+    var session = await getSession();
+
+    if (!session || !session.user) {
+      return {
+        success: false,
+        data: null,
+        error: new Error("No active session for verification submission."),
+      };
+    }
+
+    var normalizedVerification;
+    try {
+      normalizedVerification = normalizeVerificationSubmissionPayload(verificationInput);
+    } catch (validationError) {
+      return {
+        success: false,
+        data: null,
+        error: validationError,
+      };
+    }
+
+    var fullName = trim(
+      verificationInput && typeof verificationInput === "object"
+        ? (verificationInput.fullName || verificationInput.full_name)
+        : ""
+    );
+
+    if (!fullName) {
+      var metadata = (session.user && session.user.user_metadata) || {};
+      fullName = trim(metadata.full_name || metadata.display_name);
+    }
+
+    if (!fullName) {
+      fullName = getDisplayNameFromEmail(session.user.email);
+    }
+
+    var payload = {
+      id: session.user.id,
+      email: session.user.email,
+      full_name: fullName || "User",
+      phone_number: normalizedVerification.phone_number,
+      gender: normalizedVerification.gender,
+      date_of_birth: normalizedVerification.date_of_birth,
+      address_line: normalizedVerification.address_line,
+      city: normalizedVerification.city,
+      country: normalizedVerification.country,
+      postal_code: normalizedVerification.postal_code,
+      document_type: normalizedVerification.document_type,
+      document_number: normalizedVerification.document_number,
+      document_expiry_date: normalizedVerification.document_expiry_date,
+      verification_status: normalizedVerification.verification_status,
+      verification_submitted_at: normalizedVerification.verification_submitted_at,
+      verification_reviewed_at: normalizedVerification.verification_reviewed_at,
+      verification_reviewed_by: normalizedVerification.verification_reviewed_by,
+      verification_note: normalizedVerification.verification_note,
+      updated_at: new Date().toISOString(),
+    };
+
+    var response = await client
+      .from("user_profiles")
+      .upsert(payload, { onConflict: "id" })
+      .select(PROFILE_COLUMNS_WITH_VERIFICATION_SELECT)
+      .single();
+
+    if (response.error && isMissingAvatarColumnError(response.error)) {
+      response = await client
+        .from("user_profiles")
+        .select(PROFILE_COLUMNS_WITHOUT_AVATAR_SELECT + "," + VERIFICATION_COLUMNS_SELECT)
+        .eq("id", session.user.id)
+        .maybeSingle();
+    }
+
+    if (response.error && isMissingVerificationColumnError(response.error)) {
+      return {
+        success: false,
+        data: null,
+        error: new Error("User verification workflow schema is missing. Run database/migrations/012_user_profile_verification_workflow.sql."),
+      };
+    }
+
+    if (response.error) {
+      return {
+        success: false,
+        data: null,
+        error: response.error,
+      };
+    }
+
+    return {
+      success: true,
+      data: mapProfileRow(response.data),
       error: null,
     };
   }
@@ -809,6 +1077,7 @@
     signInWithGoogle: signInWithGoogle,
     sendPasswordReset: sendPasswordReset,
     upsertProfile: upsertProfile,
+    submitVerification: submitVerification,
     validatePassword: validatePassword,
     toPublicError: toPublicError,
     isRateLimitError: isRateLimitError,
