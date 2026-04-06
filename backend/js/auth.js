@@ -6,9 +6,13 @@
   var STORAGE_PROFILE_PREFIX = "vrs_profile::";
   var STORAGE_ATTEMPTS = "vrs_login_attempts";
   var PROFILE_UPDATED_EVENT = "vrs:profile-updated";
+  var BROKEN_AVATAR_SYNC_CACHE = {};
   var MAX_ATTEMPTS_WARNING = 3;
   var BOOKING_GUARD_REDIRECT_TIMER = null;
   var BOOKING_GUARD_TOAST_HIDE_TIMER = null;
+  var PROFILE_VERIFICATION_STATUSES = ["not_submitted", "pending", "approved", "rejected"];
+  var PROFILE_VERIFICATION_GENDERS = ["male", "female", "other", "prefer_not_to_say"];
+  var PROFILE_VERIFICATION_DOCUMENT_TYPES = ["driving_license", "national_id", "passport", "other"];
 
   function safeParse(raw, fallback) {
     try {
@@ -18,9 +22,474 @@
     }
   }
 
+  function normalizeSession(session) {
+    if (!session || typeof session !== "object") {
+      return null;
+    }
+
+    var userId = String(session.userId || "").trim();
+    var email = String(session.email || "").trim().toLowerCase();
+    var accessToken = String(session.accessToken || "").trim();
+
+    // Guard against legacy placeholder session objects from older local-only auth flows.
+    if (email === "guest@example.com") {
+      return null;
+    }
+
+    if (!userId) {
+      if (!email || !accessToken) {
+        return null;
+      }
+    }
+
+    return session;
+  }
+
   function getSession() {
     var sessionRaw = sessionStorage.getItem(STORAGE_SESSION) || localStorage.getItem(STORAGE_SESSION);
-    return safeParse(sessionRaw, null);
+    var parsed = safeParse(sessionRaw, null);
+    var normalized = normalizeSession(parsed);
+
+    if (parsed && !normalized) {
+      clearSession();
+    }
+
+    return normalized;
+  }
+
+  function normalizeAvatarValue(value) {
+    var raw = String(value || "").trim();
+
+    if (!raw) {
+      return "";
+    }
+
+    var lowered = raw.toLowerCase();
+    if (
+      lowered === "null" ||
+      lowered === "undefined" ||
+      lowered === "[object object]"
+    ) {
+      return "";
+    }
+
+    var normalizedPath = raw.split("#")[0].split("?")[0].toLowerCase();
+    if (
+      normalizedPath.indexOf("assets/images/car-transparent.png") >= 0 ||
+      normalizedPath.indexOf("default-avatar") >= 0 ||
+      normalizedPath.indexOf("avatar-placeholder") >= 0
+    ) {
+      return "";
+    }
+
+    return raw;
+  }
+
+  function isRenderableAvatarValue(value) {
+    var avatar = normalizeAvatarValue(value);
+    if (!avatar) {
+      return false;
+    }
+
+    return (
+      avatar.indexOf("data:image/") === 0 ||
+      avatar.indexOf("blob:") === 0 ||
+      avatar.indexOf("https://") === 0 ||
+      avatar.indexOf("http://") === 0 ||
+      avatar.charAt(0) === "/"
+    );
+  }
+
+  function getCloudAvatarValue(value) {
+    var avatar = normalizeAvatarValue(value);
+    if (!avatar) {
+      return null;
+    }
+
+    if (avatar.indexOf("blob:") === 0) {
+      return null;
+    }
+
+    if (avatar.indexOf("data:image/") === 0) {
+      return avatar;
+    }
+
+    if (avatar.indexOf("data:") === 0) {
+      return null;
+    }
+
+    var withoutHash = avatar.split("#")[0];
+    var withoutQuery = withoutHash.split("?")[0];
+    return withoutQuery || null;
+  }
+
+  function normalizeVerificationStatus(value) {
+    var normalized = String(value || "").trim().toLowerCase();
+    if (PROFILE_VERIFICATION_STATUSES.indexOf(normalized) >= 0) {
+      return normalized;
+    }
+
+    return "not_submitted";
+  }
+
+  function normalizeVerificationGender(value) {
+    var normalized = String(value || "").trim().toLowerCase();
+    if (PROFILE_VERIFICATION_GENDERS.indexOf(normalized) >= 0) {
+      return normalized;
+    }
+
+    return "";
+  }
+
+  function normalizeVerificationDocumentType(value) {
+    var normalized = String(value || "").trim().toLowerCase();
+    if (PROFILE_VERIFICATION_DOCUMENT_TYPES.indexOf(normalized) >= 0) {
+      return normalized;
+    }
+
+    return "";
+  }
+
+  function normalizeShortText(value, maxLength) {
+    var text = String(value || "").trim();
+    if (!text) {
+      return "";
+    }
+
+    if (!Number.isFinite(maxLength) || maxLength <= 0) {
+      return text;
+    }
+
+    return text.slice(0, maxLength);
+  }
+
+  function normalizeIsoDate(value) {
+    var text = normalizeShortText(value, 32);
+    if (!text) {
+      return "";
+    }
+
+    return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+  }
+
+  function formatProfileDate(value) {
+    var text = String(value || "").trim();
+    if (!text) {
+      return "";
+    }
+
+    var parsed = new Date(text + "T00:00:00");
+    if (Number.isNaN(parsed.getTime())) {
+      parsed = new Date(text);
+    }
+
+    if (Number.isNaN(parsed.getTime())) {
+      return text;
+    }
+
+    try {
+      return parsed.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (_error) {
+      return text;
+    }
+  }
+
+  function profileVerificationStatusMeta(statusValue) {
+    var status = normalizeVerificationStatus(statusValue);
+
+    if (status === "approved") {
+      return {
+        key: "approved",
+        label: "Approved",
+        toneClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+        description: "Your account is verified."
+      };
+    }
+
+    if (status === "pending") {
+      return {
+        key: "pending",
+        label: "Pending Review",
+        toneClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
+        description: "Your submitted details are under review."
+      };
+    }
+
+    if (status === "rejected") {
+      return {
+        key: "rejected",
+        label: "Rejected",
+        toneClass: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
+        description: "Your submission needs correction and resubmission."
+      };
+    }
+
+    return {
+      key: "not_submitted",
+      label: "Not Submitted",
+      toneClass: "bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200",
+      description: "Complete account verification to unlock full access."
+    };
+  }
+
+  function setVerificationBadgeState(node, meta, compact) {
+    if (!node || !meta) {
+      return;
+    }
+
+    var badgeClass = compact
+      ? "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold "
+      : "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ";
+
+    node.className = badgeClass + meta.toneClass;
+
+    if (meta.key === "approved") {
+      node.innerHTML = "<svg viewBox=\"0 0 20 20\" fill=\"currentColor\" aria-hidden=\"true\" class=\"h-3.5 w-3.5\"><path fill-rule=\"evenodd\" d=\"M16.704 5.29a1 1 0 010 1.415l-7.2 7.2a1 1 0 01-1.415 0l-3-3a1 1 0 011.415-1.414L8.8 11.786l6.493-6.496a1 1 0 011.41 0z\" clip-rule=\"evenodd\"></path></svg><span>" + meta.label + "</span>";
+      return;
+    }
+
+    node.textContent = meta.label;
+  }
+
+  function formatVerificationDocumentLabel(value) {
+    var normalized = normalizeVerificationDocumentType(value);
+    if (normalized === "driving_license") {
+      return "Driving License";
+    }
+    if (normalized === "national_id") {
+      return "National ID";
+    }
+    if (normalized === "passport") {
+      return "Passport";
+    }
+    if (normalized === "other") {
+      return "Other";
+    }
+
+    return "";
+  }
+
+  function renderVerificationProfileState(profileLike, emailLike) {
+    var profile = toLocalProfileShape(profileLike);
+    var email = String(emailLike || profile.email || "").trim();
+    var statusMeta = profileVerificationStatusMeta(profile.verificationStatus);
+
+    var headerBadge = document.querySelector("[data-profile-identity-status]");
+    if (headerBadge) {
+      setVerificationBadgeState(headerBadge, statusMeta, true);
+    }
+
+    var panelBadge = document.querySelector("[data-profile-verification-badge]");
+    if (panelBadge) {
+      setVerificationBadgeState(panelBadge, statusMeta, false);
+    }
+
+    var statusText = document.querySelector("[data-profile-verification-status-text]");
+    if (statusText) {
+      statusText.textContent = statusMeta.label;
+    }
+
+    var statusSubText = document.querySelector("[data-profile-verification-status-subtext]");
+    if (statusSubText) {
+      statusSubText.textContent = statusMeta.description;
+    }
+
+    var submittedText = document.querySelector("[data-profile-verification-submitted]");
+    if (submittedText) {
+      var submittedDate = formatProfileDate(profile.verificationSubmittedAt);
+      submittedText.textContent = submittedDate ? ("Submitted: " + submittedDate) : "";
+      submittedText.classList.toggle("hidden", !submittedDate);
+    }
+
+    var noteText = document.querySelector("[data-profile-verification-note]");
+    if (noteText) {
+      var noteValue = normalizeShortText(profile.verificationNote, 260);
+      if (noteValue) {
+        noteText.textContent = noteValue;
+        noteText.classList.remove("hidden");
+      } else {
+        noteText.textContent = "";
+        noteText.classList.add("hidden");
+      }
+    }
+
+    var verifyToggle = document.querySelector("[data-profile-verification-toggle]");
+    if (verifyToggle) {
+      if (statusMeta.key === "approved") {
+        verifyToggle.textContent = "Update Verification";
+      } else if (statusMeta.key === "pending") {
+        verifyToggle.textContent = "View Submission";
+      } else {
+        verifyToggle.textContent = "Verify Account";
+      }
+    }
+
+    var verifyFullNameInput = document.querySelector("[data-verify-full-name]");
+    if (verifyFullNameInput) {
+      verifyFullNameInput.value = profile.username || "User";
+    }
+
+    var verifyEmailInput = document.querySelector("[data-verify-email]");
+    if (verifyEmailInput) {
+      verifyEmailInput.value = email;
+    }
+
+    var verifyPhoneInput = document.querySelector("[data-verify-phone]");
+    if (verifyPhoneInput) {
+      verifyPhoneInput.value = profile.phoneNumber || "";
+    }
+
+    var verifyGenderSelect = document.querySelector("[data-verify-gender]");
+    if (verifyGenderSelect) {
+      verifyGenderSelect.value = profile.gender || "";
+    }
+
+    var verifyDobInput = document.querySelector("[data-verify-dob]");
+    if (verifyDobInput) {
+      verifyDobInput.value = profile.dateOfBirth || "";
+    }
+
+    var verifyAddressInput = document.querySelector("[data-verify-address]");
+    if (verifyAddressInput) {
+      verifyAddressInput.value = profile.addressLine || "";
+    }
+
+    var verifyCityInput = document.querySelector("[data-verify-city]");
+    if (verifyCityInput) {
+      verifyCityInput.value = profile.city || "";
+    }
+
+    var verifyCountryInput = document.querySelector("[data-verify-country]");
+    if (verifyCountryInput) {
+      verifyCountryInput.value = profile.country || "Nepal";
+    }
+
+    var verifyPostalInput = document.querySelector("[data-verify-postal]");
+    if (verifyPostalInput) {
+      verifyPostalInput.value = profile.postalCode || "";
+    }
+
+    var verifyDocumentTypeInput = document.querySelector("[data-verify-document-type]");
+    if (verifyDocumentTypeInput) {
+      verifyDocumentTypeInput.value = profile.documentType || "";
+    }
+
+    var verifyDocumentNumberInput = document.querySelector("[data-verify-document-number]");
+    if (verifyDocumentNumberInput) {
+      verifyDocumentNumberInput.value = profile.documentNumber || "";
+    }
+
+    var verifyDocumentExpiryInput = document.querySelector("[data-verify-document-expiry]");
+    if (verifyDocumentExpiryInput) {
+      verifyDocumentExpiryInput.value = profile.documentExpiryDate || "";
+    }
+
+    var verifyDocumentLabel = document.querySelector("[data-profile-document-label]");
+    if (verifyDocumentLabel) {
+      var docLabel = formatVerificationDocumentLabel(profile.documentType);
+      verifyDocumentLabel.textContent = docLabel || "No document submitted";
+    }
+  }
+
+  function toLocalProfileShape(profile) {
+    var input = profile || {};
+
+    return {
+      username: String(input.username || "Guest User"),
+      avatarDataUrl: normalizeAvatarValue(input.avatarDataUrl),
+      email: String(input.email || ""),
+      phoneNumber: normalizeShortText(input.phoneNumber || input.phone_number, 40),
+      gender: normalizeVerificationGender(input.gender),
+      dateOfBirth: normalizeIsoDate(input.dateOfBirth || input.date_of_birth),
+      addressLine: normalizeShortText(input.addressLine || input.address_line, 160),
+      city: normalizeShortText(input.city, 80),
+      country: normalizeShortText(input.country, 80) || "Nepal",
+      postalCode: normalizeShortText(input.postalCode || input.postal_code, 20),
+      documentType: normalizeVerificationDocumentType(input.documentType || input.document_type),
+      documentNumber: normalizeShortText(input.documentNumber || input.document_number, 64),
+      documentExpiryDate: normalizeIsoDate(input.documentExpiryDate || input.document_expiry_date),
+      verificationStatus: normalizeVerificationStatus(input.verificationStatus || input.verification_status),
+      verificationSubmittedAt: normalizeShortText(input.verificationSubmittedAt || input.verification_submitted_at, 64),
+      verificationReviewedAt: normalizeShortText(input.verificationReviewedAt || input.verification_reviewed_at, 64),
+      verificationNote: normalizeShortText(input.verificationNote || input.verification_note, 260),
+    };
+  }
+
+  function renderAvatarFallback(avatarEl, username) {
+    if (!avatarEl) {
+      return;
+    }
+
+    avatarEl.innerHTML = "";
+    avatarEl.textContent = getInitials(username || "User");
+  }
+
+  function renderAvatarImage(avatarEl, avatarUrl, username, onBrokenAvatar) {
+    if (!avatarEl) {
+      return;
+    }
+
+    var normalizedUrl = normalizeAvatarValue(avatarUrl);
+    avatarEl.innerHTML = "";
+
+    if (normalizedUrl && isRenderableAvatarValue(normalizedUrl)) {
+      var img = document.createElement("img");
+      img.src = normalizedUrl;
+      img.alt = "Profile image";
+      img.className = "h-full w-full object-cover";
+      img.onerror = function () {
+        renderAvatarFallback(avatarEl, username);
+        if (typeof onBrokenAvatar === "function") {
+          onBrokenAvatar(normalizedUrl);
+        }
+      };
+      avatarEl.appendChild(img);
+      return;
+    }
+
+    renderAvatarFallback(avatarEl, username);
+  }
+
+  function clearBrokenAvatarFromCloud(profile, brokenAvatarUrl) {
+    var normalizedBrokenAvatar = normalizeAvatarValue(brokenAvatarUrl);
+    if (!normalizedBrokenAvatar) {
+      return;
+    }
+
+    var localProfile = toLocalProfileShape(profile);
+    if (normalizeAvatarValue(localProfile.avatarDataUrl) === normalizedBrokenAvatar) {
+      localProfile.avatarDataUrl = "";
+      setProfile(localProfile);
+    }
+
+    if (BROKEN_AVATAR_SYNC_CACHE[normalizedBrokenAvatar]) {
+      return;
+    }
+
+    // Prevent repeated writes for the same failing URL while the page is open.
+    BROKEN_AVATAR_SYNC_CACHE[normalizedBrokenAvatar] = true;
+
+    var auth = getAuthService();
+    if (!auth || typeof auth.upsertProfile !== "function") {
+      return;
+    }
+
+    auth.upsertProfile({
+      fullName: localProfile.username,
+      avatarUrl: null,
+    })
+      .then(function (syncResult) {
+        if (syncResult && syncResult.success && syncResult.data) {
+          setProfile(mapRemoteProfileToLocal(syncResult.data, localProfile));
+        }
+      })
+      .catch(function () {
+        // Keep local fallback avatar even if cloud cleanup fails.
+      });
   }
 
   function setSession(session, rememberMe) {
@@ -89,15 +558,27 @@
       email: String(session && session.email ? session.email : ""),
     };
 
-    return Object.assign(fallback, safeParse(localStorage.getItem(STORAGE_PROFILE), {}));
+    var scopedKey = getScopedProfileStorageKey(session);
+    if (scopedKey) {
+      var scopedProfile = safeParse(localStorage.getItem(scopedKey), null);
+      if (scopedProfile && typeof scopedProfile === "object") {
+        return toLocalProfileShape(Object.assign(fallback, scopedProfile));
+      }
+
+      var legacyProfile = readLegacyProfileForSession(session);
+      if (legacyProfile) {
+        localStorage.setItem(scopedKey, JSON.stringify(legacyProfile));
+        localStorage.removeItem(STORAGE_PROFILE);
+        return toLocalProfileShape(Object.assign(fallback, legacyProfile));
+      }
+    }
+
+    return toLocalProfileShape(fallback);
   }
 
   function setProfile(profile) {
-    var nextProfile = profile || {
-      username: "Guest User",
-      avatarDataUrl: "",
-      email: "",
-    };
+    var nextProfile = toLocalProfileShape(profile);
+    var scopedKey = getScopedProfileStorageKey();
 
     if (scopedKey) {
       localStorage.setItem(scopedKey, JSON.stringify(nextProfile));
@@ -188,7 +669,7 @@
         fallback.username ||
         "User"
       ),
-      avatarDataUrl: String(
+      avatarDataUrl: normalizeAvatarValue(
         (remoteProfile && remoteProfile.avatar_url) ||
         fallback.avatarDataUrl ||
         ""
@@ -197,6 +678,85 @@
         (remoteProfile && remoteProfile.email) ||
         fallback.email ||
         ""
+      ),
+      phoneNumber: normalizeShortText(
+        (remoteProfile && remoteProfile.phone_number) ||
+        fallback.phoneNumber ||
+        "",
+        40
+      ),
+      gender: normalizeVerificationGender(
+        (remoteProfile && remoteProfile.gender) ||
+        fallback.gender ||
+        ""
+      ),
+      dateOfBirth: normalizeIsoDate(
+        (remoteProfile && remoteProfile.date_of_birth) ||
+        fallback.dateOfBirth ||
+        ""
+      ),
+      addressLine: normalizeShortText(
+        (remoteProfile && remoteProfile.address_line) ||
+        fallback.addressLine ||
+        "",
+        160
+      ),
+      city: normalizeShortText(
+        (remoteProfile && remoteProfile.city) ||
+        fallback.city ||
+        "",
+        80
+      ),
+      country: normalizeShortText(
+        (remoteProfile && remoteProfile.country) ||
+        fallback.country ||
+        "Nepal",
+        80
+      ) || "Nepal",
+      postalCode: normalizeShortText(
+        (remoteProfile && remoteProfile.postal_code) ||
+        fallback.postalCode ||
+        "",
+        20
+      ),
+      documentType: normalizeVerificationDocumentType(
+        (remoteProfile && remoteProfile.document_type) ||
+        fallback.documentType ||
+        ""
+      ),
+      documentNumber: normalizeShortText(
+        (remoteProfile && remoteProfile.document_number) ||
+        fallback.documentNumber ||
+        "",
+        64
+      ),
+      documentExpiryDate: normalizeIsoDate(
+        (remoteProfile && remoteProfile.document_expiry_date) ||
+        fallback.documentExpiryDate ||
+        ""
+      ),
+      verificationStatus: normalizeVerificationStatus(
+        (remoteProfile && remoteProfile.verification_status) ||
+        fallback.verificationStatus ||
+        "not_submitted"
+      ),
+      verificationSubmittedAt: normalizeShortText(
+        (remoteProfile && remoteProfile.verification_submitted_at) ||
+        fallback.verificationSubmittedAt ||
+        "",
+        64
+      ),
+      verificationReviewedAt: normalizeShortText(
+        (remoteProfile && remoteProfile.verification_reviewed_at) ||
+        fallback.verificationReviewedAt ||
+        "",
+        64
+      ),
+      verificationNote: normalizeShortText(
+        (remoteProfile && remoteProfile.verification_note) ||
+        fallback.verificationNote ||
+        "",
+        260
       ),
     };
   }
@@ -237,6 +797,20 @@
             username: getDisplayNameFromUser(sessionData.user),
             avatarDataUrl: existingProfile.avatarDataUrl || "",
             email: sessionData.user.email || existingProfile.email || "",
+            phoneNumber: existingProfile.phoneNumber || "",
+            gender: existingProfile.gender || "",
+            dateOfBirth: existingProfile.dateOfBirth || "",
+            addressLine: existingProfile.addressLine || "",
+            city: existingProfile.city || "",
+            country: existingProfile.country || "Nepal",
+            postalCode: existingProfile.postalCode || "",
+            documentType: existingProfile.documentType || "",
+            documentNumber: existingProfile.documentNumber || "",
+            documentExpiryDate: existingProfile.documentExpiryDate || "",
+            verificationStatus: existingProfile.verificationStatus || "not_submitted",
+            verificationSubmittedAt: existingProfile.verificationSubmittedAt || "",
+            verificationReviewedAt: existingProfile.verificationReviewedAt || "",
+            verificationNote: existingProfile.verificationNote || "",
           };
 
           var remoteProfile = null;
@@ -257,7 +831,7 @@
           if (!remoteProfile && typeof auth.upsertProfile === "function") {
             auth.upsertProfile({
               fullName: syncedProfile.username,
-              avatarUrl: syncedProfile.avatarDataUrl,
+              avatarUrl: getCloudAvatarValue(syncedProfile.avatarDataUrl),
             }).catch(function () {
               // Keep UI functional even if profile table migration is not applied yet.
             });
@@ -1039,6 +1613,7 @@
     var profile = getProfile();
     var session = getSession();
     var email = String(profile.email || (session && session.email) || "");
+    var avatarUrl = normalizeAvatarValue(profile.avatarDataUrl);
     var nameEl = document.querySelector("[data-profile-name]");
     var avatarEl = document.querySelector("[data-profile-avatar]");
     var panelAvatarPreviewEl = document.querySelector("[data-profile-avatar-preview]");
@@ -1054,16 +1629,10 @@
       });
     }
 
-    if (avatarEl) {
-      avatarEl.innerHTML = "";
-      if (profile.avatarDataUrl) {
-        var img = document.createElement("img");
-        img.src = profile.avatarDataUrl;
-        img.alt = "Profile image";
-        img.className = "h-full w-full object-cover";
-        avatarEl.appendChild(img);
-      } else {
-        avatarEl.textContent = getInitials(profile.username);
+    renderAvatarImage(avatarEl, avatarUrl, profile.username, function (brokenAvatarUrl) {
+      var latestProfile = getProfile();
+      if (normalizeAvatarValue(latestProfile.avatarDataUrl) === brokenAvatarUrl) {
+        clearBrokenAvatarFromCloud(latestProfile, brokenAvatarUrl);
       }
     });
 
@@ -1078,6 +1647,8 @@
     if (panelEmail) {
       panelEmail.value = email;
     }
+
+    renderVerificationProfileState(profile, email);
   }
 
   function wireRealtimeProfileRefresh() {
@@ -1107,36 +1678,476 @@
     });
   }
 
+  function ensureProfileIdentityVerificationChip(trigger) {
+    if (!trigger) {
+      return;
+    }
+
+    var metaWrap = trigger.querySelector(".flex.flex-col");
+    if (!metaWrap) {
+      return;
+    }
+
+    if (metaWrap.querySelector("[data-profile-identity-status]")) {
+      return;
+    }
+
+    var statusChip = document.createElement("span");
+    statusChip.setAttribute("data-profile-identity-status", "true");
+    statusChip.className = "mt-1 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700";
+    statusChip.textContent = "Not Submitted";
+    metaWrap.appendChild(statusChip);
+  }
+
+  function ensureVerificationPanelMarkup(panel) {
+    if (!panel || panel.querySelector("[data-profile-verification-shell]")) {
+      return;
+    }
+
+    var verificationMarkup = `
+      <div data-profile-verification-shell class="mt-3 rounded-xl border border-white/20 bg-white/5 px-3 py-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70">Account Verification</p>
+            <p data-profile-verification-status-text class="mt-1 text-[13px] font-semibold text-white">Not Submitted</p>
+            <p data-profile-verification-status-subtext class="mt-1 text-[11px] text-white/75">Complete account verification to unlock full access.</p>
+          </div>
+          <span data-profile-verification-badge class="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700">Not Submitted</span>
+        </div>
+        <p data-profile-verification-submitted class="mt-2 hidden text-[11px] text-white/80"></p>
+        <p data-profile-verification-note class="mt-1 hidden text-[11px] text-rose-200"></p>
+        <p data-profile-document-label class="mt-1 text-[11px] text-white/70">No document submitted</p>
+        <button type="button" data-profile-verification-toggle class="mt-3 inline-flex items-center rounded-full bg-accent px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105">Verify Account</button>
+
+        <form data-profile-verification-form class="mt-3 hidden space-y-3 border-t border-white/15 pt-3" novalidate>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Full Name</span>
+              <input data-verify-full-name type="text" readonly class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white/90 outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Email</span>
+              <input data-verify-email type="email" readonly class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white/90 outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Phone Number *</span>
+              <input data-verify-phone type="tel" required placeholder="e.g. +977 98XXXXXXXX" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Gender *</span>
+              <select data-verify-gender required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none">
+                <option value="" class="text-slate-900">Select</option>
+                <option value="male" class="text-slate-900">Male</option>
+                <option value="female" class="text-slate-900">Female</option>
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Date of Birth *</span>
+              <input data-verify-dob type="date" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+            <label class="space-y-1 sm:col-span-2">
+              <span class="text-[11px] text-white/80">Address Line *</span>
+              <input data-verify-address type="text" required placeholder="Street, area" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">City *</span>
+              <input data-verify-city type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Country *</span>
+              <input data-verify-country type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Postal Code</span>
+              <input data-verify-postal type="text" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Document Type *</span>
+              <select data-verify-document-type required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none">
+                <option value="" class="text-slate-900">Select</option>
+                <option value="driving_license" class="text-slate-900">Driving License</option>
+                <option value="national_id" class="text-slate-900">National ID</option>
+                <option value="passport" class="text-slate-900">Passport</option>
+                <option value="other" class="text-slate-900">Other</option>
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Document Number *</span>
+              <input data-verify-document-number type="text" required class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[11px] text-white/80">Document Expiry</span>
+              <input data-verify-document-expiry type="date" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[12px] text-white outline-none" />
+            </label>
+          </div>
+
+          <p data-profile-verification-error class="hidden rounded-lg border border-rose-300/40 bg-rose-500/20 px-3 py-2 text-[11px] text-rose-100"></p>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="submit" data-profile-verification-submit class="rounded-full bg-accent px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105">Submit Verification</button>
+            <button type="button" data-profile-verification-cancel class="rounded-full border border-white/35 px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    var profileNote = panel.querySelector("#profileNote");
+    if (profileNote && profileNote.parentNode) {
+      profileNote.insertAdjacentHTML("afterend", verificationMarkup);
+      return;
+    }
+
+    panel.insertAdjacentHTML("beforeend", verificationMarkup);
+  }
+
+  function refreshProfileFromCloud() {
+    var auth = getAuthService();
+    if (!auth || typeof auth.getProfile !== "function") {
+      return Promise.resolve(null);
+    }
+
+    return auth.getProfile()
+      .then(function (remoteProfile) {
+        if (!remoteProfile) {
+          return null;
+        }
+
+        var currentProfile = getProfile();
+        var syncedProfile = mapRemoteProfileToLocal(remoteProfile, currentProfile);
+        setProfile(syncedProfile);
+        renderProfileChip();
+        return syncedProfile;
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
   function wireProfilePanel() {
     var trigger = document.querySelector("[data-profile-trigger]");
     var panel = document.querySelector("[data-profile-panel]");
+    var panelCloseBtn = panel ? panel.querySelector("[data-profile-panel-close]") : null;
 
     if (!trigger || !panel) {
       return;
     }
 
+    ensureProfileIdentityVerificationChip(trigger);
+    ensureVerificationPanelMarkup(panel);
+
+    var verificationToggleBtn = panel.querySelector("[data-profile-verification-toggle]");
+    var verificationForm = panel.querySelector("[data-profile-verification-form]");
+    var verificationCancelBtn = panel.querySelector("[data-profile-verification-cancel]");
+    var verificationSubmitBtn = panel.querySelector("[data-profile-verification-submit]");
+    var verificationErrorEl = panel.querySelector("[data-profile-verification-error]");
+    var verificationFormVisible = false;
+    var verificationSubmitting = false;
+
+    var isPanelOpen = false;
+    var restoreTimerId = null;
+    var hidePanelTimerId = null;
+    var panelHomeParent = panel.parentNode;
+    var panelHomeNextSibling = panel.nextSibling;
+    var mobileBackdrop = null;
+
+    function isMobileViewport() {
+      if (typeof window.matchMedia !== "function") {
+        return window.innerWidth <= 1024;
+      }
+
+      return window.matchMedia("(max-width: 1024px)").matches;
+    }
+
+    function ensureMobileBackdrop() {
+      if (mobileBackdrop && document.body.contains(mobileBackdrop)) {
+        return mobileBackdrop;
+      }
+
+      mobileBackdrop = document.createElement("div");
+      mobileBackdrop.setAttribute("data-profile-mobile-backdrop", "true");
+      mobileBackdrop.className = "fixed inset-0 z-[120]";
+      mobileBackdrop.style.background = "rgba(14, 29, 32, 0.52)";
+      mobileBackdrop.style.opacity = "0";
+      mobileBackdrop.style.pointerEvents = "none";
+      mobileBackdrop.style.backdropFilter = "blur(0px)";
+      mobileBackdrop.style.webkitBackdropFilter = "blur(0px)";
+      mobileBackdrop.style.transition =
+        "opacity 260ms ease, backdrop-filter 260ms ease, -webkit-backdrop-filter 260ms ease";
+      mobileBackdrop.addEventListener("click", function () {
+        closePanel();
+      });
+      document.body.appendChild(mobileBackdrop);
+      return mobileBackdrop;
+    }
+
+    function showMobileBackdrop() {
+      var backdrop = ensureMobileBackdrop();
+      backdrop.style.opacity = "1";
+      backdrop.style.pointerEvents = "auto";
+      backdrop.style.backdropFilter = "blur(6px)";
+      backdrop.style.webkitBackdropFilter = "blur(6px)";
+    }
+
+    function hideMobileBackdrop() {
+      if (!mobileBackdrop) {
+        return;
+      }
+
+      mobileBackdrop.style.opacity = "0";
+      mobileBackdrop.style.pointerEvents = "none";
+      mobileBackdrop.style.backdropFilter = "blur(0px)";
+      mobileBackdrop.style.webkitBackdropFilter = "blur(0px)";
+    }
+
+    function mountPanelForMobile() {
+      if (panel.parentNode === document.body) {
+        return;
+      }
+
+      panelHomeParent = panelHomeParent || panel.parentNode;
+      panelHomeNextSibling = panel.nextSibling;
+      document.body.appendChild(panel);
+    }
+
+    function restorePanelPlacement() {
+      if (!panelHomeParent || panel.parentNode !== document.body) {
+        return;
+      }
+
+      if (panelHomeNextSibling && panelHomeNextSibling.parentNode === panelHomeParent) {
+        panelHomeParent.insertBefore(panel, panelHomeNextSibling);
+      } else {
+        panelHomeParent.appendChild(panel);
+      }
+    }
+
+    function clearMobilePanelStyles() {
+      panel.style.removeProperty("position");
+      panel.style.removeProperty("top");
+      panel.style.removeProperty("left");
+      panel.style.removeProperty("right");
+      panel.style.removeProperty("z-index");
+      panel.style.removeProperty("width");
+      panel.style.removeProperty("max-height");
+      panel.style.removeProperty("transform");
+      panel.style.removeProperty("transform-origin");
+      panel.style.removeProperty("will-change");
+      panel.style.removeProperty("transition");
+      panel.style.removeProperty("box-shadow");
+    }
+
+    function applyMobilePanelStyles(isOpenState) {
+      var viewportWidth = Math.max(
+        document.documentElement ? document.documentElement.clientWidth : 0,
+        window.innerWidth || 0
+      );
+      var isSmallViewport = viewportWidth <= 640;
+
+      panel.style.position = "fixed";
+      panel.style.zIndex = "130";
+      panel.style.top = "50%";
+      panel.style.left = "50%";
+      panel.style.right = "auto";
+      panel.style.width = isSmallViewport ? "94vw" : "92vw";
+      panel.style.maxWidth = isSmallViewport ? "408px" : "420px";
+      panel.style.minWidth = "0";
+      panel.style.maxHeight = isSmallViewport ? "84vh" : "80vh";
+      panel.style.transformOrigin = "50% 50%";
+      panel.style.willChange = "transform, opacity";
+      panel.style.transition =
+        "opacity 220ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms ease";
+      panel.style.boxShadow = "0 30px 70px rgba(7, 31, 34, 0.32)";
+      panel.style.transform = isOpenState
+        ? "translate(-50%, -50%) scale(1)"
+        : "translate(-50%, -46%) scale(0.935)";
+    }
+
+    function hasAuthenticatedSession() {
+      var session = getSession();
+      if (!session) {
+        return false;
+      }
+
+      return Boolean(String(session.email || "").trim());
+    }
+
+    function clearHidePanelTimer() {
+      if (!hidePanelTimerId) {
+        return;
+      }
+
+      window.clearTimeout(hidePanelTimerId);
+      hidePanelTimerId = null;
+    }
+
+    function showPanelElement() {
+      clearHidePanelTimer();
+      panel.style.display = "block";
+    }
+
+    function scheduleHidePanel(delay) {
+      clearHidePanelTimer();
+
+      hidePanelTimerId = window.setTimeout(function () {
+        if (isPanelOpen) {
+          return;
+        }
+
+        panel.style.display = "none";
+        hidePanelTimerId = null;
+      }, Math.max(0, Number(delay) || 0));
+    }
+
+    trigger.setAttribute("aria-haspopup", "dialog");
+    trigger.setAttribute("aria-expanded", "false");
+    panel.setAttribute("aria-hidden", "true");
+    panel.style.display = "none";
+
     function openPanel() {
+      if (!hasAuthenticatedSession()) {
+        closePanel();
+        return;
+      }
+
+      if (restoreTimerId) {
+        window.clearTimeout(restoreTimerId);
+        restoreTimerId = null;
+      }
+
+      showPanelElement();
+
+      if (isPanelOpen) {
+        return;
+      }
+
+      if (isMobileViewport()) {
+        mountPanelForMobile();
+        applyMobilePanelStyles(false);
+        showMobileBackdrop();
+        document.body.classList.add("overflow-hidden");
+      } else {
+        hideMobileBackdrop();
+        document.body.classList.remove("overflow-hidden");
+        clearMobilePanelStyles();
+        restorePanelPlacement();
+      }
+
+      isPanelOpen = true;
       panel.classList.remove("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
       panel.classList.add("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
+      trigger.setAttribute("aria-expanded", "true");
+      panel.setAttribute("aria-hidden", "false");
+
+      if (isMobileViewport()) {
+        window.requestAnimationFrame(function () {
+          if (!isPanelOpen) {
+            return;
+          }
+          applyMobilePanelStyles(true);
+        });
+      }
+
+      void refreshProfileFromCloud();
     }
 
     function closePanel() {
+      if (!isPanelOpen && !panel.classList.contains("opacity-100")) {
+        return;
+      }
+
+      isPanelOpen = false;
       panel.classList.remove("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
       panel.classList.add("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
+      trigger.setAttribute("aria-expanded", "false");
+      panel.setAttribute("aria-hidden", "true");
+      scheduleHidePanel(isMobileViewport() ? 300 : 220);
+
+      if (isMobileViewport()) {
+        applyMobilePanelStyles(false);
+        hideMobileBackdrop();
+        document.body.classList.remove("overflow-hidden");
+
+        if (restoreTimerId) {
+          window.clearTimeout(restoreTimerId);
+        }
+
+        restoreTimerId = window.setTimeout(function () {
+          if (isPanelOpen) {
+            return;
+          }
+          clearMobilePanelStyles();
+          restorePanelPlacement();
+          restoreTimerId = null;
+        }, 300);
+      } else {
+        clearMobilePanelStyles();
+        restorePanelPlacement();
+      }
     }
 
-    trigger.addEventListener("click", function () {
-      if (panel.classList.contains("opacity-100")) {
+    trigger.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (!hasAuthenticatedSession()) {
+        closePanel();
+        return;
+      }
+
+      if (isPanelOpen) {
         closePanel();
       } else {
         openPanel();
       }
     });
 
+    panel.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    if (panelCloseBtn) {
+      panelCloseBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        closePanel();
+      });
+    }
+
     document.addEventListener("click", function (event) {
+      if (!isPanelOpen) {
+        return;
+      }
+
       if (!panel.contains(event.target) && !trigger.contains(event.target)) {
         closePanel();
       }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closePanel();
+      }
+    });
+
+    window.addEventListener("resize", function () {
+      if (isPanelOpen) {
+        if (isMobileViewport()) {
+          mountPanelForMobile();
+          applyMobilePanelStyles(true);
+          showMobileBackdrop();
+          document.body.classList.add("overflow-hidden");
+        } else {
+          hideMobileBackdrop();
+          document.body.classList.remove("overflow-hidden");
+          clearMobilePanelStyles();
+          restorePanelPlacement();
+        }
+        return;
+      }
+
+      hideMobileBackdrop();
+      document.body.classList.remove("overflow-hidden");
+      clearMobilePanelStyles();
+      restorePanelPlacement();
     });
 
     var saveBtn = document.getElementById("saveProfile");
@@ -1150,6 +2161,65 @@
     var noteResetTimerId = null;
     var profileToastNode = null;
     var profileToastHideTimerId = null;
+
+    function setVerificationError(message) {
+      if (!verificationErrorEl) {
+        return;
+      }
+
+      if (!message) {
+        verificationErrorEl.textContent = "";
+        verificationErrorEl.classList.add("hidden");
+        return;
+      }
+
+      verificationErrorEl.textContent = String(message);
+      verificationErrorEl.classList.remove("hidden");
+    }
+
+    function toggleVerificationForm(nextVisible) {
+      if (!verificationForm) {
+        verificationFormVisible = false;
+        return;
+      }
+
+      verificationFormVisible = Boolean(nextVisible);
+      verificationForm.classList.toggle("hidden", !verificationFormVisible);
+
+      if (!verificationFormVisible) {
+        setVerificationError("");
+      }
+    }
+
+    function setVerificationSubmitting(isSubmitting) {
+      verificationSubmitting = Boolean(isSubmitting);
+
+      if (!verificationSubmitBtn) {
+        return;
+      }
+
+      verificationSubmitBtn.disabled = verificationSubmitting;
+      verificationSubmitBtn.classList.toggle("opacity-70", verificationSubmitting);
+      verificationSubmitBtn.classList.toggle("cursor-not-allowed", verificationSubmitting);
+      verificationSubmitBtn.textContent = verificationSubmitting ? "Submitting..." : "Submit Verification";
+    }
+
+    function readVerificationFormPayload() {
+      return {
+        fullName: panel.querySelector("[data-verify-full-name]") ? panel.querySelector("[data-verify-full-name]").value : "",
+        email: panel.querySelector("[data-verify-email]") ? panel.querySelector("[data-verify-email]").value : "",
+        phoneNumber: panel.querySelector("[data-verify-phone]") ? panel.querySelector("[data-verify-phone]").value : "",
+        gender: panel.querySelector("[data-verify-gender]") ? panel.querySelector("[data-verify-gender]").value : "",
+        dateOfBirth: panel.querySelector("[data-verify-dob]") ? panel.querySelector("[data-verify-dob]").value : "",
+        addressLine: panel.querySelector("[data-verify-address]") ? panel.querySelector("[data-verify-address]").value : "",
+        city: panel.querySelector("[data-verify-city]") ? panel.querySelector("[data-verify-city]").value : "",
+        country: panel.querySelector("[data-verify-country]") ? panel.querySelector("[data-verify-country]").value : "",
+        postalCode: panel.querySelector("[data-verify-postal]") ? panel.querySelector("[data-verify-postal]").value : "",
+        documentType: panel.querySelector("[data-verify-document-type]") ? panel.querySelector("[data-verify-document-type]").value : "",
+        documentNumber: panel.querySelector("[data-verify-document-number]") ? panel.querySelector("[data-verify-document-number]").value : "",
+        documentExpiryDate: panel.querySelector("[data-verify-document-expiry]") ? panel.querySelector("[data-verify-document-expiry]").value : "",
+      };
+    }
 
     function clearProfileNoteTimers() {
       if (noteFadeTimerId) {
@@ -1347,9 +2417,26 @@
     async function saveProfileData(avatarDataUrl, options) {
       var opts = options || {};
       var current = getProfile();
+      var resolvedAvatar = normalizeAvatarValue(
+        avatarDataUrl !== undefined ? avatarDataUrl : current.avatarDataUrl
+      );
       var nextProfile = {
+        phoneNumber: current.phoneNumber,
+        gender: current.gender,
+        dateOfBirth: current.dateOfBirth,
+        addressLine: current.addressLine,
+        city: current.city,
+        country: current.country,
+        postalCode: current.postalCode,
+        documentType: current.documentType,
+        documentNumber: current.documentNumber,
+        documentExpiryDate: current.documentExpiryDate,
+        verificationStatus: current.verificationStatus,
+        verificationSubmittedAt: current.verificationSubmittedAt,
+        verificationReviewedAt: current.verificationReviewedAt,
+        verificationNote: current.verificationNote,
         username: (nameInput && nameInput.value.trim()) || current.username || "User",
-        avatarDataUrl: avatarDataUrl !== undefined ? avatarDataUrl : current.avatarDataUrl,
+        avatarDataUrl: resolvedAvatar,
         email: readCurrentProfileEmail(),
       };
 
@@ -1362,14 +2449,22 @@
         try {
           var syncResult = await auth.upsertProfile({
             fullName: nextProfile.username,
-            avatarUrl: nextProfile.avatarDataUrl,
+            avatarUrl: getCloudAvatarValue(nextProfile.avatarDataUrl),
           });
 
           cloudSynced = Boolean(syncResult && syncResult.success);
 
           if (cloudSynced && syncResult.data) {
-            setProfile(mapRemoteProfileToLocal(syncResult.data, nextProfile));
+            var syncedProfile = mapRemoteProfileToLocal(syncResult.data, nextProfile);
+            setProfile(syncedProfile);
             renderProfileChip();
+
+            if (typeof auth.cleanupProfileImages === "function") {
+              auth.cleanupProfileImages(syncedProfile.avatarDataUrl)
+                .catch(function (cleanupError) {
+                  console.warn("Profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
+                });
+            }
           }
         } catch (_err) {
           cloudSynced = false;
@@ -1394,6 +2489,20 @@
         }
 
         setProfile({
+          phoneNumber: previousProfile.phoneNumber,
+          gender: previousProfile.gender,
+          dateOfBirth: previousProfile.dateOfBirth,
+          addressLine: previousProfile.addressLine,
+          city: previousProfile.city,
+          country: previousProfile.country,
+          postalCode: previousProfile.postalCode,
+          documentType: previousProfile.documentType,
+          documentNumber: previousProfile.documentNumber,
+          documentExpiryDate: previousProfile.documentExpiryDate,
+          verificationStatus: previousProfile.verificationStatus,
+          verificationSubmittedAt: previousProfile.verificationSubmittedAt,
+          verificationReviewedAt: previousProfile.verificationReviewedAt,
+          verificationNote: previousProfile.verificationNote,
           username: (nameInput && nameInput.value.trim()) || previousProfile.username || "User",
           avatarDataUrl: previewDataUrl,
           email: readCurrentProfileEmail(),
@@ -1573,6 +2682,81 @@
         handleSelectedPhotoFile(droppedFile);
       });
     }
+
+    if (verificationToggleBtn) {
+      verificationToggleBtn.addEventListener("click", function () {
+        var nextVisible = !verificationFormVisible;
+        toggleVerificationForm(nextVisible);
+
+        if (nextVisible) {
+          void refreshProfileFromCloud();
+          var firstEditableField = panel.querySelector("[data-verify-phone]");
+          if (firstEditableField && typeof firstEditableField.focus === "function") {
+            firstEditableField.focus();
+          }
+        }
+      });
+    }
+
+    if (verificationCancelBtn) {
+      verificationCancelBtn.addEventListener("click", function () {
+        toggleVerificationForm(false);
+      });
+    }
+
+    if (verificationForm) {
+      verificationForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        if (verificationSubmitting) {
+          return;
+        }
+
+        var auth = getAuthService();
+        if (!auth || typeof auth.submitVerification !== "function") {
+          setVerificationError("Verification service is unavailable right now.");
+          return;
+        }
+
+        setVerificationError("");
+        setVerificationSubmitting(true);
+
+        var payload = readVerificationFormPayload();
+
+        Promise.resolve(auth.submitVerification(payload))
+          .then(function (result) {
+            if (!result || !result.success || !result.data) {
+              throw (result && result.error) || new Error("Unable to submit verification details right now.");
+            }
+
+            var currentProfile = getProfile();
+            var syncedProfile = mapRemoteProfileToLocal(result.data, currentProfile);
+            setProfile(syncedProfile);
+            renderProfileChip();
+            toggleVerificationForm(false);
+            showProfileNoteMessage("Verification submitted. Status is now pending review.", "success", 0);
+            showProfileSaveToast("Verification details submitted successfully", "success", 3200);
+          })
+          .catch(function (error) {
+            if (auth && typeof auth.toPublicError === "function") {
+              setVerificationError(
+                auth.toPublicError(error, "Unable to submit verification details right now.")
+              );
+              return;
+            }
+
+            setVerificationError(
+              String(error && error.message ? error.message : "Unable to submit verification details right now.")
+            );
+          })
+          .finally(function () {
+            setVerificationSubmitting(false);
+          });
+      });
+    }
+
+    toggleVerificationForm(false);
+    renderProfileChip();
 
     var logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) {
