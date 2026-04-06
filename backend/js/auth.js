@@ -2055,6 +2055,7 @@
         return;
       }
 
+      toggleVerificationForm(false);
       isPanelOpen = false;
       panel.classList.remove("opacity-100", "translate-y-0", "scale-100", "pointer-events-auto");
       panel.classList.add("opacity-0", "-translate-y-2", "scale-95", "pointer-events-none");
