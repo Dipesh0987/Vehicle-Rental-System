@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  var clientInitPromise = null;
+
   function hasConfig() {
     return (
       window.SUPABASE_CONFIG &&
@@ -92,27 +94,48 @@
   }
 
   async function initClient() {
+    if (window.SupabaseRuntime && window.SupabaseRuntime.client) {
+      return window.SupabaseRuntime.client;
+    }
+
+    if (clientInitPromise) {
+      return clientInitPromise;
+    }
+
     if (!hasConfig()) {
       throw new Error("Missing SUPABASE_CONFIG values");
     }
 
-    await loadSupabaseRuntime();
+    clientInitPromise = (async function () {
+      await loadSupabaseRuntime();
 
-    var config = window.SUPABASE_CONFIG;
-    var client = window.supabase.createClient(config.url, config.anonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    });
+      if (window.SupabaseRuntime && window.SupabaseRuntime.client) {
+        return window.SupabaseRuntime.client;
+      }
 
-    window.SupabaseRuntime = {
-      client: client,
-      config: config,
-    };
+      var config = window.SUPABASE_CONFIG;
+      var client = window.supabase.createClient(config.url, config.anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      });
 
-    return client;
+      window.SupabaseRuntime = {
+        client: client,
+        config: config,
+      };
+
+      return client;
+    })();
+
+    try {
+      return await clientInitPromise;
+    } catch (error) {
+      clientInitPromise = null;
+      throw error;
+    }
   }
 
   window.SupabaseClient = {

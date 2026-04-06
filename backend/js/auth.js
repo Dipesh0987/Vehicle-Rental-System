@@ -241,7 +241,7 @@
       return;
     }
 
-    node.className = "inline-flex items-center gap-1 rounded-full px-3 py-2 text-[12px] font-semibold transition duration-200 hover:-translate-y-[1px]";
+    node.className = "ml-4 inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full px-5 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-[1px]";
     node.disabled = false;
 
     if (meta.key === "approved") {
@@ -272,7 +272,7 @@
     }
 
     var badgeClass = compact
-      ? "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold "
+      ? "mt-1 inline-flex self-start w-auto max-w-max items-center justify-center gap-1 whitespace-nowrap text-center rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none "
       : "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ";
 
     node.className = badgeClass + meta.toneClass;
@@ -1766,7 +1766,7 @@
 
     var statusChip = document.createElement("span");
     statusChip.setAttribute("data-profile-identity-status", "true");
-    statusChip.className = "mt-1 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700";
+    statusChip.className = "mt-1 inline-flex self-start w-auto max-w-max items-center justify-center gap-1 whitespace-nowrap text-center rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold leading-none text-amber-700";
     statusChip.textContent = "Pending";
     metaWrap.appendChild(statusChip);
   }
@@ -1785,7 +1785,7 @@
     var button = document.createElement("button");
     button.type = "button";
     button.setAttribute("data-profile-verify-cta", "true");
-    button.className = "ml-3 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105";
+    button.className = "ml-4 inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105";
     button.textContent = "Verify Account";
 
     container.insertBefore(button, trigger.nextSibling);

@@ -577,15 +577,33 @@
     setSubmitState(true, "Loading profile...");
 
     try {
+      var storedSession = getStoredSession();
       var sessionData = await auth.getSession();
       activeSessionData = sessionData;
 
       if (!sessionData || !sessionData.user) {
-        window.location.href = "login.html";
+        try {
+          sessionData = await auth.getSession();
+          activeSessionData = sessionData;
+        } catch (_secondReadError) {
+          sessionData = null;
+        }
+      }
+
+      if (!sessionData || !sessionData.user) {
+        var fallbackProfile = readStoredProfile(storedSession, null);
+        if (fallbackProfile) {
+          var fallbackMerged = mergeProfile(null, fallbackProfile, null);
+          fillForm(fallbackMerged);
+          setStatusBadge(fallbackMerged.verification_status, fallbackMerged.verification_submitted_at);
+          setBanner("error", "Session could not be confirmed. Please sign in again before submitting verification.");
+          return;
+        }
+
+        setBanner("error", "No active session found. Please sign in and reopen verification.");
         return;
       }
 
-      var storedSession = getStoredSession();
       var localProfile = readStoredProfile(storedSession, sessionData);
       var remoteProfile = null;
 
@@ -619,6 +637,18 @@
 
     if (!auth || typeof auth.submitVerification !== "function") {
       setBanner("error", "Verification service is unavailable. Please refresh and try again.");
+      return;
+    }
+
+    try {
+      var liveSession = await auth.getSession();
+      if (!liveSession || !liveSession.user) {
+        setBanner("error", "Your session expired. Please sign in again before submitting verification.");
+        return;
+      }
+      activeSessionData = liveSession;
+    } catch (_sessionError) {
+      setBanner("error", "Could not verify current session. Please sign in again.");
       return;
     }
 
