@@ -1785,7 +1785,20 @@
       return;
     }
 
-    var panelHeading = panel.querySelector("p.text-[16px].font-semibold");
+    var panelHeading = null;
+    var headingCandidates = panel.querySelectorAll("p.font-semibold");
+    for (var i = 0; i < headingCandidates.length; i += 1) {
+      var nextHeading = headingCandidates[i];
+      if (String(nextHeading.textContent || "").trim().toLowerCase() === "edit profile") {
+        panelHeading = nextHeading;
+        break;
+      }
+    }
+
+    if (!panelHeading && headingCandidates.length) {
+      panelHeading = headingCandidates[0];
+    }
+
     if (!panelHeading) {
       return null;
     }
@@ -2179,7 +2192,10 @@
         return false;
       }
 
-      return Boolean(String(session.email || "").trim());
+      return Boolean(
+        String(session.email || "").trim() ||
+        String(session.userId || "").trim()
+      );
     }
 
     function openVerificationPage() {
