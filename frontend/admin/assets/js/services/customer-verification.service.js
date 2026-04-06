@@ -59,7 +59,7 @@ function statusLabel(status) {
   if (normalized === 'approved') return 'Approved';
   if (normalized === 'pending') return 'Pending Review';
   if (normalized === 'rejected') return 'Rejected';
-  return 'Not Submitted';
+  return 'Pending';
 }
 
 function documentTypeLabel(type) {

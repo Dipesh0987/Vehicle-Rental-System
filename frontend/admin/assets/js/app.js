@@ -291,7 +291,7 @@ function mapCustomerProfileToAdminRow(profile) {
     trips: 0,
     verified: status === 'approved',
     verificationStatus: status,
-    status: String(profile && profile.verificationStatusLabel ? profile.verificationStatusLabel : 'Not Submitted'),
+    status: String(profile && profile.verificationStatusLabel ? profile.verificationStatusLabel : 'Pending'),
     documents: documentLabel ? [documentLabel] : [],
     gender: formatLabel(profile && profile.gender ? profile.gender : ''),
     city: String(profile && profile.city ? profile.city : ''),

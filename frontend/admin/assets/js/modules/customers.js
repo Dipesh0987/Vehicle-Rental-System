@@ -60,7 +60,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
     <section class="${classMap.panel} p-4 sm:p-5">
       <h3 class="text-base font-extrabold">Professional Status Guide</h3>
       <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-        ${renderGuideTile('Not Submitted', 'Slate', 'Customer has not sent verification details yet.')}
+        ${renderGuideTile('Pending', 'Amber', 'Customer profile is waiting for verification submission or review.')}
         ${renderGuideTile('Pending Review', 'Amber', 'Customer submitted KYC data and waits for admin decision.')}
         ${renderGuideTile('Approved', 'Green', 'Identity verified and trusted for full account usage.')}
       </div>
@@ -167,7 +167,7 @@ function renderCustomerRow(row, serviceReady) {
       <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.city ? `${row.city}${row.country ? ', ' + row.country : ''}` : (row && row.country ? row.country : '-'))}</p>
     </td>
     <td class="py-3 pr-3">
-      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(submittedAt || 'Not submitted')}</p>
+      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(submittedAt || 'Pending')}</p>
       <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.verificationNote ? row.verificationNote : '-')}</p>
     </td>
     <td class="py-3 pr-3">${renderActionButtons(row, statusMeta, serviceReady)}</td>
@@ -194,7 +194,7 @@ function renderActionButtons(row, statusMeta, serviceReady) {
   const customerName = escapeHtml(String(row && row.name ? row.name : 'Customer'));
 
   if (statusMeta.key === 'not_submitted') {
-    return '<span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Waiting for submission</span>';
+    return '<span class="text-xs font-semibold text-amber-700 dark:text-amber-300">Pending customer submission</span>';
   }
 
   const approveButton = statusMeta.key === 'approved'
@@ -217,15 +217,13 @@ function summarizeVerificationStatuses(rows) {
     pending: 0,
     approved: 0,
     rejected: 0,
-    notSubmitted: 0,
   };
 
   (Array.isArray(rows) ? rows : []).forEach((row) => {
     const status = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted').key;
-    if (status === 'pending') summary.pending += 1;
+    if (status === 'pending' || status === 'not_submitted') summary.pending += 1;
     else if (status === 'approved') summary.approved += 1;
     else if (status === 'rejected') summary.rejected += 1;
-    else summary.notSubmitted += 1;
   });
 
   return summary;
@@ -260,8 +258,8 @@ function verificationStatusMeta(statusValue) {
 
   return {
     key: 'not_submitted',
-    label: 'Not Submitted',
-    className: 'bg-slate-200 text-slate-700 dark:bg-slate-500/30 dark:text-slate-200',
+    label: 'Pending',
+    className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
   };
 }
 
