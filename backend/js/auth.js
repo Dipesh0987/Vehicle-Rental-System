@@ -2047,11 +2047,40 @@
       return;
     }
 
-    ensureProfileIdentityVerificationChip(trigger);
-    ensureProfilePanelHeaderStatusBadge(panel);
-    ensureVerificationPanelMarkup(panel);
-    var quickVerifyBtn = ensureProfileQuickVerifyButton(trigger);
-    var viewProfileBtn = ensureProfileViewProfileButton(panel);
+    if (trigger.getAttribute("data-profile-panel-wired") === "true") {
+      return;
+    }
+
+    trigger.setAttribute("data-profile-panel-wired", "true");
+
+    var quickVerifyBtn = null;
+    var viewProfileBtn = null;
+
+    try {
+      ensureProfileIdentityVerificationChip(trigger);
+      ensureProfilePanelHeaderStatusBadge(panel);
+      ensureVerificationPanelMarkup(panel);
+      quickVerifyBtn = ensureProfileQuickVerifyButton(trigger);
+      viewProfileBtn = ensureProfileViewProfileButton(panel);
+    } catch (panelEnhancementError) {
+      console.warn("Profile panel enhancement skipped:", panelEnhancementError && panelEnhancementError.message ? panelEnhancementError.message : panelEnhancementError);
+    }
+
+    if (!quickVerifyBtn) {
+      try {
+        quickVerifyBtn = ensureProfileQuickVerifyButton(trigger);
+      } catch (_quickButtonError) {
+        quickVerifyBtn = null;
+      }
+    }
+
+    if (!viewProfileBtn) {
+      try {
+        viewProfileBtn = ensureProfileViewProfileButton(panel);
+      } catch (_viewButtonError) {
+        viewProfileBtn = null;
+      }
+    }
     var verificationModal = null;
 
     var verificationToggleBtn = panel.querySelector("[data-profile-verification-toggle]");
@@ -2188,14 +2217,18 @@
 
     function hasAuthenticatedSession() {
       var session = getSession();
-      if (!session) {
-        return false;
-      }
-
-      return Boolean(
+      var hasSessionIdentity = Boolean(
+        session &&
         String(session.email || "").trim() ||
         String(session.userId || "").trim()
       );
+
+      if (hasSessionIdentity) {
+        return true;
+      }
+
+      var profile = getProfile();
+      return Boolean(String(profile && profile.email ? profile.email : "").trim());
     }
 
     function openVerificationPage() {
