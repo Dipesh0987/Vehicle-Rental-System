@@ -241,7 +241,8 @@
       return;
     }
 
-    node.className = "ml-4 inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full px-5 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-[1px]";
+    node.className = "inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full px-5 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-[1px]";
+    node.style.marginLeft = "2rem";
     node.disabled = false;
 
     if (meta.key === "approved") {
@@ -484,6 +485,38 @@
       var docLabel = formatVerificationDocumentLabel(profile.documentType);
       verifyDocumentLabel.textContent = docLabel || "No document submitted";
     }
+
+    var verifyDocumentPreviewLink = document.querySelector("[data-profile-document-preview-link]");
+    var verifyDocumentPreviewImage = document.querySelector("[data-profile-document-preview]");
+    var verifyDocumentPreviewEmpty = document.querySelector("[data-profile-document-preview-empty]");
+    var normalizedDocumentImageUrl = normalizeAvatarValue(profile.documentImageUrl || "");
+    var hasDocumentImage = Boolean(normalizedDocumentImageUrl && isRenderableAvatarValue(normalizedDocumentImageUrl));
+
+    if (verifyDocumentPreviewImage) {
+      if (hasDocumentImage) {
+        verifyDocumentPreviewImage.src = normalizedDocumentImageUrl;
+        verifyDocumentPreviewImage.classList.remove("hidden");
+      } else {
+        verifyDocumentPreviewImage.removeAttribute("src");
+        verifyDocumentPreviewImage.classList.add("hidden");
+      }
+    }
+
+    if (verifyDocumentPreviewLink) {
+      verifyDocumentPreviewLink.classList.remove("hidden");
+
+      if (hasDocumentImage) {
+        verifyDocumentPreviewLink.href = normalizedDocumentImageUrl;
+        verifyDocumentPreviewLink.classList.remove("pointer-events-none", "cursor-default", "opacity-80");
+      } else {
+        verifyDocumentPreviewLink.removeAttribute("href");
+        verifyDocumentPreviewLink.classList.add("pointer-events-none", "cursor-default", "opacity-80");
+      }
+    }
+
+    if (verifyDocumentPreviewEmpty) {
+      verifyDocumentPreviewEmpty.classList.toggle("hidden", hasDocumentImage);
+    }
   }
 
   function toLocalProfileShape(profile) {
@@ -502,6 +535,7 @@
       postalCode: normalizeShortText(input.postalCode || input.postal_code, 20),
       documentType: normalizeVerificationDocumentType(input.documentType || input.document_type),
       documentNumber: normalizeShortText(input.documentNumber || input.document_number, 64),
+      documentImageUrl: normalizeAvatarValue(input.documentImageUrl || input.document_image_url),
       documentExpiryDate: normalizeIsoDate(input.documentExpiryDate || input.document_expiry_date),
       verificationStatus: normalizeVerificationStatus(input.verificationStatus || input.verification_status),
       verificationSubmittedAt: normalizeShortText(input.verificationSubmittedAt || input.verification_submitted_at, 64),
@@ -821,6 +855,11 @@
         "",
         64
       ),
+      documentImageUrl: normalizeAvatarValue(
+        (remoteProfile && remoteProfile.document_image_url) ||
+        fallback.documentImageUrl ||
+        ""
+      ),
       documentExpiryDate: normalizeIsoDate(
         (remoteProfile && remoteProfile.document_expiry_date) ||
         fallback.documentExpiryDate ||
@@ -897,6 +936,7 @@
             postalCode: existingProfile.postalCode || "",
             documentType: existingProfile.documentType || "",
             documentNumber: existingProfile.documentNumber || "",
+            documentImageUrl: existingProfile.documentImageUrl || "",
             documentExpiryDate: existingProfile.documentExpiryDate || "",
             verificationStatus: existingProfile.verificationStatus || "pending",
             verificationSubmittedAt: existingProfile.verificationSubmittedAt || "",
@@ -1859,7 +1899,8 @@
     var button = document.createElement("button");
     button.type = "button";
     button.setAttribute("data-profile-verify-cta", "true");
-    button.className = "ml-4 inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105";
+    button.className = "inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full bg-accent px-5 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105";
+    button.style.marginLeft = "2rem";
     button.textContent = "Verify Account";
 
     container.insertBefore(button, trigger.nextSibling);
@@ -1884,6 +1925,10 @@
         <p data-profile-verification-submitted class="mt-2 hidden text-[11px] text-white/80"></p>
         <p data-profile-verification-note class="mt-1 hidden text-[11px] text-rose-200"></p>
         <p data-profile-document-label class="mt-1 text-[11px] text-white/70">No document submitted</p>
+        <a data-profile-document-preview-link href="#" target="_blank" rel="noopener noreferrer" class="mt-2 hidden overflow-hidden rounded-xl border border-white/20 bg-white/10">
+          <img data-profile-document-preview src="" alt="Document preview" class="hidden max-h-[150px] w-full object-contain bg-white" />
+          <div data-profile-document-preview-empty class="px-3 py-4 text-[11px] text-white/70">No document image uploaded</div>
+        </a>
         <button type="button" data-profile-verification-toggle class="mt-3 inline-flex items-center rounded-full bg-accent px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105">Verify Account</button>
       </div>
     `;

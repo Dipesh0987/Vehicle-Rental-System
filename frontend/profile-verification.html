@@ -14,6 +14,68 @@
     <link rel="stylesheet" href="assets/css/tailwind.css" />
     <link rel="stylesheet" href="assets/css/theme.css" />
     <script src="assets/js/theme-manager.js"></script>
+    <style>
+      html[data-theme="dark"] .profile-verify-shell {
+        background: linear-gradient(160deg, rgba(18, 27, 33, 0.94), rgba(13, 20, 25, 0.9)) !important;
+        border-color: rgba(138, 170, 182, 0.34) !important;
+        box-shadow: 0 30px 64px rgba(0, 0, 0, 0.48) !important;
+      }
+
+      html[data-theme="dark"] .profile-verify-header {
+        border-color: rgba(138, 170, 182, 0.22) !important;
+      }
+
+      html[data-theme="dark"] .profile-verify-aside,
+      html[data-theme="dark"] .profile-verify-form,
+      html[data-theme="dark"] .profile-verify-doc-card,
+      html[data-theme="dark"] .profile-verify-card {
+        background: linear-gradient(155deg, rgba(20, 30, 36, 0.9), rgba(15, 24, 30, 0.86)) !important;
+        border-color: rgba(138, 170, 182, 0.28) !important;
+      }
+
+      html[data-theme="dark"] .profile-verify-card-cover {
+        background: linear-gradient(140deg, #2f505c 0%, #3b5e68 52%, #466b76 100%) !important;
+      }
+
+      html[data-theme="dark"] .profile-verify-options {
+        background: rgba(17, 27, 34, 0.78) !important;
+        border-color: rgba(138, 170, 182, 0.28) !important;
+      }
+
+      html[data-theme="dark"] .profile-verify-options button {
+        background-color: rgba(17, 27, 34, 0.9) !important;
+      }
+
+      .profile-verify-options {
+        margin-left: auto;
+        width: fit-content;
+      }
+
+      .profile-verify-option-btn {
+        min-width: 132px;
+        justify-content: center;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 640px) {
+        .profile-verify-options {
+          width: 100%;
+          justify-content: flex-end;
+        }
+
+        .profile-verify-option-btn {
+          min-width: 0;
+          width: 100%;
+          max-width: 220px;
+        }
+      }
+
+      #verifyProfileImageEditBtn {
+        justify-content: center;
+        text-align: center;
+      }
+    </style>
   </head>
   <body
     class="vrs-page min-h-screen bg-paper font-poppins text-ink"
@@ -23,8 +85,8 @@
       <div class="pointer-events-none absolute right-[-100px] top-[-95px] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle_at_32%_28%,rgba(229,140,78,0.78),rgba(229,140,78,0.12))] opacity-75 blur-[12px]" aria-hidden="true"></div>
       <div class="pointer-events-none absolute bottom-[-95px] left-[-85px] h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(44,118,110,0.62),rgba(44,118,110,0.16))] opacity-75 blur-[12px]" aria-hidden="true"></div>
 
-      <section class="relative overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-4 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] sm:p-6 lg:p-8">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(15,58,61,0.14)] pb-4">
+      <section class="profile-verify-shell relative overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-4 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] sm:p-6 lg:p-8">
+        <div class="profile-verify-header flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(15,58,61,0.14)] pb-4">
           <div class="space-y-1">
             <a href="vehicles.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#355456] transition hover:text-panel">&larr; Back to Vehicles</a>
             <h1 class="text-[24px] font-extrabold leading-tight text-[#12393c] sm:text-[30px]">Profile Verification</h1>
@@ -40,17 +102,73 @@
         <div id="verificationBanner" class="mt-4 hidden rounded-xl px-3 py-2 text-[13px]"></div>
 
         <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[0.92fr_1.08fr]">
-          <aside class="rounded-2xl border border-[rgba(18,57,60,0.14)] bg-white/80 p-4">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#2f6a66]">Checklist</p>
+          <aside class="profile-verify-aside rounded-2xl border border-[rgba(18,57,60,0.14)] bg-white/80 p-4">
+            <section class="profile-verify-card overflow-hidden rounded-3xl border bg-white shadow-[0_16px_32px_rgba(16,46,49,0.14)]" style="border-color: rgba(18,57,60,0.16);">
+              <div class="profile-verify-card-cover bg-[linear-gradient(140deg,#b4d2d7_0%,#d4e6e8_52%,#ecf6f7_100%)]" style="height: 92px;"></div>
+              <div class="px-4 pb-4">
+                <div class="flex items-end gap-3" style="margin-top: -46px;">
+                  <div id="verifyProfileAvatarFrame" class="relative shrink-0 overflow-hidden rounded-full border-4 border-white bg-[linear-gradient(150deg,#eff5f3,#ffffff)] shadow-[0_10px_24px_rgba(22,53,56,0.2)]" style="width: 112px; height: 112px; min-width: 112px; min-height: 112px; max-width: 112px; max-height: 112px;">
+                    <img id="verifyProfileAvatarImage" src="" alt="Profile image" class="hidden h-full w-full object-cover" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" />
+                    <span id="verifyProfileAvatarInitial" class="absolute inset-0 flex items-center justify-center text-[30px] font-bold text-[#2f5f63]">U</span>
+                  </div>
+                  <div class="min-w-0 flex-1 pb-2">
+                    <div class="flex items-center gap-2">
+                      <p id="verifyProfileNameDisplay" class="truncate text-3xl font-extrabold leading-none tracking-tight text-[#141f21] sm:text-4xl">User Profile</p>
+                      <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#38a0de] text-white shadow-[0_4px_10px_rgba(56,160,222,0.36)]">
+                        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="h-3.5 w-3.5">
+                          <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.415l-7.2 7.2a1 1 0 01-1.415 0l-3-3a1 1 0 011.415-1.414L8.8 11.786l6.493-6.496a1 1 0 011.41 0z" clip-rule="evenodd"></path>
+                        </svg>
+                      </span>
+                    </div>
+                    <p id="verifyProfileEmailDisplay" class="mt-1 truncate text-[15px] text-[#7a8b8d]">Signed-in account</p>
+                  </div>
+                </div>
+
+                <div class="mt-3 flex items-center justify-end pr-0.5">
+                  <button id="verifyProfileImageEditBtn" type="button" class="inline-flex min-w-[132px] items-center rounded-full px-5 py-2.5 text-[13px] font-semibold shadow-[0_8px_16px_rgba(18,57,60,0.26)] transition duration-200 hover:-translate-y-[1px] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#1e6660]/35" style="background-color:#12393c;color:#ffffff;border:1px solid rgba(18,57,60,0.56);min-height:42px;letter-spacing:0.01em;">
+                    Edit
+                  </button>
+                </div>
+
+                <div id="verifyProfileImageOptions" class="profile-verify-options mt-2 hidden flex-wrap items-center justify-end gap-2 rounded-xl border border-[rgba(18,57,60,0.12)] bg-[#f7faf9] p-2.5">
+                  <button id="verifyProfileImageReplaceBtn" type="button" class="profile-verify-option-btn inline-flex items-center rounded-full border border-[rgba(20,64,67,0.24)] bg-white px-4 py-1.5 text-[11px] font-semibold text-[#2f4f52] transition duration-200 hover:-translate-y-[1px] hover:bg-[#f2f7f6]">Replace Image</button>
+                  <button id="verifyProfileImageRemoveBtn" type="button" class="profile-verify-option-btn inline-flex items-center rounded-full border border-rose-200 bg-white px-4 py-1.5 text-[11px] font-semibold text-rose-700 transition duration-200 hover:-translate-y-[1px] hover:bg-rose-50">Remove Image</button>
+                </div>
+
+                <input id="verifyProfileImage" name="profileImage" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" class="hidden" />
+                <p class="mt-2 hidden text-[11px] text-rose-600" data-error-for="profileImage"></p>
+              </div>
+            </section>
+
+            <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#2f6a66]">Checklist</p>
             <ul class="mt-3 space-y-2 text-[12px] text-[#345356]">
               <li class="rounded-xl border border-[rgba(18,57,60,0.1)] bg-white/85 px-3 py-2">Use legal full name and matching identity document.</li>
               <li class="rounded-xl border border-[rgba(18,57,60,0.1)] bg-white/85 px-3 py-2">All required fields are validated strictly before submit.</li>
               <li class="rounded-xl border border-[rgba(18,57,60,0.1)] bg-white/85 px-3 py-2">Document expiry must be today or a future date.</li>
               <li class="rounded-xl border border-[rgba(18,57,60,0.1)] bg-white/85 px-3 py-2">Phone, address, city, and country must be valid and complete.</li>
             </ul>
+
+            <div class="profile-verify-doc-card mt-4 rounded-2xl border border-[rgba(18,57,60,0.14)] bg-white/85 p-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#2f6a66]">Document Image</p>
+              <p class="mt-1 text-[11px] text-[#466063]">Upload a clear photo or scan of your ID document.</p>
+
+              <div id="verifyDocumentPreviewShell" class="mt-3 overflow-hidden rounded-xl border border-[rgba(18,57,60,0.14)] bg-[#f7faf9]">
+                <div id="verifyDocumentPreviewEmpty" class="px-3 py-6 text-center text-[11px] text-[#4d6365]">No document image uploaded yet.</div>
+                <img id="verifyDocumentPreview" src="" alt="Document preview" class="hidden max-h-[220px] w-full object-contain bg-white" />
+              </div>
+
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <label for="verifyDocumentImage" class="inline-flex cursor-pointer items-center rounded-full bg-accent px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105">Browse Image</label>
+                <button id="verifyDocumentReplaceBtn" type="button" class="inline-flex items-center rounded-full border border-[rgba(20,64,67,0.24)] px-3 py-1.5 text-[11px] font-semibold text-[#2f4f52] transition duration-200 hover:-translate-y-[1px] hover:bg-white">Replace</button>
+                <button id="verifyDocumentClearBtn" type="button" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1.5 text-[11px] font-semibold text-rose-700 transition duration-200 hover:-translate-y-[1px] hover:bg-rose-50">Remove</button>
+                <a id="verifyDocumentOpenLink" href="#" target="_blank" rel="noopener noreferrer" class="hidden items-center rounded-full border border-emerald-300 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 transition duration-200 hover:-translate-y-[1px] hover:bg-emerald-50">Open</a>
+              </div>
+
+              <p id="verifyDocumentFileName" class="mt-2 text-[11px] text-[#4d6365]">No image selected</p>
+            </div>
           </aside>
 
-          <form id="profileVerificationForm" class="rounded-2xl border border-[rgba(18,57,60,0.14)] bg-white/90 p-4 sm:p-5" novalidate>
+          <form id="profileVerificationForm" class="profile-verify-form rounded-2xl border border-[rgba(18,57,60,0.14)] bg-white/90 p-4 sm:p-5" novalidate>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label class="space-y-1">
                 <span class="text-[12px] font-semibold text-[#2a4548]">Full Name</span>
@@ -137,6 +255,9 @@
               </label>
             </div>
 
+            <input id="verifyDocumentImage" name="documentImage" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" class="hidden" />
+            <p class="mt-2 hidden text-[11px] text-rose-600" data-error-for="documentImage"></p>
+
             <div class="mt-4 flex flex-wrap items-center gap-2">
               <button id="submitVerificationBtn" type="submit" class="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">Submit Verification</button>
               <a href="vehicles.html" class="rounded-full border border-[rgba(20,64,67,0.24)] px-5 py-2.5 text-[13px] font-semibold text-[#2f4f52] transition duration-200 hover:-translate-y-[1px] hover:bg-white">Cancel</a>
@@ -164,6 +285,7 @@
       </section>
     </main>
 
+    <script src="assets/js/supabase.config.local.js"></script>
     <script src="assets/js/supabase.config.js"></script>
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>

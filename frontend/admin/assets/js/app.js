@@ -297,6 +297,7 @@ function mapCustomerProfileToAdminRow(profile) {
     city: String(profile && profile.city ? profile.city : ''),
     country: String(profile && profile.country ? profile.country : ''),
     documentNumber: String(profile && profile.documentNumber ? profile.documentNumber : ''),
+    documentImageUrl: String(profile && profile.documentImageUrl ? profile.documentImageUrl : ''),
     verificationSubmittedAt: String(profile && profile.verificationSubmittedAt ? profile.verificationSubmittedAt : ''),
     verificationReviewedAt: String(profile && profile.verificationReviewedAt ? profile.verificationReviewedAt : ''),
     verificationNote: String(profile && profile.verificationNote ? profile.verificationNote : ''),

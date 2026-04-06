@@ -14,6 +14,7 @@ const PROFILE_VERIFICATION_SELECT = [
   'postal_code',
   'document_type',
   'document_number',
+  'document_image_url',
   'document_expiry_date',
   'verification_status',
   'verification_submitted_at',
@@ -90,6 +91,7 @@ function mapProfileRow(row) {
     documentType: normalizeDocumentType(source.document_type),
     documentTypeLabel: documentTypeLabel(source.document_type),
     documentNumber: normalizeText(source.document_number),
+    documentImageUrl: normalizeText(source.document_image_url),
     documentExpiryDate: normalizeText(source.document_expiry_date),
     verificationStatus,
     verificationStatusLabel: statusLabel(verificationStatus),
@@ -125,6 +127,7 @@ function isMissingVerificationSchemaError(error) {
     message.includes('verification_note') ||
     message.includes('document_type') ||
     message.includes('document_number') ||
+    message.includes('document_image_url') ||
     message.includes('phone_number')
   );
 }
@@ -133,7 +136,7 @@ function toPublicError(error, fallbackMessage = 'Unable to process customer veri
   const message = getErrorMessage(error);
 
   if (isMissingVerificationSchemaError(error)) {
-    return 'Verification workflow schema is missing. Run database/migrations/012_user_profile_verification_workflow.sql.';
+    return 'Verification workflow schema is missing. Run database/migrations/012_user_profile_verification_workflow.sql and database/migrations/013_verification_document_image_url.sql.';
   }
 
   if (message.includes('only admin users can update verification status')) {
