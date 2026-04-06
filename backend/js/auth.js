@@ -1830,10 +1830,10 @@
     }
 
     var modalMarkup = `
-      <div data-profile-verification-modal role="dialog" aria-modal="true" aria-hidden="true" class="fixed inset-0 z-[240] hidden items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div data-profile-verification-modal-backdrop class="absolute inset-0 bg-slate-950/60 opacity-0 backdrop-blur-md transition duration-300"></div>
-        <div data-profile-verification-modal-card class="relative z-10 w-full max-w-6xl overflow-hidden rounded-[30px] border border-white/25 bg-[linear-gradient(155deg,rgba(17,48,52,0.98),rgba(10,28,31,0.98))] text-white shadow-[0_45px_110px_rgba(0,0,0,0.45)] opacity-0 translate-y-4 scale-[0.98] transition duration-300">
-          <div class="flex items-start justify-between gap-4 border-b border-white/15 px-5 py-4 sm:px-7 sm:py-5">
+      <div data-profile-verification-modal role="dialog" aria-modal="true" aria-hidden="true" class="fixed inset-0 z-[240] hidden items-center justify-center p-3 sm:p-5 lg:p-8">
+        <div data-profile-verification-modal-backdrop class="absolute inset-0 bg-slate-950/60 opacity-0 backdrop-blur-md transition duration-200"></div>
+        <div data-profile-verification-modal-card class="relative z-10 w-full max-w-6xl max-h-[96vh] overflow-hidden rounded-[24px] border border-white/25 bg-[linear-gradient(155deg,rgba(17,48,52,0.98),rgba(10,28,31,0.98))] text-white shadow-[0_45px_110px_rgba(0,0,0,0.45)] opacity-0 translate-y-4 scale-[0.98] transition duration-300 ease-out sm:rounded-[30px]">
+          <div class="flex items-start justify-between gap-4 border-b border-white/15 px-4 py-3 sm:px-6 sm:py-5">
             <div class="space-y-1">
               <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Account Verification</p>
               <h3 class="text-lg font-semibold sm:text-xl">Secure Identity Check</h3>
@@ -1851,8 +1851,8 @@
             </div>
           </div>
 
-          <div class="grid max-h-[calc(92vh-98px)] grid-cols-1 overflow-y-auto lg:grid-cols-[0.92fr_1.08fr]">
-            <aside class="border-b border-white/15 bg-white/5 px-5 py-5 sm:px-7 lg:border-b-0 lg:border-r lg:border-r-white/15">
+          <div class="grid max-h-[calc(96vh-84px)] grid-cols-1 overflow-y-auto sm:max-h-[calc(92vh-98px)] lg:grid-cols-[0.92fr_1.08fr]">
+            <aside class="border-b border-white/15 bg-white/5 px-4 py-4 sm:px-6 sm:py-5 lg:border-b-0 lg:border-r lg:border-r-white/15">
               <p class="text-sm text-white/80">Verification helps us keep bookings secure and ensures a faster approval process for every reservation.</p>
               <ul class="mt-4 space-y-2 text-[12px] text-white/75">
                 <li class="rounded-xl border border-white/10 bg-white/5 px-3 py-2">Use your legal full name and matching document details.</li>
@@ -1861,7 +1861,7 @@
               </ul>
             </aside>
 
-            <form data-profile-verification-form class="space-y-4 px-5 py-5 sm:px-7" novalidate>
+            <form data-profile-verification-form class="space-y-4 px-4 py-4 sm:px-6 sm:py-5" novalidate>
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label class="space-y-1">
                   <span class="text-[11px] text-white/80">Full Name</span>
@@ -2426,7 +2426,7 @@
         }
         verificationFocusSource = null;
         verificationModalHideTimerId = null;
-      }, 260);
+      }, 320);
 
     }
 
