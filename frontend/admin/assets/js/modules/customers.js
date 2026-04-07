@@ -251,7 +251,7 @@ function renderCustomerFocusGrid(rows, activeStatusFilter) {
     </div>
 
     <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-      ${rows.map((row) => renderCustomerFocusCard(row)).join('')}
+      ${rows.map((row, index) => renderCustomerFocusCard(row, index)).join('')}
     </div>
   </section>`;
 }
@@ -267,7 +267,7 @@ function renderFilterChip(chip, activeStatusFilter) {
   </button>`;
 }
 
-function renderCustomerFocusCard(row) {
+function renderCustomerFocusCard(row, index) {
   const statusMeta = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted');
   const initials = resolveInitials(row && row.name ? row.name : 'Customer');
   const locationText = row && row.city
@@ -277,7 +277,9 @@ function renderCustomerFocusCard(row) {
   const userId = escapeHtml(String(row && row.id ? row.id : ''));
   const trips = Number.isFinite(Number(row && row.trips ? row.trips : 0)) ? Number(row.trips) : 0;
 
-  return `<button type="button" data-open-customer-id="${userId}" class="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 p-4 text-left shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-500/40 hover:shadow-[0_22px_38px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-white/10 dark:bg-white/5 dark:hover:border-brand-400/50">
+  const delay = Number.isFinite(Number(index)) ? Math.max(0, Math.min(7, Number(index))) * 26 : 0;
+
+  return `<button type="button" data-open-customer-id="${userId}" style="animation-delay:${delay}ms" class="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 p-4 text-left shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.01] hover:border-brand-500/40 hover:shadow-[0_22px_38px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-white/10 dark:bg-white/5 dark:hover:border-brand-400/50 animate-fadeUp">
     <span class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-brand-500/10 blur-2xl transition duration-300 group-hover:scale-110"></span>
     <span class="pointer-events-none absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-peach/20 blur-2xl transition duration-300 group-hover:scale-110"></span>
 
@@ -302,7 +304,7 @@ function renderCustomerFocusCard(row) {
 
       <div class="mt-3 inline-flex items-center gap-1 rounded-full border border-brand-500/25 bg-brand-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.13em] text-brand-700 transition group-hover:bg-brand-500 group-hover:text-white dark:border-brand-400/40 dark:bg-brand-400/10 dark:text-brand-300 dark:group-hover:bg-brand-500 dark:group-hover:text-white">
         <span>Open Detail Page</span>
-        <span class="material-symbols-outlined text-[14px]">east</span>
+        <span class="material-symbols-outlined text-[14px] transition-transform duration-300 group-hover:translate-x-0.5">east</span>
       </div>
     </div>
   </button>`;
