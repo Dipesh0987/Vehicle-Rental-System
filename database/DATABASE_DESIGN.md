@@ -6,6 +6,7 @@ This project is connected to Supabase with incremental schema rollout via versio
 
 - Incremental schema rollout with Supabase SQL migrations
 - Profile and vehicle catalog tables now implemented
+- Customer verification domain implemented on top of `user_profiles`
 - Continue design-first planning for future booking/payment migrations
 
 ## Proposed Domains
@@ -21,6 +22,7 @@ This project is connected to Supabase with incremental schema rollout via versio
 - user_profiles
   - Linked to auth.users
   - Stores display and contact fields
+  - Stores KYC verification fields and admin-reviewed verification status
  - vehicles
   - Vehicle metadata, pricing, availability status, and primary image URL
  - vehicle_images
@@ -63,6 +65,7 @@ This project is connected to Supabase with incremental schema rollout via versio
 - Admin-only insert/update/delete policies for vehicle records and image metadata
 - Admin-only storage write access in `vehicle-images` bucket (folder-bound to auth user)
 - Users can only read/update their own profile records in `user_profiles`
+- Admin users can review all customer verification records and update verification status via RPC
 
 ## Migration Strategy
 
@@ -76,3 +79,4 @@ This project is connected to Supabase with incremental schema rollout via versio
 - `002_user_profiles_avatar.sql`
 - `003_profile_images_storage.sql`
 - `004_vehicle_catalog.sql`
+- `012_user_profile_verification_workflow.sql`

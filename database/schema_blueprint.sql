@@ -18,6 +18,7 @@
 -- Implemented in migrations:
 -- - 001_user_profiles.sql
 -- - 002_user_profiles_avatar.sql
+-- - 012_user_profile_verification_workflow.sql
 -- - 003_profile_images_storage.sql
 -- - 004_vehicle_catalog.sql
 
