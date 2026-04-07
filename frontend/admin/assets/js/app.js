@@ -57,17 +57,18 @@ async function bootstrap() {
   appState.customerVerificationService = createCustomerVerificationService();
   appState.data.bookings = [];
 
-  await hydrateVehiclesFromCatalog({ silent: true });
-  await hydrateBookingsFromDatabase({ silent: true });
-  await hydrateCustomersFromDatabase({ silent: true });
-
-  setupCatalogSync();
-  setupBookingSync();
-
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
   setActiveNav(appState.activeModule);
+
+  await hydrateVehiclesFromCatalog({ silent: true });
+  await hydrateBookingsFromDatabase({ silent: true });
+  await hydrateCustomersFromDatabase({ silent: true });
+  renderActiveModule();
+
+  setupCatalogSync();
+  setupBookingSync();
 
   try {
     const vehicles = await catalogService.loadVehicles();

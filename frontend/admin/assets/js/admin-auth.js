@@ -17,6 +17,52 @@
     return normalizeText(value).toLowerCase();
   }
 
+  function titleCaseWords(value) {
+    var parts = String(value || "")
+      .split(" ")
+      .filter(function (item) {
+        return Boolean(item);
+      });
+
+    return parts
+      .map(function (item) {
+        return item.charAt(0).toUpperCase() + item.slice(1).toLowerCase();
+      })
+      .join(" ");
+  }
+
+  function isReservedDisplayName(value) {
+    var normalized = String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+    if (!normalized) {
+      return false;
+    }
+
+    return normalized.indexOf("super admin") >= 0 || normalized.indexOf("platform admin") >= 0;
+  }
+
+  function formatDisplayName(value) {
+    var raw = normalizeText(value);
+    if (!raw) {
+      return "Admin";
+    }
+
+    var source = raw.indexOf("@") >= 0 ? raw.split("@")[0] : raw;
+    var cleaned = source.replace(/[._-]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!cleaned) {
+      return "Admin";
+    }
+
+    if (isReservedDisplayName(cleaned)) {
+      return "Admin";
+    }
+
+    return titleCaseWords(cleaned);
+  }
+
   function normalizeEmailList(source) {
     var values = [];
 
@@ -94,6 +140,40 @@
     return null;
   }
 
+  function splitPathSegments(pathname) {
+    return String(pathname || "")
+      .toLowerCase()
+      .split("?")[0]
+      .split("#")[0]
+      .split("/");
+  }
+
+  function hasAdminPathSegment(pathname) {
+    return splitPathSegments(pathname).indexOf("admin") >= 0;
+  }
+
+  function resolveAdminBasePathFromPathname(pathname) {
+    var parts = splitPathSegments(pathname);
+    var adminIndex = -1;
+
+    for (var i = 0; i < parts.length; i += 1) {
+      if (parts[i] === "admin") {
+        adminIndex = i;
+      }
+    }
+
+    if (adminIndex < 0) {
+      return "/admin/";
+    }
+
+    var basePath = parts.slice(0, adminIndex + 1).join("/");
+    if (!basePath || basePath.charAt(0) !== "/") {
+      basePath = "/" + basePath;
+    }
+
+    return basePath.charAt(basePath.length - 1) === "/" ? basePath : basePath + "/";
+  }
+
   function mapSignInError(error) {
     var auth = getAuthService();
     var fallback = "Invalid admin credentials.";
@@ -133,6 +213,8 @@
     var username = normalizeLower(value.username);
     var email = normalizeLower(value.email);
     var userId = normalizeText(value.userId);
+    var loginIdentifier = normalizeText(value.loginIdentifier);
+    var displayName = normalizeText(value.displayName);
     var issuedAt = Number(value.issuedAt || 0);
     var expiresAt = Number(value.expiresAt || 0);
 
@@ -144,6 +226,8 @@
       username: username,
       email: email,
       userId: userId,
+      loginIdentifier: loginIdentifier,
+      displayName: displayName,
       role: String(value.role || "admin"),
       issuedAt: issuedAt,
       expiresAt: expiresAt,
@@ -184,6 +268,17 @@
     return Boolean(getSession());
   }
 
+  function getDisplayName() {
+    var session = getSession();
+    if (!session) {
+      return "Admin";
+    }
+
+    return formatDisplayName(
+      session.displayName || session.loginIdentifier || session.username || "Admin"
+    );
+  }
+
   function persistSession(session, rememberMe) {
     var raw = JSON.stringify(session);
 
@@ -209,7 +304,7 @@
     return {
       pathname: pathname,
       fileName: fileName,
-      isAdminPath: pathname.indexOf("/admin") >= 0,
+      isAdminPath: hasAdminPathSegment(pathname),
     };
   }
 
@@ -233,12 +328,22 @@
     return info.fileName === "index.html" || info.fileName === "admin" || info.fileName === "";
   }
 
+  function resolveAdminBasePath() {
+    var info = getPathInfo();
+    return resolveAdminBasePathFromPathname(info.pathname);
+  }
+
+  function buildAdminUrl(fileName) {
+    var cleanFile = normalizeText(fileName || "").replace(/^\/+/, "") || "index.html";
+    return resolveAdminBasePath() + cleanFile;
+  }
+
   function redirectToDashboard() {
-    window.location.replace("index.html");
+    window.location.replace(buildAdminUrl("index.html"));
   }
 
   function redirectToLogin() {
-    window.location.replace("login.html");
+    window.location.replace(buildAdminUrl("login.html"));
   }
 
   async function signIn(payload) {
@@ -290,6 +395,20 @@
 
     var user = authData && authData.user ? authData.user : (authData && authData.session && authData.session.user ? authData.session.user : null);
     var authenticatedEmail = normalizeLower(user && user.email ? user.email : signedInEmail);
+    var userMetadata = user && user.user_metadata && typeof user.user_metadata === "object"
+      ? user.user_metadata
+      : {};
+    var metadataName = normalizeText(
+      userMetadata.full_name || userMetadata.fullName || userMetadata.name
+    );
+    var displayName = metadataName ? formatDisplayName(metadataName) : "";
+    if (!displayName || displayName === "Admin") {
+      if (usernameInput.indexOf("@") >= 0) {
+        displayName = "Admin";
+      } else {
+        displayName = formatDisplayName(usernameInput || ADMIN_USERNAME);
+      }
+    }
 
     if (!isAllowedAdminEmail(authenticatedEmail)) {
       if (typeof auth.signOut === "function") {
@@ -308,6 +427,8 @@
       username: ADMIN_USERNAME,
       email: authenticatedEmail,
       userId: normalizeText(user && user.id ? user.id : ""),
+      loginIdentifier: usernameInput,
+      displayName: displayName,
       role: "admin",
       issuedAt: issuedAt,
       expiresAt: issuedAt + SESSION_TTL_MS,
@@ -334,24 +455,107 @@
       .finally(redirectToLogin);
   }
 
-  function guardCurrentPage() {
-    var authed = isAuthenticated();
-
-    if (isLoginPage() && authed) {
-      redirectToDashboard();
+  async function verifyRuntimeAdminSession() {
+    var localSession = getSession();
+    if (!localSession) {
       return false;
     }
 
-    if (isDashboardPage() && !authed) {
+    var auth = getAuthService();
+    if (!auth || typeof auth.getSession !== "function") {
+      clearSession();
+      return false;
+    }
+
+    try {
+      var runtimeSession = await auth.getSession();
+      var runtimeUser = runtimeSession && runtimeSession.user ? runtimeSession.user : null;
+      var runtimeEmail = normalizeLower(runtimeUser && runtimeUser.email ? runtimeUser.email : "");
+      var runtimeUserId = normalizeText(runtimeUser && runtimeUser.id ? runtimeUser.id : "");
+
+      if (!runtimeUser || !runtimeEmail) {
+        clearSession();
+        return false;
+      }
+
+      if (!isAllowedAdminEmail(runtimeEmail)) {
+        clearSession();
+        return false;
+      }
+
+      if (localSession.email && localSession.email !== runtimeEmail) {
+        clearSession();
+        return false;
+      }
+
+      if (localSession.userId && runtimeUserId && localSession.userId !== runtimeUserId) {
+        clearSession();
+        return false;
+      }
+
+      return true;
+    } catch (_error) {
+      clearSession();
+      return false;
+    }
+  }
+
+  function guardCurrentPage() {
+    var isLogin = isLoginPage();
+    var isDashboard = isDashboardPage();
+    var authed = isAuthenticated();
+
+    if (!isLogin && !isDashboard) {
+      return true;
+    }
+
+    if (isDashboard && !authed) {
       redirectToLogin();
       return false;
     }
+
+    if (isDashboard) {
+      var auth = getAuthService();
+      if (!auth || typeof auth.getSession !== "function") {
+        clearSession();
+        redirectToLogin();
+        return false;
+      }
+    }
+
+    verifyRuntimeAdminSession()
+      .then(function (valid) {
+        if (isDashboard && !valid) {
+          redirectToLogin();
+          return;
+        }
+
+        if (isLogin && valid) {
+          redirectToDashboard();
+          return;
+        }
+
+        if (isLogin && !valid) {
+          clearSession();
+        }
+      })
+      .catch(function () {
+        if (isDashboard) {
+          redirectToLogin();
+          return;
+        }
+
+        if (isLogin) {
+          clearSession();
+        }
+      });
 
     return true;
   }
 
   window.AdminAuth = {
     getSession: getSession,
+    getDisplayName: getDisplayName,
     isAuthenticated: isAuthenticated,
     signIn: signIn,
     signOut: signOut,
@@ -359,7 +563,6 @@
     guardCurrentPage: guardCurrentPage,
     credentials: {
       username: ADMIN_USERNAME,
-      adminEmails: getConfiguredAdminEmails(),
     },
   };
 

@@ -132,6 +132,18 @@ function isMissingVerificationSchemaError(error) {
   );
 }
 
+function isMissingAdminListRpcError(error) {
+  const message = getErrorMessage(error);
+
+  return (
+    message.includes('admin_list_user_profiles') &&
+    (
+      message.includes('could not find') ||
+      (message.includes('function') && message.includes('does not exist'))
+    )
+  );
+}
+
 function toPublicError(error, fallbackMessage = 'Unable to process customer verification right now.') {
   const message = getErrorMessage(error);
 
@@ -184,16 +196,20 @@ export function createCustomerVerificationService() {
   async function listCustomers() {
     const client = await getClient();
 
-    let response = await client
-      .from('user_profiles')
-      .select(PROFILE_VERIFICATION_SELECT)
-      .order('updated_at', { ascending: false });
+    let response = await client.rpc('admin_list_user_profiles');
 
-    if (response.error && isMissingVerificationSchemaError(response.error)) {
+    if (response.error && isMissingAdminListRpcError(response.error)) {
       response = await client
         .from('user_profiles')
-        .select(PROFILE_BASE_SELECT)
+        .select(PROFILE_VERIFICATION_SELECT)
         .order('updated_at', { ascending: false });
+
+      if (response.error && isMissingVerificationSchemaError(response.error)) {
+        response = await client
+          .from('user_profiles')
+          .select(PROFILE_BASE_SELECT)
+          .order('updated_at', { ascending: false });
+      }
     }
 
     if (response.error) {
