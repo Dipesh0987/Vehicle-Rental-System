@@ -273,9 +273,7 @@ function renderFilterChip(chip, activeStatusFilter) {
 function renderCustomerFocusCard(row, index) {
   const statusMeta = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted');
   const initials = resolveInitials(row && row.name ? row.name : 'Customer');
-  const locationText = row && row.city
-    ? `${row.city}${row.country ? `, ${row.country}` : ''}`
-    : (row && row.country ? row.country : 'Location not provided');
+  const locationText = formatLocation(row);
   const submissionText = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '') || 'Not submitted yet';
   const userId = escapeHtml(String(row && row.id ? row.id : ''));
   const trips = Number.isFinite(Number(row && row.trips ? row.trips : 0)) ? Number(row.trips) : 0;
@@ -326,9 +324,7 @@ function renderCustomerDetailPage(row, serviceReady) {
   const documentText = formatDocumentText(row);
   const submittedAt = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '') || 'Pending';
   const reviewedAt = formatDateTime(row && row.verificationReviewedAt ? row.verificationReviewedAt : '') || 'Not reviewed yet';
-  const locationText = row && row.city
-    ? `${row.city}${row.country ? `, ${row.country}` : ''}`
-    : (row && row.country ? row.country : 'Location not provided');
+  const locationText = formatLocation(row);
   const trips = Number.isFinite(Number(row && row.trips ? row.trips : 0)) ? Number(row.trips) : 0;
 
   return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
@@ -662,6 +658,20 @@ function resolveVerificationProgress(statusKey) {
   }
 
   return 10;
+}
+
+function formatLocation(row) {
+  const city = String(row && row.city ? row.city : '').trim();
+  const country = String(row && row.country ? row.country : '').trim();
+  if (city) {
+    return `${city}${country ? `, ${country}` : ''}`;
+  }
+
+  if (country) {
+    return country;
+  }
+
+  return 'Location not provided';
 }
 
 function formatDateTime(value) {
