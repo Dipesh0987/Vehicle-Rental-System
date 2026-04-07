@@ -2,6 +2,10 @@ import { classMap } from '../config.js';
 import { filterRows, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
+const customerUiState = {
+  selectedCustomerId: '',
+};
+
 export function renderCustomersModule({ data, query, notify, customerVerificationService, reloadCustomersData, rerender }) {
   const host = document.createElement('section');
   const sourceRows = Array.isArray(data && data.customers) ? data.customers : [];
@@ -12,6 +16,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
 
   const statusSummary = summarizeVerificationStatuses(sourceRows);
   const serviceReady = Boolean(customerVerificationService && typeof customerVerificationService.updateVerificationStatus === 'function');
+  const selectedCustomer = resolveSelectedCustomer(sourceRows);
 
   host.className = 'space-y-4';
   host.innerHTML = `
@@ -29,42 +34,27 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
       </div>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <button id="refreshCustomersBtn" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">Refresh</button>
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+          ${selectedCustomer ? `Viewing: ${escapeHtml(selectedCustomer.name || 'Customer')}` : 'Click any registered customer to open a focused detail page'}
+        </p>
         ${serviceReady ? '' : '<p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">Verification status updates are unavailable until migration 012 is applied.</p>'}
       </div>
     </section>
 
-    <section class="${classMap.panel} p-4 sm:p-5">
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:text-slate-400">
-              <th class="pb-2 pr-3">Customer</th>
-              <th class="pb-2 pr-3">Trips</th>
-              <th class="pb-2 pr-3">Verification Status</th>
-              <th class="pb-2 pr-3">Identity Details</th>
-              <th class="pb-2 pr-3">Submission</th>
-              <th class="pb-2 pr-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.length
-              ? rows
-              .map((row) => renderCustomerRow(row, serviceReady))
-              .join('')
-              : `<tr><td colspan="6" class="py-6">${renderEmptyState({ title: 'No customers found', message: 'No customer profile matched the current search.', actionLabel: 'Clear Search', actionId: 'clearCustomerSearch' })}</td></tr>`}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    ${selectedCustomer
+      ? renderCustomerDetailPage(selectedCustomer, serviceReady)
+      : renderCustomerFocusGrid(rows)}
 
-    <section class="${classMap.panel} p-4 sm:p-5">
-      <h3 class="text-base font-extrabold">Professional Status Guide</h3>
-      <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-        ${renderGuideTile('Pending', 'Amber', 'Customer profile is waiting for verification submission or review.')}
-        ${renderGuideTile('Pending Review', 'Amber', 'Customer submitted KYC data and waits for admin decision.')}
-        ${renderGuideTile('Approved', 'Green', 'Identity verified and trusted for full account usage.')}
-      </div>
-    </section>
+    ${selectedCustomer
+      ? ''
+      : `<section class="${classMap.panel} p-4 sm:p-5">
+          <h3 class="text-base font-extrabold">Professional Status Guide</h3>
+          <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            ${renderGuideTile('Pending', 'Amber', 'Customer profile is waiting for verification submission or review.')}
+            ${renderGuideTile('Pending Review', 'Amber', 'Customer submitted KYC data and waits for admin decision.')}
+            ${renderGuideTile('Approved', 'Green', 'Identity verified and trusted for full account usage.')}
+          </div>
+        </section>`}
   `;
 
   host.querySelector('#refreshCustomersBtn')?.addEventListener('click', async () => {
@@ -74,6 +64,23 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
     }
 
     notify('Customer verification data refreshed', 'success');
+  });
+
+  host.querySelectorAll('[data-open-customer-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const selectedId = String(button.getAttribute('data-open-customer-id') || '').trim();
+      if (!selectedId) {
+        return;
+      }
+
+      customerUiState.selectedCustomerId = selectedId;
+      rerender?.();
+    });
+  });
+
+  host.querySelector('[data-back-to-customer-list]')?.addEventListener('click', () => {
+    customerUiState.selectedCustomerId = '';
+    rerender?.();
   });
 
   host.querySelectorAll('[data-verification-action]').forEach((button) => {
@@ -132,6 +139,20 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
   return host;
 }
 
+function resolveSelectedCustomer(rows) {
+  const selectedId = String(customerUiState.selectedCustomerId || '').trim();
+  if (!selectedId) {
+    return null;
+  }
+
+  const selected = (Array.isArray(rows) ? rows : []).find((row) => String(row && row.id ? row.id : '') === selectedId) || null;
+  if (!selected) {
+    customerUiState.selectedCustomerId = '';
+  }
+
+  return selected;
+}
+
 function renderSummaryTile(label, value, valueToneClass) {
   return `<article class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
     <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">${escapeHtml(label)}</p>
@@ -147,42 +168,189 @@ function renderGuideTile(title, tone, description) {
   </article>`;
 }
 
-function renderCustomerRow(row, serviceReady) {
-  const statusMeta = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted');
-  const documentText = formatDocumentText(row);
-  const submittedAt = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '');
-  const documentPreview = renderDocumentPreview(row);
+function renderCustomerFocusGrid(rows) {
+  if (!rows.length) {
+    return `<section class="${classMap.panel} p-4 sm:p-5">
+      ${renderEmptyState({ title: 'No customers found', message: 'No customer profile matched the current search.', actionLabel: 'Clear Search', actionId: 'clearCustomerSearch' })}
+    </section>`;
+  }
 
-  return `<tr class="border-b border-slate-100 dark:border-white/5">
-    <td class="py-3 pr-3">
-      <p class="font-bold">${escapeHtml(row && row.name ? row.name : 'Customer')}</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(shortUserId(row && row.id ? row.id : ''))}</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.email ? row.email : '-')}</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.phoneNumber ? row.phoneNumber : 'No phone')}</p>
-    </td>
-    <td class="py-3 pr-3 font-semibold">${Number.isFinite(Number(row && row.trips ? row.trips : 0)) ? Number(row.trips) : 0}</td>
-    <td class="py-3 pr-3">${renderStatusBadge(statusMeta)}</td>
-    <td class="py-3 pr-3">
-      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(documentText)}</p>
-      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.gender ? `Gender: ${row.gender}` : 'Gender: -')}</p>
-      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.city ? `${row.city}${row.country ? ', ' + row.country : ''}` : (row && row.country ? row.country : '-'))}</p>
-      ${documentPreview}
-    </td>
-    <td class="py-3 pr-3">
-      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(submittedAt || 'Pending')}</p>
-      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.verificationNote ? row.verificationNote : '-')}</p>
-    </td>
-    <td class="py-3 pr-3">${renderActionButtons(row, statusMeta, serviceReady)}</td>
-  </tr>`;
+  return `<section class="${classMap.panel} p-4 sm:p-5">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h3 class="text-base font-extrabold">Registered Customers</h3>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Focused view with quick hover insights and direct detail-page navigation.</p>
+      </div>
+      <p class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-white/10 dark:text-slate-300">${rows.length} visible</p>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      ${rows.map((row) => renderCustomerFocusCard(row)).join('')}
+    </div>
+  </section>`;
 }
 
-function renderDocumentPreview(row) {
+function renderCustomerFocusCard(row) {
+  const statusMeta = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted');
+  const initials = resolveInitials(row && row.name ? row.name : 'Customer');
+  const locationText = row && row.city
+    ? `${row.city}${row.country ? `, ${row.country}` : ''}`
+    : (row && row.country ? row.country : 'Location not provided');
+  const submissionText = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '') || 'Not submitted yet';
+  const userId = escapeHtml(String(row && row.id ? row.id : ''));
+  const trips = Number.isFinite(Number(row && row.trips ? row.trips : 0)) ? Number(row.trips) : 0;
+
+  return `<button type="button" data-open-customer-id="${userId}" class="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 p-4 text-left shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-500/40 hover:shadow-[0_22px_38px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-white/10 dark:bg-white/5 dark:hover:border-brand-400/50">
+    <span class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-brand-500/10 blur-2xl transition duration-300 group-hover:scale-110"></span>
+    <span class="pointer-events-none absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-peach/20 blur-2xl transition duration-300 group-hover:scale-110"></span>
+
+    <div class="relative">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-sm font-bold text-white">${escapeHtml(initials)}</span>
+          <div class="min-w-0">
+            <p class="truncate text-sm font-extrabold text-slate-900 dark:text-slate-100">${escapeHtml(row && row.name ? row.name : 'Customer')}</p>
+            <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row && row.email ? row.email : 'No email')}</p>
+          </div>
+        </div>
+        ${renderStatusBadge(statusMeta)}
+      </div>
+
+      <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+        ${renderCardStat('Trips', String(trips))}
+        ${renderCardStat('User ID', shortUserId(row && row.id ? row.id : ''))}
+        ${renderCardStat('Submission', submissionText)}
+        ${renderCardStat('Location', locationText)}
+      </div>
+
+      <div class="mt-3 inline-flex items-center gap-1 rounded-full border border-brand-500/25 bg-brand-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.13em] text-brand-700 transition group-hover:bg-brand-500 group-hover:text-white dark:border-brand-400/40 dark:bg-brand-400/10 dark:text-brand-300 dark:group-hover:bg-brand-500 dark:group-hover:text-white">
+        <span>Open Detail Page</span>
+        <span class="material-symbols-outlined text-[14px]">east</span>
+      </div>
+    </div>
+  </button>`;
+}
+
+function renderCardStat(label, value) {
+  return `<div class="rounded-xl border border-slate-200/80 bg-white/70 px-2.5 py-2 dark:border-white/10 dark:bg-slate-900/40">
+    <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
+    <p class="mt-1 truncate text-xs font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(value || '-')}</p>
+  </div>`;
+}
+
+function renderCustomerDetailPage(row, serviceReady) {
+  const statusMeta = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted');
+  const documentText = formatDocumentText(row);
+  const submittedAt = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '') || 'Pending';
+  const reviewedAt = formatDateTime(row && row.verificationReviewedAt ? row.verificationReviewedAt : '') || 'Not reviewed yet';
+  const locationText = row && row.city
+    ? `${row.city}${row.country ? `, ${row.country}` : ''}`
+    : (row && row.country ? row.country : 'Location not provided');
+  const trips = Number.isFinite(Number(row && row.trips ? row.trips : 0)) ? Number(row.trips) : 0;
+
+  return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <button type="button" data-back-to-customer-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+        <span class="material-symbols-outlined text-[16px]">west</span>
+        <span>Back to Customers</span>
+      </button>
+      ${renderStatusBadge(statusMeta)}
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5 xl:col-span-2">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-base font-bold text-white">${escapeHtml(resolveInitials(row && row.name ? row.name : 'Customer'))}</span>
+          <div class="min-w-0">
+            <h3 class="truncate text-lg font-extrabold tracking-[-0.01em] text-slate-900 dark:text-slate-100">${escapeHtml(row && row.name ? row.name : 'Customer')}</h3>
+            <p class="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Customer Detail Page</p>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          ${renderProfileField('User ID', shortUserId(row && row.id ? row.id : '-'))}
+          ${renderProfileField('Email', row && row.email ? row.email : '-')}
+          ${renderProfileField('Phone', row && row.phoneNumber ? row.phoneNumber : 'No phone')}
+          ${renderProfileField('Location', locationText)}
+          ${renderProfileField('Identity', documentText)}
+          ${renderProfileField('Gender', row && row.gender ? row.gender : '-')}
+        </div>
+      </article>
+
+      <aside class="space-y-3">
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Verification Snapshot</h4>
+          <div class="mt-3 grid grid-cols-1 gap-2 text-xs">
+            ${renderCardStat('Trips', String(trips))}
+            ${renderCardStat('Submitted', submittedAt)}
+            ${renderCardStat('Reviewed', reviewedAt)}
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Admin Actions</h4>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Update verification without leaving this focused page.</p>
+          <div class="mt-3">${renderActionButtons(row, statusMeta, serviceReady, 'detail')}</div>
+        </article>
+      </aside>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+        <h4 class="text-sm font-extrabold">Document Preview</h4>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Hover to inspect the uploaded identity proof.</p>
+        <div class="mt-3">${renderDocumentPreview(row, 'detail')}</div>
+      </article>
+
+      <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+        <h4 class="text-sm font-extrabold">Verification Timeline</h4>
+        <div class="mt-3 space-y-2">
+          ${renderTimelineItem('Profile Created', shortUserId(row && row.id ? row.id : '-'))}
+          ${renderTimelineItem('Verification Submitted', submittedAt)}
+          ${renderTimelineItem('Latest Admin Note', row && row.verificationNote ? row.verificationNote : 'No note added yet')}
+          ${renderTimelineItem('Last Reviewed', reviewedAt)}
+        </div>
+      </article>
+    </div>
+  </section>`;
+}
+
+function renderProfileField(label, value) {
+  return `<article class="rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-slate-900/40">
+    <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
+    <p class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(value || '-')}</p>
+  </article>`;
+}
+
+function renderTimelineItem(label, value) {
+  return `<div class="flex gap-2 rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2 dark:border-white/10 dark:bg-slate-900/30">
+    <span class="mt-0.5 inline-flex h-2.5 w-2.5 rounded-full bg-brand-500"></span>
+    <div class="min-w-0">
+      <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
+      <p class="mt-1 text-xs font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(value || '-')}</p>
+    </div>
+  </div>`;
+}
+
+function renderDocumentPreview(row, variant = 'compact') {
   const imageUrl = normalizeDocumentImageUrl(row && row.documentImageUrl ? row.documentImageUrl : '');
   if (!imageUrl) {
     return '<p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500">No document image uploaded</p>';
   }
 
   const escapedUrl = escapeHtml(imageUrl);
+  if (variant === 'detail') {
+    return `<div class="group inline-flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2.5 transition hover:border-brand-500/40 dark:border-white/10 dark:bg-white/5">
+      <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" class="overflow-hidden rounded-xl">
+        <img src="${escapedUrl}" alt="Document preview" class="h-44 w-full rounded-xl border border-slate-200 object-cover transition duration-300 group-hover:scale-[1.02] dark:border-white/10" />
+      </a>
+      <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10">
+        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+        <span>Open Full Image</span>
+      </a>
+    </div>`;
+  }
+
   return `<div class="mt-2 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
     <img src="${escapedUrl}" alt="Document preview" class="h-12 w-20 rounded-md border border-slate-200 object-cover dark:border-white/10" />
     <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-emerald-300 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10">Open</a>
@@ -200,31 +368,36 @@ function renderStatusBadge(meta) {
   return `<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${meta.className}">${escapeHtml(meta.label)}</span>`;
 }
 
-function renderActionButtons(row, statusMeta, serviceReady) {
+function renderActionButtons(row, statusMeta, serviceReady, variant = 'inline') {
   if (!serviceReady) {
     return '<span class="text-xs text-slate-500 dark:text-slate-400">Unavailable</span>';
   }
 
   const userId = escapeHtml(String(row && row.id ? row.id : ''));
   const customerName = escapeHtml(String(row && row.name ? row.name : 'Customer'));
+  const isDetail = variant === 'detail';
 
   if (statusMeta.key === 'not_submitted') {
     return '<span class="text-xs font-semibold text-amber-700 dark:text-amber-300">Pending customer submission</span>';
   }
 
+  const baseButtonClass = isDetail
+    ? 'w-full rounded-xl border px-3 py-2 text-sm font-semibold transition'
+    : 'rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition';
+
   const approveButton = statusMeta.key === 'approved'
     ? ''
-    : `<button data-verification-action="approved" data-user-id="${userId}" data-customer-name="${customerName}" class="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10">Approve</button>`;
+    : `<button data-verification-action="approved" data-user-id="${userId}" data-customer-name="${customerName}" class="${baseButtonClass} border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10">Approve</button>`;
 
   const rejectButton = statusMeta.key === 'rejected'
     ? ''
-    : `<button data-verification-action="rejected" data-user-id="${userId}" data-customer-name="${customerName}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 dark:border-rose-400/30 dark:text-rose-300 dark:hover:bg-rose-500/10">Reject</button>`;
+    : `<button data-verification-action="rejected" data-user-id="${userId}" data-customer-name="${customerName}" class="${baseButtonClass} border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-400/30 dark:text-rose-300 dark:hover:bg-rose-500/10">Reject</button>`;
 
   const pendingButton = statusMeta.key === 'pending'
     ? ''
-    : `<button data-verification-action="pending" data-user-id="${userId}" data-customer-name="${customerName}" class="rounded-lg border border-amber-300 px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 dark:border-amber-400/30 dark:text-amber-300 dark:hover:bg-amber-500/10">Set Pending</button>`;
+    : `<button data-verification-action="pending" data-user-id="${userId}" data-customer-name="${customerName}" class="${baseButtonClass} border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-400/30 dark:text-amber-300 dark:hover:bg-amber-500/10">Set Pending</button>`;
 
-  return `<div class="flex flex-wrap gap-2">${approveButton}${rejectButton}${pendingButton}</div>`;
+  return `<div class="${isDetail ? 'grid grid-cols-1 gap-2' : 'flex flex-wrap gap-2'}">${approveButton}${rejectButton}${pendingButton}</div>`;
 }
 
 function summarizeVerificationStatuses(rows) {
@@ -318,6 +491,22 @@ function shortUserId(value) {
   }
 
   return `${raw.slice(0, 8)}...${raw.slice(-4)}`;
+}
+
+function resolveInitials(value) {
+  const words = String(value || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!words.length) {
+    return 'CU';
+  }
+
+  return words
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('');
 }
 
 function formatDateTime(value) {
