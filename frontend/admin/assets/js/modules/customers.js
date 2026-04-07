@@ -358,6 +358,8 @@ function renderCustomerDetailPage(row, serviceReady) {
           ${renderProfileField('Identity', documentText)}
           ${renderProfileField('Gender', row && row.gender ? row.gender : '-')}
         </div>
+
+        <div class="mt-3">${renderQuickContactLinks(row)}</div>
       </article>
 
       <aside class="space-y-3">
@@ -404,6 +406,29 @@ function renderProfileField(label, value) {
     <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
     <p class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(value || '-')}</p>
   </article>`;
+}
+
+function renderQuickContactLinks(row) {
+  const email = String(row && row.email ? row.email : '').trim();
+  const phone = String(row && row.phoneNumber ? row.phoneNumber : '').trim();
+
+  const links = [];
+  if (email) {
+    links.push(`<a href="mailto:${encodeURIComponent(email)}" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"><span class="material-symbols-outlined text-[14px]">mail</span><span>Email Customer</span></a>`);
+  }
+
+  if (phone) {
+    const telValue = phone.replace(/[^\d+]/g, '');
+    if (telValue) {
+      links.push(`<a href="tel:${escapeHtml(telValue)}" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"><span class="material-symbols-outlined text-[14px]">call</span><span>Call Customer</span></a>`);
+    }
+  }
+
+  if (!links.length) {
+    return '<p class="text-xs text-slate-500 dark:text-slate-400">No direct contact method is available.</p>';
+  }
+
+  return `<div class="flex flex-wrap items-center gap-2">${links.join('')}</div>`;
 }
 
 function renderTimelineItem(label, value) {
