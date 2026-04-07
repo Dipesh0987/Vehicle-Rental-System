@@ -261,7 +261,7 @@ function renderCustomerFocusGrid(rows, activeStatusFilter) {
 
 function renderFilterChip(chip, activeStatusFilter) {
   const active = String(chip && chip.key ? chip.key : '') === String(activeStatusFilter || 'all');
-  return `<button type="button" data-customer-status-filter="${escapeHtml(chip.key)}" class="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.11em] transition ${
+  return `<button type="button" data-customer-status-filter="${escapeHtml(chip.key)}" aria-pressed="${active ? 'true' : 'false'}" class="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.11em] transition ${
     active
       ? 'border-brand-500 bg-brand-500 text-white'
       : 'border-slate-200 text-slate-600 hover:border-brand-400 hover:text-brand-700 dark:border-white/10 dark:text-slate-300 dark:hover:border-brand-400 dark:hover:text-brand-300'
@@ -280,7 +280,7 @@ function renderCustomerFocusCard(row, index) {
 
   const delay = Number.isFinite(Number(index)) ? Math.max(0, Math.min(7, Number(index))) * 26 : 0;
 
-  return `<button type="button" data-open-customer-id="${userId}" style="animation-delay:${delay}ms" class="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 p-4 text-left shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.01] hover:border-brand-500/40 hover:shadow-[0_22px_38px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-white/10 dark:bg-white/5 dark:hover:border-brand-400/50 animate-fadeUp">
+  return `<button type="button" aria-label="Open detail page for ${escapeHtml(row && row.name ? row.name : 'Customer')}" data-open-customer-id="${userId}" style="animation-delay:${delay}ms" class="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 p-4 text-left shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.01] hover:border-brand-500/40 hover:shadow-[0_22px_38px_rgba(15,23,42,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:border-white/10 dark:bg-white/5 dark:hover:border-brand-400/50 animate-fadeUp">
     <span class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-brand-500/10 blur-2xl transition duration-300 group-hover:scale-110"></span>
     <span class="pointer-events-none absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-peach/20 blur-2xl transition duration-300 group-hover:scale-110"></span>
 
@@ -304,7 +304,7 @@ function renderCustomerFocusCard(row, index) {
       </div>
 
       <div class="mt-3 inline-flex items-center gap-1 rounded-full border border-brand-500/25 bg-brand-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.13em] text-brand-700 transition group-hover:bg-brand-500 group-hover:text-white dark:border-brand-400/40 dark:bg-brand-400/10 dark:text-brand-300 dark:group-hover:bg-brand-500 dark:group-hover:text-white">
-        <span>Open Detail Page</span>
+        <span>View Individual Details</span>
         <span class="material-symbols-outlined text-[14px] transition-transform duration-300 group-hover:translate-x-0.5">east</span>
       </div>
     </div>
@@ -329,7 +329,7 @@ function renderCustomerDetailPage(row, serviceReady) {
 
   return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <button type="button" data-back-to-customer-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+      <button type="button" title="Return to all registered customers" data-back-to-customer-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
         <span class="material-symbols-outlined text-[16px]">west</span>
         <span>Back to Customers</span>
       </button>
