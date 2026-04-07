@@ -319,6 +319,7 @@ function renderCardStat(label, value) {
 
 function renderCustomerDetailPage(row, serviceReady) {
   const statusMeta = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted');
+  const progress = resolveVerificationProgress(statusMeta.key);
   const documentText = formatDocumentText(row);
   const submittedAt = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '') || 'Pending';
   const reviewedAt = formatDateTime(row && row.verificationReviewedAt ? row.verificationReviewedAt : '') || 'Not reviewed yet';
@@ -364,6 +365,7 @@ function renderCustomerDetailPage(row, serviceReady) {
             ${renderCardStat('Submitted', submittedAt)}
             ${renderCardStat('Reviewed', reviewedAt)}
           </div>
+          <div class="mt-3">${renderVerificationProgress(progress)}</div>
         </article>
 
         <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
@@ -407,6 +409,19 @@ function renderTimelineItem(label, value) {
     <div class="min-w-0">
       <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
       <p class="mt-1 text-xs font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(value || '-')}</p>
+    </div>
+  </div>`;
+}
+
+function renderVerificationProgress(progress) {
+  const safe = Number.isFinite(Number(progress)) ? Math.max(0, Math.min(100, Number(progress))) : 0;
+  return `<div>
+    <div class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
+      <span>KYC Completion</span>
+      <span>${safe}%</span>
+    </div>
+    <div class="mt-1 h-2 rounded-full bg-slate-200 dark:bg-white/10">
+      <div class="h-2 rounded-full bg-[linear-gradient(90deg,#1f7668,#1b5f8b)] transition-all duration-500" style="width:${safe}%"></div>
     </div>
   </div>`;
 }
@@ -602,6 +617,23 @@ function resolveInitials(value) {
     .slice(0, 2)
     .map((word) => word.charAt(0).toUpperCase())
     .join('');
+}
+
+function resolveVerificationProgress(statusKey) {
+  const key = String(statusKey || '').trim().toLowerCase();
+  if (key === 'approved') {
+    return 100;
+  }
+
+  if (key === 'pending') {
+    return 60;
+  }
+
+  if (key === 'rejected') {
+    return 25;
+  }
+
+  return 10;
 }
 
 function formatDateTime(value) {
