@@ -132,7 +132,9 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
       }
 
       button.disabled = true;
+      const originalContent = button.innerHTML;
       button.classList.add('opacity-70', 'cursor-not-allowed');
+      button.innerHTML = '<span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[14px] animate-pulse">sync</span><span>Updating...</span></span>';
 
       try {
         await customerVerificationService.updateVerificationStatus({
@@ -157,6 +159,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
       } finally {
         button.disabled = false;
         button.classList.remove('opacity-70', 'cursor-not-allowed');
+        button.innerHTML = originalContent;
       }
     });
   });
