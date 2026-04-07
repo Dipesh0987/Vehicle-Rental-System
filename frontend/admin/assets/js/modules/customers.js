@@ -19,6 +19,8 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
   const selectedCustomer = resolveSelectedCustomer(sourceRows);
 
   host.className = 'space-y-4';
+  host.tabIndex = -1;
+  host.setAttribute('data-module-surface', 'customers');
   host.innerHTML = `
     <header>
       <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Customer Verification</p>
@@ -82,6 +84,21 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
     customerUiState.selectedCustomerId = '';
     rerender?.();
   });
+
+  if (selectedCustomer) {
+    host.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      customerUiState.selectedCustomerId = '';
+      rerender?.();
+    });
+
+    window.requestAnimationFrame(() => {
+      host.focus();
+    });
+  }
 
   host.querySelectorAll('[data-verification-action]').forEach((button) => {
     button.addEventListener('click', async () => {
