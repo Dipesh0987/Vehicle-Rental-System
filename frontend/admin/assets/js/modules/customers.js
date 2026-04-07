@@ -78,6 +78,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
       }
 
       customerUiState.selectedCustomerId = selectedId;
+      writeCustomerIdToHash(selectedId);
       rerender?.();
     });
   });
@@ -92,6 +93,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
 
   host.querySelector('[data-back-to-customer-list]')?.addEventListener('click', () => {
     customerUiState.selectedCustomerId = '';
+    writeCustomerIdToHash('');
     rerender?.();
   });
 
@@ -167,7 +169,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
 }
 
 function resolveSelectedCustomer(rows) {
-  const selectedId = String(customerUiState.selectedCustomerId || '').trim();
+  const selectedId = String(customerUiState.selectedCustomerId || readCustomerIdFromHash() || '').trim();
   if (!selectedId) {
     return null;
   }
@@ -175,9 +177,32 @@ function resolveSelectedCustomer(rows) {
   const selected = (Array.isArray(rows) ? rows : []).find((row) => String(row && row.id ? row.id : '') === selectedId) || null;
   if (!selected) {
     customerUiState.selectedCustomerId = '';
+    writeCustomerIdToHash('');
   }
 
+  customerUiState.selectedCustomerId = selectedId;
   return selected;
+}
+
+function readCustomerIdFromHash() {
+  const hash = String(window.location.hash || '').trim();
+  if (!hash || hash.indexOf('#customer:') !== 0) {
+    return '';
+  }
+
+  return decodeURIComponent(hash.replace('#customer:', '')).trim();
+}
+
+function writeCustomerIdToHash(value) {
+  const id = String(value || '').trim();
+  if (!id) {
+    if (String(window.location.hash || '').indexOf('#customer:') === 0) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    return;
+  }
+
+  history.replaceState(null, '', `${window.location.pathname}${window.location.search}#customer:${encodeURIComponent(id)}`);
 }
 
 function renderSummaryTile(label, value, valueToneClass) {
