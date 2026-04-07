@@ -22,6 +22,13 @@ This directory contains the enterprise-grade admin console for the Vehicle Renta
 - Light/dark mode support with persistent state.
 - Consistent card system, spacing, interaction states, and feedback toasts.
 
+## Customer Verification Workflow
+
+- Customers module now hydrates live records from `public.user_profiles`.
+- Verification statuses follow: `not_submitted`, `pending`, `approved`, `rejected`.
+- Admin actions (`Approve`, `Reject`, `Set Pending`) call RPC `admin_update_user_verification_status`.
+- Customer trip counts are dynamically merged from booking records.
+
 ## Vehicle Bulk Add
 
 - In Vehicle Management, the Add Vehicle drawer now supports bulk creation.

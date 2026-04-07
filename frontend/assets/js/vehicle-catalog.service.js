@@ -515,7 +515,7 @@
         var mime = toLower(file.type);
         var size = Number(file.size || 0);
 
-        if (ALLOWED_IMAGE_MIME_TYPES.indexOf(mime) < 0) {
+        if (ALLOWED_MIME_TYPES.indexOf(mime) < 0) {
           errors.images = "Only JPG, PNG, and WEBP images are allowed.";
           break;
         }
@@ -535,7 +535,6 @@
         name: name,
         vehicleNumber: vehicleNumber,
         type: type,
-        status: status,
         seats: seats,
         pricePerDay: Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : 0,
         fuelType: fuelType,
@@ -627,19 +626,16 @@
   async function insertVehicleImageRowWithPruning(client, tableName, payload) {
     var workingPayload = Object.assign({}, payload || {});
     var attempts = 0;
+    var lastError = null;
 
-  function normalizeStatus(status) {
-    var value = toLower(status || "available");
-    if (value === "unavailable" || value === "rented") return "unavailable";
-    if (value === "maintenance") return "maintenance";
-    if (value === "inactive") return "inactive";
-    return "available";
-  }
-
+    while (attempts < 16) {
+      attempts += 1;
       var result = await client.from(tableName).insert(workingPayload).select("*").limit(1);
       if (!result.error) {
         return true;
       }
+
+      lastError = result.error;
 
       var missingColumn = extractMissingColumn(result.error);
       if (missingColumn && Object.prototype.hasOwnProperty.call(workingPayload, missingColumn)) {
@@ -647,10 +643,10 @@
         continue;
       }
 
-      throw new Error(errorMessage(result.error));
+      throw new Error(errorMessage(lastError));
     }
 
-    throw new Error("Unable to write vehicle images.");
+    throw new Error(errorMessage(lastError) || "Unable to write vehicle images.");
   }
 
   async function writeVehicleImages(client, vehicleId, uploadedImages) {
@@ -662,7 +658,26 @@
     if (!imageTable) {
       return;
     }
-    return null;
+
+    try {
+      await client.from(imageTable).delete().eq("vehicle_id", vehicleId);
+    } catch (_cleanupError) {
+      // Ignore cleanup errors and continue writing image rows.
+    }
+
+    for (var i = 0; i < uploadedImages.length; i += 1) {
+      var image = uploadedImages[i] || {};
+      await insertVehicleImageRowWithPruning(client, imageTable, {
+        vehicle_id: vehicleId,
+        image_url: image.publicUrl,
+        url: image.publicUrl,
+        storage_path: image.storagePath,
+        path: image.storagePath,
+        sort_order: i,
+        position: i,
+        is_primary: i === 0,
+      });
+    }
   }
 
   async function createVehicle(payload) {
@@ -1519,7 +1534,7 @@
       maxPricePerDay: MAX_PRICE_PER_DAY,
     },
     fuelTypes: ALLOWED_FUEL_TYPES.slice(),
-    allowedImageMimeTypes: ALLOWED_IMAGE_MIME_TYPES.slice(),
+    allowedImageMimeTypes: ALLOWED_MIME_TYPES.slice(),
     validateVehicleInput: validateVehicleInput,
     toPublicError: toPublicError,
     listVehicles: listVehicles,

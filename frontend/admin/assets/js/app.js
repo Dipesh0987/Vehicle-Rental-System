@@ -14,6 +14,7 @@ import { renderAdminsModule } from './modules/admins.js';
 import { renderNotificationsModule } from './modules/notifications.js';
 import { renderReportsModule } from './modules/reports.js';
 import { createCatalogService } from './services/catalog-service.js';
+import { createCustomerVerificationService } from './services/customer-verification.service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -37,9 +38,12 @@ const appState = {
   data: structuredClone(dashboardData),
   catalogService: null,
   bookingService: null,
+  customerVerificationService: null,
 };
 
 const catalogService = createCatalogService({ data: appState.data });
+let catalogUnsubscribe = null;
+let bookingUnsubscribe = null;
 
 bootstrap();
 
@@ -50,10 +54,15 @@ async function bootstrap() {
   root.innerHTML = renderShell();
   appState.catalogService = window.VehicleCatalogService || null;
   appState.bookingService = window.VehicleBookingService || null;
+  appState.customerVerificationService = createCustomerVerificationService();
   appState.data.bookings = [];
 
   await hydrateVehiclesFromCatalog({ silent: true });
   await hydrateBookingsFromDatabase({ silent: true });
+  await hydrateCustomersFromDatabase({ silent: true });
+
+  setupCatalogSync();
+  setupBookingSync();
 
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
@@ -83,7 +92,11 @@ function renderActiveModule() {
       query: appState.globalSearch,
       notify: pushToast,
       catalogService,
+      bookingService: appState.bookingService,
+      customerVerificationService: appState.customerVerificationService,
       canWriteCatalog: appState.canWriteCatalog,
+      reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
+      reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       rerender: renderActiveModule,
     });
 
@@ -112,6 +125,7 @@ async function hydrateBookingsFromDatabase({ silent = false } = {}) {
 
     appState.data.bookings = normalizedRows;
     updateBookingDrivenMetrics(normalizedRows);
+    syncCustomerTripCounts();
 
     if (!silent) {
       pushToast('Bookings synced from database', 'success');
@@ -120,6 +134,7 @@ async function hydrateBookingsFromDatabase({ silent = false } = {}) {
     console.warn('Failed to sync bookings from database:', error);
     appState.data.bookings = [];
     updateBookingDrivenMetrics([]);
+    syncCustomerTripCounts();
 
     if (!silent) {
       pushToast('Unable to sync bookings from database', 'warn');
@@ -205,10 +220,39 @@ function setupBookingSync() {
 
   bookingUnsubscribe = appState.bookingService.subscribeToBookingChanges(async () => {
     await hydrateBookingsFromDatabase({ silent: true });
-    if (appState.activeModule === 'bookings' || appState.activeModule === 'overview') {
+    if (appState.activeModule === 'bookings' || appState.activeModule === 'customers' || appState.activeModule === 'overview') {
       renderActiveModule();
     }
   });
+}
+
+async function hydrateCustomersFromDatabase({ silent = false } = {}) {
+  if (!appState.customerVerificationService || typeof appState.customerVerificationService.listCustomers !== 'function') {
+    syncCustomerTripCounts();
+    return;
+  }
+
+  try {
+    const rows = await appState.customerVerificationService.listCustomers();
+    const mappedRows = Array.isArray(rows) ? rows.map(mapCustomerProfileToAdminRow) : [];
+
+    appState.data.customers = mappedRows;
+    syncCustomerTripCounts();
+
+    if (!silent) {
+      pushToast('Customers synced from verification data', 'success');
+    }
+  } catch (error) {
+    console.warn('Failed to sync customers from verification service:', error);
+    syncCustomerTripCounts();
+
+    if (!silent) {
+      const message = appState.customerVerificationService && typeof appState.customerVerificationService.toPublicError === 'function'
+        ? appState.customerVerificationService.toPublicError(error, 'Unable to sync customers from database')
+        : 'Unable to sync customers from database';
+      pushToast(message, 'warn');
+    }
+  }
 }
 
 function mapBookingToAdminRow(booking) {
@@ -217,6 +261,7 @@ function mapBookingToAdminRow(booking) {
     bookingId: String(booking && booking.id ? booking.id : ''),
     customer: formatLabel(booking && booking.customerName ? booking.customerName : 'Customer'),
     customerEmail: String(booking && booking.customerEmail ? booking.customerEmail : ''),
+    customerUserId: String(booking && booking.customerUserId ? booking.customerUserId : ''),
     customerPhone: String(booking && booking.customerPhone ? booking.customerPhone : ''),
     vehicle: formatLabel(booking && booking.vehicleName ? booking.vehicleName : 'Vehicle'),
     vehicleId: String(booking && booking.vehicleId ? booking.vehicleId : ''),
@@ -232,6 +277,79 @@ function mapBookingToAdminRow(booking) {
       : 0,
     createdAt: String(booking && booking.createdAt ? booking.createdAt : ''),
   };
+}
+
+function mapCustomerProfileToAdminRow(profile) {
+  const status = String(profile && profile.verificationStatus ? profile.verificationStatus : 'not_submitted').toLowerCase();
+  const documentLabel = String(profile && profile.documentTypeLabel ? profile.documentTypeLabel : '').trim();
+
+  return {
+    id: String(profile && profile.userId ? profile.userId : ''),
+    name: formatLabel(profile && profile.fullName ? profile.fullName : 'Customer'),
+    email: String(profile && profile.email ? profile.email : ''),
+    phoneNumber: String(profile && profile.phoneNumber ? profile.phoneNumber : ''),
+    trips: 0,
+    verified: status === 'approved',
+    verificationStatus: status,
+    status: String(profile && profile.verificationStatusLabel ? profile.verificationStatusLabel : 'Pending'),
+    documents: documentLabel ? [documentLabel] : [],
+    gender: formatLabel(profile && profile.gender ? profile.gender : ''),
+    city: String(profile && profile.city ? profile.city : ''),
+    country: String(profile && profile.country ? profile.country : ''),
+    documentNumber: String(profile && profile.documentNumber ? profile.documentNumber : ''),
+    documentImageUrl: String(profile && profile.documentImageUrl ? profile.documentImageUrl : ''),
+    verificationSubmittedAt: String(profile && profile.verificationSubmittedAt ? profile.verificationSubmittedAt : ''),
+    verificationReviewedAt: String(profile && profile.verificationReviewedAt ? profile.verificationReviewedAt : ''),
+    verificationNote: String(profile && profile.verificationNote ? profile.verificationNote : ''),
+  };
+}
+
+function syncCustomerTripCounts() {
+  const bookings = Array.isArray(appState.data.bookings) ? appState.data.bookings : [];
+  const customers = Array.isArray(appState.data.customers) ? appState.data.customers : [];
+
+  if (!customers.length) {
+    return;
+  }
+
+  const lookupByUserId = new Map();
+  const lookupByEmail = new Map();
+  const tripStatuses = new Set(['pending', 'confirmed', 'completed']);
+
+  bookings.forEach((booking) => {
+    const status = String(booking && booking.status ? booking.status : '').trim().toLowerCase();
+    if (!tripStatuses.has(status)) {
+      return;
+    }
+
+    const userId = String(booking && booking.customerUserId ? booking.customerUserId : '').trim();
+    const email = String(booking && booking.customerEmail ? booking.customerEmail : '').trim().toLowerCase();
+
+    if (userId) {
+      lookupByUserId.set(userId, Number(lookupByUserId.get(userId) || 0) + 1);
+    }
+
+    if (email) {
+      lookupByEmail.set(email, Number(lookupByEmail.get(email) || 0) + 1);
+    }
+  });
+
+  appState.data.customers = customers.map((customer) => {
+    const userId = String(customer && customer.id ? customer.id : '').trim();
+    const email = String(customer && customer.email ? customer.email : '').trim().toLowerCase();
+
+    let trips = 0;
+    if (userId && lookupByUserId.has(userId)) {
+      trips = Number(lookupByUserId.get(userId) || 0);
+    } else if (email && lookupByEmail.has(email)) {
+      trips = Number(lookupByEmail.get(email) || 0);
+    }
+
+    return {
+      ...customer,
+      trips,
+    };
+  });
 }
 
 function updateBookingDrivenMetrics(rows) {
