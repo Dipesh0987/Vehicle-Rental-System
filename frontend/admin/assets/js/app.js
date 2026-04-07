@@ -63,7 +63,6 @@ async function bootstrap() {
     : [];
 
   updateVerificationNotificationBadge(0);
-
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
