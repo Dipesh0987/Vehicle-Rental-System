@@ -4,6 +4,7 @@ import { renderEmptyState } from '../ui.js';
 
 const customerUiState = {
   selectedCustomerId: '',
+  statusFilter: 'all',
 };
 
 export function renderCustomersModule({ data, query, notify, customerVerificationService, reloadCustomersData, rerender }) {
@@ -13,6 +14,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
     filterRows(sourceRows, query, ['id', 'name', 'email', 'phoneNumber', 'status', 'documentNumber', 'city', 'country']),
     'name'
   );
+  const filteredRows = applyStatusFilter(rows, customerUiState.statusFilter);
 
   const statusSummary = summarizeVerificationStatuses(sourceRows);
   const serviceReady = Boolean(customerVerificationService && typeof customerVerificationService.updateVerificationStatus === 'function');
@@ -45,7 +47,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
 
     ${selectedCustomer
       ? renderCustomerDetailPage(selectedCustomer, serviceReady)
-      : renderCustomerFocusGrid(rows)}
+      : renderCustomerFocusGrid(filteredRows, customerUiState.statusFilter)}
 
     ${selectedCustomer
       ? ''
@@ -76,6 +78,14 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
       }
 
       customerUiState.selectedCustomerId = selectedId;
+      rerender?.();
+    });
+  });
+
+  host.querySelectorAll('[data-customer-status-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextFilter = String(button.getAttribute('data-customer-status-filter') || 'all').trim().toLowerCase();
+      customerUiState.statusFilter = nextFilter || 'all';
       rerender?.();
     });
   });
@@ -185,7 +195,15 @@ function renderGuideTile(title, tone, description) {
   </article>`;
 }
 
-function renderCustomerFocusGrid(rows) {
+function renderCustomerFocusGrid(rows, activeStatusFilter) {
+  const summary = summarizeVerificationStatuses(rows);
+  const chips = [
+    { key: 'all', label: 'All', count: rows.length },
+    { key: 'pending', label: 'Pending', count: summary.pending },
+    { key: 'approved', label: 'Approved', count: summary.approved },
+    { key: 'rejected', label: 'Rejected', count: summary.rejected },
+  ];
+
   if (!rows.length) {
     return `<section class="${classMap.panel} p-4 sm:p-5">
       ${renderEmptyState({ title: 'No customers found', message: 'No customer profile matched the current search.', actionLabel: 'Clear Search', actionId: 'clearCustomerSearch' })}
@@ -201,10 +219,27 @@ function renderCustomerFocusGrid(rows) {
       <p class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-white/10 dark:text-slate-300">${rows.length} visible</p>
     </div>
 
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      ${chips
+        .map((chip) => renderFilterChip(chip, activeStatusFilter))
+        .join('')}
+    </div>
+
     <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
       ${rows.map((row) => renderCustomerFocusCard(row)).join('')}
     </div>
   </section>`;
+}
+
+function renderFilterChip(chip, activeStatusFilter) {
+  const active = String(chip && chip.key ? chip.key : '') === String(activeStatusFilter || 'all');
+  return `<button type="button" data-customer-status-filter="${escapeHtml(chip.key)}" class="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.11em] transition ${
+    active
+      ? 'border-brand-500 bg-brand-500 text-white'
+      : 'border-slate-200 text-slate-600 hover:border-brand-400 hover:text-brand-700 dark:border-white/10 dark:text-slate-300 dark:hover:border-brand-400 dark:hover:text-brand-300'
+  }">
+    <span>${escapeHtml(chip.label)} (${Number.isFinite(Number(chip.count)) ? Number(chip.count) : 0})</span>
+  </button>`;
 }
 
 function renderCustomerFocusCard(row) {
@@ -432,6 +467,22 @@ function summarizeVerificationStatuses(rows) {
   });
 
   return summary;
+}
+
+function applyStatusFilter(rows, statusFilter) {
+  const filter = String(statusFilter || 'all').trim().toLowerCase();
+  if (filter === 'all') {
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  return (Array.isArray(rows) ? rows : []).filter((row) => {
+    const key = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted').key;
+    if (filter === 'pending') {
+      return key === 'pending' || key === 'not_submitted';
+    }
+
+    return key === filter;
+  });
 }
 
 function verificationStatusMeta(statusValue) {
