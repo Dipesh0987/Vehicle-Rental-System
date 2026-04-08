@@ -105,6 +105,7 @@
 
     if (
       raw.indexOf("data:image/") === 0 ||
+      raw.indexOf("blob:") === 0 ||
       raw.indexOf("https://") === 0 ||
       raw.indexOf("http://") === 0 ||
       raw.charAt(0) === "/"
