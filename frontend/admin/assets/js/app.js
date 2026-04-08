@@ -36,6 +36,8 @@ const appState = {
   globalSearch: '',
   canWriteCatalog: true,
   data: structuredClone(dashboardData),
+  baseNotifications: [],
+  knownVerificationSubmissionKeys: [],
   catalogService: null,
   bookingService: null,
   customerVerificationService: null,
@@ -56,18 +58,24 @@ async function bootstrap() {
   appState.bookingService = window.VehicleBookingService || null;
   appState.customerVerificationService = createCustomerVerificationService();
   appState.data.bookings = [];
+  appState.baseNotifications = Array.isArray(appState.data.notifications)
+    ? appState.data.notifications.slice()
+    : [];
 
-  await hydrateVehiclesFromCatalog({ silent: true });
-  await hydrateBookingsFromDatabase({ silent: true });
-  await hydrateCustomersFromDatabase({ silent: true });
-
-  setupCatalogSync();
-  setupBookingSync();
+  updateVerificationNotificationBadge(0);
 
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
   setActiveNav(appState.activeModule);
+
+  await hydrateVehiclesFromCatalog({ silent: true });
+  await hydrateBookingsFromDatabase({ silent: true });
+  await hydrateCustomersFromDatabase({ silent: true });
+  renderActiveModule();
+
+  setupCatalogSync();
+  setupBookingSync();
 
   try {
     const vehicles = await catalogService.loadVehicles();
@@ -229,15 +237,18 @@ function setupBookingSync() {
 async function hydrateCustomersFromDatabase({ silent = false } = {}) {
   if (!appState.customerVerificationService || typeof appState.customerVerificationService.listCustomers !== 'function') {
     syncCustomerTripCounts();
+    syncVerificationQueueSignals([], { silent: true });
     return;
   }
 
   try {
     const rows = await appState.customerVerificationService.listCustomers();
     const mappedRows = Array.isArray(rows) ? rows.map(mapCustomerProfileToAdminRow) : [];
+    const orderedRows = sortCustomersForReviewQueue(mappedRows);
 
-    appState.data.customers = mappedRows;
+    appState.data.customers = orderedRows;
     syncCustomerTripCounts();
+    syncVerificationQueueSignals(appState.data.customers, { silent });
 
     if (!silent) {
       pushToast('Customers synced from verification data', 'success');
@@ -282,6 +293,9 @@ function mapBookingToAdminRow(booking) {
 function mapCustomerProfileToAdminRow(profile) {
   const status = String(profile && profile.verificationStatus ? profile.verificationStatus : 'not_submitted').toLowerCase();
   const documentLabel = String(profile && profile.documentTypeLabel ? profile.documentTypeLabel : '').trim();
+  const verificationSubmittedAt = String(profile && profile.verificationSubmittedAt ? profile.verificationSubmittedAt : '');
+  const hasVerificationSubmission = Boolean(verificationSubmittedAt);
+  const isPendingReview = status === 'pending' && hasVerificationSubmission;
 
   return {
     id: String(profile && profile.userId ? profile.userId : ''),
@@ -298,10 +312,170 @@ function mapCustomerProfileToAdminRow(profile) {
     country: String(profile && profile.country ? profile.country : ''),
     documentNumber: String(profile && profile.documentNumber ? profile.documentNumber : ''),
     documentImageUrl: String(profile && profile.documentImageUrl ? profile.documentImageUrl : ''),
-    verificationSubmittedAt: String(profile && profile.verificationSubmittedAt ? profile.verificationSubmittedAt : ''),
+    verificationSubmittedAt,
     verificationReviewedAt: String(profile && profile.verificationReviewedAt ? profile.verificationReviewedAt : ''),
     verificationNote: String(profile && profile.verificationNote ? profile.verificationNote : ''),
+    hasVerificationSubmission,
+    isPendingReview,
   };
+}
+
+function toTimestamp(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return 0;
+  }
+
+  const parsed = new Date(raw).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function customerReviewPriority(customer) {
+  const status = String(customer && customer.verificationStatus ? customer.verificationStatus : 'not_submitted').trim().toLowerCase();
+  const submittedAt = toTimestamp(customer && customer.verificationSubmittedAt ? customer.verificationSubmittedAt : '');
+  const hasSubmission = submittedAt > 0;
+
+  if (status === 'pending' && hasSubmission) return 0;
+  if (status === 'rejected' && hasSubmission) return 1;
+  if (status === 'not_submitted') return 2;
+  if (status === 'approved') return 3;
+  return 4;
+}
+
+function sortCustomersForReviewQueue(rows) {
+  const list = Array.isArray(rows) ? rows.slice() : [];
+
+  list.sort((left, right) => {
+    const leftPriority = customerReviewPriority(left);
+    const rightPriority = customerReviewPriority(right);
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    const leftSubmitted = toTimestamp(left && left.verificationSubmittedAt ? left.verificationSubmittedAt : '');
+    const rightSubmitted = toTimestamp(right && right.verificationSubmittedAt ? right.verificationSubmittedAt : '');
+    if (leftSubmitted !== rightSubmitted) {
+      return rightSubmitted - leftSubmitted;
+    }
+
+    const leftName = String(left && left.name ? left.name : '').toLowerCase();
+    const rightName = String(right && right.name ? right.name : '').toLowerCase();
+    if (leftName > rightName) return 1;
+    if (leftName < rightName) return -1;
+    return 0;
+  });
+
+  return list;
+}
+
+function isPendingReviewCustomer(customer) {
+  return Boolean(customer && customer.isPendingReview);
+}
+
+function formatRelativeTime(value) {
+  const timestamp = toTimestamp(value);
+  if (!timestamp) {
+    return 'Awaiting date';
+  }
+
+  const diffMs = Date.now() - timestamp;
+  const seconds = Math.max(1, Math.floor(diffMs / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
+  if (minutes > 0) return `${minutes}m ago`;
+  return 'Just now';
+}
+
+function buildVerificationNotifications(customers) {
+  const queue = sortCustomersForReviewQueue((Array.isArray(customers) ? customers : []).filter(isPendingReviewCustomer));
+  const queueCount = queue.length;
+
+  if (!queueCount) {
+    return [];
+  }
+
+  const summary = {
+    id: `KYC-QUEUE-${queueCount}`,
+    title: `${queueCount} profile verification submission${queueCount > 1 ? 's' : ''} awaiting review`,
+    channel: 'KYC Queue',
+    priority: queueCount > 3 ? 'Critical' : 'High',
+    time: 'Live',
+    type: 'verification_queue',
+  };
+
+  const detailRows = queue.slice(0, 5).map((customer) => ({
+    id: `KYC-${String(customer && customer.id ? customer.id : '')}-${String(customer && customer.verificationSubmittedAt ? customer.verificationSubmittedAt : 'pending')}`,
+    title: `Verification submitted: ${String(customer && customer.name ? customer.name : 'Customer')}`,
+    channel: 'Customer KYC',
+    priority: 'High',
+    time: formatRelativeTime(customer && customer.verificationSubmittedAt ? customer.verificationSubmittedAt : ''),
+    type: 'verification_submission',
+    customerId: String(customer && customer.id ? customer.id : ''),
+  }));
+
+  return [summary, ...detailRows];
+}
+
+function mergeNotifications(baseRows, verificationRows) {
+  const base = Array.isArray(baseRows) ? baseRows : [];
+  const generated = Array.isArray(verificationRows) ? verificationRows : [];
+
+  const filteredBase = base.filter((row) => {
+    const type = String(row && row.type ? row.type : '').trim().toLowerCase();
+    return type !== 'verification_queue' && type !== 'verification_submission';
+  });
+
+  return [...generated, ...filteredBase];
+}
+
+function updateVerificationNotificationBadge(pendingCount) {
+  const badge = document.getElementById('notificationBadgeCount');
+  if (!badge) {
+    return;
+  }
+
+  const count = Number.isFinite(Number(pendingCount)) ? Math.max(0, Number(pendingCount)) : 0;
+  badge.textContent = count > 99 ? '99+' : String(count);
+  badge.classList.toggle('hidden', count <= 0);
+  badge.classList.toggle('inline-flex', count > 0);
+
+  const notificationButton = document.getElementById('notificationBtn');
+  if (notificationButton) {
+    const label = count > 0
+      ? `${count} pending profile verification submission${count > 1 ? 's' : ''}`
+      : 'No pending profile verification submissions';
+    notificationButton.setAttribute('aria-label', label);
+  }
+}
+
+function syncVerificationQueueSignals(customers, { silent = false } = {}) {
+  const list = Array.isArray(customers) ? customers : [];
+  const pendingQueue = list.filter(isPendingReviewCustomer);
+  const pendingCount = pendingQueue.length;
+  const queueKeys = pendingQueue
+    .map((customer) => `${String(customer && customer.id ? customer.id : '')}:${String(customer && customer.verificationSubmittedAt ? customer.verificationSubmittedAt : '')}`)
+    .filter(Boolean);
+
+  if (!silent) {
+    const known = new Set(appState.knownVerificationSubmissionKeys);
+    const freshSubmissions = queueKeys.filter((key) => !known.has(key));
+    if (freshSubmissions.length) {
+      pushToast(
+        `${freshSubmissions.length} new profile verification submission${freshSubmissions.length > 1 ? 's' : ''} needs review`,
+        'warn'
+      );
+    }
+  }
+
+  appState.knownVerificationSubmissionKeys = queueKeys;
+
+  const generatedNotifications = buildVerificationNotifications(pendingQueue);
+  appState.data.notifications = mergeNotifications(appState.baseNotifications, generatedNotifications);
+  updateVerificationNotificationBadge(pendingCount);
 }
 
 function syncCustomerTripCounts() {
