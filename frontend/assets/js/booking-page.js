@@ -2,6 +2,7 @@
   "use strict";
 
   var DEFAULT_IMAGE = "assets/images/car-transparent.png";
+  var BOOKING_HANDOFF_STORAGE_KEY = "vrs_booking_handoff";
 
   function byId(id) {
     return document.getElementById(id);
@@ -86,6 +87,39 @@
       return normalizeString(params.get(key), "");
     } catch (_error) {
       return "";
+    }
+  }
+
+  function addDaysToIsoDate(isoDate, days) {
+    var parsed = new Date(String(isoDate || "") + "T00:00:00");
+    if (Number.isNaN(parsed.getTime())) {
+      return "";
+    }
+
+    parsed.setDate(parsed.getDate() + Math.max(0, Number(days || 0)));
+    var yyyy = parsed.getFullYear();
+    var mm = String(parsed.getMonth() + 1).padStart(2, "0");
+    var dd = String(parsed.getDate()).padStart(2, "0");
+    return yyyy + "-" + mm + "-" + dd;
+  }
+
+  function consumeBookingHandoffContext() {
+    try {
+      var raw = sessionStorage.getItem(BOOKING_HANDOFF_STORAGE_KEY);
+      if (!raw) {
+        return null;
+      }
+
+      sessionStorage.removeItem(BOOKING_HANDOFF_STORAGE_KEY);
+
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      return parsed;
+    } catch (_error) {
+      return null;
     }
   }
 
@@ -1025,15 +1059,34 @@
   }
 
   function applyQueryPrefill() {
-    var start = getQueryParam("start");
-    var end = getQueryParam("end");
-    var pickup = getQueryParam("pickupTime");
-    var coupon = getQueryParam("coupon");
+    var handoff = consumeBookingHandoffContext();
+    var queryVehicle = getQueryParam("vehicle");
+    var queryStart = getQueryParam("start");
+    var queryEnd = getQueryParam("end");
+    var queryPickup = getQueryParam("pickupTime");
+    var queryCoupon = getQueryParam("coupon");
+    var queryDuration = Number(getQueryParam("duration"));
+    var queryPickupLocation = getQueryParam("pickupLocation");
+
+    var vehicleId = queryVehicle || normalizeString(handoff && handoff.vehicleId, "");
+    var start = queryStart || normalizeString(handoff && handoff.startDate, "");
+    var end = queryEnd || normalizeString(handoff && handoff.endDate, "");
+    var pickup = queryPickup || normalizeString(handoff && handoff.pickupTime, "");
+    var coupon = queryCoupon || normalizeString(handoff && handoff.couponCode, "");
+    var pickupLocation = queryPickupLocation || normalizeString(handoff && handoff.pickupLocation, "");
+    var duration = Number.isFinite(queryDuration) && queryDuration > 0
+      ? Math.floor(queryDuration)
+      : Math.floor(Number(handoff && handoff.durationDays ? handoff.durationDays : 0));
+
+    if (!end && start && duration > 0) {
+      end = addDaysToIsoDate(start, Math.max(0, duration - 1));
+    }
 
     var startInput = byId("bookingStartDate");
     var endInput = byId("bookingEndDate");
     var pickupInput = byId("bookingPickupTime");
     var couponInput = byId("bookingCouponCode");
+    var notesInput = byId("bookingNotes");
 
     if (startInput && /^\d{4}-\d{2}-\d{2}$/.test(start)) {
       startInput.value = start;
@@ -1047,6 +1100,14 @@
     if (couponInput && coupon) {
       couponInput.value = coupon;
     }
+
+    if (notesInput && pickupLocation) {
+      notesInput.value = pickupLocation;
+    }
+
+    return {
+      vehicleId: vehicleId,
+    };
   }
 
   async function prefillCustomerIdentity() {
@@ -1119,12 +1180,23 @@
     };
 
     setDefaultDateInputs();
-    applyQueryPrefill();
+    var queryPrefill = applyQueryPrefill();
     await prefillCustomerIdentity();
 
     state.vehicles = await loadVehicles();
 
-    var queryVehicle = getQueryParam("vehicle");
+    var queryVehicle = normalizeString(queryPrefill && queryPrefill.vehicleId, "") || getQueryParam("vehicle");
+
+    if (queryVehicle) {
+      var hasQueryVehicle = state.vehicles.some(function (vehicle) {
+        return String(vehicle && vehicle.id ? vehicle.id : "") === String(queryVehicle);
+      });
+
+      if (!hasQueryVehicle) {
+        queryVehicle = "";
+      }
+    }
+
     var preferredVehicleId = queryVehicle || (state.vehicles[0] && state.vehicles[0].id ? state.vehicles[0].id : "");
 
     fillVehicleSelect(state.vehicles, preferredVehicleId);

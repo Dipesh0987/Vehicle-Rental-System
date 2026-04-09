@@ -395,8 +395,17 @@
     <script src="../backend/js/auth.js"></script>
     <script src="assets/js/vehicle-details.js"></script>
     <script>
-      window.VehicleAuthUI.init("home");
-      window.VehicleDetailsPage.init();
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+          window.VehicleAuthUI.init("home");
+        }
+      } catch (error) {
+        console.warn("VehicleAuthUI init failed:", error);
+      }
+
+      if (window.VehicleDetailsPage && typeof window.VehicleDetailsPage.init === "function") {
+        window.VehicleDetailsPage.init();
+      }
     </script>
   </body>
 </html>

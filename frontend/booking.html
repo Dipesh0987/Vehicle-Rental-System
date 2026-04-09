@@ -428,8 +428,17 @@
     <script src="../backend/js/auth.js"></script>
     <script src="assets/js/booking-page.js"></script>
     <script>
-      window.VehicleAuthUI.init("home");
-      window.VehicleBookingPage.init();
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+          window.VehicleAuthUI.init("home");
+        }
+      } catch (error) {
+        console.warn("VehicleAuthUI init failed:", error);
+      }
+
+      if (window.VehicleBookingPage && typeof window.VehicleBookingPage.init === "function") {
+        window.VehicleBookingPage.init();
+      }
     </script>
   </body>
 </html>

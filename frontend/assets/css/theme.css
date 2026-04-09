@@ -699,6 +699,31 @@ html[data-theme="dark"] body.vrs-page .vrs-booking-status--cancelled {
   color: #ffd5d9;
 }
 
+body.vrs-page .vrs-theme-scope .book-now-btn {
+  border-color: #1f7668;
+  color: #1f7668;
+  background: #ffffff;
+}
+
+body.vrs-page .vrs-theme-scope .book-now-btn:hover,
+body.vrs-page .vrs-theme-scope .book-now-btn:focus-visible {
+  border-color: #16584d !important;
+  background: #1f7668 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-theme-scope .book-now-btn {
+  border-color: rgba(126, 209, 196, 0.68) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #8fdacc !important;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-theme-scope .book-now-btn:hover,
+html[data-theme="dark"] body.vrs-page .vrs-theme-scope .book-now-btn:focus-visible {
+  border-color: #2f978a !important;
+  background: linear-gradient(135deg, #2b8f82, #1f7668) !important;
+  color: #ffffff !important;
+}
 @media (max-width: 640px) {
   .vrs-theme-toggle {
     right: 0.75rem;
