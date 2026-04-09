@@ -297,12 +297,30 @@
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>
     <script src="assets/js/vehicle-catalog.service.js"></script>
+    <script src="assets/js/home-hero-booking.js"></script>
     <script src="assets/js/booking.service.js"></script>
     <script src="assets/js/db.bootstrap.js"></script>
     <script src="../backend/js/auth.js"></script>
     <script>
-      window.VehicleAuthUI.init("home");
-      window.DatabaseBootstrap.init();
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+          window.VehicleAuthUI.init("home");
+        }
+      } catch (error) {
+        console.warn("VehicleAuthUI init failed:", error);
+      }
+
+      try {
+        if (window.DatabaseBootstrap && typeof window.DatabaseBootstrap.init === "function") {
+          window.DatabaseBootstrap.init();
+        }
+      } catch (error) {
+        console.warn("DatabaseBootstrap init failed:", error);
+      }
+
+      if (window.HomeHeroBooking && typeof window.HomeHeroBooking.init === "function") {
+        window.HomeHeroBooking.init();
+      }
     </script>
   </body>
 </html>
