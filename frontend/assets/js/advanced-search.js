@@ -18,10 +18,187 @@ class AdvancedSearchSystem {
         this.unsubscribeCatalogSync = null;
         this.vehicleCacheKey = "vrs:search:vehicles:cache:v1";
         this.catalogVersionKey = "vrs:vehicle-catalog-version";
+        this.homeSearchPrefillKey = "vrs:home-hero-search-prefill:v1";
         this.vehicleCacheTTL = 3 * 60 * 1000;
         this.lastDateFilterKey = "";
         this.lastAvailabilityRangeKey = "";
         this.availabilityRequestId = 0;
+    }
+
+    normalizeString(value, fallback = "") {
+        if (value === null || value === undefined) {
+            return fallback;
+        }
+
+        const text = String(value).trim();
+        return text || fallback;
+    }
+
+    canonicalizeVehicleType(value) {
+        const text = this.normalizeString(value, "").toLowerCase();
+        if (!text) {
+            return "";
+        }
+
+        if (text === "suv" || text.includes("sport utility") || text.includes("jeep")) {
+            return "suv";
+        }
+
+        if (text === "sedan") {
+            return "sedan";
+        }
+
+        if (text === "luxury" || text.includes("premium")) {
+            return "luxury";
+        }
+
+        if (text === "van" || text.includes("mini van") || text.includes("minivan")) {
+            return "van";
+        }
+
+        if (text === "economy" || text === "compact" || text === "hatchback" || text === "city") {
+            return "economy";
+        }
+
+        return text;
+    }
+
+    readHomeSearchPrefillFromQuery() {
+        try {
+            const params = new URLSearchParams(window.location.search || "");
+            const vehicleType = this.canonicalizeVehicleType(params.get("vehicleType"));
+            const pickupLocation = this.normalizeString(params.get("pickupLocation"), "");
+            const pickupDateTime = this.normalizeString(params.get("pickupDateTime"), "");
+            const dropoffDateTime = this.normalizeString(params.get("dropoffDateTime"), "");
+
+            if (!vehicleType && !pickupLocation && !pickupDateTime && !dropoffDateTime) {
+                return null;
+            }
+
+            return {
+                source: "query",
+                vehicleType,
+                pickupLocation,
+                pickupDateTime,
+                dropoffDateTime,
+            };
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    consumeHomeSearchPrefillFromSession() {
+        try {
+            const raw = sessionStorage.getItem(this.homeSearchPrefillKey);
+            if (!raw) {
+                return null;
+            }
+
+            sessionStorage.removeItem(this.homeSearchPrefillKey);
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object") {
+                return null;
+            }
+
+            return {
+                source: this.normalizeString(parsed.source, "session"),
+                vehicleType: this.canonicalizeVehicleType(parsed.vehicleType),
+                pickupLocation: this.normalizeString(parsed.pickupLocation, ""),
+                pickupDateTime: this.normalizeString(parsed.pickupDateTime, ""),
+                dropoffDateTime: this.normalizeString(parsed.dropoffDateTime, ""),
+            };
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    readHomeSearchPrefill() {
+        const queryPayload = this.readHomeSearchPrefillFromQuery();
+        if (queryPayload) {
+            return queryPayload;
+        }
+
+        return this.consumeHomeSearchPrefillFromSession();
+    }
+
+    clearHomeSearchQueryFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            const keys = ["vehicleType", "pickupLocation", "pickupDateTime", "dropoffDateTime"];
+            let changed = false;
+
+            keys.forEach((key) => {
+                if (url.searchParams.has(key)) {
+                    url.searchParams.delete(key);
+                    changed = true;
+                }
+            });
+
+            if (!changed) {
+                return;
+            }
+
+            const nextUrl = url.pathname + (url.search ? url.search : "") + (url.hash ? url.hash : "");
+            window.history.replaceState({}, "", nextUrl);
+        } catch (_error) {
+            // Ignore URL rewrite failures.
+        }
+    }
+
+    async applyHomeSearchPrefill(payload) {
+        if (!payload) {
+            return false;
+        }
+
+        const vehicleType = this.canonicalizeVehicleType(payload.vehicleType);
+        const pickupLocation = this.normalizeString(payload.pickupLocation, "");
+        const pickupDateTime = this.normalizeString(payload.pickupDateTime, "");
+        const dropoffDateTime = this.normalizeString(payload.dropoffDateTime, "");
+
+        if (!vehicleType && !pickupLocation && !pickupDateTime && !dropoffDateTime) {
+            return false;
+        }
+
+        const update = {
+            pickupLocation,
+            dropoffLocation: pickupLocation,
+            pickupDateTime,
+            dropoffDateTime,
+        };
+
+        if (vehicleType) {
+            update.vehicleTypes = [vehicleType];
+        }
+
+        this.filterManager.updateFilters(update);
+
+        const pickupLocationInput = document.getElementById("pickupLocation");
+        const dropoffLocationInput = document.getElementById("dropoffLocation");
+        const pickupDateTimeInput = document.getElementById("pickupDateTime");
+        const dropoffDateTimeInput = document.getElementById("dropoffDateTime");
+
+        if (pickupLocationInput) {
+            pickupLocationInput.value = pickupLocation;
+        }
+        if (dropoffLocationInput) {
+            dropoffLocationInput.value = pickupLocation;
+        }
+        if (pickupDateTimeInput && pickupDateTime) {
+            pickupDateTimeInput.value = pickupDateTime;
+        }
+        if (dropoffDateTimeInput && dropoffDateTime) {
+            dropoffDateTimeInput.value = dropoffDateTime;
+        }
+
+        this.uiManager.renderFilterPanel();
+        this.uiManager.updateActiveFilterTags();
+
+        this.lastDateFilterKey = this.buildDateFilterKey();
+        await this.performSearch();
+        this.filterManager.saveState();
+        this.clearHomeSearchQueryFromUrl();
+
+        return true;
     }
 
     readCatalogVersion() {
@@ -411,6 +588,12 @@ class AdvancedSearchSystem {
 
             // Restore filter state if exists
             this.filterManager.restoreState();
+
+            // Apply homepage booking prefill if user arrived from home hero search flow.
+            const homePrefill = this.readHomeSearchPrefill();
+            if (homePrefill) {
+                await this.applyHomeSearchPrefill(homePrefill);
+            }
 
             // Update wishlist count
             window.SearchWishlist.updateWishlistCount();
