@@ -203,49 +203,70 @@
                 </p>
               </div>
 
-              <form class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 opacity-0 translate-y-5 animate-fadeUp lg:grid-cols-2 lg:gap-x-2 [animation-delay:180ms]">
+              <form id="homeHeroBookingForm" class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 opacity-0 translate-y-5 animate-fadeUp lg:grid-cols-2 lg:gap-x-2 [animation-delay:180ms]">
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Select Your Vehicle Type</span>
-                  <input
-                    type="text"
-                    value="Jeep-Diesel-Model-2021"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
-                  />
+                  <select
+                    id="homeVehicleType"
+                    name="vehicleType"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                  >
+                    <option value="">Choose vehicle type</option>
+                  </select>
                 </label>
 
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Where to Pick-Up</span>
                   <input
+                    id="homePickupLocation"
+                    name="pickupLocation"
                     type="text"
-                    value="201 S Clinton St #166, Iowa City"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    list="homeNepalPickupSuggestions"
+                    placeholder="Thamel, Kathmandu, Nepal"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none placeholder:text-[#A2A9B0] lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
+                  <datalist id="homeNepalPickupSuggestions">
+                    <option value="Thamel, Kathmandu, Nepal"></option>
+                    <option value="Tribhuvan International Airport, Kathmandu, Nepal"></option>
+                    <option value="Lakeside, Pokhara, Nepal"></option>
+                    <option value="Bharatpur Airport, Chitwan, Nepal"></option>
+                    <option value="Lalitpur, Nepal"></option>
+                  </datalist>
                 </label>
 
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Pick Up/Time</span>
                   <input
-                    type="text"
-                    value="11-March-2023, 11:00 AM"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    id="homePickupDateTime"
+                    name="pickupDateTime"
+                    type="datetime-local"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
                 </label>
 
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Drop-off/Time</span>
                   <input
-                    type="text"
-                    value="15-March-2023, 12:00 PM"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    id="homeDropoffDateTime"
+                    name="dropoffDateTime"
+                    type="datetime-local"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
                 </label>
 
-                <a
-                  href="vehicles.html"
+                <p id="homeHeroBookingError" class="hidden w-[80%] rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-[12px] font-semibold text-rose-700 lg:w-[78%]"></p>
+
+                <button
+                  id="homeHeroBookingSubmit"
+                  type="submit"
                   class="mt-2 inline-flex h-[44px] w-[80%] items-center justify-center rounded-full bg-accent text-[18px] font-medium text-white transition duration-200 hover:-translate-y-[2px] hover:brightness-105 hover:shadow-[0_12px_24px_rgba(229,140,78,0.34)] lg:col-span-1 lg:h-[44px] lg:w-[78%] lg:text-[15px]"
                 >
                   Browse Vehicles
-                </a>
+                </button>
               </form>
             </div>
 
