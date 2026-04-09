@@ -45,7 +45,7 @@
           + '<p class="mt-1 text-[13px] text-[#436164]">' + escapeHtml(vehicle.category) + ' • ' + escapeHtml(vehicle.status) + ' • ' + escapeHtml(formatPrice(vehicle.daily)) + '</p>'
           + '<div class="mt-3 flex items-center justify-between">'
           + '<a href="vehicle-details.html?id=' + encodeURIComponent(detailsId) + '" class="rounded-full border border-[#cfdad5] px-4 py-2 text-[12px] font-semibold text-[#284548] transition duration-200 hover:-translate-y-[1px] hover:border-[#2c766e]/40 hover:bg-[#f6faf8]">Show Details</a>'
-          + '<button type="button" class="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>'
+          + '<button type="button" class="book-now-btn rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_18px_rgba(229,140,78,0.28)]">Book Now</button>'
           + '</div>'
           + '</div>'
           + '</article>';
