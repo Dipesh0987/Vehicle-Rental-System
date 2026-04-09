@@ -313,6 +313,41 @@
     };
   }
 
+  function setVehicleSelectionLock(isLocked, vehicleLabel) {
+    var select = byId("bookingVehicleSelect");
+    var lockedDisplay = byId("bookingVehicleLockedDisplay");
+    var lockedHint = byId("bookingVehicleLockedHint");
+
+    if (!select || !lockedDisplay || !lockedHint) {
+      return;
+    }
+
+    if (isLocked) {
+      select.classList.add("hidden");
+      select.setAttribute("aria-hidden", "true");
+      select.disabled = true;
+
+      lockedDisplay.value = normalizeString(vehicleLabel, "Selected vehicle");
+      lockedDisplay.classList.remove("hidden");
+      lockedHint.classList.remove("hidden");
+      return;
+    }
+
+    select.classList.remove("hidden");
+    select.removeAttribute("aria-hidden");
+    select.disabled = false;
+
+    lockedDisplay.classList.add("hidden");
+    lockedDisplay.value = "";
+    lockedHint.classList.add("hidden");
+  }
+
+  function syncVehicleSelectionLock(state) {
+    var isLocked = Boolean(state && state.isVehicleSelectionLocked);
+    var label = getVehicleDisplayName(state && state.selectedVehicle ? state.selectedVehicle : {});
+    setVehicleSelectionLock(isLocked, label);
+  }
+
   async function loadVehicles() {
     if (!window.VehicleCatalogService || typeof window.VehicleCatalogService.listVehicles !== "function") {
       return [];
@@ -452,6 +487,7 @@
     state.selectedVehicle = nextVehicle;
     renderVehicleSummary(nextVehicle);
     syncQuoteFromState(state);
+    syncVehicleSelectionLock(state);
   }
 
   function wireBaseInteractions(state) {
@@ -464,7 +500,7 @@
     var customerEmail = byId("bookingCustomerEmail");
     var customerPhone = byId("bookingCustomerPhone");
 
-    if (vehicleSelect) {
+    if (vehicleSelect && !state.isVehicleSelectionLocked) {
       vehicleSelect.addEventListener("change", function () {
         clearCustomFieldError(vehicleSelect);
         setBannerMessage("bookingFormError", "", "error");
@@ -1068,7 +1104,10 @@
     var queryDuration = Number(getQueryParam("duration"));
     var queryPickupLocation = getQueryParam("pickupLocation");
 
-    var vehicleId = queryVehicle || normalizeString(handoff && handoff.vehicleId, "");
+    var handoffVehicleId = normalizeString(handoff && handoff.vehicleId, "");
+    var vehicleId = queryVehicle || handoffVehicleId;
+      var lockVehicleSelection = Boolean(queryVehicle || handoffVehicleId);
+
     var start = queryStart || normalizeString(handoff && handoff.startDate, "");
     var end = queryEnd || normalizeString(handoff && handoff.endDate, "");
     var pickup = queryPickup || normalizeString(handoff && handoff.pickupTime, "");
@@ -1107,6 +1146,7 @@
 
     return {
       vehicleId: vehicleId,
+      lockVehicleSelection: lockVehicleSelection,
     };
   }
 
@@ -1164,6 +1204,7 @@
     var state = {
       vehicles: [],
       selectedVehicle: null,
+      isVehicleSelectionLocked: false,
       pendingBookingValues: null,
       lastAvailability: null,
       availabilityTimerId: null,
@@ -1186,6 +1227,7 @@
     state.vehicles = await loadVehicles();
 
     var queryVehicle = normalizeString(queryPrefill && queryPrefill.vehicleId, "") || getQueryParam("vehicle");
+    var shouldLockVehicleSelection = Boolean(queryPrefill && queryPrefill.lockVehicleSelection);
 
     if (queryVehicle) {
       var hasQueryVehicle = state.vehicles.some(function (vehicle) {
@@ -1194,13 +1236,16 @@
 
       if (!hasQueryVehicle) {
         queryVehicle = "";
+        shouldLockVehicleSelection = false;
       }
     }
 
     var preferredVehicleId = queryVehicle || (state.vehicles[0] && state.vehicles[0].id ? state.vehicles[0].id : "");
+    state.isVehicleSelectionLocked = Boolean(shouldLockVehicleSelection && preferredVehicleId);
 
     fillVehicleSelect(state.vehicles, preferredVehicleId);
     selectVehicleById(state, preferredVehicleId);
+    syncVehicleSelectionLock(state);
     wireBaseInteractions(state);
     wireReviewFlow(state);
     wireSuccessModal();
