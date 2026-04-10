@@ -579,15 +579,23 @@ class AdvancedSearchSystem {
             // Load vehicles (from test data or API)
             await this.loadVehicles();
 
+            // Restore saved filters before first paint to avoid showing unfiltered
+            // vehicles briefly and then replacing them with restored results.
+            this.filterManager.restoreState();
+
+            // If restored state includes dates, refresh availability before initial render.
+            const restoredPickupDateTime = String(this.filterManager?.filters?.pickupDateTime || "").trim();
+            const restoredDropoffDateTime = String(this.filterManager?.filters?.dropoffDateTime || "").trim();
+            if (restoredPickupDateTime || restoredDropoffDateTime) {
+                await this.refreshDateAvailabilitySnapshot({ force: true, quiet: true });
+            }
+
             // Render UI components
             this.uiManager.renderFilterPanel();
-            this.uiManager.renderVehicleResults(this.vehicles);
+            this.applyFiltersAndRender();
 
             // Setup event listeners
             this.setupEventListeners();
-
-            // Restore filter state if exists
-            this.filterManager.restoreState();
 
             // Apply homepage booking prefill if user arrived from home hero search flow.
             const homePrefill = this.readHomeSearchPrefill();
