@@ -76,6 +76,21 @@
         color: #6d3e18 !important;
       }
 
+      .booking-success-card {
+        border-color: rgba(16, 46, 49, 0.22) !important;
+        background: linear-gradient(155deg, rgba(255, 255, 255, 0.995), rgba(246, 239, 228, 0.995)) !important;
+      }
+
+      .booking-success-summary {
+        border-color: #d8e3de !important;
+        background: #ffffff !important;
+      }
+
+      .booking-success-total {
+        border-color: #f2d3bb !important;
+        background: #fff6ef !important;
+      }
+
       html[data-theme="dark"] .booking-solid-panel {
         background: linear-gradient(160deg, rgba(20, 30, 36, 0.96), rgba(15, 24, 30, 0.96)) !important;
         border-color: rgba(150, 176, 188, 0.32) !important;
@@ -122,6 +137,22 @@
         border-color: rgba(240, 168, 114, 0.32) !important;
         background: rgba(107, 61, 32, 0.32) !important;
         color: #ffd9bf !important;
+      }
+
+      html[data-theme="dark"] .booking-success-card {
+        border-color: rgba(157, 186, 198, 0.34) !important;
+        background: linear-gradient(160deg, rgba(22, 33, 40, 0.99), rgba(16, 26, 33, 0.99)) !important;
+        color: #e7eff3 !important;
+      }
+
+      html[data-theme="dark"] .booking-success-summary {
+        border-color: rgba(157, 186, 198, 0.28) !important;
+        background: rgba(15, 25, 31, 0.95) !important;
+      }
+
+      html[data-theme="dark"] .booking-success-total {
+        border-color: rgba(240, 168, 114, 0.34) !important;
+        background: rgba(107, 61, 32, 0.32) !important;
       }
     </style>
   </head>
@@ -265,6 +296,8 @@
               <label class="grid gap-1">
                 <span class="text-[12px] font-semibold text-[#315154]">Vehicle</span>
                 <select id="bookingVehicleSelect" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]"></select>
+                <input id="bookingVehicleLockedDisplay" type="text" readonly class="hidden rounded-xl border border-[#d2dfda] bg-[#f3f8f6] px-3 py-2 text-[14px] font-semibold text-[#2b4d50] outline-none" />
+                <p id="bookingVehicleLockedHint" class="hidden text-[11px] font-semibold text-[#5c7578]">Vehicle is pre-selected from the details page.</p>
               </label>
 
               <label class="grid gap-1">
@@ -384,13 +417,13 @@
       </div>
     </div>
 
-    <div id="bookingSuccessModal" class="pointer-events-none fixed inset-0 z-[270] flex items-center justify-center bg-[rgba(8,22,24,0.66)] px-4 opacity-0 transition duration-200" aria-hidden="true">
-      <div id="bookingSuccessCard" class="w-full max-w-[560px] translate-y-2 scale-[0.985] overflow-hidden rounded-[26px] border border-[rgba(16,46,49,0.18)] bg-[linear-gradient(155deg,#ffffff,#f6efe4)] p-6 shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200">
+    <div id="bookingSuccessModal" class="pointer-events-none fixed inset-0 z-[270] flex items-center justify-center bg-[rgba(8,22,24,0.74)] px-4 opacity-0 transition duration-200" aria-hidden="true">
+      <div id="bookingSuccessCard" class="booking-success-card w-full max-w-[560px] translate-y-2 scale-[0.985] overflow-hidden rounded-[26px] border border-[rgba(16,46,49,0.18)] bg-[linear-gradient(155deg,#ffffff,#f6efe4)] p-6 shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200">
         <div class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#2c766e,#1f5b57)] text-[26px] text-white shadow-[0_14px_32px_rgba(31,91,87,0.34)]">&#10003;</div>
         <h3 class="mt-4 text-[28px] font-extrabold leading-tight text-[#133438]">Reservation Confirmed</h3>
         <p id="bookingSuccessMessage" class="mt-2 text-[14px] leading-relaxed text-[#2e5255]">Your reservation has been saved successfully.</p>
 
-        <div class="mt-4 rounded-2xl border border-[#d7e3de] bg-white p-4 shadow-[0_10px_20px_rgba(10,31,34,0.08)]">
+        <div class="booking-success-summary mt-4 rounded-2xl border border-[#d7e3de] bg-white p-4 shadow-[0_10px_20px_rgba(10,31,34,0.08)]">
           <div class="flex items-center justify-between border-b border-[#e4ece8] pb-2 text-[13px]">
             <span class="font-semibold text-[#456064]">Reservation ID</span>
             <span id="bookingSuccessReservationCode" class="font-bold text-[#1f5b57]">-</span>
@@ -405,7 +438,7 @@
           </div>
         </div>
 
-        <div class="mt-4 rounded-2xl border border-[#f2d3bb] bg-[#fff6ef] px-4 py-3">
+        <div class="booking-success-total mt-4 rounded-2xl border border-[#f2d3bb] bg-[#fff6ef] px-4 py-3">
           <div class="flex items-center justify-between">
             <span class="text-[13px] font-semibold text-[#7f4c22]">Total Due</span>
             <span id="bookingSuccessTotalAmount" class="text-[20px] font-extrabold text-[#6d3e18]">NPR 0.00</span>
@@ -428,8 +461,17 @@
     <script src="../backend/js/auth.js"></script>
     <script src="assets/js/booking-page.js"></script>
     <script>
-      window.VehicleAuthUI.init("home");
-      window.VehicleBookingPage.init();
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+          window.VehicleAuthUI.init("home");
+        }
+      } catch (error) {
+        console.warn("VehicleAuthUI init failed:", error);
+      }
+
+      if (window.VehicleBookingPage && typeof window.VehicleBookingPage.init === "function") {
+        window.VehicleBookingPage.init();
+      }
     </script>
   </body>
 </html>

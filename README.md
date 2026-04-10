@@ -59,7 +59,14 @@ Run this SQL in Supabase SQL Editor:
 4. `database/migrations/004_vehicle_catalog_and_images.sql`
 5. `database/migrations/005_vehicle_catalog_schema_hotfix.sql`
 6. `database/migrations/006_vehicle_bookings_system.sql`
-7. `database/migrations/012_user_profile_verification_workflow.sql`
+7. `database/migrations/007_booking_code_four_digits.sql`
+8. `database/migrations/008_admin_booking_status_updates.sql`
+9. `database/migrations/009_booking_driver_option.sql`
+10. `database/migrations/010_vehicle_number_support.sql`
+11. `database/migrations/011_booking_currency_npr.sql`
+12. `database/migrations/012_user_profile_verification_workflow.sql`
+13. `database/migrations/013_verification_document_image_url.sql`
+14. `database/migrations/014_admin_profile_access_fallback_and_listing_rpc.sql`
 
 This creates `public.user_profiles`, `public.vehicles`, `public.vehicle_images`, and `public.vehicle_bookings`, plus storage policies for both `profile-images` and `vehicle-images` buckets.
 
@@ -73,6 +80,8 @@ Migration `012_user_profile_verification_workflow.sql` adds a production-style c
 2. Verification status moves to `pending`.
 3. Admin reviews in the Customers module and sets `approved`/`rejected`.
 4. Customers see the live verification badge in their profile.
+
+Migration `014_admin_profile_access_fallback_and_listing_rpc.sql` adds an admin-safe profile listing RPC and fallback admin detection for bootstrap admin emails.
 
 ## Profile Image Best Practice
 

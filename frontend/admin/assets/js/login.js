@@ -115,6 +115,7 @@ function wireAdminLogin() {
 
   var usernameInput = document.getElementById("adminUsername");
   var passwordInput = document.getElementById("adminPassword");
+  var rememberInput = document.getElementById("adminRememberMe");
   var banner = document.getElementById("adminLoginBanner");
   var submitBtn = document.getElementById("adminLoginSubmit");
 
@@ -138,7 +139,7 @@ function wireAdminLogin() {
       await window.AdminAuth.signIn({
         username: usernameInput ? usernameInput.value : "",
         password: passwordInput ? passwordInput.value : "",
-        rememberMe: true,
+        rememberMe: Boolean(rememberInput && rememberInput.checked),
       });
 
       setAdminBanner(banner, "Admin login successful. Redirecting...", "success");

@@ -56,6 +56,24 @@
     return isUsableConfigValue(config.url) && isUsableConfigValue(config.anonKey);
   }
 
+  function splitPathSegments(pathname) {
+    return String(pathname || "")
+      .toLowerCase()
+      .split("?")[0]
+      .split("#")[0]
+      .split("/");
+  }
+
+  function hasAdminPathSegment(pathname) {
+    return splitPathSegments(pathname).indexOf("admin") >= 0;
+  }
+
+  function resolveAuthStorageKey(pathname) {
+    return hasAdminPathSegment(pathname)
+      ? "vrs-supabase-auth-admin"
+      : "vrs-supabase-auth-public";
+  }
+
   function getRuntimeBaseUrl() {
     if (document.currentScript && document.currentScript.src) {
       return new URL(".", document.currentScript.src).toString();
@@ -203,11 +221,14 @@
 
       window.SUPABASE_CONFIG = Object.assign({}, window.SUPABASE_CONFIG || {}, config);
 
+      var authStorageKey = resolveAuthStorageKey(window.location && window.location.pathname);
+
       var client = window.supabase.createClient(config.url, config.anonKey, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
+          storageKey: authStorageKey,
         },
       });
 

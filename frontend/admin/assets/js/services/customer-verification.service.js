@@ -104,6 +104,58 @@ function mapProfileRow(row) {
   };
 }
 
+function toTimestamp(value) {
+  const text = normalizeText(value);
+  if (!text) {
+    return 0;
+  }
+
+  const parsed = new Date(text).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function reviewQueuePriority(profile) {
+  const status = normalizeStatus(profile && profile.verificationStatus);
+  const submittedAt = toTimestamp(profile && profile.verificationSubmittedAt);
+  const hasSubmission = submittedAt > 0;
+
+  if (status === 'pending' && hasSubmission) return 0;
+  if (status === 'rejected' && hasSubmission) return 1;
+  if (status === 'not_submitted') return 2;
+  if (status === 'approved') return 3;
+  return 4;
+}
+
+function sortProfilesForReviewQueue(rows) {
+  const list = Array.isArray(rows) ? rows.slice() : [];
+
+  list.sort((left, right) => {
+    const leftPriority = reviewQueuePriority(left);
+    const rightPriority = reviewQueuePriority(right);
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    const leftSubmitted = toTimestamp(left && left.verificationSubmittedAt);
+    const rightSubmitted = toTimestamp(right && right.verificationSubmittedAt);
+    if (leftSubmitted !== rightSubmitted) {
+      return rightSubmitted - leftSubmitted;
+    }
+
+    const leftUpdated = toTimestamp(left && left.updatedAt);
+    const rightUpdated = toTimestamp(right && right.updatedAt);
+    if (leftUpdated !== rightUpdated) {
+      return rightUpdated - leftUpdated;
+    }
+
+    const leftCreated = toTimestamp(left && left.createdAt);
+    const rightCreated = toTimestamp(right && right.createdAt);
+    return rightCreated - leftCreated;
+  });
+
+  return list;
+}
+
 function getErrorMessage(error) {
   return String(error && error.message ? error.message : '').toLowerCase();
 }
@@ -129,6 +181,18 @@ function isMissingVerificationSchemaError(error) {
     message.includes('document_number') ||
     message.includes('document_image_url') ||
     message.includes('phone_number')
+  );
+}
+
+function isMissingAdminListRpcError(error) {
+  const message = getErrorMessage(error);
+
+  return (
+    message.includes('admin_list_user_profiles') &&
+    (
+      message.includes('could not find') ||
+      (message.includes('function') && message.includes('does not exist'))
+    )
   );
 }
 
@@ -184,16 +248,20 @@ export function createCustomerVerificationService() {
   async function listCustomers() {
     const client = await getClient();
 
-    let response = await client
-      .from('user_profiles')
-      .select(PROFILE_VERIFICATION_SELECT)
-      .order('updated_at', { ascending: false });
+    let response = await client.rpc('admin_list_user_profiles');
 
-    if (response.error && isMissingVerificationSchemaError(response.error)) {
+    if (response.error && isMissingAdminListRpcError(response.error)) {
       response = await client
         .from('user_profiles')
-        .select(PROFILE_BASE_SELECT)
+        .select(PROFILE_VERIFICATION_SELECT)
         .order('updated_at', { ascending: false });
+
+      if (response.error && isMissingVerificationSchemaError(response.error)) {
+        response = await client
+          .from('user_profiles')
+          .select(PROFILE_BASE_SELECT)
+          .order('updated_at', { ascending: false });
+      }
     }
 
     if (response.error) {
@@ -201,7 +269,7 @@ export function createCustomerVerificationService() {
     }
 
     const rows = Array.isArray(response.data) ? response.data : [];
-    return rows.map(mapProfileRow);
+    return sortProfilesForReviewQueue(rows.map(mapProfileRow));
   }
 
   async function updateVerificationStatus(input) {

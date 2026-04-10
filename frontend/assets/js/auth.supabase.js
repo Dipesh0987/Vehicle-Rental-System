@@ -143,6 +143,13 @@
       };
     }
 
+    if (/\s/.test(raw)) {
+      return {
+        valid: false,
+        message: "Password cannot contain spaces or whitespace characters.",
+      };
+    }
+
     if (!SPECIAL_CHAR_REGEX.test(raw)) {
       return {
         valid: false,

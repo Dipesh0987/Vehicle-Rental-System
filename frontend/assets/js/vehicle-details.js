@@ -2,6 +2,7 @@
   "use strict";
 
   var DEFAULT_FALLBACK_IMAGE = "assets/images/car-transparent.png";
+  var BOOKING_HANDOFF_STORAGE_KEY = "vrs_booking_handoff";
 
   function getCatalogService() {
     return window.VehicleCatalogService || null;
@@ -10,6 +11,22 @@
   function getVehicleIdFromQuery() {
     var params = new URLSearchParams(window.location.search);
     return String(params.get("id") || "").trim();
+  }
+
+  function setDetailsLoaderVisibility(isVisible) {
+    var loader = document.getElementById("vehicleDetailsLoader");
+    if (!loader) {
+      return;
+    }
+
+    if (isVisible) {
+      loader.classList.remove("hidden");
+      loader.setAttribute("aria-hidden", "false");
+      return;
+    }
+
+    loader.classList.add("hidden");
+    loader.setAttribute("aria-hidden", "true");
   }
 
   function formatDetailCurrency(value) {
@@ -746,6 +763,7 @@
         var target = new URL("booking.html", window.location.href);
         target.searchParams.set("vehicle", String(vehicle.id || ""));
         target.searchParams.set("start", startDate);
+        target.searchParams.set("duration", String(durationDays));
         if (endDate) {
           target.searchParams.set("end", endDate);
         }
@@ -756,6 +774,39 @@
           target.searchParams.set("coupon", state.couponCode);
         }
 
+        var bookingSummaryPayload = {};
+        var rawSummaryPayload = summary.getAttribute("data-booking-payload");
+        if (rawSummaryPayload) {
+          try {
+            bookingSummaryPayload = JSON.parse(rawSummaryPayload) || {};
+          } catch (_error) {
+            bookingSummaryPayload = {};
+          }
+        }
+
+        try {
+          sessionStorage.setItem(
+            BOOKING_HANDOFF_STORAGE_KEY,
+            JSON.stringify({
+              source: "vehicle-details",
+              createdAt: Date.now(),
+              vehicleId: String(vehicle.id || ""),
+              startDate: startDate,
+              endDate: endDate,
+              pickupTime: pickupTime && pickupTime.value ? String(pickupTime.value) : "",
+              durationDays: durationDays,
+              couponCode: state.couponCode || "",
+              baseAmount: Number(bookingSummaryPayload.baseAmount || 0),
+              serviceFee: Number(bookingSummaryPayload.serviceFee || 0),
+              taxAmount: Number(bookingSummaryPayload.taxAmount || 0),
+              discountAmount: Number(bookingSummaryPayload.discountAmount || 0),
+              totalAmount: Number(bookingSummaryPayload.totalAmount || 0)
+            })
+          );
+        } catch (_error) {
+          // Storage can fail in privacy-restricted contexts; query params still carry core data.
+        }
+
         window.location.href = target.toString();
       });
     }
@@ -764,20 +815,28 @@
   }
 
   async function init() {
-    var vehicle = await getVehicleFromQuery();
-    renderIdentity(vehicle);
-    renderGallery(vehicle);
-    renderBadges(vehicle);
-    renderQuickSpecs(vehicle);
-    renderFeatures(vehicle);
-    renderIncluded(vehicle);
-    renderPricing(vehicle);
-    renderBulletList("vehicleRequirements", vehicle.requirements);
-    renderBulletList("vehiclePolicies", vehicle.policies);
-    renderSimilar(vehicle);
-    renderReviewSnippets(vehicle);
-    wireBookingSidebar(vehicle);
-    wireRevealAnimations();
+    setDetailsLoaderVisibility(true);
+
+    try {
+      var vehicle = await getVehicleFromQuery();
+      renderIdentity(vehicle);
+      renderGallery(vehicle);
+      renderBadges(vehicle);
+      renderQuickSpecs(vehicle);
+      renderFeatures(vehicle);
+      renderIncluded(vehicle);
+      renderPricing(vehicle);
+      renderBulletList("vehicleRequirements", vehicle.requirements);
+      renderBulletList("vehiclePolicies", vehicle.policies);
+      renderSimilar(vehicle);
+      renderReviewSnippets(vehicle);
+      wireBookingSidebar(vehicle);
+      wireRevealAnimations();
+    } catch (error) {
+      console.error("Vehicle details initialization failed:", error);
+    } finally {
+      setDetailsLoaderVisibility(false);
+    }
   }
 
   window.VehicleDetailsPage = {

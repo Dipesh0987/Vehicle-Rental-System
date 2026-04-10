@@ -3,7 +3,10 @@ import { filterRows } from '../table-utils.js';
 
 export function renderNotificationsModule({ data, query, notify }) {
   const host = document.createElement('section');
-  const rows = filterRows(data.notifications, query, ['id', 'title', 'channel', 'priority']);
+  const allRows = Array.isArray(data && data.notifications) ? data.notifications : [];
+  const rows = filterRows(allRows, query, ['id', 'title', 'channel', 'priority']);
+  const queueSummary = allRows.find((row) => String(row && row.type ? row.type : '') === 'verification_queue') || null;
+  const verificationRows = allRows.filter((row) => String(row && row.type ? row.type : '') === 'verification_submission');
 
   host.className = 'space-y-4';
   host.innerHTML = `
@@ -18,11 +21,24 @@ export function renderNotificationsModule({ data, query, notify }) {
       </div>
     </header>
 
+    ${queueSummary
+      ? `<section class="${classMap.panel} border-amber-300/70 bg-[linear-gradient(130deg,rgba(255,247,214,0.95),rgba(255,238,191,0.9))] p-4 sm:p-5 dark:border-amber-400/30 dark:bg-amber-500/10">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-[0.13em] text-amber-800 dark:text-amber-200">KYC Queue Alert</p>
+              <p class="mt-1 text-sm font-extrabold text-amber-900 dark:text-amber-100">${queueSummary.title}</p>
+              <p class="mt-1 text-xs font-semibold text-amber-800/85 dark:text-amber-200/90">${verificationRows.length} detailed customer submission alert${verificationRows.length === 1 ? '' : 's'} generated for review workflow.</p>
+            </div>
+            <span class="rounded-full border border-amber-400 bg-white/90 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-amber-800 dark:border-amber-300/40 dark:bg-amber-500/10 dark:text-amber-100">Action Required</span>
+          </div>
+        </section>`
+      : ''}
+
     <section class="${classMap.panel} p-4 sm:p-5">
       <div class="space-y-3">
         ${rows
           .map(
-            (row) => `<article class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
+            (row) => `<article class="rounded-xl border ${isVerificationNotification(row) ? 'border-amber-300/70 bg-amber-50/50 dark:border-amber-400/30 dark:bg-amber-500/10' : 'border-slate-200 dark:border-white/10'} p-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <p class="text-sm font-bold">${row.title}</p>
                 <span class="${priorityClass(row.priority)}">${row.priority}</span>
@@ -47,6 +63,11 @@ export function renderNotificationsModule({ data, query, notify }) {
   });
 
   return host;
+}
+
+function isVerificationNotification(row) {
+  const type = String(row && row.type ? row.type : '').trim().toLowerCase();
+  return type === 'verification_queue' || type === 'verification_submission';
 }
 
 function priorityClass(priority) {
