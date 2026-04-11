@@ -719,10 +719,12 @@
 
     var pickupDate = document.getElementById("bookingPickupDate");
     var pickupTime = document.getElementById("bookingPickupTime");
-    var durationInput = document.getElementById("bookingDuration");
+    var dropoffDate = document.getElementById("bookingDropoffDate");
+    var dropoffTime = document.getElementById("bookingDropoffTime");
     var couponInput = document.getElementById("bookingCouponCode");
     var applyBtn = document.getElementById("bookingApplyCoupon");
     var couponStatus = document.getElementById("bookingCouponStatus");
+    var submitBtn = document.getElementById("bookingSubmitBtn");
 
     var dailyRateEl = document.getElementById("bookingDailyRate");
     var baseEl = document.getElementById("bookingBaseAmount");
@@ -741,17 +743,27 @@
       WEEKEND50: { type: "flat", value: 50, label: "$50 off applied" }
     };
 
-    function getDurationDays() {
-      var value = Number(durationInput && durationInput.value ? durationInput.value : "1");
-      if (!Number.isFinite(value) || value < 1) {
+    function calculateDurationDays() {
+      if (!pickupDate || !pickupDate.value || !dropoffDate || !dropoffDate.value) {
         return 1;
       }
-      return Math.floor(value);
+
+      var pickup = new Date(pickupDate.value);
+      var dropoff = new Date(dropoffDate.value);
+      var diffTime = Math.abs(dropoff - pickup);
+      var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      return Math.max(1, diffDays);
+    }
+
+    function updateDropoffDateFromDuration() {
+      // This function is kept for backward compatibility but not used in new UI
+      return;
     }
 
     function compute() {
       var dailyRate = parseDailyRate(vehicle.pricing && vehicle.pricing.dailyRate);
-      var days = getDurationDays();
+      var days = calculateDurationDays();
       var base = dailyRate * days;
       var serviceFee = Math.max(15, base * 0.05);
       var tax = (base + serviceFee) * 0.13;
@@ -789,6 +801,8 @@
         vehicleId: vehicle.id,
         pickupDate: pickupDate ? pickupDate.value : "",
         pickupTime: pickupTime ? pickupTime.value : "",
+        dropoffDate: dropoffDate ? dropoffDate.value : "",
+        dropoffTime: dropoffTime ? dropoffTime.value : "",
         durationDays: days,
         couponCode: state.couponCode,
         baseAmount: base,
@@ -797,6 +811,77 @@
         discountAmount: discount,
         totalAmount: total
       }));
+    }
+
+    async function handleBookingSubmission() {
+      // Clear previous messages
+      BookingErrorHandler.clearErrors();
+
+      // Validate form
+      if (!BookingErrorHandler.validateBookingForm()) {
+        return;
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        BookingErrorHandler.showGeneralError("Please log in to make a booking");
+        return;
+      }
+
+      // Disable button during submission
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Processing...";
+
+      try {
+        // Get booking data
+        const bookingData = JSON.parse(summary.getAttribute("data-booking-payload") || "{}");
+
+        // Prepare booking payload
+        const payload = {
+          user_id: user.id,
+          vehicle_id: vehicle.id,
+          pickup_date: bookingData.pickupDate,
+          pickup_time: bookingData.pickupTime || "10:00:00",
+          dropoff_date: bookingData.dropoffDate,
+          dropoff_time: bookingData.dropoffTime || "09:30:00",
+          base_price: bookingData.baseAmount,
+          service_fee: bookingData.serviceFee,
+          tax_amount: bookingData.taxAmount,
+          discount_amount: bookingData.discountAmount,
+          total_price: bookingData.totalAmount,
+          pickup_location: "Downtown Vehicle Hub", // Default location
+          dropoff_location: "Downtown Vehicle Hub", // Default location
+          driver_name: user.user_metadata?.full_name || user.email,
+          payment_method: "To be selected",
+          status: "pending"
+        };
+
+        // Create booking
+        const result = await BookingService.createBooking(payload);
+
+        if (result.success) {
+          BookingErrorHandler.showSuccess(`Booking created successfully! Reference: ${result.data.booking_reference}`);
+          // Reset form or redirect to confirmation page
+          setTimeout(() => {
+            // Could redirect to booking confirmation page here
+            console.log("Booking confirmed:", result.data);
+          }, 2000);
+        } else {
+          if (result.error === 'Vehicle not available for selected dates') {
+            BookingErrorHandler.showConflictError(result.conflictDetails);
+          } else {
+            BookingErrorHandler.showGeneralError(result.error);
+          }
+        }
+      } catch (error) {
+        console.error("Booking submission error:", error);
+        BookingErrorHandler.showGeneralError("An unexpected error occurred. Please try again.");
+      } finally {
+        // Re-enable button
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Continue to Secure Checkout";
+      }
     }
 
     function applyCoupon() {
@@ -830,14 +915,18 @@
       compute();
     }
 
-    if (durationInput) {
-      durationInput.addEventListener("input", compute);
-    }
+    // Event listeners
     if (pickupDate) {
       pickupDate.addEventListener("input", compute);
     }
     if (pickupTime) {
       pickupTime.addEventListener("input", compute);
+    }
+    if (dropoffDate) {
+      dropoffDate.addEventListener("input", compute);
+    }
+    if (dropoffTime) {
+      dropoffTime.addEventListener("input", compute);
     }
     if (couponInput) {
       couponInput.addEventListener("keydown", function (event) {
@@ -849,6 +938,9 @@
     }
     if (applyBtn) {
       applyBtn.addEventListener("click", applyCoupon);
+    }
+    if (submitBtn) {
+      submitBtn.addEventListener("click", handleBookingSubmission);
     }
 
     compute();

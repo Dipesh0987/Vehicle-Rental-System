@@ -159,6 +159,10 @@
           </div>
 
           <aside data-reveal class="rounded-3xl border border-[#d5e0db] bg-white/95 p-5 shadow-[0_16px_30px_rgba(10,31,34,0.08)] lg:sticky lg:top-5">
+            <!-- Error/Success Message Container -->
+            <div id="bookingErrorContainer" class="hidden mb-4"></div>
+            <div id="bookingSuccessContainer" class="hidden mb-4"></div>
+
             <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-panel">Premium Booking</p>
             <h2 class="mt-2 text-[24px] font-bold text-ink">Reserve This Vehicle</h2>
             <p class="mt-1 text-[13px] text-[#3f5c5f]">Static-first pricing UI designed for quick API integration later.</p>
@@ -173,8 +177,12 @@
                 <input id="bookingPickupTime" type="time" value="10:00" class="rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
               </label>
               <label class="grid gap-1">
-                <span class="text-[12px] font-semibold text-[#315154]">Duration (Days)</span>
-                <input id="bookingDuration" type="number" min="1" value="3" class="rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
+                <span class="text-[12px] font-semibold text-[#315154]">Drop-off Date</span>
+                <input id="bookingDropoffDate" type="date" class="rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
+              </label>
+              <label class="grid gap-1">
+                <span class="text-[12px] font-semibold text-[#315154]">Drop-off Time</span>
+                <input id="bookingDropoffTime" type="time" value="09:30" class="rounded-xl border border-[#d4dfda] bg-[#fbfdfc] px-3 py-2 text-[13px] text-[#1f4043] outline-none" />
               </label>
 
               <div class="grid gap-1">
@@ -218,7 +226,7 @@
               </div>
             </article>
 
-            <button type="button" class="mt-4 w-full rounded-full bg-accent px-5 py-3 text-[13px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105">Continue to Secure Checkout</button>
+            <button type="button" id="bookingSubmitBtn" class="mt-4 w-full rounded-full bg-accent px-5 py-3 text-[13px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed">Continue to Secure Checkout</button>
           </aside>
         </div>
       </section>
@@ -228,6 +236,8 @@
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>
     <script src="../backend/js/auth.js"></script>
+    <script src="assets/js/booking-service.js"></script>
+    <script src="assets/js/booking-error-handler.js"></script>
     <script src="assets/js/vehicle-details.js"></script>
     <script>
       window.VehicleAuthUI.init("home");
