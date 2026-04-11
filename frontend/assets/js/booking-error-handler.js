@@ -19,7 +19,7 @@ class BookingErrorHandler {
     }).join(', ');
 
     container.innerHTML = `
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 booking-error-enter">
         <div class="flex items-start">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -58,7 +58,7 @@ class BookingErrorHandler {
     if (!container) return;
 
     container.innerHTML = `
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 booking-error-enter">
         <div class="flex items-start">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -100,7 +100,7 @@ class BookingErrorHandler {
     if (!container) return;
 
     container.innerHTML = `
-      <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 booking-success-enter">
         <div class="flex items-start">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
