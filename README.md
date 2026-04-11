@@ -48,6 +48,31 @@ Run this SQL in Supabase SQL Editor:
 1. `database/migrations/001_user_profiles.sql`
 2. `database/migrations/002_user_profiles_avatar.sql`
 3. `database/migrations/003_profile_images_storage.sql`
+4. `database/migrations/004_bookings_table.sql`
+5. `database/migrations/005_booking_events_and_modifications.sql`
+6. `database/migrations/006_vehicles_table.sql`
+7. `database/migrations/007_booking_conflict_prevention.sql`
+
+## Booking Conflict Prevention
+
+The system prevents double booking of vehicles for overlapping dates:
+
+### Features
+- **Server-side validation**: Database trigger prevents conflicting bookings at the database level
+- **Client-side checking**: JavaScript validates availability before submission
+- **User-friendly errors**: Clear error messages with conflict details using Tailwind CSS
+- **Modification support**: Booking modifications also check for conflicts
+
+### How it works
+1. When creating or modifying a booking, the system checks for existing bookings on the same vehicle
+2. Only considers bookings with status: `pending`, `confirmed`, `active` (excludes `cancelled`)
+3. Uses date overlap logic: `NOT (dropoffA < pickupB OR pickupA > dropoffB)`
+4. Shows specific conflict dates to help users choose alternative dates
+
+### Error Messages
+- **Conflict detected**: Shows which dates are already booked
+- **"Change Dates" button**: Focuses the date picker for easy correction
+- **Success confirmation**: Shows booking reference on successful creation
 
 This creates `public.user_profiles` with RLS policies and configures `storage.profile-images` bucket policies so authenticated users can upload/update only their own avatar path.
 
