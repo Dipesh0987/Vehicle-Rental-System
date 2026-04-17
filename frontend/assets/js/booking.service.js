@@ -8,6 +8,8 @@
   var ALL_BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
   var ALL_DRIVER_OPTIONS = ["self_drive", "with_driver"];
   var PAYMENT_DONE_COLUMNS = ["is_paid", "payment_done", "paid"];
+  var BOOKING_NOTE_PICKUP_PREFIX = "Pickup Location:";
+  var BOOKING_NOTE_MESSAGE_PREFIX = "User Message:";
 
   var COUPON_RULES = {
     SAVE10: { type: "percent", value: 0.1, label: "10% off applied" },
@@ -129,7 +131,7 @@
     if (normalized === "confirmed") return "Confirmed";
     if (normalized === "cancelled") return "Cancelled";
     if (normalized === "completed") return "Completed";
-    return "Confirmed";
+    return "Pending";
   }
 
   function sanitizeStatus(value) {
@@ -138,7 +140,64 @@
       return normalized;
     }
 
-    return "confirmed";
+    return "pending";
+  }
+
+  function parseBookingNotes(value) {
+    var raw = normalizeString(value, "");
+    if (!raw) {
+      return {
+        pickupLocation: "",
+        userMessage: "",
+      };
+    }
+
+    var lines = String(raw)
+      .split(/\r?\n/)
+      .map(function (line) {
+        return normalizeString(line, "");
+      })
+      .filter(Boolean);
+
+    var pickupLocation = "";
+    var userMessage = "";
+
+    lines.forEach(function (line) {
+      var lowerLine = line.toLowerCase();
+      if (!pickupLocation && lowerLine.indexOf(BOOKING_NOTE_PICKUP_PREFIX.toLowerCase()) === 0) {
+        pickupLocation = normalizeString(line.slice(BOOKING_NOTE_PICKUP_PREFIX.length), "");
+        return;
+      }
+
+      if (!userMessage && lowerLine.indexOf(BOOKING_NOTE_MESSAGE_PREFIX.toLowerCase()) === 0) {
+        userMessage = normalizeString(line.slice(BOOKING_NOTE_MESSAGE_PREFIX.length), "");
+      }
+    });
+
+    if (!pickupLocation && !userMessage) {
+      pickupLocation = raw;
+    }
+
+    return {
+      pickupLocation: pickupLocation,
+      userMessage: userMessage,
+    };
+  }
+
+  function composeBookingNotes(pickupLocation, userMessage) {
+    var safePickupLocation = normalizeString(pickupLocation, "");
+    var safeUserMessage = normalizeString(userMessage, "");
+    var lines = [];
+
+    if (safePickupLocation) {
+      lines.push(BOOKING_NOTE_PICKUP_PREFIX + " " + safePickupLocation);
+    }
+
+    if (safeUserMessage) {
+      lines.push(BOOKING_NOTE_MESSAGE_PREFIX + " " + safeUserMessage);
+    }
+
+    return lines.join("\n");
   }
 
   function bookingDriverOptionLabel(value) {
@@ -383,8 +442,9 @@
     var endDate = normalizeDate(payload.endDate);
     var pickupTime = normalizeTime(payload.pickupTime);
     var driverOption = sanitizeDriverOption(payload.driverOption || "self_drive");
-    var status = sanitizeStatus(payload.status || "confirmed");
+    var status = sanitizeStatus(payload.status || "pending");
     var notes = normalizeString(payload.notes, "");
+    var userMessage = normalizeString(payload.userMessage, "");
 
     if (!vehicleId) {
       errors.vehicleId = "Vehicle selection is required.";
@@ -452,6 +512,7 @@
         driverOption: driverOption,
         status: status,
         notes: notes,
+        userMessage: userMessage,
         couponCode: quote.couponCode,
         quote: quote,
       },
@@ -554,9 +615,10 @@
       .replace(/\s+/g, " ")
       .trim();
 
-    var status = sanitizeStatus(pickFirst(row, ["status"], "confirmed"));
+    var status = sanitizeStatus(pickFirst(row, ["status"], "pending"));
     var driverOption = sanitizeDriverOption(pickFirst(row, ["driver_option", "driverOption"], "self_drive"));
     var type = vehicle ? normalizeString(vehicle.category || vehicle.type, "Vehicle") : "Vehicle";
+    var parsedNotes = parseBookingNotes(pickFirst(row, ["notes"], ""));
     var paidFlag = toBoolean(
       pickFirst(row, ["is_paid", "payment_done", "paid"], null),
       toLower(pickFirst(row, ["payment_status"], "")) === "paid"
@@ -570,7 +632,8 @@
       customerName: normalizeString(row.customer_name, ""),
       customerEmail: normalizeEmail(row.customer_email),
       customerPhone: normalizeString(row.customer_phone, ""),
-      pickupLocation: normalizeString(row.notes, ""),
+      pickupLocation: parsedNotes.pickupLocation,
+      userMessage: parsedNotes.userMessage,
       startDate: normalizeDate(row.start_date),
       endDate: normalizeDate(row.end_date),
       pickupTime: normalizeTime(row.pickup_time),
@@ -609,6 +672,7 @@
     var normalizedStatus = legacyStatus === "active" ? "confirmed" : sanitizeStatus(legacyStatus);
     var driverOption = normalizeString(pickFirst(row, ["driver_name"], ""), "") ? "with_driver" : "self_drive";
     var type = vehicle ? normalizeString(vehicle.category || vehicle.type, "Vehicle") : "Vehicle";
+    var parsedNotes = parseBookingNotes(pickFirst(row, ["pickup_location", "notes"], ""));
 
     return {
       id: normalizeString(row.id, ""),
@@ -618,7 +682,8 @@
       customerName: "Customer",
       customerEmail: "",
       customerPhone: "",
-      pickupLocation: normalizeString(pickFirst(row, ["pickup_location", "notes"], ""), ""),
+      pickupLocation: parsedNotes.pickupLocation,
+      userMessage: parsedNotes.userMessage,
       startDate: normalizeDate(pickFirst(row, ["pickup_date", "start_date"], "")),
       endDate: normalizeDate(pickFirst(row, ["dropoff_date", "end_date"], "")),
       pickupTime: normalizeTime(pickFirst(row, ["pickup_time"], "10:00")),
@@ -847,7 +912,7 @@
       discount_amount: normalized.quote.discountAmount,
       total_amount: normalized.quote.totalAmount,
       coupon_code: normalized.couponCode || null,
-      notes: normalized.notes,
+      notes: composeBookingNotes(normalized.notes, normalized.userMessage),
     };
 
     var result = await client
@@ -925,14 +990,14 @@
       throw validationError({ bookingId: "Booking id is required." });
     }
 
-    var nextStatus = sanitizeStatus(payload.status || "confirmed");
+    var nextStatus = sanitizeStatus(payload.status || "pending");
     var updatePayload = {
       start_date: normalizeDate(payload.startDate),
       end_date: normalizeDate(payload.endDate),
       pickup_time: normalizeTime(payload.pickupTime),
       driver_option: sanitizeDriverOption(payload.driverOption || "self_drive"),
       status: nextStatus,
-      notes: normalizeString(payload.pickupLocation || payload.notes, ""),
+      notes: composeBookingNotes(payload.pickupLocation || payload.notes, payload.userMessage),
     };
 
     var paymentDone = sanitizePaymentDone(payload.paymentDone);
@@ -1009,6 +1074,59 @@
     return { id: bookingId };
   }
 
+  async function requestBookingCancellation(input) {
+    var payload = input || {};
+    var bookingId = normalizeString(payload.bookingId || payload.id, "");
+    var reason = normalizeString(payload.reason, "");
+
+    if (!bookingId) {
+      throw validationError({ bookingId: "Booking id is required." });
+    }
+
+    if (!reason) {
+      throw validationError({ reason: "Cancellation reason is required." });
+    }
+
+    var client = await getClient();
+    var tableName = await resolveBookingTable(client);
+    if (!tableName) {
+      throw new Error("Booking table is not available in Supabase.");
+    }
+
+    var currentRowResult = await client
+      .from(tableName)
+      .select("id,notes")
+      .eq("id", bookingId)
+      .limit(1)
+      .single();
+
+    if (currentRowResult.error) {
+      throw new Error(errorMessage(currentRowResult.error));
+    }
+
+    var currentNotes = parseBookingNotes(pickFirst(currentRowResult.data, ["notes"], ""));
+    var updatePayload = {
+      notes: composeBookingNotes(currentNotes.pickupLocation, "Cancel request: " + reason),
+    };
+
+    var updateResult = await client
+      .from(tableName)
+      .update(updatePayload)
+      .eq("id", bookingId)
+      .select("*")
+      .limit(1)
+      .single();
+
+    if (updateResult.error) {
+      throw new Error(errorMessage(updateResult.error));
+    }
+
+    broadcastBookingChanged("cancel-request");
+
+    var vehiclesById = await buildVehicleMap();
+    return mapBookingRow(updateResult.data || {}, vehiclesById);
+  }
+
   function subscribeToBookingChanges(callback) {
     if (typeof callback !== "function") {
       return function () {};
@@ -1051,6 +1169,7 @@
     updateBookingStatus: updateBookingStatus,
     updateBookingByAdmin: updateBookingByAdmin,
     deleteBookingByAdmin: deleteBookingByAdmin,
+    requestBookingCancellation: requestBookingCancellation,
     subscribeToBookingChanges: subscribeToBookingChanges,
     touchBookingVersion: function () {
       return broadcastBookingChanged("manual");

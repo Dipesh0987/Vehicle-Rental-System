@@ -121,6 +121,15 @@
     return new URL("supabase.config.local.js", base).toString();
   }
 
+  function getLegacyLocalSupabaseConfigUrl() {
+    var base = getRuntimeBaseUrl();
+    if (!base) {
+      return "assets/js/supabase.configlocal.js";
+    }
+
+    return new URL("supabase.configlocal.js", base).toString();
+  }
+
   function loadLocalConfigIfAvailable() {
     return new Promise(function (resolve) {
       if (window.SUPABASE_LOCAL_CONFIG || hasConfig()) {
@@ -147,7 +156,17 @@
         resolve();
       }, { once: true });
       script.addEventListener("error", function () {
-        resolve();
+        var legacyScript = document.createElement("script");
+        legacyScript.src = getLegacyLocalSupabaseConfigUrl();
+        legacyScript.async = true;
+        legacyScript.dataset.supabaseConfigRuntime = "local-legacy";
+        legacyScript.addEventListener("load", function () {
+          resolve();
+        }, { once: true });
+        legacyScript.addEventListener("error", function () {
+          resolve();
+        }, { once: true });
+        document.head.appendChild(legacyScript);
       }, { once: true });
 
       document.head.appendChild(script);
@@ -225,7 +244,7 @@
 
       var config = resolveConfig();
       if (!isUsableConfigValue(config.url) || !isUsableConfigValue(config.anonKey)) {
-        throw new Error("Missing Supabase URL/anon key. Set frontend/assets/js/supabase.config.local.js with valid values.");
+        throw new Error("Missing Supabase URL/anon key. Configure frontend/assets/js/supabase.config.js for shared credentials, or set frontend/assets/js/supabase.config.local.js for local override.");
       }
 
       await loadSupabaseRuntime();

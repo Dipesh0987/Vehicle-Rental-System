@@ -98,6 +98,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
 
     <section class="${classMap.panel} p-4 sm:p-5 relative">
       <h3 class="mb-3 text-base font-extrabold">Reservation Table</h3>
+      <div id="bookingUserMessageTop" class="mb-3 hidden rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800"></div>
 
       <div id="bookingColumnPanel" class="hidden absolute right-4 top-4 z-10 w-[250px] rounded-xl border border-slate-200 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-[#11181d]"></div>
 
@@ -140,6 +141,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   const clearFiltersBtn = host.querySelector('#clearBookingFiltersBtn');
   const columnPanel = host.querySelector('#bookingColumnPanel');
   const pagerHost = host.querySelector('#bookingPager');
+  const userMessageTop = host.querySelector('#bookingUserMessageTop');
 
   function getFilteredSortedRows() {
     return sortRows(applyAdminFilters(getSearchedRows(), readFilters()), 'createdAt').slice().reverse();
@@ -209,7 +211,26 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
 
     renderPager(sorted);
     applyColumnVisibility(host, visibleColumns);
+    renderTopUserMessage(sorted);
     toggleClearFiltersButton(clearFiltersBtn, hasActiveFilters(readFilters()));
+  }
+
+  function renderTopUserMessage(rows) {
+    if (!userMessageTop) {
+      return;
+    }
+
+    const source = Array.isArray(rows) ? rows : [];
+    const latestWithMessage = source.find((row) => String(row && row.userMessage ? row.userMessage : '').trim());
+
+    if (!latestWithMessage) {
+      userMessageTop.classList.add('hidden');
+      userMessageTop.textContent = '';
+      return;
+    }
+
+    userMessageTop.innerHTML = `<strong>User Message (${escapeHtml(latestWithMessage.id || latestWithMessage.bookingId || '-')})</strong>: ${escapeHtml(latestWithMessage.userMessage)}`;
+    userMessageTop.classList.remove('hidden');
   }
 
   async function refreshRowsFromDatabase(successMessage) {
@@ -342,6 +363,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
           status: row.status,
           paymentDone: nextValue === 'yes',
           pickupLocation: row.pickupLocation,
+          userMessage: row.userMessage,
         });
 
         paymentSelectElement.setAttribute('data-current-payment', nextValue);
@@ -409,6 +431,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
           status: document.getElementById('editBookingStatus')?.value,
           paymentDone: document.getElementById('editBookingPaymentDone')?.value === 'yes',
           pickupLocation: document.getElementById('editBookingPickupLocation')?.value,
+          userMessage: document.getElementById('editBookingUserMessage')?.value,
         };
 
         try {
@@ -482,6 +505,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   toggleClearFiltersButton(clearFiltersBtn, false);
   renderColumnPanel();
   applyColumnVisibility(host, visibleColumns);
+  renderTopUserMessage(initialSortedRows);
   renderPager(initialSortedRows);
 
   return host;
@@ -515,6 +539,7 @@ function renderBookingEditDrawer(row) {
           <option value="no" ${paymentDone === 'no' ? 'selected' : ''}>No</option>
         </select>
       </label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">User Message</span><textarea id="editBookingUserMessage" rows="3" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">${escapeHtml(row && row.userMessage ? row.userMessage : '')}</textarea></label>
       <label class="block space-y-1"><span class="text-xs font-semibold">Pickup Location</span><textarea id="editBookingPickupLocation" rows="3" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">${escapeHtml(row && row.pickupLocation ? row.pickupLocation : '')}</textarea></label>
       <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
     </form>
@@ -632,6 +657,7 @@ function renderBookingRow(row) {
   return `<tr class="border-b border-slate-100 dark:border-white/5" data-booking-id="${escapeHtml(bookingId)}" data-booking-code="${escapeHtml(bookingCode)}" data-current-status="${escapeHtml(currentStatus)}">
     <td data-col="booking" class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
     <td data-col="customer" class="py-3 pr-3">
+      ${row && row.userMessage ? `<p class="mb-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">User Message: ${escapeHtml(row.userMessage)}</p>` : ''}
       <p class="font-semibold">${escapeHtml(row.customer || '-')}</p>
       <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
       <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerPhone || '-')}</p>

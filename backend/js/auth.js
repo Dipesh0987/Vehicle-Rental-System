@@ -1226,6 +1226,7 @@
       createdAtRaw: String(booking.createdAt || booking.lastUpdated || ""),
       lastUpdated: formatBookingDateTime(booking.createdAt || booking.lastUpdated),
       customerUserId: String(booking.customerUserId || "").trim(),
+      userMessage: String(booking.userMessage || "").trim(),
     };
   }
 
@@ -1283,6 +1284,44 @@
     container.innerHTML = "<p class=\"vrs-bookings-message rounded-2xl px-4 py-3 text-[13px]\">" + escapeHtml(message || "No records available.") + "</p>";
   }
 
+  async function showCancelBookingRequestPopup(booking) {
+    var reason = String(window.prompt("Enter your cancellation reason for admin review:", "") || "").trim();
+
+    if (!reason) {
+      var infoMessage = [
+        "Booking cancel can be done only by the admin.",
+        "Leave a message with your reason for cancel, or contact support:",
+        "Phone: +977-9862147350",
+        "Email: support@rentavehiclenepal.com"
+      ].join("\n");
+      window.alert(infoMessage);
+      return;
+    }
+
+    var saveMessage = "";
+    try {
+      if (window.VehicleBookingService && typeof window.VehicleBookingService.requestBookingCancellation === "function") {
+        await window.VehicleBookingService.requestBookingCancellation({
+          bookingId: booking && booking.id,
+          reason: reason,
+        });
+
+        saveMessage = "\n\nYour cancellation reason has been sent to admin.";
+      }
+    } catch (_error) {
+      saveMessage = "\n\nWe could not save your message right now. Please contact support directly.";
+    }
+
+    var message = [
+      "Booking cancel can be done only by the admin.",
+      "Leave a message with your reason for cancel, or contact support:",
+      "Phone: +977-9862147350",
+      "Email: support@rentavehiclenepal.com"
+    ].join("\n") + saveMessage;
+
+    window.alert(message);
+  }
+
   function renderBookingDetail(detail, booking) {
     if (!detail || !booking) {
       return;
@@ -1310,6 +1349,13 @@
 
     top.appendChild(titleWrap);
     top.appendChild(status);
+
+    if (booking.userMessage) {
+      var userMessageBanner = document.createElement("div");
+      userMessageBanner.className = "mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-800";
+      userMessageBanner.innerHTML = "<strong>User Message:</strong> " + escapeHtml(booking.userMessage);
+      detail.appendChild(userMessageBanner);
+    }
 
     var timeline = document.createElement("div");
     timeline.className = "vrs-bookings-detail-grid mt-4 grid grid-cols-1 gap-2 rounded-2xl p-3 text-[12px] sm:grid-cols-2";
@@ -1339,10 +1385,24 @@
       "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2\"><span class=\"vrs-bookings-field-label block\">Contact Phone</span>" + escapeHtml(booking.customerPhone) + "</p>" +
       "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2 sm:col-span-2\"><span class=\"vrs-bookings-field-label block\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
 
+    var actions = document.createElement("div");
+    actions.className = "mt-4 flex items-center justify-end";
+
+    var cancelBookingButton = document.createElement("button");
+    cancelBookingButton.type = "button";
+    cancelBookingButton.className = "rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-[12px] font-semibold text-rose-700 transition hover:-translate-y-[1px] hover:bg-rose-100";
+    cancelBookingButton.textContent = "Cancel Booking";
+    cancelBookingButton.addEventListener("click", function () {
+      void showCancelBookingRequestPopup(booking);
+    });
+
+    actions.appendChild(cancelBookingButton);
+
     detail.appendChild(top);
     detail.appendChild(timeline);
     detail.appendChild(money);
     detail.appendChild(extra);
+    detail.appendChild(actions);
   }
 
   async function renderBookingsWorkspace(modalRoot) {

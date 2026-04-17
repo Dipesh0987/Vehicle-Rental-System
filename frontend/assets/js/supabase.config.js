@@ -1,7 +1,8 @@
 if (!window.SUPABASE_CONFIG) {
   window.SUPABASE_CONFIG = {
-    url: "https://YOUR_PROJECT_ID.supabase.co",
-    anonKey: "YOUR_SUPABASE_ANON_KEY",
-    projectLabel: "dev",
+    url: "https://qvlixrxinjyhfasbjjtr.supabase.co",
+    anonKey: "sb_publishable_A1YrGw_RGw9XCtJNNOPnvQ_vDMhbPr1",
+    profileImageBucket: "profile-images",
+    projectLabel: "shared",
   };
 }

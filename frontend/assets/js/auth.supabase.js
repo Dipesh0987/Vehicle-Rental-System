@@ -221,7 +221,7 @@
       message.indexOf("missing supabase url") >= 0 ||
       message.indexOf("missing supabase_config") >= 0
     ) {
-      return "Cannot connect to Supabase. Check frontend/assets/js/supabase.config.local.js and verify url/anonKey are valid.";
+      return "Cannot connect to Supabase. Check network access and verify frontend/assets/js/supabase.config.js (shared) or frontend/assets/js/supabase.config.local.js (local override).";
     }
 
     if (message.indexOf("invalid login credentials") >= 0) {
@@ -480,13 +480,19 @@
   function normalizeProfilePayload(profileInput, session) {
     var input = profileInput;
     var fullName = "";
+    var email = "";
     var avatarUrl = "";
 
     if (typeof input === "string") {
       fullName = trim(input);
     } else if (input && typeof input === "object") {
       fullName = trim(input.fullName || input.full_name);
+      email = trim(input.email).toLowerCase();
       avatarUrl = trim(input.avatarUrl || input.avatar_url);
+    }
+
+    if (!email) {
+      email = trim(session && session.user && session.user.email).toLowerCase();
     }
 
     if (!fullName) {
@@ -500,6 +506,7 @@
 
     return {
       full_name: fullName || "User",
+      email: email,
       avatar_url: avatarUrl || null,
     };
   }
@@ -1051,7 +1058,7 @@
     var payload = {
       id: session.user.id,
       full_name: profile.full_name,
-      email: session.user.email,
+      email: profile.email,
       avatar_url: profile.avatar_url,
       updated_at: new Date().toISOString(),
     };
@@ -1129,6 +1136,15 @@
         ? (verificationInput.fullName || verificationInput.full_name)
         : ""
     );
+    var email = trim(
+      verificationInput && typeof verificationInput === "object"
+        ? verificationInput.email
+        : ""
+    ).toLowerCase();
+
+    if (!email) {
+      email = trim(session.user.email).toLowerCase();
+    }
 
     if (!fullName) {
       var metadata = (session.user && session.user.user_metadata) || {};
@@ -1136,12 +1152,12 @@
     }
 
     if (!fullName) {
-      fullName = getDisplayNameFromEmail(session.user.email);
+      fullName = getDisplayNameFromEmail(email || session.user.email);
     }
 
     var payload = {
       id: session.user.id,
-      email: session.user.email,
+      email: email,
       full_name: fullName || "User",
       phone_number: normalizedVerification.phone_number,
       gender: normalizedVerification.gender,

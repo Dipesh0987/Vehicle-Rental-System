@@ -879,7 +879,7 @@
     var travelerName = normalizeString(summary.customerName, "");
 
     if (message) {
-      message.textContent = "Reservation " + reservationId + " is confirmed for " + readableStart + " to " + readableEnd + ". " + (travelerName ? ("Thank you, " + travelerName + ". ") : "") + "We are preparing your vehicle now.";
+      message.textContent = "Reservation " + reservationId + " was submitted for " + readableStart + " to " + readableEnd + " and is currently pending admin confirmation. " + (travelerName ? ("Thank you, " + travelerName + ".") : "");
     }
 
     if (detailsLink && summary.vehicleId) {
@@ -987,8 +987,7 @@
 
         var values = state.pendingBookingValues;
         state.verificationStatus = await readVerificationStatus();
-        var isApprovedProfile = isVerificationApproved(state.verificationStatus);
-        var bookingStatus = isApprovedProfile ? "confirmed" : "pending";
+        var bookingStatus = "pending";
         var payload = {
           vehicleId: state.selectedVehicle.id,
           customerName: values.customerName,
@@ -1020,9 +1019,7 @@
             customerName: values.customerName,
           });
 
-          if (!isApprovedProfile) {
-            window.alert("Your booking has been received, but approval is pending. Please verify your account to get booking approval.");
-          }
+          window.alert("Your booking has been submitted in Pending status. It will be marked Confirmed only after admin approval.");
 
           resetBookingFormForNext(state);
           setBannerMessage("bookingFormError", "", "error");
@@ -1084,8 +1081,7 @@
 
       var values = readFormValues();
       state.verificationStatus = await readVerificationStatus();
-      var isApprovedProfile = isVerificationApproved(state.verificationStatus);
-      var bookingStatus = isApprovedProfile ? "confirmed" : "pending";
+      var bookingStatus = "pending";
       var validation = window.VehicleBookingService.validateBookingInput({
         vehicleId: state.selectedVehicle.id,
         customerName: values.customerName,
@@ -1118,9 +1114,7 @@
         confirmSummary.innerHTML = buildConfirmSummaryHtml(state, values);
       }
 
-      if (!isApprovedProfile) {
-        setBannerMessage("bookingFormError", "Booking will be created as Pending until your account verification is approved.", "error");
-      }
+      setBannerMessage("bookingFormError", "Booking will be created as Pending. It becomes Confirmed only after admin approval.", "error");
 
       setModalState("bookingConfirmModal", "bookingConfirmCard", true);
     });

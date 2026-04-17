@@ -16,12 +16,12 @@
 
   async function initDatabaseConnection() {
     if (!window.SupabaseClient || typeof window.SupabaseClient.init !== "function") {
-      setStatus("error", "Supabase bootstrap is missing.");
+      setStatus("warning", "Supabase runtime not loaded. Running in local mode.");
       return;
     }
 
     if (!window.SupabaseClient.isConfigured()) {
-      setStatus("error", "Supabase config is missing.");
+      setStatus("warning", "Supabase config not found. Running in local mode.");
       return;
     }
 

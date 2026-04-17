@@ -920,6 +920,13 @@
           field.value = trim(field.value).toUpperCase();
         }
 
+        if (fieldName === "fullName" || fieldName === "email") {
+          var identityImageUrl = selectedProfileImageFile && temporaryProfilePreviewUrl
+            ? temporaryProfilePreviewUrl
+            : persistedProfileImageUrl;
+          renderProfileIdentity(identityImageUrl, Boolean(selectedProfileImageFile && temporaryProfilePreviewUrl));
+        }
+
         var payload = readPayloadFromForm();
         var error = validateField(fieldName, payload);
 

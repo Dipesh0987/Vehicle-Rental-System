@@ -278,6 +278,7 @@ function mapBookingToAdminRow(booking) {
     vehicle: formatLabel(booking && booking.vehicleName ? booking.vehicleName : 'Vehicle'),
     vehicleId: String(booking && booking.vehicleId ? booking.vehicleId : ''),
     pickupLocation: String(booking && booking.pickupLocation ? booking.pickupLocation : ''),
+    userMessage: String(booking && booking.userMessage ? booking.userMessage : ''),
     driverOption: String(booking && booking.driverOptionLabel ? booking.driverOptionLabel : booking && booking.driverOption ? booking.driverOption : 'Self Drive'),
     start: String(booking && booking.startDate ? booking.startDate : ''),
     end: String(booking && booking.endDate ? booking.endDate : ''),
