@@ -186,6 +186,12 @@ function isMissingVerificationSchemaError(error) {
 
 function isMissingAdminListRpcError(error) {
   const message = getErrorMessage(error);
+  const code = String(error && error.code ? error.code : '').toUpperCase();
+  const status = Number(error && error.status ? error.status : 0);
+
+  if (code === 'PGRST202' || status === 404) {
+    return true;
+  }
 
   return (
     message.includes('admin_list_user_profiles') &&
@@ -248,20 +254,16 @@ export function createCustomerVerificationService() {
   async function listCustomers() {
     const client = await getClient();
 
-    let response = await client.rpc('admin_list_user_profiles');
+    let response = await client
+      .from('user_profiles')
+      .select(PROFILE_VERIFICATION_SELECT)
+      .order('updated_at', { ascending: false });
 
-    if (response.error && isMissingAdminListRpcError(response.error)) {
+    if (response.error && isMissingVerificationSchemaError(response.error)) {
       response = await client
         .from('user_profiles')
-        .select(PROFILE_VERIFICATION_SELECT)
+        .select(PROFILE_BASE_SELECT)
         .order('updated_at', { ascending: false });
-
-      if (response.error && isMissingVerificationSchemaError(response.error)) {
-        response = await client
-          .from('user_profiles')
-          .select(PROFILE_BASE_SELECT)
-          .order('updated_at', { ascending: false });
-      }
     }
 
     if (response.error) {

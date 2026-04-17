@@ -82,8 +82,21 @@
     var scripts = document.querySelectorAll("script[src]");
     for (var i = scripts.length - 1; i >= 0; i -= 1) {
       var src = String(scripts[i].src || "");
-      if (src.indexOf("/assets/js/supabase.client.js") >= 0) {
+      if (/supabase\.client\.js(?:[?#].*)?$/i.test(src)) {
         return new URL(".", src).toString();
+      }
+    }
+
+    var pathname = String(window.location && window.location.pathname ? window.location.pathname : "").toLowerCase();
+    var baseHref = String(window.location && window.location.href ? window.location.href : "");
+
+    if (baseHref) {
+      if (pathname.indexOf("/frontend/admin/") >= 0) {
+        return new URL("../assets/js/", baseHref).toString();
+      }
+
+      if (pathname.indexOf("/frontend/") >= 0) {
+        return new URL("assets/js/", baseHref).toString();
       }
     }
 
@@ -110,7 +123,7 @@
 
   function loadLocalConfigIfAvailable() {
     return new Promise(function (resolve) {
-      if (window.SUPABASE_LOCAL_CONFIG) {
+      if (window.SUPABASE_LOCAL_CONFIG || hasConfig()) {
         resolve();
         return;
       }
@@ -177,23 +190,25 @@
   }
 
   async function loadSupabaseRuntime() {
+    await loadScript(
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
+      "cdn"
+    );
+
+    if (window.supabase && typeof window.supabase.createClient === "function") {
+      return;
+    }
+
     try {
       await loadScript(getLocalSupabaseUrl(), "local");
       if (window.supabase && typeof window.supabase.createClient === "function") {
         return;
       }
     } catch (localError) {
-      console.warn("Local Supabase runtime unavailable, trying CDN fallback.", localError.message);
+      console.warn("CDN Supabase runtime unavailable, local fallback also failed.", localError.message);
     }
 
-    await loadScript(
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
-      "cdn"
-    );
-
-    if (!window.supabase || typeof window.supabase.createClient !== "function") {
-      throw new Error("Supabase runtime failed to initialize.");
-    }
+    throw new Error("Supabase runtime failed to initialize.");
   }
 
   async function initClient() {

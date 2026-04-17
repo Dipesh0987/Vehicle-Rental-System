@@ -7,6 +7,7 @@
   var ACTIVE_BOOKING_STATUSES = ["pending", "confirmed"];
   var ALL_BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
   var ALL_DRIVER_OPTIONS = ["self_drive", "with_driver"];
+  var PAYMENT_DONE_COLUMNS = ["is_paid", "payment_done", "paid"];
 
   var COUPON_RULES = {
     SAVE10: { type: "percent", value: 0.1, label: "10% off applied" },
@@ -146,6 +147,27 @@
     return "Self Drive";
   }
 
+  function toBoolean(value, fallback) {
+    if (typeof value === "boolean") {
+      return value;
+    }
+
+    var text = String(value === undefined || value === null ? "" : value).trim().toLowerCase();
+    if (!text) {
+      return Boolean(fallback);
+    }
+
+    if (text === "true" || text === "1" || text === "yes" || text === "paid") {
+      return true;
+    }
+
+    if (text === "false" || text === "0" || text === "no" || text === "unpaid") {
+      return false;
+    }
+
+    return Boolean(fallback);
+  }
+
   function sanitizeDriverOption(value) {
     var normalized = toLower(value);
     if (ALL_DRIVER_OPTIONS.indexOf(normalized) >= 0) {
@@ -153,6 +175,10 @@
     }
 
     return "self_drive";
+  }
+
+  function sanitizePaymentDone(value) {
+    return toBoolean(value, false);
   }
 
   function normalizeEmail(value) {
@@ -523,6 +549,10 @@
     var status = sanitizeStatus(pickFirst(row, ["status"], "confirmed"));
     var driverOption = sanitizeDriverOption(pickFirst(row, ["driver_option", "driverOption"], "self_drive"));
     var type = vehicle ? normalizeString(vehicle.category || vehicle.type, "Vehicle") : "Vehicle";
+    var paidFlag = toBoolean(
+      pickFirst(row, ["is_paid", "payment_done", "paid"], null),
+      toLower(pickFirst(row, ["payment_status"], "")) === "paid"
+    );
 
     return {
       id: normalizeString(row.id, ""),
@@ -540,6 +570,8 @@
       driverOptionLabel: bookingDriverOptionLabel(driverOption),
       status: status,
       statusLabel: bookingStatusLabel(status),
+      paymentDone: paidFlag,
+      paymentLabel: paidFlag ? "Yes" : "No",
       type: type,
       vehicleName: cleanedVehicleName,
       quote: {
@@ -588,9 +620,15 @@
       return [];
     }
 
+    var selectColumns = [
+      "id", "booking_code", "customer_user_id", "vehicle_id", "customer_name", "customer_email", "customer_phone", "notes",
+      "start_date", "end_date", "pickup_time", "driver_option", "status", "currency", "base_amount", "service_fee", "tax_amount",
+      "discount_amount", "total_amount", "created_at", "updated_at", "is_paid", "payment_done", "paid", "payment_status"
+    ];
+
     var query = client
       .from(tableName)
-      .select("id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select(selectColumns.join(","))
       .order("created_at", { ascending: false });
 
     if (opts.vehicleId) {
@@ -610,6 +648,20 @@
     }
 
     var result = await query;
+    if (result.error) {
+      var missingColumn = extractMissingColumn(result.error);
+      if (missingColumn && selectColumns.indexOf(missingColumn) >= 0) {
+        var filteredColumns = selectColumns.filter(function (column) {
+          return column !== missingColumn;
+        });
+
+        result = await client
+          .from(tableName)
+          .select(filteredColumns.join(","))
+          .order("created_at", { ascending: false });
+      }
+    }
+
     if (result.error) {
       throw new Error(errorMessage(result.error));
     }
@@ -787,6 +839,98 @@
     return mapBookingRow(updatedRow, vehiclesById);
   }
 
+  async function updateBookingByAdmin(input) {
+    var payload = input || {};
+    var bookingId = normalizeString(payload.bookingId || payload.id, "");
+
+    if (!bookingId) {
+      throw validationError({ bookingId: "Booking id is required." });
+    }
+
+    var nextStatus = sanitizeStatus(payload.status || "confirmed");
+    var updatePayload = {
+      start_date: normalizeDate(payload.startDate),
+      end_date: normalizeDate(payload.endDate),
+      pickup_time: normalizeTime(payload.pickupTime),
+      driver_option: sanitizeDriverOption(payload.driverOption || "self_drive"),
+      status: nextStatus,
+      notes: normalizeString(payload.pickupLocation || payload.notes, ""),
+    };
+
+    var paymentDone = sanitizePaymentDone(payload.paymentDone);
+    updatePayload.is_paid = paymentDone;
+    updatePayload.payment_done = paymentDone;
+    updatePayload.paid = paymentDone;
+    updatePayload.payment_status = paymentDone ? "paid" : "unpaid";
+
+    if (!updatePayload.start_date || !updatePayload.end_date || updatePayload.end_date < updatePayload.start_date) {
+      throw validationError({ date: "Start and end date are invalid." });
+    }
+
+    var client = await getClient();
+    var tableName = await resolveBookingTable(client);
+    if (!tableName) {
+      throw new Error("Booking table is not available in Supabase.");
+    }
+
+    var attempts = [Object.assign({}, updatePayload)];
+    while (attempts.length) {
+      var currentPayload = attempts.shift();
+      var result = await client
+        .from(tableName)
+        .update(currentPayload)
+        .eq("id", bookingId)
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (!result.error) {
+        broadcastBookingChanged("update");
+        var vehiclesById = await buildVehicleMap();
+        return mapBookingRow(result.data || {}, vehiclesById);
+      }
+
+      var missingColumn = extractMissingColumn(result.error);
+      if (missingColumn && Object.prototype.hasOwnProperty.call(currentPayload, missingColumn)) {
+        var nextPayload = Object.assign({}, currentPayload);
+        delete nextPayload[missingColumn];
+        attempts.push(nextPayload);
+        continue;
+      }
+
+      throw new Error(errorMessage(result.error));
+    }
+
+    throw new Error("Booking update failed.");
+  }
+
+  async function deleteBookingByAdmin(input) {
+    var payload = input || {};
+    var bookingId = normalizeString(payload.bookingId || payload.id, "");
+
+    if (!bookingId) {
+      throw validationError({ bookingId: "Booking id is required." });
+    }
+
+    var client = await getClient();
+    var tableName = await resolveBookingTable(client);
+    if (!tableName) {
+      throw new Error("Booking table is not available in Supabase.");
+    }
+
+    var result = await client
+      .from(tableName)
+      .delete()
+      .eq("id", bookingId);
+
+    if (result.error) {
+      throw new Error(errorMessage(result.error));
+    }
+
+    broadcastBookingChanged("delete");
+    return { id: bookingId };
+  }
+
   function subscribeToBookingChanges(callback) {
     if (typeof callback !== "function") {
       return function () {};
@@ -827,6 +971,8 @@
     checkAvailability: checkAvailability,
     createBooking: createBooking,
     updateBookingStatus: updateBookingStatus,
+    updateBookingByAdmin: updateBookingByAdmin,
+    deleteBookingByAdmin: deleteBookingByAdmin,
     subscribeToBookingChanges: subscribeToBookingChanges,
     touchBookingVersion: function () {
       return broadcastBookingChanged("manual");

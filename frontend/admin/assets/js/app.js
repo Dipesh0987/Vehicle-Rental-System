@@ -266,6 +266,8 @@ async function hydrateCustomersFromDatabase({ silent = false } = {}) {
 }
 
 function mapBookingToAdminRow(booking) {
+  const paymentDone = Boolean(booking && (booking.paymentDone === true || booking.payment_done === true));
+
   return {
     id: String(booking && booking.bookingCode ? booking.bookingCode : booking && booking.id ? booking.id : ''),
     bookingId: String(booking && booking.id ? booking.id : ''),
@@ -282,6 +284,8 @@ function mapBookingToAdminRow(booking) {
     pickupTime: String(booking && booking.pickupTime ? booking.pickupTime : ''),
     type: formatLabel(booking && booking.type ? booking.type : 'Vehicle'),
     status: formatLabel(booking && booking.statusLabel ? booking.statusLabel : booking && booking.status ? booking.status : 'Confirmed'),
+    paymentDone,
+    paymentLabel: paymentDone ? 'Yes' : 'No',
     total: Number.isFinite(Number(booking && booking.quote && booking.quote.totalAmount))
       ? Number(booking.quote.totalAmount)
       : 0,
