@@ -1,10 +1,12 @@
 import { classMap } from '../config.js';
-import { filterRows } from '../table-utils.js';
+import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
 const customerUiState = {
   selectedCustomerId: '',
   statusFilter: 'all',
+  page: 1,
+  pageSize: 9,
 };
 
 export function renderCustomersModule({ data, query, notify, customerVerificationService, reloadCustomersData, rerender }) {
@@ -13,6 +15,8 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
   const searchableRows = filterRows(sourceRows, query, ['id', 'name', 'email', 'phoneNumber', 'status', 'documentNumber', 'city', 'country']);
   const rows = sortCustomersForDisplay(searchableRows);
   const filteredRows = applyStatusFilter(rows, customerUiState.statusFilter);
+  const pagedFilteredRows = paginateRows(filteredRows, customerUiState.page, customerUiState.pageSize);
+  customerUiState.page = pagedFilteredRows.page;
 
   const statusSummary = summarizeVerificationStatuses(sourceRows);
   const reviewQueue = collectReviewQueue(sourceRows);
@@ -52,7 +56,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
 
     ${selectedCustomer
       ? renderCustomerDetailPage(selectedCustomer, serviceReady)
-      : renderCustomerFocusGrid(filteredRows, customerUiState.statusFilter, reviewQueue)}
+      : renderCustomerFocusGrid(filteredRows, pagedFilteredRows.rows, customerUiState.statusFilter, reviewQueue, pagedFilteredRows)}
 
     ${selectedCustomer
       ? ''
@@ -92,9 +96,21 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
     button.addEventListener('click', () => {
       const nextFilter = String(button.getAttribute('data-customer-status-filter') || 'all').trim().toLowerCase();
       customerUiState.statusFilter = nextFilter || 'all';
+      customerUiState.page = 1;
       rerender?.();
     });
   });
+
+  const customerPagerHost = host.querySelector('#customerPager');
+  if (!selectedCustomer && customerPagerHost && filteredRows.length) {
+    customerPagerHost.appendChild(renderPagination(pagedFilteredRows, (nextPage) => {
+      customerUiState.page = nextPage;
+      rerender?.();
+      window.requestAnimationFrame(() => {
+        host.querySelector('#customerCardGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }));
+  }
 
   host.querySelector('[data-back-to-customer-list]')?.addEventListener('click', () => {
     customerUiState.selectedCustomerId = '';
@@ -228,16 +244,16 @@ function renderGuideTile(title, tone, description) {
   </article>`;
 }
 
-function renderCustomerFocusGrid(rows, activeStatusFilter, reviewQueue) {
-  const summary = summarizeVerificationStatuses(rows);
+function renderCustomerFocusGrid(allRows, pageRows, activeStatusFilter, reviewQueue, pagination) {
+  const summary = summarizeVerificationStatuses(allRows);
   const chips = [
-    { key: 'all', label: 'All', count: rows.length },
+    { key: 'all', label: 'All', count: allRows.length },
     { key: 'pending', label: 'Pending', count: summary.pending },
     { key: 'approved', label: 'Approved', count: summary.approved },
     { key: 'rejected', label: 'Rejected', count: summary.rejected },
   ];
 
-  if (!rows.length) {
+  if (!allRows.length) {
     return `<section class="${classMap.panel} p-4 sm:p-5">
       ${renderEmptyState({ title: 'No customers found', message: 'No customer profile matched the current search.', actionLabel: 'Clear Search', actionId: 'clearCustomerSearch' })}
     </section>`;
@@ -249,7 +265,7 @@ function renderCustomerFocusGrid(rows, activeStatusFilter, reviewQueue) {
         <h3 class="text-base font-extrabold">Registered Customers</h3>
         <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Focused view with quick hover insights and direct detail-page navigation.</p>
       </div>
-      <p class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-white/10 dark:text-slate-300">${rows.length} visible</p>
+      <p class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-white/10 dark:text-slate-300">${allRows.length} visible</p>
     </div>
 
     <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -260,9 +276,11 @@ function renderCustomerFocusGrid(rows, activeStatusFilter, reviewQueue) {
 
     ${renderReviewQueueBanner(reviewQueue)}
 
-    <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-      ${rows.map((row, index) => renderCustomerFocusCard(row, index)).join('')}
+    <div id="customerCardGrid" class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      ${pageRows.map((row, index) => renderCustomerFocusCard(row, index)).join('')}
     </div>
+    <div id="customerPager" class="mt-3 flex items-center justify-end"></div>
+    <p class="mt-2 text-right text-xs font-semibold uppercase tracking-[0.11em] text-slate-500 dark:text-slate-400">Page ${pagination.page} / ${pagination.pages}</p>
   </section>`;
 }
 

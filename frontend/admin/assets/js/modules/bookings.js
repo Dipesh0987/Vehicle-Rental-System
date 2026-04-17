@@ -1,10 +1,14 @@
 import { classMap } from '../config.js';
-import { filterRows, sortRows } from '../table-utils.js';
+import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { openDrawer, openModal, renderEmptyState } from '../ui.js';
 
 const BOOKING_STATUS_OPTIONS = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 const PAYMENT_FILTER_OPTIONS = ['', 'Yes', 'No'];
 const COLUMN_STORAGE_KEY = 'vrs-admin-booking-visible-columns';
+const bookingUiState = {
+  page: 1,
+  pageSize: 8,
+};
 const BOOKING_TABLE_COLUMNS = [
   { key: 'booking', label: 'Booking' },
   { key: 'customer', label: 'Customer' },
@@ -44,6 +48,8 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   });
 
   const initialSortedRows = sortRows(initialRows, 'createdAt').slice().reverse();
+  const initialPaged = paginateRows(initialSortedRows, bookingUiState.page, bookingUiState.pageSize);
+  bookingUiState.page = initialPaged.page;
   const totalRevenue = initialSortedRows.reduce((sum, row) => sum + Number(row && row.total ? row.total : 0), 0);
   const activeCount = initialSortedRows.filter((row) => String(row && row.status ? row.status : '').toLowerCase() === 'confirmed').length;
 
@@ -103,10 +109,11 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
             </tr>
           </thead>
           <tbody id="bookingRowsBody">
-            ${renderTableBody(initialSortedRows, visibleColumns)}
+            ${renderTableBody(initialPaged.rows, visibleColumns, initialSortedRows.length)}
           </tbody>
         </table>
       </div>
+      <div id="bookingPager" class="mt-3"></div>
     </section>
 
     <section class="${classMap.panel} p-4 sm:p-5">
@@ -132,6 +139,27 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   const paymentSelect = host.querySelector('#bookingPayment');
   const clearFiltersBtn = host.querySelector('#clearBookingFiltersBtn');
   const columnPanel = host.querySelector('#bookingColumnPanel');
+  const pagerHost = host.querySelector('#bookingPager');
+
+  function getFilteredSortedRows() {
+    return sortRows(applyAdminFilters(getSearchedRows(), readFilters()), 'createdAt').slice().reverse();
+  }
+
+  function renderPager(totalRows) {
+    if (!pagerHost) {
+      return;
+    }
+
+    pagerHost.replaceChildren();
+    const paged = paginateRows(totalRows || [], bookingUiState.page, bookingUiState.pageSize);
+    bookingUiState.page = paged.page;
+    pagerHost.appendChild(renderPagination(paged, (nextPage) => {
+      bookingUiState.page = nextPage;
+      applyFiltersToTable();
+      const tablePanel = host.querySelector('#bookingRowsBody');
+      tablePanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
 
   function renderColumnPanel() {
     if (!columnPanel) {
@@ -171,12 +199,15 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   }
 
   function applyFiltersToTable() {
-    const rows = applyAdminFilters(getSearchedRows(), readFilters());
-    const sorted = sortRows(rows || [], 'createdAt').slice().reverse();
+    const sorted = getFilteredSortedRows();
+    const paged = paginateRows(sorted, bookingUiState.page, bookingUiState.pageSize);
+    bookingUiState.page = paged.page;
+
     if (rowsBody) {
-      rowsBody.innerHTML = renderTableBody(sorted, visibleColumns);
+      rowsBody.innerHTML = renderTableBody(paged.rows, visibleColumns, sorted.length);
     }
 
+    renderPager(sorted);
     applyColumnVisibility(host, visibleColumns);
     toggleClearFiltersButton(clearFiltersBtn, hasActiveFilters(readFilters()));
   }
@@ -216,9 +247,12 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       saveVisibleColumns(visibleColumns);
       applyColumnVisibility(host, visibleColumns);
       if (rowsBody) {
-        const rows = sortRows(applyAdminFilters(getSearchedRows(), readFilters()), 'createdAt').slice().reverse();
-        rowsBody.innerHTML = renderTableBody(rows, visibleColumns);
+        const rows = getFilteredSortedRows();
+        const paged = paginateRows(rows, bookingUiState.page, bookingUiState.pageSize);
+        bookingUiState.page = paged.page;
+        rowsBody.innerHTML = renderTableBody(paged.rows, visibleColumns, rows.length);
       }
+      renderPager(getFilteredSortedRows());
       return;
     }
 
@@ -432,12 +466,23 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
     if (statusSelect) statusSelect.value = '';
     if (typeSelect) typeSelect.value = '';
     if (paymentSelect) paymentSelect.value = '';
+    bookingUiState.page = 1;
     applyFiltersToTable();
+  });
+
+  [dateInput, statusSelect, typeSelect, paymentSelect].forEach((control) => {
+    control?.addEventListener('input', () => {
+      bookingUiState.page = 1;
+    });
+    control?.addEventListener('change', () => {
+      bookingUiState.page = 1;
+    });
   });
 
   toggleClearFiltersButton(clearFiltersBtn, false);
   renderColumnPanel();
   applyColumnVisibility(host, visibleColumns);
+  renderPager(initialSortedRows);
 
   return host;
 }
@@ -553,15 +598,15 @@ function applyAdminFilters(rows, filters) {
   });
 }
 
-function renderTableBody(rows, visibleColumns) {
-  const sorted = sortRows(rows || [], 'createdAt').slice().reverse();
+function renderTableBody(rows, visibleColumns, totalCount = 0) {
+  const source = Array.isArray(rows) ? rows : [];
   const visibleCount = Math.max(1, BOOKING_TABLE_COLUMNS.filter((column) => visibleColumns.has(column.key)).length);
 
-  if (!sorted.length) {
+  if (!totalCount) {
     return `<tr><td colspan="${visibleCount}" class="py-6">${renderEmptyState({ title: 'No reservations found', message: 'Adjust filters or booking data to show reservations.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`;
   }
 
-  return sorted.map((row) => renderBookingRow(row)).join('');
+  return source.map((row) => renderBookingRow(row)).join('');
 }
 
 function normalizeBookingStatusLabel(status) {
