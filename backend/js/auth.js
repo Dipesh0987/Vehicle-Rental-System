@@ -1095,6 +1095,9 @@
 
   function bookingStatusMeta(statusValue) {
     var normalized = String(statusValue || "").toLowerCase();
+    if (normalized === "cancellation_review" || normalized === "cancel_review" || normalized === "cancel review" || normalized === "cancellation review") {
+      return { key: "cancellation_review", label: "Cancellation Review" };
+    }
     if (normalized === "pending") {
       return { key: "upcoming", label: "Pending" };
     }
@@ -1113,6 +1116,10 @@
 
   function bookingStatusPillClass(status) {
     var meta = bookingStatusMeta(status);
+    if (meta.key === "cancellation_review") {
+      return "vrs-booking-status vrs-booking-status--review rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
+    }
+
     if (meta.key === "completed") {
       return "vrs-booking-status vrs-booking-status--completed rounded-full px-2.5 py-0.5 text-[10px] font-semibold";
     }
@@ -1200,6 +1207,19 @@
     var reference = String(booking.bookingCode || booking.reference || bookingId || ("BK-" + String(index + 1))).trim();
     var pickupLocation = String(booking.pickupLocation || "").trim() || "Location not specified";
 
+    var rawUserMessage = String(booking.userMessage || "").trim();
+    var normalizedUserMessage = rawUserMessage.replace(/^user message\s*:\s*/i, "").trim();
+    var hasCancellationRequest = /^cancel request\s*:/i.test(normalizedUserMessage);
+    var cleanedUserMessage = normalizedUserMessage.replace(/^cancel request\s*:\s*/i, "").trim();
+    var displayUserMessage = cleanedUserMessage || normalizedUserMessage;
+    var statusLabel = statusMeta.label;
+    var statusTone = statusMeta.key;
+
+    if (hasCancellationRequest && statusMeta.key === "upcoming") {
+      statusLabel = "Cancellation Review";
+      statusTone = "cancellation_review";
+    }
+
     return {
       id: bookingId || reference,
       reference: reference,
@@ -1211,8 +1231,9 @@
       dropoffTime: String(booking.dropoffTime || "-").trim() || "-",
       pickupLocation: pickupLocation,
       dropoffLocation: pickupLocation,
-      status: statusMeta.label,
+      status: statusLabel,
       statusKey: statusMeta.key,
+      statusTone: statusTone,
       amount: formatBookingMoney(quote.totalAmount || booking.totalAmount),
       baseAmount: formatBookingMoney(quote.baseAmount || booking.baseAmount),
       serviceFee: formatBookingMoney(quote.serviceFee || booking.serviceFee),
@@ -1226,7 +1247,8 @@
       createdAtRaw: String(booking.createdAt || booking.lastUpdated || ""),
       lastUpdated: formatBookingDateTime(booking.createdAt || booking.lastUpdated),
       customerUserId: String(booking.customerUserId || "").trim(),
-      userMessage: String(booking.userMessage || "").trim(),
+      userMessage: displayUserMessage,
+      userMessageLabel: hasCancellationRequest ? "Cancellation Reason" : "Message",
     };
   }
 
@@ -1330,11 +1352,12 @@
     detail.innerHTML = "";
 
     var top = document.createElement("div");
-    top.className = "flex flex-wrap items-start justify-between gap-2";
+    top.className = "vrs-bookings-detail-top flex flex-wrap items-start justify-between gap-3";
 
     var titleWrap = document.createElement("div");
+    titleWrap.className = "vrs-bookings-detail-title-wrap min-w-0 flex-1";
     var title = document.createElement("h3");
-    title.className = "text-[20px] font-bold leading-tight";
+    title.className = "vrs-bookings-detail-title text-[20px] font-bold leading-tight";
     title.textContent = booking.vehicle;
 
     var sub = document.createElement("p");
@@ -1344,7 +1367,7 @@
     titleWrap.appendChild(sub);
 
     var status = document.createElement("span");
-    status.className = bookingStatusPillClass(booking.status);
+    status.className = bookingStatusPillClass(booking.statusTone || booking.status);
     status.textContent = booking.status;
 
     top.appendChild(titleWrap);
@@ -1352,8 +1375,8 @@
 
     if (booking.userMessage) {
       var userMessageBanner = document.createElement("div");
-      userMessageBanner.className = "mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-800";
-      userMessageBanner.innerHTML = "<strong>User Message:</strong> " + escapeHtml(booking.userMessage);
+      userMessageBanner.className = "vrs-bookings-user-message vrs-bookings-user-message--lead rounded-xl px-3 py-2 text-[12px]";
+      userMessageBanner.innerHTML = "<strong>" + escapeHtml(booking.userMessageLabel || "Message") + ":</strong> " + escapeHtml(booking.userMessage);
       detail.appendChild(userMessageBanner);
     }
 
@@ -1509,14 +1532,17 @@
       row.setAttribute("data-booking-id", booking.id);
 
       var top = document.createElement("div");
-      top.className = "flex items-center justify-between gap-2";
+      top.className = "vrs-bookings-row-top flex flex-wrap items-start justify-between gap-2";
+
+      var titleWrap = document.createElement("div");
+      titleWrap.className = "vrs-bookings-row-title-wrap min-w-0 flex-1";
 
       var title = document.createElement("p");
       title.className = "vrs-bookings-row-title text-[13px] font-semibold";
       title.textContent = booking.vehicle;
 
       var status = document.createElement("span");
-      status.className = bookingStatusPillClass(booking.status);
+      status.className = bookingStatusPillClass(booking.statusTone || booking.status);
       status.textContent = booking.status;
 
       var reference = document.createElement("p");
@@ -1527,7 +1553,8 @@
       meta.className = "vrs-bookings-row-meta mt-1 text-[11px]";
       meta.textContent = booking.pickupDate + " to " + booking.dropoffDate + " • " + booking.amount;
 
-      top.appendChild(title);
+      titleWrap.appendChild(title);
+      top.appendChild(titleWrap);
       top.appendChild(status);
       row.appendChild(top);
       row.appendChild(reference);

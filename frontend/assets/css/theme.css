@@ -424,6 +424,29 @@ body.vrs-page .vrs-bookings-row[data-active="true"] {
 
 body.vrs-page .vrs-bookings-row-title {
   color: #17393d;
+  overflow-wrap: anywhere;
+}
+
+body.vrs-page .vrs-bookings-row-top,
+body.vrs-page .vrs-bookings-detail-top {
+  align-items: flex-start;
+}
+
+body.vrs-page .vrs-bookings-detail-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+}
+
+body.vrs-page .vrs-bookings-row-title-wrap,
+body.vrs-page .vrs-bookings-detail-title-wrap {
+  min-width: 0;
+  padding-right: 0.25rem;
+}
+
+body.vrs-page .vrs-bookings-detail-title {
+  overflow-wrap: anywhere;
 }
 
 body.vrs-page .vrs-bookings-row-reference,
@@ -477,9 +500,34 @@ body.vrs-page .vrs-bookings-extra-item {
 }
 
 body.vrs-page .vrs-booking-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
   border: 1px solid #f5c7a5;
   background: rgba(229, 140, 78, 0.18);
   color: #9f5825;
+}
+
+body.vrs-page .vrs-booking-status--review {
+  border-color: #e7c57f;
+  background: rgba(226, 173, 58, 0.16);
+  color: #8f5b07;
+}
+
+body.vrs-page .vrs-bookings-user-message {
+  border: 1px solid #e8cf8f;
+  background: linear-gradient(145deg, #fffaf0, #fff3db);
+  color: #714a07;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+body.vrs-page .vrs-bookings-user-message--lead {
+  margin-top: 0;
+  margin-bottom: 0.8rem;
 }
 
 body.vrs-page .vrs-booking-status--completed {
@@ -687,6 +735,23 @@ html[data-theme="dark"] body.vrs-page .vrs-booking-status {
   color: #ffd9bf;
 }
 
+html[data-theme="dark"] body.vrs-page .vrs-booking-status--review {
+  border-color: rgba(235, 196, 99, 0.5);
+  background: rgba(166, 125, 31, 0.28);
+  color: #ffe8b8;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-user-message {
+  border-color: rgba(235, 196, 99, 0.44);
+  background: linear-gradient(145deg, rgba(120, 88, 24, 0.32), rgba(89, 63, 16, 0.28));
+  color: #ffe4aa;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bookings-user-message--lead {
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+}
+
 html[data-theme="dark"] body.vrs-page .vrs-booking-status--completed {
   border-color: rgba(129, 221, 170, 0.3);
   background: rgba(43, 126, 87, 0.24);
@@ -729,6 +794,24 @@ html[data-theme="dark"] body.vrs-page .vrs-theme-scope .book-now-btn:focus-visib
     right: 0.75rem;
     bottom: 0.75rem;
     padding: 0.44rem 0.62rem 0.44rem 0.5rem;
+  }
+
+  body.vrs-page .vrs-bookings-summary {
+    grid-template-columns: 1fr;
+  }
+
+  body.vrs-page .vrs-bookings-row,
+  body.vrs-page .vrs-bookings-detail {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  body.vrs-page .vrs-bookings-detail-top {
+    grid-template-columns: 1fr;
+  }
+
+  body.vrs-page .vrs-bookings-detail-top .vrs-booking-status {
+    justify-self: start;
   }
 }
 

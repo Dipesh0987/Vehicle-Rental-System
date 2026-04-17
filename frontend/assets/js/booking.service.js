@@ -331,6 +331,12 @@
     return code === "PGRST205" || (text.indexOf("relation") >= 0 && text.indexOf("does not exist") >= 0);
   }
 
+  function isNoRowsError(error) {
+    var code = String(error && error.code ? error.code : "");
+    var text = errorMessage(error).toLowerCase();
+    return code === "PGRST116" || text.indexOf("0 rows") >= 0;
+  }
+
   function isOverlapConstraintError(error) {
     var text = errorMessage(error).toLowerCase();
     return text.indexOf("vehicle_bookings_no_overlap") >= 0 || text.indexOf("already booked") >= 0;
@@ -544,11 +550,11 @@
     for (var i = 0; i < BOOKING_TABLE_CANDIDATES.length; i += 1) {
       var candidate = BOOKING_TABLE_CANDIDATES[i];
       var probe = await client
-          .from(tableName)
-          .select("id,notes")
-          .eq("id", bookingId)
-          .limit(1)
-          .maybeSingle();
+        .from(candidate)
+        .select("id")
+        .limit(1);
+
+      var missingColumn = extractMissingColumn(probe.error);
       if (missingColumn && ["vehicle_id", "start_date", "end_date", "status", "id"].indexOf(missingColumn) >= 0) {
         continue;
       }
@@ -559,14 +565,13 @@
       }
 
       if (isRelationMissingError(probe.error)) {
-        // Avoid 406 from strict single-row expectations on RLS-filtered responses.
-        var updateResult = await client
-          .from(tableName)
-          .update(updatePayload)
-          .eq("id", bookingId)
-          .select("id,notes")
-          .limit(1)
-          .maybeSingle();
+        continue;
+      }
+    }
+
+    return null;
+  }
+
   function broadcastBookingChanged(source) {
     var version = Date.now();
 
@@ -583,14 +588,7 @@
             source: source || "booking-service",
             version: version,
           },
-        if (updateResult && updateResult.data) {
-          return mapBookingRow(updateResult.data, vehiclesById);
-        }
-
-        return {
-          id: bookingId,
-          userMessage: "Cancel request: " + reason,
-        };
+        })
       );
     } catch (_eventError) {
       // Ignore custom event failures.

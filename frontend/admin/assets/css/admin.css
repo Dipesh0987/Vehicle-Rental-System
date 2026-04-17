@@ -35,6 +35,65 @@ body {
   transform: translateY(-2px);
 }
 
+.booking-user-message-top {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.booking-user-message-label {
+  font-weight: 700;
+}
+
+.booking-user-message-value {
+  font-weight: 600;
+}
+
+.booking-customer-cell {
+  min-width: 260px;
+  vertical-align: top;
+}
+
+.booking-user-message-chip {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.booking-customer-name {
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.booking-customer-meta {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.booking-vehicle-cell {
+  min-width: 180px;
+  overflow-wrap: anywhere;
+}
+
+.booking-status-cell {
+  min-width: 178px;
+  vertical-align: top;
+}
+
+.booking-status-select {
+  display: block;
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 1024px) {
+  .booking-customer-cell {
+    min-width: 230px;
+  }
+
+  .booking-status-cell {
+    min-width: 162px;
+  }
+}
+
 [data-theme='dark'] .scroll-thin {
   scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
 }

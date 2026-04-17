@@ -98,7 +98,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
 
     <section class="${classMap.panel} p-4 sm:p-5 relative">
       <h3 class="mb-3 text-base font-extrabold">Reservation Table</h3>
-      <div id="bookingUserMessageTop" class="mb-3 hidden rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800"></div>
+      <div id="bookingUserMessageTop" class="booking-user-message-top mb-3 hidden rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800"></div>
 
       <div id="bookingColumnPanel" class="hidden absolute right-4 top-4 z-10 w-[250px] rounded-xl border border-slate-200 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-[#11181d]"></div>
 
@@ -229,7 +229,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       return;
     }
 
-    userMessageTop.innerHTML = `<strong>User Message (${escapeHtml(latestWithMessage.id || latestWithMessage.bookingId || '-')})</strong>: ${escapeHtml(latestWithMessage.userMessage)}`;
+    userMessageTop.innerHTML = `<strong class="booking-user-message-label">User Message (${escapeHtml(latestWithMessage.id || latestWithMessage.bookingId || '-')})</strong><span class="booking-user-message-value">: ${escapeHtml(latestWithMessage.userMessage)}</span>`;
     userMessageTop.classList.remove('hidden');
   }
 
@@ -656,20 +656,20 @@ function renderBookingRow(row) {
 
   return `<tr class="border-b border-slate-100 dark:border-white/5" data-booking-id="${escapeHtml(bookingId)}" data-booking-code="${escapeHtml(bookingCode)}" data-current-status="${escapeHtml(currentStatus)}">
     <td data-col="booking" class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
-    <td data-col="customer" class="py-3 pr-3">
-      ${row && row.userMessage ? `<p class="mb-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">User Message: ${escapeHtml(row.userMessage)}</p>` : ''}
-      <p class="font-semibold">${escapeHtml(row.customer || '-')}</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerPhone || '-')}</p>
+    <td data-col="customer" class="booking-customer-cell py-3 pr-3">
+      ${row && row.userMessage ? `<p class="booking-user-message-chip mb-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-800">User Message: ${escapeHtml(row.userMessage)}</p>` : ''}
+      <p class="booking-customer-name font-semibold">${escapeHtml(row.customer || '-')}</p>
+      <p class="booking-customer-meta text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
+      <p class="booking-customer-meta text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerPhone || '-')}</p>
     </td>
-    <td data-col="vehicle" class="py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
+    <td data-col="vehicle" class="booking-vehicle-cell py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
     <td data-col="pickupLocation" class="py-3 pr-3">${escapeHtml(row.pickupLocation || '-')}</td>
     <td data-col="start" class="py-3 pr-3">${escapeHtml(row.start || '-')}</td>
     <td data-col="end" class="py-3 pr-3">${escapeHtml(row.end || '-')}</td>
     <td data-col="type" class="py-3 pr-3">${escapeHtml(row.type || '-')}</td>
     <td data-col="driverOption" class="py-3 pr-3">${escapeHtml(row.driverOption || 'Self Drive')}</td>
-    <td data-col="status" class="py-3 pr-3">
-      <select data-booking-status-select class="${statusSelectClass(currentStatus, false)}">
+    <td data-col="status" class="booking-status-cell py-3 pr-3">
+      <select data-booking-status-select class="booking-status-select ${statusSelectClass(currentStatus, false)}">
         ${statusOptionMarkup(currentStatus)}
       </select>
     </td>
@@ -751,7 +751,7 @@ function escapeHtml(value) {
 
 function statusSelectClass(status, isDisabled) {
   const normalized = normalizeBookingStatusLabel(status);
-  const base = 'w-[140px] rounded-lg border px-2 py-1 text-xs font-semibold outline-none transition focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-60';
+  const base = 'w-[170px] max-w-full rounded-lg border px-2.5 py-1.5 text-xs font-semibold leading-tight outline-none transition focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-60';
   const disabled = isDisabled ? ' opacity-60' : '';
 
   if (normalized === 'Confirmed') return `${base} border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/20 dark:text-emerald-200${disabled}`;
