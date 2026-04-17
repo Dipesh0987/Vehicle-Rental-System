@@ -544,11 +544,11 @@
     for (var i = 0; i < BOOKING_TABLE_CANDIDATES.length; i += 1) {
       var candidate = BOOKING_TABLE_CANDIDATES[i];
       var probe = await client
-        .from(candidate)
-        .select("id,vehicle_id,start_date,end_date,status")
-        .limit(1);
-
-      var missingColumn = extractMissingColumn(probe.error);
+          .from(tableName)
+          .select("id,notes")
+          .eq("id", bookingId)
+          .limit(1)
+          .maybeSingle();
       if (missingColumn && ["vehicle_id", "start_date", "end_date", "status", "id"].indexOf(missingColumn) >= 0) {
         continue;
       }
@@ -559,13 +559,14 @@
       }
 
       if (isRelationMissingError(probe.error)) {
-        continue;
-      }
-    }
-
-    return null;
-  }
-
+        // Avoid 406 from strict single-row expectations on RLS-filtered responses.
+        var updateResult = await client
+          .from(tableName)
+          .update(updatePayload)
+          .eq("id", bookingId)
+          .select("id,notes")
+          .limit(1)
+          .maybeSingle();
   function broadcastBookingChanged(source) {
     var version = Date.now();
 
@@ -582,7 +583,14 @@
             source: source || "booking-service",
             version: version,
           },
-        })
+        if (updateResult && updateResult.data) {
+          return mapBookingRow(updateResult.data, vehiclesById);
+        }
+
+        return {
+          id: bookingId,
+          userMessage: "Cancel request: " + reason,
+        };
       );
     } catch (_eventError) {
       // Ignore custom event failures.
@@ -744,7 +752,7 @@
     var modernColumns = [
       "id", "booking_code", "customer_user_id", "vehicle_id", "customer_name", "customer_email", "customer_phone", "notes",
       "start_date", "end_date", "pickup_time", "driver_option", "status", "currency", "base_amount", "service_fee", "tax_amount",
-      "discount_amount", "total_amount", "created_at", "updated_at", "is_paid", "payment_done", "paid", "payment_status"
+      "discount_amount", "total_amount", "created_at", "is_paid", "paid", "payment_status"
     ];
 
     var legacyColumns = [
@@ -1093,18 +1101,38 @@
       throw new Error("Booking table is not available in Supabase.");
     }
 
+    // Preferred path: use DB-side function to enforce ownership checks safely under RLS.
+    var rpcResult = await client.rpc("request_booking_cancellation", {
+      p_booking_id: bookingId,
+      p_reason: reason,
+    });
+
+    if (!rpcResult.error && rpcResult.data) {
+      var rpcRow = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data;
+      if (rpcRow) {
+        broadcastBookingChanged("cancel-request");
+        var rpcVehiclesById = await buildVehicleMap();
+        return mapBookingRow(rpcRow, rpcVehiclesById);
+      }
+    }
+
     var currentRowResult = await client
       .from(tableName)
       .select("id,notes")
       .eq("id", bookingId)
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (currentRowResult.error) {
+    if (currentRowResult.error && !isNoRowsError(currentRowResult.error)) {
       throw new Error(errorMessage(currentRowResult.error));
     }
 
-    var currentNotes = parseBookingNotes(pickFirst(currentRowResult.data, ["notes"], ""));
+    var currentRow = currentRowResult.data || null;
+    if (!currentRow) {
+      throw new Error("Booking not found.");
+    }
+
+    var currentNotes = parseBookingNotes(pickFirst(currentRow, ["notes"], ""));
     var updatePayload = {
       notes: composeBookingNotes(currentNotes.pickupLocation, "Cancel request: " + reason),
     };
@@ -1115,7 +1143,7 @@
       .eq("id", bookingId)
       .select("*")
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (updateResult.error) {
       throw new Error(errorMessage(updateResult.error));
@@ -1124,7 +1152,15 @@
     broadcastBookingChanged("cancel-request");
 
     var vehiclesById = await buildVehicleMap();
-    return mapBookingRow(updateResult.data || {}, vehiclesById);
+    if (updateResult.data) {
+      return mapBookingRow(updateResult.data, vehiclesById);
+    }
+
+    return mapBookingRow({
+      id: bookingId,
+      notes: updatePayload.notes,
+      status: currentRow.status,
+    }, vehiclesById);
   }
 
   function subscribeToBookingChanges(callback) {
