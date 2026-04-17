@@ -266,6 +266,68 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       }
       return;
     }
+
+    const paymentSelectElement = event.target && event.target.closest('[data-booking-payment-select]');
+    if (paymentSelectElement) {
+      const rowElement = paymentSelectElement.closest('tr[data-booking-id]');
+      const bookingId = String(rowElement && rowElement.getAttribute('data-booking-id') ? rowElement.getAttribute('data-booking-id') : '').trim();
+      const bookingCode = String(rowElement && rowElement.getAttribute('data-booking-code') ? rowElement.getAttribute('data-booking-code') : '').trim();
+      const previousValue = String(paymentSelectElement.getAttribute('data-current-payment') || 'no').toLowerCase();
+      const nextValue = String(paymentSelectElement.value || 'no').toLowerCase();
+
+      if (!bookingId || previousValue === nextValue) {
+        return;
+      }
+
+      if (!bookingService || typeof bookingService.updateBookingByAdmin !== 'function') {
+        notify('Booking payment update service is unavailable.', 'error');
+        paymentSelectElement.value = previousValue;
+        paymentSelectElement.className = paymentSelectClass(previousValue === 'yes', false);
+        return;
+      }
+
+      const rows = getSearchedRows();
+      const row = rows.find((item) => String(item && item.bookingId ? item.bookingId : '') === bookingId);
+      if (!row) {
+        notify('Booking row not found for payment update.', 'error');
+        paymentSelectElement.value = previousValue;
+        paymentSelectElement.className = paymentSelectClass(previousValue === 'yes', false);
+        return;
+      }
+
+      paymentSelectElement.disabled = true;
+      paymentSelectElement.className = paymentSelectClass(nextValue === 'yes', true);
+
+      try {
+        await bookingService.updateBookingByAdmin({
+          bookingId,
+          startDate: row.start,
+          endDate: row.end,
+          pickupTime: row.pickupTime || '10:00',
+          driverOption: String(row.driverOption || 'Self Drive').toLowerCase().includes('with') ? 'with_driver' : 'self_drive',
+          status: row.status,
+          paymentDone: nextValue === 'yes',
+          pickupLocation: row.pickupLocation,
+        });
+
+        paymentSelectElement.setAttribute('data-current-payment', nextValue);
+        await refreshRowsFromDatabase(`Reservation ${bookingCode || bookingId} payment updated to ${nextValue === 'yes' ? 'Yes' : 'No'}.`);
+      } catch (error) {
+        const message = bookingService && typeof bookingService.toPublicError === 'function'
+          ? bookingService.toPublicError(error, 'Unable to update booking payment right now.')
+          : 'Unable to update booking payment right now.';
+        notify(message, 'error');
+        paymentSelectElement.value = previousValue;
+        paymentSelectElement.setAttribute('data-current-payment', previousValue);
+      } finally {
+        if (host.isConnected) {
+          const activeValue = String(paymentSelectElement.getAttribute('data-current-payment') || paymentSelectElement.value || 'no').toLowerCase();
+          paymentSelectElement.className = paymentSelectClass(activeValue === 'yes', false);
+          paymentSelectElement.disabled = false;
+        }
+      }
+      return;
+    }
   });
 
   host.addEventListener('click', (event) => {
@@ -541,7 +603,10 @@ function renderBookingRow(row) {
       </select>
     </td>
     <td data-col="payment" class="py-3 pr-3">
-      <span class="${paymentDone ? 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-200'}">${paymentDone ? 'Yes' : 'No'}</span>
+      <select data-booking-payment-select data-current-payment="${paymentDone ? 'yes' : 'no'}" class="${paymentSelectClass(paymentDone, false)}">
+        <option value="yes" ${paymentDone ? 'selected' : ''}>Yes</option>
+        <option value="no" ${!paymentDone ? 'selected' : ''}>No</option>
+      </select>
     </td>
     <td data-col="total" class="py-3 pr-3 font-semibold">${escapeHtml(formatNpr(row.total || 0))}</td>
     <td data-col="actions" class="py-3 pr-3">
@@ -623,6 +688,16 @@ function statusSelectClass(status, isDisabled) {
   if (normalized === 'Cancelled') return `${base} border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-400/30 dark:bg-rose-500/20 dark:text-rose-200${disabled}`;
   if (normalized === 'Completed') return `${base} border-slate-300 bg-slate-200 text-slate-800 dark:border-slate-400/30 dark:bg-slate-500/25 dark:text-slate-200${disabled}`;
   return `${base} border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200${disabled}`;
+}
+
+function paymentSelectClass(paymentDone, isDisabled) {
+  const base = 'w-[90px] rounded-lg border px-2 py-1 text-xs font-semibold outline-none transition focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-60';
+  const disabled = isDisabled ? ' opacity-60' : '';
+  if (paymentDone) {
+    return `${base} border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/20 dark:text-emerald-200${disabled}`;
+  }
+
+  return `${base} border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/20 dark:text-amber-200${disabled}`;
 }
 
 function formatNpr(value) {
