@@ -255,6 +255,14 @@
       return postgresMatch[1];
     }
 
+    // Handles formats like: column vehicle_bookings.payment_done does not exist
+    var qualifiedMatch = message.match(/column\s+([a-zA-Z0-9_\.\"]+)\s+does not exist/i);
+    if (qualifiedMatch && qualifiedMatch[1]) {
+      var qualified = String(qualifiedMatch[1]).replace(/"/g, "");
+      var parts = qualified.split(".");
+      return parts[parts.length - 1] || "";
+    }
+
     return "";
   }
 
@@ -586,6 +594,54 @@
     };
   }
 
+  function mapLegacyBookingRow(row, vehiclesById) {
+    var vehicleId = normalizeString(pickFirst(row, ["vehicle_id", "vehicleId"], ""), "");
+    var vehicle = vehiclesById && vehiclesById[vehicleId] ? vehiclesById[vehicleId] : null;
+    var vehicleName = vehicle
+      ? normalizeString(vehicle.brand, "") + " " + normalizeString(vehicle.name, "")
+      : "Vehicle";
+
+    var cleanedVehicleName = normalizeString(vehicleName, "Vehicle")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    var legacyStatus = toLower(pickFirst(row, ["status"], "pending"));
+    var normalizedStatus = legacyStatus === "active" ? "confirmed" : sanitizeStatus(legacyStatus);
+    var driverOption = normalizeString(pickFirst(row, ["driver_name"], ""), "") ? "with_driver" : "self_drive";
+    var type = vehicle ? normalizeString(vehicle.category || vehicle.type, "Vehicle") : "Vehicle";
+
+    return {
+      id: normalizeString(row.id, ""),
+      bookingCode: normalizeString(pickFirst(row, ["booking_reference", "booking_code"], ""), ""),
+      customerUserId: normalizeString(pickFirst(row, ["user_id", "customer_user_id"], ""), ""),
+      vehicleId: vehicleId,
+      customerName: "Customer",
+      customerEmail: "",
+      customerPhone: "",
+      pickupLocation: normalizeString(pickFirst(row, ["pickup_location", "notes"], ""), ""),
+      startDate: normalizeDate(pickFirst(row, ["pickup_date", "start_date"], "")),
+      endDate: normalizeDate(pickFirst(row, ["dropoff_date", "end_date"], "")),
+      pickupTime: normalizeTime(pickFirst(row, ["pickup_time"], "10:00")),
+      driverOption: driverOption,
+      driverOptionLabel: bookingDriverOptionLabel(driverOption),
+      status: normalizedStatus,
+      statusLabel: bookingStatusLabel(normalizedStatus),
+      paymentDone: false,
+      paymentLabel: "No",
+      type: type,
+      vehicleName: cleanedVehicleName,
+      quote: {
+        baseAmount: toFixedAmount(pickFirst(row, ["base_price", "base_amount"], 0)),
+        serviceFee: toFixedAmount(pickFirst(row, ["service_fee"], 0)),
+        taxAmount: toFixedAmount(pickFirst(row, ["tax_amount"], 0)),
+        discountAmount: toFixedAmount(pickFirst(row, ["discount_amount"], 0)),
+        totalAmount: toFixedAmount(pickFirst(row, ["total_price", "total_amount"], 0)),
+        currency: normalizeString(pickFirst(row, ["currency"], "NPR"), "NPR"),
+      },
+      createdAt: normalizeString(pickFirst(row, ["created_at"], ""), ""),
+    };
+  }
+
   async function buildVehicleMap() {
     if (!window.VehicleCatalogService || typeof window.VehicleCatalogService.listVehicles !== "function") {
       return {};
@@ -620,46 +676,66 @@
       return [];
     }
 
-    var selectColumns = [
+    var modernColumns = [
       "id", "booking_code", "customer_user_id", "vehicle_id", "customer_name", "customer_email", "customer_phone", "notes",
       "start_date", "end_date", "pickup_time", "driver_option", "status", "currency", "base_amount", "service_fee", "tax_amount",
       "discount_amount", "total_amount", "created_at", "updated_at", "is_paid", "payment_done", "paid", "payment_status"
     ];
 
-    var query = client
-      .from(tableName)
-      .select(selectColumns.join(","))
-      .order("created_at", { ascending: false });
+    var legacyColumns = [
+      "id", "booking_reference", "user_id", "vehicle_id", "pickup_date", "pickup_time", "dropoff_date", "pickup_location",
+      "status", "driver_name", "currency", "base_price", "service_fee", "tax_amount", "discount_amount", "total_price", "created_at"
+    ];
 
-    if (opts.vehicleId) {
-      query = query.eq("vehicle_id", normalizeString(opts.vehicleId, ""));
-    }
+    var isLegacyTable = tableName === "bookings";
+    var selectColumns = isLegacyTable ? legacyColumns.slice() : modernColumns.slice();
 
-    if (opts.status) {
-      query = query.eq("status", sanitizeStatus(opts.status));
-    }
+    function buildListQuery(columns) {
+      var listQuery = client
+        .from(tableName)
+        .select(columns.join(","))
+        .order("created_at", { ascending: false });
 
-    if (opts.rangeStart) {
-      query = query.gte("end_date", normalizeDate(opts.rangeStart));
-    }
-
-    if (opts.rangeEnd) {
-      query = query.lte("start_date", normalizeDate(opts.rangeEnd));
-    }
-
-    var result = await query;
-    if (result.error) {
-      var missingColumn = extractMissingColumn(result.error);
-      if (missingColumn && selectColumns.indexOf(missingColumn) >= 0) {
-        var filteredColumns = selectColumns.filter(function (column) {
-          return column !== missingColumn;
-        });
-
-        result = await client
-          .from(tableName)
-          .select(filteredColumns.join(","))
-          .order("created_at", { ascending: false });
+      if (opts.vehicleId) {
+        listQuery = listQuery.eq("vehicle_id", normalizeString(opts.vehicleId, ""));
       }
+
+      if (opts.status) {
+        var requestedStatus = sanitizeStatus(opts.status);
+        if (isLegacyTable && requestedStatus === "confirmed") {
+          listQuery = listQuery.in("status", ["confirmed", "active"]);
+        } else {
+          listQuery = listQuery.eq("status", requestedStatus);
+        }
+      }
+
+      if (opts.rangeStart) {
+        listQuery = isLegacyTable
+          ? listQuery.gte("dropoff_date", normalizeDate(opts.rangeStart))
+          : listQuery.gte("end_date", normalizeDate(opts.rangeStart));
+      }
+
+      if (opts.rangeEnd) {
+        listQuery = isLegacyTable
+          ? listQuery.lte("pickup_date", normalizeDate(opts.rangeEnd))
+          : listQuery.lte("start_date", normalizeDate(opts.rangeEnd));
+      }
+
+      return listQuery;
+    }
+
+    var result = await buildListQuery(selectColumns);
+    while (result.error) {
+      var missingColumn = extractMissingColumn(result.error);
+      if (!missingColumn || selectColumns.indexOf(missingColumn) < 0) {
+        break;
+      }
+
+      selectColumns = selectColumns.filter(function (column) {
+        return column !== missingColumn;
+      });
+
+      result = await buildListQuery(selectColumns);
     }
 
     if (result.error) {
@@ -670,7 +746,9 @@
     var vehiclesById = await buildVehicleMap();
 
     return rows.map(function (row) {
-      return mapBookingRow(row, vehiclesById);
+      return isLegacyTable
+        ? mapLegacyBookingRow(row, vehiclesById)
+        : mapBookingRow(row, vehiclesById);
     });
   }
 
