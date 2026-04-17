@@ -1,29 +1,51 @@
 import { classMap } from '../config.js';
 import { filterRows, sortRows } from '../table-utils.js';
-import { renderEmptyState } from '../ui.js';
+import { openDrawer, openModal, renderEmptyState } from '../ui.js';
 
 const BOOKING_STATUS_OPTIONS = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
+const PAYMENT_FILTER_OPTIONS = ['', 'Yes', 'No'];
+const COLUMN_STORAGE_KEY = 'vrs-admin-booking-visible-columns';
+const BOOKING_TABLE_COLUMNS = [
+  { key: 'booking', label: 'Booking' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'vehicle', label: 'Vehicle' },
+  { key: 'pickupLocation', label: 'Pick Up Location' },
+  { key: 'start', label: 'Date From' },
+  { key: 'end', label: 'Date To' },
+  { key: 'type', label: 'Type' },
+  { key: 'driverOption', label: 'Driver Option' },
+  { key: 'status', label: 'Status' },
+  { key: 'payment', label: 'Paid' },
+  { key: 'total', label: 'Total' },
+  { key: 'actions', label: 'Action' },
+];
 
 export function renderBookingsModule({ data, query, notify, reloadBookingsData, bookingService }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
-  const allRows = Array.isArray(data && data.bookings) ? data.bookings : [];
-  const searchedRows = filterRows(allRows, query, ['id', 'customer', 'customerEmail', 'customerPhone', 'vehicle', 'type', 'driverOption', 'status', 'pickupLocation']);
-
   const dateFilter = '';
   const statusFilter = '';
   const typeFilter = '';
+  const paymentFilter = '';
+  let visibleColumns = loadVisibleColumns();
 
-  const rows = applyAdminFilters(searchedRows, {
+  const getSearchedRows = () => filterRows(
+    Array.isArray(data && data.bookings) ? data.bookings : [],
+    query,
+    ['id', 'customer', 'customerEmail', 'customerPhone', 'vehicle', 'type', 'driverOption', 'status', 'pickupLocation', 'paymentLabel']
+  );
+
+  const initialRows = applyAdminFilters(getSearchedRows(), {
     date: dateFilter,
     status: statusFilter,
     type: typeFilter,
+    payment: paymentFilter,
   });
 
-  const sortedRows = sortRows(rows, 'createdAt').slice().reverse();
-  const totalRevenue = sortedRows.reduce((sum, row) => sum + Number(row && row.total ? row.total : 0), 0);
-  const activeCount = sortedRows.filter((row) => String(row && row.status ? row.status : '').toLowerCase() === 'confirmed').length;
+  const initialSortedRows = sortRows(initialRows, 'createdAt').slice().reverse();
+  const totalRevenue = initialSortedRows.reduce((sum, row) => sum + Number(row && row.total ? row.total : 0), 0);
+  const activeCount = initialSortedRows.filter((row) => String(row && row.status ? row.status : '').toLowerCase() === 'confirmed').length;
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -33,14 +55,15 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-          ${sortedRows.length} bookings | ${activeCount} active | ${escapeHtml(formatNpr(totalRevenue))} revenue
+          ${initialSortedRows.length} bookings | ${activeCount} active | ${escapeHtml(formatNpr(totalRevenue))} revenue
         </div>
+        <button id="toggleBookingColumnsBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">Columns</button>
         <button id="refreshBookingsBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">Refresh</button>
       </div>
     </header>
 
     <section class="${classMap.panel} p-4 sm:p-5">
-      <div class="grid grid-cols-1 gap-3 lg:grid-cols-4">
+      <div class="grid grid-cols-1 gap-3 lg:grid-cols-5">
         <label class="space-y-1 text-sm font-semibold">
           <span class="text-slate-600 dark:text-slate-300">Filter by Date</span>
           <input id="bookingDate" type="date" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5" value="${escapeHtml(dateFilter)}" />
@@ -54,37 +77,33 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
         <label class="space-y-1 text-sm font-semibold">
           <span class="text-slate-600 dark:text-slate-300">Vehicle Type</span>
           <select id="bookingType" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5">
-            ${buildTypeOptions(allRows, typeFilter).map((item) => `<option value="${escapeHtml(item)}" ${typeFilter === item ? 'selected' : ''}>${item || 'All'}</option>`).join('')}
+            ${buildTypeOptions(getSearchedRows(), typeFilter).map((item) => `<option value="${escapeHtml(item)}" ${typeFilter === item ? 'selected' : ''}>${item || 'All'}</option>`).join('')}
+          </select>
+        </label>
+        <label class="space-y-1 text-sm font-semibold">
+          <span class="text-slate-600 dark:text-slate-300">Paid</span>
+          <select id="bookingPayment" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:border-brand-500 dark:border-white/10 dark:bg-white/5">
+            ${PAYMENT_FILTER_OPTIONS.map((item) => `<option value="${escapeHtml(item)}" ${paymentFilter === item ? 'selected' : ''}>${item || 'All'}</option>`).join('')}
           </select>
         </label>
         <button id="clearBookingFiltersBtn" class="hidden self-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10">Clear Filters</button>
       </div>
     </section>
 
-    <section class="${classMap.panel} p-4 sm:p-5">
+    <section class="${classMap.panel} p-4 sm:p-5 relative">
       <h3 class="mb-3 text-base font-extrabold">Reservation Table</h3>
+
+      <div id="bookingColumnPanel" class="hidden absolute right-4 top-4 z-10 w-[250px] rounded-xl border border-slate-200 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-[#11181d]"></div>
+
       <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead>
             <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:text-slate-400">
-              <th class="pb-2 pr-3">Booking</th>
-              <th class="pb-2 pr-3">Customer</th>
-              <th class="pb-2 pr-3">Vehicle</th>
-              <th class="pb-2 pr-3">Pick Up Location</th>
-              <th class="pb-2 pr-3">Date From</th>
-              <th class="pb-2 pr-3">Date To</th>
-              <th class="pb-2 pr-3">Type</th>
-              <th class="pb-2 pr-3">Driver Option</th>
-              <th class="pb-2 pr-3">Status</th>
-              <th class="pb-2 pr-3">Total</th>
+              ${BOOKING_TABLE_COLUMNS.map((column) => `<th data-col="${column.key}" class="pb-2 pr-3">${column.label}</th>`).join('')}
             </tr>
           </thead>
-          <tbody>
-            ${sortedRows.length
-              ? sortedRows
-              .map((row) => renderBookingRow(row))
-              .join('')
-              : `<tr><td colspan="10" class="py-6">${renderEmptyState({ title: 'No reservations yet', message: 'Live bookings will appear here after successful customer checkout.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`}
+          <tbody id="bookingRowsBody">
+            ${renderTableBody(initialSortedRows, visibleColumns)}
           </tbody>
         </table>
       </div>
@@ -93,7 +112,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
     <section class="${classMap.panel} p-4 sm:p-5">
       <h3 class="text-base font-extrabold">Next 7-Day Occupancy</h3>
       <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-7">
-        ${buildOccupancyTiles(sortedRows)
+        ${buildOccupancyTiles(initialSortedRows)
           .map(
             (tile) => `<div class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
               <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">${escapeHtml(tile.weekday)}</p>
@@ -106,117 +125,242 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
     </section>
   `;
 
-  host.querySelector('#refreshBookingsBtn')?.addEventListener('click', async () => {
-    if (typeof reloadBookingsData === 'function') {
-      await reloadBookingsData();
-    }
-    notify('Bookings refreshed from database', 'success');
-  });
-
-  host.querySelector('#emptyRefreshBookings')?.addEventListener('click', async () => {
-    if (typeof reloadBookingsData === 'function') {
-      await reloadBookingsData();
-    }
-    notify('Bookings refreshed from database', 'success');
-  });
-
-  host.addEventListener('change', async (event) => {
-    const selectElement = event.target && event.target.closest('[data-booking-status-select]');
-    if (!selectElement || !host.contains(selectElement)) {
-      return;
-    }
-
-    const rowElement = selectElement.closest('tr[data-booking-id]');
-    const previousStatus = normalizeBookingStatusLabel(
-      rowElement ? rowElement.getAttribute('data-current-status') : ''
-    );
-
-    const bookingId = String(rowElement && rowElement.getAttribute('data-booking-id') ? rowElement.getAttribute('data-booking-id') : '').trim();
-    const bookingCode = String(rowElement && rowElement.getAttribute('data-booking-code') ? rowElement.getAttribute('data-booking-code') : '').trim();
-    const nextStatus = normalizeBookingStatusLabel(selectElement ? selectElement.value : '');
-
-    if (!bookingId) {
-      notify('Booking id is missing for this reservation row.', 'error');
-      return;
-    }
-
-    if (previousStatus === nextStatus) {
-      return;
-    }
-
-    if (!bookingService || typeof bookingService.updateBookingStatus !== 'function') {
-      notify('Booking status update service is unavailable. Run latest booking migration first.', 'error');
-      selectElement.value = previousStatus;
-      selectElement.className = statusSelectClass(previousStatus, !bookingId);
-      return;
-    }
-
-    selectElement.disabled = true;
-    selectElement.className = statusSelectClass(nextStatus, !bookingId);
-
-    try {
-      const updatedBooking = await bookingService.updateBookingStatus({
-        bookingId,
-        status: nextStatus,
-      });
-
-      const updatedStatus = normalizeBookingStatusLabel(
-        updatedBooking && updatedBooking.statusLabel ? updatedBooking.statusLabel : nextStatus
-      );
-
-      if (rowElement) {
-        rowElement.setAttribute('data-current-status', updatedStatus);
-      }
-
-      selectElement.value = updatedStatus;
-      selectElement.className = statusSelectClass(updatedStatus, !bookingId);
-
-      notify(`Reservation ${bookingCode || bookingId} marked as ${updatedStatus}.`, 'success');
-
-      if (typeof reloadBookingsData === 'function') {
-        await reloadBookingsData();
-      }
-    } catch (error) {
-      const message = bookingService && typeof bookingService.toPublicError === 'function'
-        ? bookingService.toPublicError(error, 'Unable to update booking status right now.')
-        : 'Unable to update booking status right now.';
-
-      selectElement.value = previousStatus;
-      selectElement.className = statusSelectClass(previousStatus, !bookingId);
-
-      notify(message, 'error');
-    } finally {
-      if (host.isConnected) {
-        selectElement.disabled = !bookingId;
-        selectElement.className = statusSelectClass(selectElement.value, !bookingId);
-      }
-    }
-  });
-
+  const rowsBody = host.querySelector('#bookingRowsBody');
   const dateInput = host.querySelector('#bookingDate');
   const statusSelect = host.querySelector('#bookingStatus');
   const typeSelect = host.querySelector('#bookingType');
+  const paymentSelect = host.querySelector('#bookingPayment');
   const clearFiltersBtn = host.querySelector('#clearBookingFiltersBtn');
+  const columnPanel = host.querySelector('#bookingColumnPanel');
 
-  const readFilters = () => ({
-    date: dateInput ? dateInput.value : '',
-    status: statusSelect ? statusSelect.value : '',
-    type: typeSelect ? typeSelect.value : '',
+  function renderColumnPanel() {
+    if (!columnPanel) {
+      return;
+    }
+
+    columnPanel.innerHTML = `
+      <p class="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Toggle Columns</p>
+      <div class="space-y-2">
+        ${BOOKING_TABLE_COLUMNS.map((column) => `
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+            <input type="checkbox" class="h-4 w-4" data-column-toggle="${column.key}" ${visibleColumns.has(column.key) ? 'checked' : ''} />
+            <span>${column.label}</span>
+          </label>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function readFilters() {
+    return {
+      date: dateInput ? dateInput.value : '',
+      status: statusSelect ? statusSelect.value : '',
+      type: typeSelect ? typeSelect.value : '',
+      payment: paymentSelect ? paymentSelect.value : '',
+    };
+  }
+
+  function hasActiveFilters(filters) {
+    const current = filters || {};
+    return Boolean(
+      String(current.date || '').trim() ||
+      String(current.status || '').trim() ||
+      String(current.type || '').trim() ||
+      String(current.payment || '').trim()
+    );
+  }
+
+  function applyFiltersToTable() {
+    const rows = applyAdminFilters(getSearchedRows(), readFilters());
+    const sorted = sortRows(rows || [], 'createdAt').slice().reverse();
+    if (rowsBody) {
+      rowsBody.innerHTML = renderTableBody(sorted, visibleColumns);
+    }
+
+    applyColumnVisibility(host, visibleColumns);
+    toggleClearFiltersButton(clearFiltersBtn, hasActiveFilters(readFilters()));
+  }
+
+  async function refreshRowsFromDatabase(successMessage) {
+    if (typeof reloadBookingsData === 'function') {
+      await reloadBookingsData();
+    }
+
+    applyFiltersToTable();
+    if (successMessage) {
+      notify(successMessage, 'success');
+    }
+  }
+
+  host.querySelector('#refreshBookingsBtn')?.addEventListener('click', async () => {
+    await refreshRowsFromDatabase('Bookings refreshed from database');
   });
 
-  const hasActiveFilters = (filters) => {
-    const current = filters || {};
-    return Boolean(String(current.date || '').trim() || String(current.status || '').trim() || String(current.type || '').trim());
-  };
+  host.querySelector('#toggleBookingColumnsBtn')?.addEventListener('click', () => {
+    renderColumnPanel();
+    columnPanel?.classList.toggle('hidden');
+  });
 
-  const applyFiltersToTable = () => {
-    const filters = readFilters();
-    const nextRows = applyAdminFilters(searchedRows, filters);
-    updateTableRows(host, nextRows);
-    toggleClearFiltersButton(clearFiltersBtn, hasActiveFilters(filters));
-  };
+  host.addEventListener('change', async (event) => {
+    const toggleInput = event.target && event.target.closest('[data-column-toggle]');
+    if (toggleInput) {
+      const key = toggleInput.getAttribute('data-column-toggle');
+      if (toggleInput.checked) {
+        visibleColumns.add(key);
+      } else if (visibleColumns.size > 1) {
+        visibleColumns.delete(key);
+      } else {
+        toggleInput.checked = true;
+      }
 
-  [dateInput, statusSelect, typeSelect].forEach((control) => {
+      saveVisibleColumns(visibleColumns);
+      applyColumnVisibility(host, visibleColumns);
+      if (rowsBody) {
+        const rows = sortRows(applyAdminFilters(getSearchedRows(), readFilters()), 'createdAt').slice().reverse();
+        rowsBody.innerHTML = renderTableBody(rows, visibleColumns);
+      }
+      return;
+    }
+
+    const selectElement = event.target && event.target.closest('[data-booking-status-select]');
+    if (selectElement) {
+      const rowElement = selectElement.closest('tr[data-booking-id]');
+      const previousStatus = normalizeBookingStatusLabel(rowElement ? rowElement.getAttribute('data-current-status') : '');
+      const bookingId = String(rowElement && rowElement.getAttribute('data-booking-id') ? rowElement.getAttribute('data-booking-id') : '').trim();
+      const bookingCode = String(rowElement && rowElement.getAttribute('data-booking-code') ? rowElement.getAttribute('data-booking-code') : '').trim();
+      const nextStatus = normalizeBookingStatusLabel(selectElement.value);
+
+      if (!bookingId || previousStatus === nextStatus) {
+        return;
+      }
+
+      if (!bookingService || typeof bookingService.updateBookingStatus !== 'function') {
+        notify('Booking status update service is unavailable.', 'error');
+        selectElement.value = previousStatus;
+        selectElement.className = statusSelectClass(previousStatus, false);
+        return;
+      }
+
+      selectElement.disabled = true;
+      try {
+        await bookingService.updateBookingStatus({
+          bookingId,
+          status: nextStatus,
+        });
+
+        if (rowElement) {
+          rowElement.setAttribute('data-current-status', nextStatus);
+        }
+
+        await refreshRowsFromDatabase(`Reservation ${bookingCode || bookingId} marked as ${nextStatus}.`);
+      } catch (error) {
+        const message = bookingService && typeof bookingService.toPublicError === 'function'
+          ? bookingService.toPublicError(error, 'Unable to update booking status right now.')
+          : 'Unable to update booking status right now.';
+        notify(message, 'error');
+        selectElement.value = previousStatus;
+      } finally {
+        if (host.isConnected) {
+          selectElement.disabled = false;
+        }
+      }
+      return;
+    }
+  });
+
+  host.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!target) {
+      return;
+    }
+
+    if (target.id === 'emptyRefreshBookings') {
+      void refreshRowsFromDatabase('Bookings refreshed from database');
+      return;
+    }
+
+    const editButton = target.closest('[data-edit-booking-id]');
+    if (editButton) {
+      const bookingId = String(editButton.getAttribute('data-edit-booking-id') || '').trim();
+      const rows = getSearchedRows();
+      const row = rows.find((item) => String(item && item.bookingId ? item.bookingId : '') === bookingId);
+
+      if (!row) {
+        notify('Unable to open booking editor.', 'error');
+        return;
+      }
+
+      openDrawer({
+        title: `Edit ${escapeHtml(row.id || bookingId)}`,
+        content: renderBookingEditDrawer(row),
+      });
+
+      const editForm = document.getElementById('editBookingForm');
+      editForm?.addEventListener('submit', async (submitEvent) => {
+        submitEvent.preventDefault();
+
+        if (!bookingService || typeof bookingService.updateBookingByAdmin !== 'function') {
+          notify('Booking edit service is unavailable.', 'error');
+          return;
+        }
+
+        const payload = {
+          bookingId,
+          startDate: document.getElementById('editBookingStartDate')?.value,
+          endDate: document.getElementById('editBookingEndDate')?.value,
+          pickupTime: document.getElementById('editBookingPickupTime')?.value,
+          driverOption: document.getElementById('editBookingDriverOption')?.value,
+          status: document.getElementById('editBookingStatus')?.value,
+          paymentDone: document.getElementById('editBookingPaymentDone')?.value === 'yes',
+          pickupLocation: document.getElementById('editBookingPickupLocation')?.value,
+        };
+
+        try {
+          await bookingService.updateBookingByAdmin(payload);
+          document.getElementById('overlayHost')?.replaceChildren();
+          void refreshRowsFromDatabase(`Reservation ${row.id || bookingId} updated`);
+        } catch (error) {
+          const message = bookingService && typeof bookingService.toPublicError === 'function'
+            ? bookingService.toPublicError(error, 'Unable to update reservation right now.')
+            : 'Unable to update reservation right now.';
+          notify(message, 'error');
+        }
+      });
+      return;
+    }
+
+    const deleteButton = target.closest('[data-delete-booking-id]');
+    if (deleteButton) {
+      const bookingId = String(deleteButton.getAttribute('data-delete-booking-id') || '').trim();
+      const bookingCode = String(deleteButton.getAttribute('data-delete-booking-code') || '').trim();
+
+      openModal({
+        title: 'Delete Reservation',
+        content: `<p>Reservation <strong>${escapeHtml(bookingCode || bookingId)}</strong> will be permanently removed.</p>`,
+        onConfirm: () => {
+          if (!bookingService || typeof bookingService.deleteBookingByAdmin !== 'function') {
+            notify('Booking delete service is unavailable.', 'error');
+            return;
+          }
+
+          void (async () => {
+            try {
+              await bookingService.deleteBookingByAdmin({ bookingId });
+              await refreshRowsFromDatabase(`Reservation ${bookingCode || bookingId} deleted`);
+            } catch (error) {
+              const message = bookingService && typeof bookingService.toPublicError === 'function'
+                ? bookingService.toPublicError(error, 'Unable to delete reservation right now.')
+                : 'Unable to delete reservation right now.';
+              notify(message, 'error');
+            }
+          })();
+        },
+      });
+      return;
+    }
+  });
+
+  [dateInput, statusSelect, typeSelect, paymentSelect].forEach((control) => {
     control?.addEventListener('input', applyFiltersToTable);
     control?.addEventListener('change', applyFiltersToTable);
   });
@@ -225,12 +369,84 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
     if (dateInput) dateInput.value = '';
     if (statusSelect) statusSelect.value = '';
     if (typeSelect) typeSelect.value = '';
+    if (paymentSelect) paymentSelect.value = '';
     applyFiltersToTable();
   });
 
   toggleClearFiltersButton(clearFiltersBtn, false);
+  renderColumnPanel();
+  applyColumnVisibility(host, visibleColumns);
 
   return host;
+}
+
+function renderBookingEditDrawer(row) {
+  const currentStatus = normalizeBookingStatusLabel(row && row.status ? row.status : 'Confirmed');
+  const driverOptionLabel = String(row && row.driverOption ? row.driverOption : 'Self Drive').toLowerCase();
+  const driverOption = driverOptionLabel.includes('with') ? 'with_driver' : 'self_drive';
+  const paymentDone = row && row.paymentDone ? 'yes' : 'no';
+
+  return `
+    <form id="editBookingForm" class="space-y-3">
+      <label class="block space-y-1"><span class="text-xs font-semibold">Start Date</span><input id="editBookingStartDate" type="date" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${escapeHtml(row && row.start ? row.start : '')}" required /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">End Date</span><input id="editBookingEndDate" type="date" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${escapeHtml(row && row.end ? row.end : '')}" required /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Pickup Time</span><input id="editBookingPickupTime" type="time" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${escapeHtml(row && row.pickupTime ? row.pickupTime : '10:00')}" required /></label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Driver Option</span>
+        <select id="editBookingDriverOption" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+          <option value="self_drive" ${driverOption === 'self_drive' ? 'selected' : ''}>Self Drive</option>
+          <option value="with_driver" ${driverOption === 'with_driver' ? 'selected' : ''}>With Driver</option>
+        </select>
+      </label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Status</span>
+        <select id="editBookingStatus" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+          ${BOOKING_STATUS_OPTIONS.map((option) => `<option value="${option}" ${currentStatus === option ? 'selected' : ''}>${option}</option>`).join('')}
+        </select>
+      </label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Payment Done</span>
+        <select id="editBookingPaymentDone" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+          <option value="yes" ${paymentDone === 'yes' ? 'selected' : ''}>Yes</option>
+          <option value="no" ${paymentDone === 'no' ? 'selected' : ''}>No</option>
+        </select>
+      </label>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Pickup Location</span><textarea id="editBookingPickupLocation" rows="3" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5">${escapeHtml(row && row.pickupLocation ? row.pickupLocation : '')}</textarea></label>
+      <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
+    </form>
+  `;
+}
+
+function loadVisibleColumns() {
+  try {
+    const raw = localStorage.getItem(COLUMN_STORAGE_KEY);
+    if (!raw) {
+      return new Set(BOOKING_TABLE_COLUMNS.map((column) => column.key));
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length) {
+      return new Set(BOOKING_TABLE_COLUMNS.map((column) => column.key));
+    }
+
+    const allowedKeys = new Set(BOOKING_TABLE_COLUMNS.map((column) => column.key));
+    return new Set(parsed.filter((key) => allowedKeys.has(key)));
+  } catch (_error) {
+    return new Set(BOOKING_TABLE_COLUMNS.map((column) => column.key));
+  }
+}
+
+function saveVisibleColumns(columnsSet) {
+  try {
+    localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(Array.from(columnsSet)));
+  } catch (_error) {
+    // Ignore local storage write errors.
+  }
+}
+
+function applyColumnVisibility(host, visibleColumns) {
+  BOOKING_TABLE_COLUMNS.forEach((column) => {
+    host.querySelectorAll(`[data-col="${column.key}"]`).forEach((element) => {
+      element.classList.toggle('hidden', !visibleColumns.has(column.key));
+    });
+  });
 }
 
 function toggleClearFiltersButton(button, isVisible) {
@@ -246,18 +462,24 @@ function applyAdminFilters(rows, filters) {
   const date = String(filters && filters.date ? filters.date : '').trim();
   const status = String(filters && filters.status ? filters.status : '').trim().toLowerCase();
   const type = String(filters && filters.type ? filters.type : '').trim().toLowerCase();
+  const payment = String(filters && filters.payment ? filters.payment : '').trim().toLowerCase();
 
   return source.filter((row) => {
     const rowStatus = String(row && row.status ? row.status : '').toLowerCase();
     const rowType = String(row && row.type ? row.type : '').toLowerCase();
     const rowStart = String(row && row.start ? row.start : '');
     const rowEnd = String(row && row.end ? row.end : '');
+    const rowPayment = row && row.paymentDone ? 'yes' : 'no';
 
     if (status && rowStatus !== status) {
       return false;
     }
 
     if (type && rowType !== type) {
+      return false;
+    }
+
+    if (payment && rowPayment !== payment) {
       return false;
     }
 
@@ -269,21 +491,15 @@ function applyAdminFilters(rows, filters) {
   });
 }
 
-function updateTableRows(host, rows) {
-  const target = host.querySelector('tbody');
-  if (!target) {
-    return;
+function renderTableBody(rows, visibleColumns) {
+  const sorted = sortRows(rows || [], 'createdAt').slice().reverse();
+  const visibleCount = Math.max(1, BOOKING_TABLE_COLUMNS.filter((column) => visibleColumns.has(column.key)).length);
+
+  if (!sorted.length) {
+    return `<tr><td colspan="${visibleCount}" class="py-6">${renderEmptyState({ title: 'No reservations found', message: 'Adjust filters or booking data to show reservations.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`;
   }
 
-  const source = sortRows(rows || [], 'createdAt').slice().reverse();
-  if (!source.length) {
-    target.innerHTML = `<tr><td colspan="10" class="py-6">${renderEmptyState({ title: 'No reservations match', message: 'Adjust filter values to show bookings from your database.', actionLabel: 'Refresh', actionId: 'emptyRefreshBookings' })}</td></tr>`;
-    return;
-  }
-
-  target.innerHTML = source
-    .map((row) => renderBookingRow(row))
-    .join('');
+  return sorted.map((row) => renderBookingRow(row)).join('');
 }
 
 function normalizeBookingStatusLabel(status) {
@@ -304,28 +520,36 @@ function renderBookingRow(row) {
   const bookingId = String(row && row.bookingId ? row.bookingId : '').trim();
   const bookingCode = String(row && row.id ? row.id : '').trim();
   const currentStatus = normalizeBookingStatusLabel(row && row.status ? row.status : 'Confirmed');
-  const isDisabled = !bookingId;
-  const disabledState = isDisabled ? 'disabled' : '';
+  const paymentDone = Boolean(row && row.paymentDone);
 
   return `<tr class="border-b border-slate-100 dark:border-white/5" data-booking-id="${escapeHtml(bookingId)}" data-booking-code="${escapeHtml(bookingCode)}" data-current-status="${escapeHtml(currentStatus)}">
-    <td class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
-    <td class="py-3 pr-3">
+    <td data-col="booking" class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
+    <td data-col="customer" class="py-3 pr-3">
       <p class="font-semibold">${escapeHtml(row.customer || '-')}</p>
       <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
       <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerPhone || '-')}</p>
     </td>
-    <td class="py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
-    <td class="py-3 pr-3">${escapeHtml(row.pickupLocation || '-')}</td>
-    <td class="py-3 pr-3">${escapeHtml(row.start || '-')}</td>
-    <td class="py-3 pr-3">${escapeHtml(row.end || '-')}</td>
-    <td class="py-3 pr-3">${escapeHtml(row.type || '-')}</td>
-    <td class="py-3 pr-3">${escapeHtml(row.driverOption || 'Self Drive')}</td>
-    <td class="py-3 pr-3">
-      <select data-booking-status-select ${disabledState} class="${statusSelectClass(currentStatus, isDisabled)}">
+    <td data-col="vehicle" class="py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
+    <td data-col="pickupLocation" class="py-3 pr-3">${escapeHtml(row.pickupLocation || '-')}</td>
+    <td data-col="start" class="py-3 pr-3">${escapeHtml(row.start || '-')}</td>
+    <td data-col="end" class="py-3 pr-3">${escapeHtml(row.end || '-')}</td>
+    <td data-col="type" class="py-3 pr-3">${escapeHtml(row.type || '-')}</td>
+    <td data-col="driverOption" class="py-3 pr-3">${escapeHtml(row.driverOption || 'Self Drive')}</td>
+    <td data-col="status" class="py-3 pr-3">
+      <select data-booking-status-select class="${statusSelectClass(currentStatus, false)}">
         ${statusOptionMarkup(currentStatus)}
       </select>
     </td>
-    <td class="py-3 pr-3 font-semibold">${escapeHtml(formatNpr(row.total || 0))}</td>
+    <td data-col="payment" class="py-3 pr-3">
+      <span class="${paymentDone ? 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-200'}">${paymentDone ? 'Yes' : 'No'}</span>
+    </td>
+    <td data-col="total" class="py-3 pr-3 font-semibold">${escapeHtml(formatNpr(row.total || 0))}</td>
+    <td data-col="actions" class="py-3 pr-3">
+      <div class="flex gap-2">
+        <button data-edit-booking-id="${escapeHtml(bookingId)}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold dark:border-white/10">Edit</button>
+        <button data-delete-booking-id="${escapeHtml(bookingId)}" data-delete-booking-code="${escapeHtml(bookingCode)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600">Delete</button>
+      </div>
+    </td>
   </tr>`;
 }
 

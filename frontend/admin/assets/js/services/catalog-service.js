@@ -135,16 +135,24 @@ export function createCatalogService({ data }) {
       }
 
       const client = await getClient();
-      const { error } = await client.from(TABLE_NAME).delete().eq('id', id);
+      const { error } = await client
+        .from(TABLE_NAME)
+        .update({
+          status: 'inactive',
+          available: false,
+          is_active: false,
+        })
+        .eq('id', id);
+
       if (error) {
-        throw new Error(error.message || `Vehicle ${id} deletion failed.`);
+        throw new Error(error.message || `Vehicle ${id} soft deletion failed.`);
       }
 
       const index = data.vehicles.findIndex((vehicle) => vehicle.id === id);
       if (index < 0) return { id };
 
       const [deleted] = data.vehicles.splice(index, 1);
-      return deleted;
+      return deleted || { id };
     },
   };
 }

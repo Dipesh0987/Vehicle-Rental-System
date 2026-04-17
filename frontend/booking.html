@@ -292,25 +292,27 @@
           <section class="space-y-4 rounded-3xl border border-[#d5e0db] bg-[linear-gradient(165deg,#ffffff,#f9f4eb)] p-4 shadow-[0_14px_30px_rgba(10,31,34,0.08)] sm:p-5">
             <div id="bookingFormError" class="hidden rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] font-semibold text-rose-700"></div>
 
-            <div class="grid gap-3 sm:grid-cols-3">
-              <label class="grid gap-1">
+            <div class="grid gap-3 sm:grid-cols-3 sm:items-start">
+              <label class="grid gap-1 content-start">
                 <span class="text-[12px] font-semibold text-[#315154]">Vehicle</span>
-                <select id="bookingVehicleSelect" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]"></select>
-                <input id="bookingVehicleLockedDisplay" type="text" readonly class="hidden rounded-xl border border-[#d2dfda] bg-[#f3f8f6] px-3 py-2 text-[14px] font-semibold text-[#2b4d50] outline-none" />
+                <select id="bookingVehicleSelect" class="h-12 rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]"></select>
+                <input id="bookingVehicleLockedDisplay" type="text" readonly class="hidden h-12 rounded-xl border border-[#d2dfda] bg-[#f3f8f6] px-3 py-2 text-[14px] font-semibold text-[#2b4d50] outline-none" />
                 <p id="bookingVehicleLockedHint" class="hidden text-[11px] font-semibold text-[#5c7578]">Vehicle is pre-selected from the details page.</p>
               </label>
 
-              <label class="grid gap-1">
+              <label class="grid gap-1 content-start">
                 <span class="text-[12px] font-semibold text-[#315154]">Pickup Time</span>
-                <input id="bookingPickupTime" type="time" value="10:00" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+                <input id="bookingPickupTime" type="time" value="10:00" class="h-12 rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+                <p class="invisible text-[11px] font-semibold">placeholder</p>
               </label>
 
-              <label class="grid gap-1">
+              <label class="grid gap-1 content-start">
                 <span class="text-[12px] font-semibold text-[#315154]">Driver Option</span>
-                <select id="bookingDriverOption" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]">
+                <select id="bookingDriverOption" class="h-12 rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]">
                   <option value="self_drive" selected>Self Drive</option>
                   <option value="with_driver">With Driver</option>
                 </select>
+                <p class="invisible text-[11px] font-semibold">placeholder</p>
               </label>
             </div>
 
@@ -338,17 +340,18 @@
               </label>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label class="grid gap-1">
+            <div class="grid gap-3 sm:grid-cols-2 sm:items-start">
+              <label class="grid gap-1 content-start">
                 <span class="text-[12px] font-semibold text-[#315154]">Phone <span class="text-rose-600">*</span></span>
-                <input id="bookingCustomerPhone" type="tel" required placeholder="+977 555 000 000" class="rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+                <input id="bookingCustomerPhone" type="tel" required placeholder="+977 555 000 000" class="h-12 rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+                <p class="invisible text-[12px] font-semibold">placeholder text for consistent row height</p>
               </label>
 
-              <label class="grid gap-1">
+              <label class="grid gap-1 content-start">
                 <span class="text-[12px] font-semibold text-[#315154]">Promo Code</span>
                 <div class="flex gap-2">
-                  <input id="bookingCouponCode" type="text" placeholder="SAVE10" class="w-full rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
-                  <button id="bookingApplyCoupon" type="button" class="rounded-xl border border-[#c8d6d1] bg-white px-3 py-2 text-[12px] font-semibold text-[#2e5154] transition hover:-translate-y-[1px] hover:bg-[#f2f8f5]">Apply</button>
+                  <input id="bookingCouponCode" type="text" placeholder="SAVE10" class="h-12 w-full rounded-xl border border-[#d2dfda] bg-[#fbfdfc] px-3 py-2 text-[14px] outline-none transition focus:border-[#2c766e] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.16)]" />
+                  <button id="bookingApplyCoupon" type="button" class="h-12 rounded-xl border border-[#c8d6d1] bg-white px-3 py-2 text-[12px] font-semibold text-[#2e5154] transition hover:-translate-y-[1px] hover:bg-[#f2f8f5]">Apply</button>
                 </div>
                 <p id="bookingCouponStatus" aria-live="polite" class="text-[12px] font-semibold text-[#4f6f71]">Enter a promo code like SAVE10 or WEEKEND50, then click Apply.</p>
               </label>

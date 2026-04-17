@@ -258,9 +258,14 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
               notify(`Vehicle ${id} deleted`, 'success');
               if (typeof reloadVehiclesData === 'function') {
                 await reloadVehiclesData();
+              } else {
+                rerender?.();
               }
             } catch (error) {
-              notify(`Delete failed: ${error.message || 'Unknown error'}`, 'error');
+              const message = catalogService && typeof catalogService.toPublicError === 'function'
+                ? catalogService.toPublicError(error, 'Unable to delete vehicle right now.')
+                : (error && error.message ? error.message : 'Unknown error');
+              notify(`Delete failed: ${message}`, 'error');
             }
           })();
         },

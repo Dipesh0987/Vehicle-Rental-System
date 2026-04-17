@@ -418,6 +418,10 @@
       return "Vehicle image storage bucket is missing. Configure the vehicle image bucket in Supabase.";
     }
 
+    if (String(error && error.code || "") === "23503" || Number(error && error.status ? error.status : 0) === 409) {
+      return "Vehicle cannot be hard-deleted because related booking records exist. It has been marked inactive instead.";
+    }
+
     if (message.indexOf("mime") >= 0 && message.indexOf("not allowed") >= 0) {
       return "Only JPG, PNG, and WEBP vehicle images are allowed.";
     }
@@ -1486,10 +1490,19 @@
       throw new Error("Vehicle table is not available in Supabase.");
     }
 
-    var result = await client.from(tableName).delete().eq("id", id);
-    if (result.error) {
-      throw new Error(errorMessage(result.error));
-    }
+    var softDeletePayload = buildWritePayload({
+      status: "inactive",
+      available: false,
+      is_active: false,
+    }, false);
+
+    await executeWriteWithColumnPruning(
+      client,
+      tableName,
+      "update",
+      softDeletePayload,
+      id
+    );
 
     notifyCatalogChanged("delete");
     return true;

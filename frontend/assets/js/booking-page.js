@@ -72,6 +72,23 @@
     return false;
   }
 
+  async function readVerificationStatus() {
+    if (!window.VehicleAuthService || typeof window.VehicleAuthService.getProfile !== "function") {
+      return "not_submitted";
+    }
+
+    try {
+      var profile = await window.VehicleAuthService.getProfile();
+      return normalizeString(profile && profile.verification_status, "not_submitted").toLowerCase() || "not_submitted";
+    } catch (_error) {
+      return "not_submitted";
+    }
+  }
+
+  function isVerificationApproved(status) {
+    return normalizeString(status, "").toLowerCase() === "approved";
+  }
+
   function formatMoney(amount) {
     var numeric = Number(amount || 0);
     if (!Number.isFinite(numeric)) {
@@ -969,6 +986,9 @@
         }
 
         var values = state.pendingBookingValues;
+        state.verificationStatus = await readVerificationStatus();
+        var isApprovedProfile = isVerificationApproved(state.verificationStatus);
+        var bookingStatus = isApprovedProfile ? "confirmed" : "pending";
         var payload = {
           vehicleId: state.selectedVehicle.id,
           customerName: values.customerName,
@@ -981,7 +1001,7 @@
           couponCode: values.couponCode,
           notes: values.pickupLocation,
           dailyRate: parseDailyRate(state.selectedVehicle),
-          status: "confirmed",
+          status: bookingStatus,
         };
 
         setButtonLoading(confirmSubmit, true, "Saving Booking...", submitDefaultLabel);
@@ -999,6 +1019,11 @@
             totalAmount: savedBooking && savedBooking.quote ? savedBooking.quote.totalAmount : state.latestQuote.totalAmount,
             customerName: values.customerName,
           });
+
+          if (!isApprovedProfile) {
+            window.alert("Your booking has been received, but approval is pending. Please verify your account to get booking approval.");
+          }
+
           resetBookingFormForNext(state);
           setBannerMessage("bookingFormError", "", "error");
           updateAvailabilityPill("ok", "Booking saved successfully");
@@ -1058,6 +1083,9 @@
       }
 
       var values = readFormValues();
+      state.verificationStatus = await readVerificationStatus();
+      var isApprovedProfile = isVerificationApproved(state.verificationStatus);
+      var bookingStatus = isApprovedProfile ? "confirmed" : "pending";
       var validation = window.VehicleBookingService.validateBookingInput({
         vehicleId: state.selectedVehicle.id,
         customerName: values.customerName,
@@ -1070,7 +1098,7 @@
         couponCode: values.couponCode,
         notes: values.pickupLocation,
         dailyRate: parseDailyRate(state.selectedVehicle),
-        status: "confirmed",
+        status: bookingStatus,
       });
 
       if (!validation.valid) {
@@ -1088,6 +1116,10 @@
       state.pendingBookingValues = values;
       if (confirmSummary) {
         confirmSummary.innerHTML = buildConfirmSummaryHtml(state, values);
+      }
+
+      if (!isApprovedProfile) {
+        setBannerMessage("bookingFormError", "Booking will be created as Pending until your account verification is approved.", "error");
       }
 
       setModalState("bookingConfirmModal", "bookingConfirmCard", true);
@@ -1218,6 +1250,7 @@
         discountAmount: 0,
         totalAmount: 0,
       },
+      verificationStatus: "not_submitted",
     };
 
     setDefaultDateInputs();
