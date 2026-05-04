@@ -265,45 +265,46 @@ function renderEditDiscountCodeForm() {
 
 function setupPricingEventListeners(host, { notify, rerender }) {
   // Create button
-  host.getElementById?.('createDiscountBtn')?.addEventListener('click', () => {
+  host.querySelector('#createDiscountBtn')?.addEventListener('click', () => {
     pricingUiState.showCreateForm = true;
     rerender?.();
   });
 
   // Cancel buttons
-  host.getElementById?.('cancelBtn')?.addEventListener('click', () => {
+  host.querySelector('#cancelBtn')?.addEventListener('click', () => {
     pricingUiState.showCreateForm = false;
     rerender?.();
   });
 
-  host.getElementById?.('cancelFormBtn')?.addEventListener('click', () => {
+  host.querySelector('#cancelFormBtn')?.addEventListener('click', () => {
     pricingUiState.showCreateForm = false;
     rerender?.();
   });
 
-  host.getElementById?.('cancelEditBtn')?.addEventListener('click', () => {
+  host.querySelector('#cancelEditBtn')?.addEventListener('click', () => {
     pricingUiState.editingCodeId = null;
     rerender?.();
   });
 
-  host.getElementById?.('cancelEditFormBtn')?.addEventListener('click', () => {
+  host.querySelector('#cancelEditFormBtn')?.addEventListener('click', () => {
     pricingUiState.editingCodeId = null;
     rerender?.();
   });
 
   // Create form submit
-  host.getElementById?.('discountCodeForm')?.addEventListener('submit', async (e) => {
+  host.querySelector('#discountCodeForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const form = host.querySelector('#discountCodeForm');
     const formData = {
-      code: document.getElementById('codeInput').value.toUpperCase().trim(),
-      description: document.getElementById('descriptionInput').value.trim(),
-      discount_type: document.getElementById('discountTypeSelect').value,
-      discount_value: parseFloat(document.getElementById('discountValueInput').value),
-      valid_from: new Date(document.getElementById('validFromInput').value).toISOString(),
-      valid_until: new Date(document.getElementById('validUntilInput').value).toISOString(),
-      max_uses: document.getElementById('maxUsesInput').value ? parseInt(document.getElementById('maxUsesInput').value) : null,
-      min_booking_amount: document.getElementById('minBookingInput').value ? parseFloat(document.getElementById('minBookingInput').value) : null,
-      max_discount_amount: document.getElementById('maxDiscountInput').value ? parseFloat(document.getElementById('maxDiscountInput').value) : null,
+      code: form.querySelector('#codeInput').value.toUpperCase().trim(),
+      description: form.querySelector('#descriptionInput').value.trim(),
+      discount_type: form.querySelector('#discountTypeSelect').value,
+      discount_value: parseFloat(form.querySelector('#discountValueInput').value),
+      valid_from: new Date(form.querySelector('#validFromInput').value).toISOString(),
+      valid_until: new Date(form.querySelector('#validUntilInput').value).toISOString(),
+      max_uses: form.querySelector('#maxUsesInput').value ? parseInt(form.querySelector('#maxUsesInput').value) : null,
+      min_booking_amount: form.querySelector('#minBookingInput').value ? parseFloat(form.querySelector('#minBookingInput').value) : null,
+      max_discount_amount: form.querySelector('#maxDiscountInput').value ? parseFloat(form.querySelector('#maxDiscountInput').value) : null,
     };
 
     try {
@@ -320,12 +321,13 @@ function setupPricingEventListeners(host, { notify, rerender }) {
   });
 
   // Edit form submit
-  host.getElementById?.('discountCodeEditForm')?.addEventListener('submit', async (e) => {
+  host.querySelector('#discountCodeEditForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const codeId = document.getElementById('codeIdInput').value;
+    const form = host.querySelector('#discountCodeEditForm');
+    const codeId = form.querySelector('#codeIdInput').value;
     const updateData = {
-      description: document.getElementById('editDescriptionInput').value.trim(),
-      max_uses: document.getElementById('editMaxUsesInput').value ? parseInt(document.getElementById('editMaxUsesInput').value) : null,
+      description: form.querySelector('#editDescriptionInput').value.trim(),
+      max_uses: form.querySelector('#editMaxUsesInput').value ? parseInt(form.querySelector('#editMaxUsesInput').value) : null,
     };
 
     try {
