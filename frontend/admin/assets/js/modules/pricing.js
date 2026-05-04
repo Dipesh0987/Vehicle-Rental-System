@@ -1,6 +1,5 @@
 import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
-import { supabase } from '../supabase.client.js';
 
 const pricingUiState = {
   showCreateForm: false,
@@ -12,7 +11,7 @@ const pricingUiState = {
 
 export async function initializePricingModule() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await window.supabase
       .from('discount_codes')
       .select('*')
       .order('created_at', { ascending: false });
@@ -308,7 +307,7 @@ function setupPricingEventListeners(host, { notify, rerender }) {
     };
 
     try {
-      const { data, error } = await supabase.from('discount_codes').insert([formData]).select();
+      const { data, error } = await window.supabase.from('discount_codes').insert([formData]).select();
       if (error) throw error;
 
       pricingUiState.discountCodes.push(data[0]);
@@ -330,7 +329,7 @@ function setupPricingEventListeners(host, { notify, rerender }) {
     };
 
     try {
-      const { data, error } = await supabase.from('discount_codes').update(updateData).eq('id', codeId).select();
+      const { data, error } = await window.supabase.from('discount_codes').update(updateData).eq('id', codeId).select();
       if (error) throw error;
 
       const index = pricingUiState.discountCodes.findIndex(c => c.id === codeId);
@@ -352,7 +351,7 @@ function setupPricingEventListeners(host, { notify, rerender }) {
       const code = pricingUiState.discountCodes.find(c => c.id === codeId);
       
       try {
-        const { data, error } = await supabase.from('discount_codes').update({ is_active: !code.is_active }).eq('id', codeId).select();
+        const { data, error } = await window.supabase.from('discount_codes').update({ is_active: !code.is_active }).eq('id', codeId).select();
         if (error) throw error;
 
         const index = pricingUiState.discountCodes.findIndex(c => c.id === codeId);
@@ -384,7 +383,7 @@ function setupPricingEventListeners(host, { notify, rerender }) {
       if (!confirm(`Delete discount code ${code.code}? This action cannot be undone.`)) return;
 
       try {
-        const { error } = await supabase.from('discount_codes').delete().eq('id', codeId);
+        const { error } = await window.supabase.from('discount_codes').delete().eq('id', codeId);
         if (error) throw error;
 
         pricingUiState.discountCodes = pricingUiState.discountCodes.filter(c => c.id !== codeId);
