@@ -214,9 +214,19 @@ function renderGlobalSearchResults() {
 
   input.setAttribute('aria-expanded', groups.length > 0 ? 'true' : 'false');
 
-  if (!query || !groups.length) {
+  if (!query) {
     panel.replaceChildren();
     panel.classList.add('hidden');
+    return;
+  }
+
+  if (!groups.length) {
+    panel.innerHTML = `
+      <div class="px-4 py-5 text-sm text-slate-600 dark:text-slate-300">
+        No results found across bookings, customers, invoices, or vehicles.
+      </div>
+    `;
+    panel.classList.remove('hidden');
     return;
   }
 
