@@ -15,6 +15,7 @@ import { renderNotificationsModule } from './modules/notifications.js';
 import { renderReportsModule } from './modules/reports.js';
 import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
+import { searchAdminGlobalIndex } from './global-search.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -34,6 +35,7 @@ const modules = {
 const appState = {
   activeModule: 'overview',
   globalSearch: '',
+  globalSearchResults: [],
   canWriteCatalog: true,
   data: structuredClone(dashboardData),
   baseNotifications: [],
@@ -66,6 +68,7 @@ async function bootstrap() {
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
+  renderGlobalSearchResults();
   setActiveNav(appState.activeModule);
 
   await hydrateVehiclesFromCatalog({ silent: true });
@@ -117,6 +120,15 @@ function renderActiveModule() {
   }
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function hydrateBookingsFromDatabase({ silent = false } = {}) {
   if (!appState.bookingService || typeof appState.bookingService.listBookings !== 'function') {
     appState.data.bookings = [];
@@ -152,6 +164,7 @@ async function hydrateBookingsFromDatabase({ silent = false } = {}) {
 function handleNavigate(id) {
   const normalized = id === 'operations' || id === 'finance' || id === 'quality' ? 'overview' : id;
   appState.activeModule = modules[normalized] ? normalized : 'overview';
+  clearGlobalSearchUI();
   renderActiveModule();
 }
 
@@ -164,6 +177,7 @@ function handleQuickAction(id) {
 
   const target = actionToModule[id] || 'overview';
   appState.activeModule = target;
+  clearGlobalSearchUI();
   setActiveNav(target);
   renderActiveModule();
   pushToast(`${id.replace(/([A-Z])/g, ' $1')} ready`, 'success');
@@ -171,7 +185,141 @@ function handleQuickAction(id) {
 
 function handleGlobalSearch(query) {
   appState.globalSearch = query;
+  appState.globalSearchResults = searchAdminGlobalIndex(appState.data, query, { groupLimit: 4 });
+  renderGlobalSearchResults();
   renderActiveModule();
+}
+
+function clearGlobalSearchUI() {
+  appState.globalSearch = '';
+  appState.globalSearchResults = [];
+  const searchInput = document.getElementById('globalSearch');
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.setAttribute('aria-expanded', 'false');
+  }
+  renderGlobalSearchResults();
+}
+
+function renderGlobalSearchResults() {
+  const panel = document.getElementById('globalSearchPanel');
+  const input = document.getElementById('globalSearch');
+
+  if (!panel || !input) {
+    return;
+  }
+
+  const query = String(appState.globalSearch || '').trim();
+  const groups = Array.isArray(appState.globalSearchResults) ? appState.globalSearchResults : [];
+
+  input.setAttribute('aria-expanded', groups.length > 0 ? 'true' : 'false');
+
+  if (!query || !groups.length) {
+    panel.replaceChildren();
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="border-b border-slate-200/80 px-4 py-3 dark:border-white/10">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Search results</p>
+      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Grouped across bookings, customers, invoices, and vehicles.</p>
+    </div>
+    <div class="max-h-[420px] overflow-y-auto p-2">
+      ${groups.map(renderGlobalSearchGroup).join('')}
+    </div>
+  `;
+
+  panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-global-search-result]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const payload = safeParseSearchPayload(button.getAttribute('data-global-search-result'));
+      if (!payload) {
+        return;
+      }
+
+      handleGlobalSearchSelection(payload);
+    });
+  });
+}
+
+function renderGlobalSearchGroup(group) {
+  const label = String(group && group.label ? group.label : '').trim();
+  const items = Array.isArray(group && group.items) ? group.items : [];
+
+  return `
+    <section class="space-y-2 px-1 py-2">
+      <div class="flex items-center justify-between px-2">
+        <h3 class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</h3>
+        <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">${items.length} result${items.length === 1 ? '' : 's'}</span>
+      </div>
+      <div class="space-y-1">
+        ${items.map((item) => renderGlobalSearchResult(item)).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderGlobalSearchResult(item) {
+  const payload = JSON.stringify({
+    module: item.module,
+    hash: item.hash,
+    entity: item.entity,
+    entityLabel: item.entityLabel,
+    id: item.id,
+    title: item.title,
+  });
+
+  return `
+    <button type="button" data-global-search-result='${escapeHtml(payload)}' class="flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-slate-900/5 dark:hover:bg-white/10">
+      <span class="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-[11px] font-bold uppercase text-brand-700 dark:bg-brand-400/15 dark:text-brand-200">${escapeHtml((item.entityLabel || 'Item').slice(0, 2))}</span>
+      <span class="min-w-0 flex-1">
+        <span class="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(item.title || item.id || 'Result')}</span>
+        <span class="block truncate text-xs text-slate-500 dark:text-slate-400">${escapeHtml(item.subtitle || item.id || '')}</span>
+        ${item.meta ? `<span class="mt-0.5 block truncate text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-400 dark:text-slate-500">${escapeHtml(item.meta)}</span>` : ''}
+      </span>
+    </button>
+  `;
+}
+
+function safeParseSearchPayload(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn('Invalid search result payload:', error);
+    return null;
+  }
+}
+
+function handleGlobalSearchSelection(result) {
+  const moduleId = String(result && result.module ? result.module : '').trim();
+  const hash = String(result && result.hash ? result.hash : '').trim();
+
+  if (moduleId) {
+    appState.activeModule = moduleId;
+  }
+
+  if (hash) {
+    history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
+  }
+
+  appState.globalSearch = '';
+  appState.globalSearchResults = [];
+
+  const searchInput = document.getElementById('globalSearch');
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.setAttribute('aria-expanded', 'false');
+  }
+
+  renderGlobalSearchResults();
+  renderActiveModule();
+  setActiveNav(appState.activeModule);
 }
 
 async function hydrateVehiclesFromCatalog({ silent = false } = {}) {
