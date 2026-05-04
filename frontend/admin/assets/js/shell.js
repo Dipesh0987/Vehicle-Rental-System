@@ -180,10 +180,13 @@ export function renderShell() {
           <span id="sidebarToggleIcon" class="material-symbols-outlined">menu_open</span>
         </button>
 
-        <label class="relative min-w-[230px] flex-1 max-w-[480px]">
-          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
-          <input id="globalSearch" placeholder="Search bookings, customer, invoice, vehicle..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
-        </label>
+        <div data-global-search-root class="relative min-w-[230px] flex-1 max-w-[480px]">
+          <label class="relative block">
+            <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
+            <input id="globalSearch" autocomplete="off" placeholder="Search bookings, customers, invoices, vehicles..." aria-haspopup="listbox" aria-expanded="false" class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
+          </label>
+          <div id="globalSearchPanel" class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-[#11181d]"></div>
+        </div>
 
         <div id="quickActions" class="hidden items-center gap-2 xl:flex">${renderQuickActions()}</div>
 
@@ -289,6 +292,35 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch) {
       onSearch(event.target.value || '');
     });
   }
+
+  document.addEventListener('click', (event) => {
+    const searchRoot = document.querySelector('[data-global-search-root]');
+    const searchPanel = document.getElementById('globalSearchPanel');
+    if (!searchRoot || !searchPanel) {
+      return;
+    }
+
+    const target = event.target;
+    if (target instanceof Node && searchRoot.contains(target)) {
+      return;
+    }
+
+    searchPanel.classList.add('hidden');
+    searchInput?.setAttribute('aria-expanded', 'false');
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') {
+      return;
+    }
+
+    const searchPanel = document.getElementById('globalSearchPanel');
+    if (searchPanel) {
+      searchPanel.classList.add('hidden');
+    }
+
+    searchInput?.setAttribute('aria-expanded', 'false');
+  });
 
   const logoutButtons = document.querySelectorAll('[data-admin-logout]');
   logoutButtons.forEach((button) => {
