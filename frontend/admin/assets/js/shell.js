@@ -305,12 +305,22 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch) {
       return;
     }
 
+    if (String(searchInput?.value || '').trim()) {
+      onSearch('');
+      return;
+    }
+
     searchPanel.classList.add('hidden');
     searchInput?.setAttribute('aria-expanded', 'false');
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') {
+      return;
+    }
+
+    if (String(searchInput?.value || '').trim()) {
+      onSearch('');
       return;
     }
 
