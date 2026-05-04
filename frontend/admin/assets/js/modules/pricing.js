@@ -1,5 +1,5 @@
 import { classMap } from '../config.js';
-import { filterRows, paginateRows, renderPagination } from '../utils/table-utils.js';
+import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 
 let pricingUiState = {
   showCreateForm: false,
@@ -37,7 +37,8 @@ function renderPricingOverview() {
   const searchTerm = searchInput?.value.toLowerCase() || '';
   
   const filteredCodes = filterRows(pricingUiState.discountCodes, searchTerm, ['code', 'description']);
-  const paginatedCodes = paginateRows(filteredCodes, pricingUiState.page, pricingUiState.pageSize);
+  const pagination = paginateRows(filteredCodes, pricingUiState.page, pricingUiState.pageSize);
+  const paginatedCodes = pagination.rows;
 
   return `
     <div class="space-y-6">
@@ -87,11 +88,7 @@ function renderPricingOverview() {
       `}
 
       <!-- Pagination -->
-      ${filteredCodes.length > pricingUiState.pageSize ? renderPagination(pricingUiState.page, Math.ceil(filteredCodes.length / pricingUiState.pageSize), (page) => {
-        pricingUiState.page = page;
-        // Trigger re-render via module manager
-        document.getElementById('pricingModule')?.dispatchEvent(new CustomEvent('rerender'));
-      }) : ''}
+      ${pagination.pages > 1 ? `<div id="pricingPaginationContainer"></div>` : ''}
     </div>
   `;
 }
@@ -377,6 +374,21 @@ function setupPricingEventListeners(host, { notify, rerender }) {
       }
     });
   });
+
+  // Setup pagination
+  const paginationContainer = host.querySelector('#pricingPaginationContainer');
+  if (paginationContainer) {
+    const searchTerm = host.querySelector('#pricingSearchInput')?.value.toLowerCase() || '';
+    const filteredCodes = filterRows(pricingUiState.discountCodes, searchTerm, ['code', 'description']);
+    const pagination = paginateRows(filteredCodes, pricingUiState.page, pricingUiState.pageSize);
+    
+    const paginationElement = renderPagination({ page: pagination.page, pages: pagination.pages }, (page) => {
+      pricingUiState.page = page;
+      rerender?.();
+    });
+    paginationContainer.innerHTML = '';
+    paginationContainer.appendChild(paginationElement);
+  }
 }
 
 export function renderPricingModule(host, { data, query, notify, rerender }) {
