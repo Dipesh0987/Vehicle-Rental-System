@@ -308,7 +308,8 @@
       tax.textContent = formatMoney(quote.taxAmount);
     }
     if (discount) {
-      discount.textContent = "-" + formatMoney(quote.discountAmount);
+      var totalDiscount = (quote.totalDiscount || quote.discountAmount || 0);
+      discount.textContent = "-" + formatMoney(totalDiscount);
     }
     if (total) {
       total.textContent = formatMoney(quote.totalAmount);
@@ -476,19 +477,103 @@
       startDate: values.startDate,
       endDate: values.endDate,
       couponCode: values.couponCode,
+      promoDiscount: state.appliedPromoDiscount || 0,
     });
 
     state.latestQuote = quote;
     renderQuote(quote);
 
-    if (values.couponCode) {
-      if (quote.couponCode) {
-        applyCouponStatus(quote.couponMessage);
-      } else {
-        applyCouponStatus("Promo code not recognized. Try SAVE10 or WEEKEND50.");
-      }
+    if (values.couponCode && state.appliedPromoCode !== values.couponCode) {
+      applyCouponStatus("Click Apply to validate this code.");
+    } else if (state.appliedPromoCode === values.couponCode) {
+      applyCouponStatus("Promo code applied: " + (state.appliedPromoDiscount || 0).toFixed(2) + " NPR discount");
     } else {
-      applyCouponStatus("Enter a promo code like SAVE10 or WEEKEND50, then click Apply.");
+      applyCouponStatus("Enter a promo code, then click Apply.");
+    }
+  }
+
+  async function validateAndApplyPromoCode(state) {
+    var couponInput = byId("bookingCouponCode");
+    var code = normalizeString(couponInput ? couponInput.value : "", "");
+
+    if (!code) {
+      applyCouponStatus("Enter a promo code first.");
+      return;
+    }
+
+    var vehicle = state.selectedVehicle;
+    var values = readFormValues();
+
+    if (!vehicle) {
+      applyCouponStatus("Please select a vehicle first.");
+      return;
+    }
+
+    if (!values.startDate || !values.endDate) {
+      applyCouponStatus("Please select travel dates first.");
+      return;
+    }
+
+    if (!window.VehicleBookingService || typeof window.VehicleBookingService.calculateBookingQuote !== "function") {
+      applyCouponStatus("Booking service unavailable.");
+      return;
+    }
+
+    // Calculate base quote without promo to get the booking amount
+    var baseQuote = window.VehicleBookingService.calculateBookingQuote({
+      dailyRate: parseDailyRate(vehicle),
+      startDate: values.startDate,
+      endDate: values.endDate,
+      couponCode: null,
+      promoDiscount: 0,
+    });
+
+    // Validate promo code using Supabase RPC
+    try {
+      if (!window.supabase) {
+        applyCouponStatus("This code is not valid for your booking");
+        return;
+      }
+
+      var { data, error } = await window.supabase.rpc('validate_discount_code', {
+        p_code: code.toUpperCase().trim(),
+        p_booking_amount: baseQuote.totalAmount
+      });
+
+      if (error) {
+        console.error('Promo validation error:', error);
+        applyCouponStatus("This code is not valid for your booking");
+        state.appliedPromoCode = null;
+        state.appliedPromoDiscount = 0;
+        syncQuoteFromState(state);
+        return;
+      }
+
+      if (Array.isArray(data) && data.length > 0) {
+        var result = data[0];
+        if (result.valid) {
+          state.appliedPromoCode = code;
+          state.appliedPromoDiscount = parseFloat(result.discount_amount) || 0;
+          applyCouponStatus("Promo code applied: NPR " + state.appliedPromoDiscount.toFixed(2) + " discount");
+          syncQuoteFromState(state);
+        } else {
+          applyCouponStatus(result.error_message || "This code is not valid for your booking");
+          state.appliedPromoCode = null;
+          state.appliedPromoDiscount = 0;
+          syncQuoteFromState(state);
+        }
+      } else {
+        applyCouponStatus("This code is not valid for your booking");
+        state.appliedPromoCode = null;
+        state.appliedPromoDiscount = 0;
+        syncQuoteFromState(state);
+      }
+    } catch (error) {
+      console.error('Promo code validation exception:', error);
+      applyCouponStatus("This code is not valid for your booking");
+      state.appliedPromoCode = null;
+      state.appliedPromoDiscount = 0;
+      syncQuoteFromState(state);
     }
   }
 
@@ -502,6 +587,8 @@
     }
 
     state.selectedVehicle = nextVehicle;
+    state.appliedPromoCode = null;
+    state.appliedPromoDiscount = 0;
     renderVehicleSummary(nextVehicle);
     syncQuoteFromState(state);
     syncVehicleSelectionLock(state);
@@ -558,13 +645,13 @@
         }
 
         event.preventDefault();
-        syncQuoteFromState(state);
+        validateAndApplyPromoCode(state);
       });
     }
 
     if (applyCoupon) {
       applyCoupon.addEventListener("click", function () {
-        syncQuoteFromState(state);
+        validateAndApplyPromoCode(state);
       });
     }
   }
@@ -1236,12 +1323,15 @@
       availabilityTimerId: null,
       availabilityRequestId: 0,
       lastConfirmedBookingCode: "",
+      appliedPromoCode: null,
+      appliedPromoDiscount: 0,
       latestQuote: {
         bookingDays: 0,
         baseAmount: 0,
         serviceFee: 0,
         taxAmount: 0,
         discountAmount: 0,
+        totalDiscount: 0,
         totalAmount: 0,
       },
       verificationStatus: "not_submitted",
