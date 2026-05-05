@@ -1384,7 +1384,9 @@
     }
 
     var preferredVehicleId = queryVehicle || (state.vehicles[0] && state.vehicles[0].id ? state.vehicles[0].id : "");
-    state.isVehicleSelectionLocked = Boolean(shouldLockVehicleSelection && preferredVehicleId);
+    // If a preferred vehicle id is present (from query or handoff or default), show only that vehicle name
+    // and hide the dropdown — this prevents showing other vehicle options in the UI.
+    state.isVehicleSelectionLocked = Boolean(preferredVehicleId);
 
     fillVehicleSelect(state.vehicles, preferredVehicleId);
     selectVehicleById(state, preferredVehicleId);
