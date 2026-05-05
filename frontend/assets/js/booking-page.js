@@ -364,7 +364,7 @@
     var lockedDisplay = byId("bookingVehicleLockedDisplay");
     var lockedHint = byId("bookingVehicleLockedHint");
 
-    if (!select || !lockedDisplay || !lockedHint) {
+    if (!select || !lockedDisplay) {
       return;
     }
 
@@ -375,7 +375,9 @@
 
       lockedDisplay.value = normalizeString(vehicleLabel, "Selected vehicle");
       lockedDisplay.classList.remove("hidden");
-      lockedHint.classList.remove("hidden");
+      if (lockedHint) {
+        lockedHint.classList.remove("hidden");
+      }
       return;
     }
 
@@ -385,7 +387,9 @@
 
     lockedDisplay.classList.add("hidden");
     lockedDisplay.value = "";
-    lockedHint.classList.add("hidden");
+    if (lockedHint) {
+      lockedHint.classList.add("hidden");
+    }
   }
 
   function syncVehicleSelectionLock(state) {
