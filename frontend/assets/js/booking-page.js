@@ -482,10 +482,19 @@
     }
 
     try {
-      // Get Supabase client from auth context
-      var client = window.supabase;
-      if (!client) {
-        return { promoDiscount: 0, couponMessage: "Service unavailable", code: "" };
+      // Resolve Supabase client consistently
+      var client = null;
+      if (window.SupabaseRuntime && window.SupabaseRuntime.client) {
+        client = window.SupabaseRuntime.client;
+      } else if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+        client = await window.SupabaseClient.init();
+      } else if (window.supabase) {
+        client = window.supabase;
+      }
+
+      if (!client || typeof client.rpc !== 'function') {
+        console.error('Supabase client not available for RPC', client);
+        return { promoDiscount: 0, couponMessage: 'Service unavailable', code: '' };
       }
 
       var response = await client.rpc('validate_discount_code', {
@@ -495,39 +504,40 @@
 
       if (response.error) {
         console.error('Error validating promo code:', response.error);
-        return { promoDiscount: 0, couponMessage: "Unable to validate code", code: "" };
+        return { promoDiscount: 0, couponMessage: response.error.message || 'Unable to validate code', code: '' };
       }
 
-      if (!response.data || response.data.length === 0) {
-        return { promoDiscount: 0, couponMessage: "Promo code not found", code: "" };
+      var rows = response.data;
+      if (!rows || (Array.isArray(rows) && rows.length === 0)) {
+        return { promoDiscount: 0, couponMessage: 'Promo code not found', code: '' };
       }
 
-      var result = response.data[0];
-      
+      var result = Array.isArray(rows) ? rows[0] : rows;
+
       if (!result.is_valid) {
-        return { 
-          promoDiscount: 0, 
-          couponMessage: result.error_message || "This code is not valid for your booking",
-          code: ""
+        return {
+          promoDiscount: 0,
+          couponMessage: result.error_message || 'This code is not valid for your booking',
+          code: ''
         };
       }
 
-      var discountAmount = result.discount_amount || 0;
+      var discountAmount = Number(result.discount_amount || 0);
       var discountType = result.discount_type || '';
       var discountValue = result.discount_value || 0;
-      
-      var message = discountType === 'percentage' 
-        ? "✓ Promo applied: " + discountValue + "% discount"
-        : "✓ Promo applied: NPR " + discountAmount.toFixed(2) + " discount";
 
-      return { 
-        promoDiscount: discountAmount, 
+      var message = discountType === 'percentage'
+        ? '✓ Promo applied: ' + discountValue + '% discount'
+        : '✓ Promo applied: NPR ' + discountAmount.toFixed(2) + ' discount';
+
+      return {
+        promoDiscount: discountAmount,
         couponMessage: message,
         code: code.toUpperCase().trim()
       };
     } catch (error) {
       console.error('Error validating promo code:', error);
-      return { promoDiscount: 0, couponMessage: "Error validating code", code: "" };
+      return { promoDiscount: 0, couponMessage: 'Error validating code', code: '' };
     }
   }
 
