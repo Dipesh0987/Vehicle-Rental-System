@@ -228,6 +228,35 @@
     }
   }
 
+  function isoToday() {
+    var now = new Date();
+    var yyyy = now.getFullYear();
+    var mm = String(now.getMonth() + 1).padStart(2, '0');
+    var dd = String(now.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  function ensureValidDates() {
+    var startInput = byId('bookingStartDate');
+    var endInput = byId('bookingEndDate');
+    if (!startInput || !endInput) return;
+
+    var today = isoToday();
+    var start = normalizeString(startInput.value, '');
+    var end = normalizeString(endInput.value, '');
+
+    // If start is invalid or in the past, set to today
+    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(start) || start < today) {
+      startInput.value = today;
+      start = today;
+    }
+
+    // If end is invalid or before start, set end = start
+    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(end) || end < start) {
+      endInput.value = start;
+    }
+  }
+
   function setBannerMessage(targetId, text, mode) {
     var element = byId(targetId);
     if (!element) {
@@ -630,6 +659,8 @@
         clearCustomFieldError(input);
         setBannerMessage("bookingFormError", "", "error");
         updateAvailabilityPill("default", "Choose dates to check availability");
+        // Ensure dates are valid before syncing quote
+        ensureValidDates();
         syncQuoteFromState(state);
         scheduleAvailabilityCheck(state);
       });
@@ -1391,6 +1422,8 @@
     fillVehicleSelect(state.vehicles, preferredVehicleId);
     selectVehicleById(state, preferredVehicleId);
     syncVehicleSelectionLock(state);
+    // Make sure dates are valid after any prefill/defaults
+    ensureValidDates();
     wireBaseInteractions(state);
     wireReviewFlow(state);
     wireSuccessModal();
