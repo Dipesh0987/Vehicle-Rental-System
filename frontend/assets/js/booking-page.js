@@ -459,25 +459,50 @@
       return;
     }
 
-    label.textContent = text;
+    if (!text || String(text).trim() === "") {
+      label.textContent = "";
+      label.classList.add("hidden");
+      label.className = "hidden text-[12px] font-semibold";
+    } else {
+      label.textContent = text;
+      label.classList.remove("hidden");
+      
+      // Add success/error styling based on content
+      if (String(text).indexOf("✓") === 0 || String(text).indexOf("applied") > -1) {
+        label.className = "text-[12px] font-semibold text-[#16a34a]";
+      } else {
+        label.className = "text-[12px] font-semibold text-[#dc2626]";
+      }
+    }
   }
 
   async function validateAndApplyPromoCode(state, code, baseAmount) {
-    if (!code || !window.supabase) {
+    if (!code) {
       return { promoDiscount: 0, couponMessage: "", code: "" };
     }
 
     try {
-      var response = await window.supabase.rpc('validate_discount_code', {
+      // Get Supabase client from auth context
+      var client = window.supabase;
+      if (!client) {
+        return { promoDiscount: 0, couponMessage: "Service unavailable", code: "" };
+      }
+
+      var response = await client.rpc('validate_discount_code', {
         p_code: code.toUpperCase().trim(),
         p_booking_amount: baseAmount
       });
 
-      if (!response.data) {
-        return { promoDiscount: 0, couponMessage: "Promo code not recognized", code: "" };
+      if (response.error) {
+        console.error('Error validating promo code:', response.error);
+        return { promoDiscount: 0, couponMessage: "Unable to validate code", code: "" };
       }
 
-      var result = response.data;
+      if (!response.data || response.data.length === 0) {
+        return { promoDiscount: 0, couponMessage: "Promo code not found", code: "" };
+      }
+
+      var result = response.data[0];
       
       if (!result.is_valid) {
         return { 
@@ -492,8 +517,8 @@
       var discountValue = result.discount_value || 0;
       
       var message = discountType === 'percentage' 
-        ? "Promo code applied: " + discountValue + "% discount"
-        : "Promo code applied: NPR " + discountAmount.toFixed(2) + " discount";
+        ? "✓ Promo applied: " + discountValue + "% discount"
+        : "✓ Promo applied: NPR " + discountAmount.toFixed(2) + " discount";
 
       return { 
         promoDiscount: discountAmount, 
@@ -502,7 +527,7 @@
       };
     } catch (error) {
       console.error('Error validating promo code:', error);
-      return { promoDiscount: 0, couponMessage: "Unable to validate code", code: "" };
+      return { promoDiscount: 0, couponMessage: "Error validating code", code: "" };
     }
   }
 
@@ -618,6 +643,13 @@
 
         event.preventDefault();
         syncQuoteFromState(state);
+      });
+
+      couponCode.addEventListener("change", function () {
+        if (!this.value.trim()) {
+          applyCouponStatus("");
+          syncQuoteFromState(state);
+        }
       });
     }
 
@@ -879,7 +911,13 @@
     var safeCustomerPhone = escapeHtml(normalizeString(values.customerPhone, "-"));
     var safeCustomerEmail = escapeHtml(normalizeString(values.customerEmail, "-"));
     var safeDurationText = escapeHtml(String(bookingDays) + " day" + (bookingDays === 1 ? "" : "s"));
+    var safeBaseAmount = escapeHtml(formatMoney(quote.baseAmount));
+    var safeServiceFee = escapeHtml(formatMoney(quote.serviceFee));
+    var safeTaxAmount = escapeHtml(formatMoney(quote.taxAmount));
+    var safeDiscountAmount = escapeHtml(formatMoney(quote.discountAmount));
     var safeTotalAmount = escapeHtml(formatMoney(quote.totalAmount));
+    var hasDiscount = Number(quote.discountAmount) > 0;
+    var promoCodeHtml = values.couponCode ? '<div class="booking-review-row flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700"><span class="font-semibold">Promo Code</span><span class="font-bold">' + escapeHtml(values.couponCode) + '</span></div>' : '';
 
     return [
       '<div class="grid gap-2">',
@@ -898,9 +936,16 @@
       '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Phone</span><span>' + safeCustomerPhone + '</span></div>',
       '</div>',
       '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Email</span><span>' + safeCustomerEmail + '</span></div>',
+      promoCodeHtml,
       '<div class="booking-review-total mt-2 rounded-xl border px-3 py-3">',
-      '<div class="flex items-center justify-between"><span class="font-semibold">Duration</span><span class="font-semibold">' + safeDurationText + '</span></div>',
-      '<div class="mt-1 flex items-center justify-between"><span class="font-semibold">Total</span><span class="font-bold">' + safeTotalAmount + '</span></div>',
+      '<div class="space-y-1 text-[12px] text-slate-600">',
+      '<div class="flex items-center justify-between"><span>Duration</span><span class="font-semibold">' + safeDurationText + '</span></div>',
+      '<div class="flex items-center justify-between"><span>Base</span><span class="font-semibold">' + safeBaseAmount + '</span></div>',
+      '<div class="flex items-center justify-between"><span>Service Fee</span><span class="font-semibold">' + safeServiceFee + '</span></div>',
+      '<div class="flex items-center justify-between"><span>Tax</span><span class="font-semibold">' + safeTaxAmount + '</span></div>',
+      (hasDiscount ? '<div class="flex items-center justify-between text-green-600"><span>Discount</span><span class="font-semibold">-' + safeDiscountAmount + '</span></div>' : ''),
+      '</div>',
+      '<div class="mt-3 border-t border-slate-200 pt-2 flex items-center justify-between"><span class="font-semibold">Total</span><span class="text-lg font-bold">' + safeTotalAmount + '</span></div>',
       '</div>',
       '</div>'
     ].join('');
