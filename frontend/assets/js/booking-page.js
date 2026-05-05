@@ -1415,9 +1415,9 @@
     }
 
     var preferredVehicleId = queryVehicle || (state.vehicles[0] && state.vehicles[0].id ? state.vehicles[0].id : "");
-    // If a preferred vehicle id is present (from query or handoff or default), show only that vehicle name
-    // and hide the dropdown — this prevents showing other vehicle options in the UI.
-    state.isVehicleSelectionLocked = Boolean(preferredVehicleId);
+    // Only lock the vehicle selection when the booking was opened with an explicit handoff/query lock.
+    // Normal booking flow keeps the dropdown available for vehicle selection.
+    state.isVehicleSelectionLocked = Boolean(shouldLockVehicleSelection && preferredVehicleId);
 
     fillVehicleSelect(state.vehicles, preferredVehicleId);
     selectVehicleById(state, preferredVehicleId);
