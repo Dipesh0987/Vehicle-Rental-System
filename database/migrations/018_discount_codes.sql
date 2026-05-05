@@ -19,31 +19,39 @@ CREATE TABLE IF NOT EXISTS public.discount_codes (
 );
 
 -- Add indexes for performance
-CREATE INDEX idx_discount_codes_code ON public.discount_codes(code);
-CREATE INDEX idx_discount_codes_is_active ON public.discount_codes(is_active);
-CREATE INDEX idx_discount_codes_created_by ON public.discount_codes(created_by);
+CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON public.discount_codes(code);
+CREATE INDEX IF NOT EXISTS idx_discount_codes_is_active ON public.discount_codes(is_active);
+CREATE INDEX IF NOT EXISTS idx_discount_codes_created_by ON public.discount_codes(created_by);
 
 -- Enable RLS on discount_codes table
 ALTER TABLE public.discount_codes ENABLE ROW LEVEL SECURITY;
 
--- RLS Policy: Admin users (in admin_users table) can manage their own codes
+-- RLS Policy: Service role (backend/admin) can do anything
+DROP POLICY IF EXISTS discount_codes_service_access ON public.discount_codes;
+CREATE POLICY discount_codes_service_access ON public.discount_codes
+  FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- RLS Policy: Admin users can manage all codes
+DROP POLICY IF EXISTS discount_codes_admin_access ON public.discount_codes;
 CREATE POLICY discount_codes_admin_access ON public.discount_codes
   FOR ALL
   USING (
-    auth.uid() = created_by 
-    AND EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid())
+    (auth.uid() = created_by OR EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()))
   )
   WITH CHECK (
-    auth.uid() = created_by 
-    AND EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid())
+    (auth.uid() = created_by OR EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()))
   );
 
 -- RLS Policy: Authenticated users can view active codes
+DROP POLICY IF EXISTS discount_codes_user_view ON public.discount_codes;
 CREATE POLICY discount_codes_user_view ON public.discount_codes
   FOR SELECT
   USING (is_active = TRUE AND auth.role() = 'authenticated');
 
 -- Function to validate discount code
+DROP FUNCTION IF EXISTS public.validate_discount_code(TEXT, NUMERIC);
 CREATE OR REPLACE FUNCTION public.validate_discount_code(
   p_code TEXT,
   p_booking_amount NUMERIC
@@ -91,6 +99,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to apply discount code (increment usage)
+DROP FUNCTION IF EXISTS public.apply_discount_code(TEXT);
 CREATE OR REPLACE FUNCTION public.apply_discount_code(p_code TEXT)
 RETURNS TABLE (success BOOLEAN, error_message TEXT) AS $$
 BEGIN
