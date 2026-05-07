@@ -1,6 +1,21 @@
 import { classMap } from '../config.js';
 
-export function renderFleetModule({ data, query, notify, catalogService, bookingService, customerVerificationService }) {
+// Status color mapping
+const STATUS_COLOR = {
+  active: '#16a34a', // green
+  overdue: '#dc2626', // red
+  idle: '#f59e0b', // amber
+};
+
+function debounce(fn, wait) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+}
+
+export function renderFleetModule({ data, query, notify }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -17,47 +32,255 @@ export function renderFleetModule({ data, query, notify, catalogService, booking
 
     <section class="${classMap.panel} p-4 sm:p-5">
       <div id="fleetControls" class="mb-3 flex flex-wrap items-center gap-3"></div>
-      <div id="fleetMapHost" class="h-[480px] w-full rounded-xl border border-slate-200 bg-white dark:bg-[#071018] dark:border-white/5"></div>
+      <div id="fleetMapHost" class="h-[560px] w-full rounded-xl border border-slate-200 bg-white dark:bg-[#071018] dark:border-white/5"></div>
       <div id="fleetEmptyState" class="hidden mt-4">No active rentals found.</div>
     </section>
   `;
 
-  // wire refresh
-  host.querySelector('#refreshFleetBtn')?.addEventListener('click', async () => {
-    notify('Refreshing fleet data...', 'info');
-    try {
-      await fetchFleetDataAndRender();
-      notify('Fleet refreshed', 'success');
-    } catch (err) {
-      notify('Unable to refresh fleet data: ' + (err && err.message ? err.message : ''), 'error');
-    }
-  });
+  const mapHost = host.querySelector('#fleetMapHost');
+  const controlsHost = host.querySelector('#fleetControls');
+  const emptyState = host.querySelector('#fleetEmptyState');
 
-  // placeholder for fetch/render function that will be implemented in the next commit
-  async function fetchFleetDataAndRender() {
-    // Uses Supabase RPC get_active_fleet_tracking via window.SupabaseClient
-    const client = await window.SupabaseClient.init();
-    const resp = await client.rpc('get_active_fleet_tracking', { p_limit: 200, p_offset: 0 });
-    if (resp.error) throw resp.error;
-    const rows = Array.isArray(resp.data) ? resp.data : [];
+  let map = null;
+  let markers = new Map();
+  let pollTimer = null;
+  let lastFetchPromise = null;
+  let preserveView = null;
 
-    const hostMap = host.querySelector('#fleetMapHost');
-    const empty = host.querySelector('#fleetEmptyState');
-    if (!rows.length) {
-      if (hostMap) hostMap.classList.add('hidden');
-      if (empty) empty.classList.remove('hidden');
-      return;
+  async function loadLeaflet() {
+    if (window.L) return window.L;
+
+    // inject css
+    if (!document.querySelector('link[data-leaflet]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.dataset.leaflet = 'true';
+      document.head.appendChild(link);
     }
 
-    if (hostMap) hostMap.classList.remove('hidden');
-    if (empty) empty.classList.add('hidden');
+    // inject script
+    if (!document.querySelector('script[data-leaflet]')) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        s.async = true;
+        s.dataset.leaflet = 'true';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Failed to load Leaflet runtime'));
+        document.head.appendChild(s);
+      });
+    }
 
-    // Defer map rendering to map module commit
-    hostMap.textContent = 'Fleet data loaded (' + rows.length + ') — map will render in the next update.';
+    return window.L;
   }
 
-  // initial fetch
-  fetchFleetDataAndRender().catch(() => {});
+  function createMarkerIcon(color) {
+    const svg = encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 24 24"><path fill="${color}" stroke="#111" stroke-opacity="0.12" stroke-width="0.5" d="M12 2C8 2 5 5 5 9c0 6.5 7 13 7 13s7-6.5 7-13c0-4-3-7-7-7z"/></svg>
+    `);
+    return L.divIcon({
+      className: 'vrs-marker',
+      html: `<div class="marker-wrap"> <img src="data:image/svg+xml,${svg}" alt="marker" /> </div>`,
+      iconSize: [28, 40],
+      iconAnchor: [14, 40],
+    });
+  }
+
+  function updateMarkers(rows) {
+    if (!map || !Array.isArray(rows)) return;
+
+    const seen = new Set();
+    rows.forEach((row) => {
+      const vid = String(row.vehicle_id || row.vehicleId || row.vehicleId || '');
+      const lat = Number(row.latitude || 0);
+      const lng = Number(row.longitude || 0);
+      if (!vid || !isFinite(lat) || !isFinite(lng)) return;
+      seen.add(vid);
+
+      const status = String(row.status || 'active').toLowerCase();
+      const color = STATUS_COLOR[status] || STATUS_COLOR.active;
+
+      const existing = markers.get(vid);
+      if (existing) {
+        existing.setLatLng([lat, lng]);
+        existing.getElement()?.querySelector('img')?.setAttribute('src', createMarkerIconSrc(color));
+        existing.bindPopup(buildPopupHtml(row));
+      } else {
+        const icon = createMarkerIcon(color);
+        const marker = L.marker([lat, lng], { icon }).addTo(map);
+        marker.bindPopup(buildPopupHtml(row));
+        markers.set(vid, marker);
+      }
+    });
+
+    // remove markers no longer present
+    Array.from(markers.keys()).forEach((k) => {
+      if (!seen.has(k)) {
+        const m = markers.get(k);
+        if (m) {
+          map.removeLayer(m);
+        }
+        markers.delete(k);
+      }
+    });
+  }
+
+  function createMarkerIconSrc(color) {
+    const svg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 24 24"><path fill="${color}" d="M12 2C8 2 5 5 5 9c0 6.5 7 13 7 13s7-6.5 7-13c0-4-3-7-7-7z"/></svg>`);
+    return `data:image/svg+xml,${svg}`;
+  }
+
+  function buildPopupHtml(row) {
+    const vehicleName = String(row.vehicle_name || row.vehicleName || 'Vehicle');
+    const bookingId = String(row.booking_id || row.bookingId || '');
+    const customer = String(row.customer_name || row.customerName || '');
+    const status = String(row.status || '').toUpperCase();
+    const last = row.last_location_update || row.lastLocationUpdate || '';
+    const started = row.rental_started_at || row.rentalStartedAt || '';
+    const expected = row.expected_return_at || row.expectedReturnAt || '';
+
+    return `<div class="text-sm">
+      <div class="font-bold mb-1">${escapeHtml(vehicleName)}</div>
+      <div class="text-xs text-slate-600">Booking: ${escapeHtml(bookingId || '-')}</div>
+      <div class="text-xs text-slate-600">Customer: ${escapeHtml(customer || '-')}</div>
+      <div class="text-xs text-slate-600">Status: <span class="font-semibold">${escapeHtml(status)}</span></div>
+      <div class="text-xs text-slate-500">Started: ${escapeHtml(String(started || '-'))}</div>
+      <div class="text-xs text-slate-500">Last update: ${escapeHtml(String(last || '-'))}</div>
+    </div>`;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  async function fetchFleetData() {
+    if (lastFetchPromise) return lastFetchPromise;
+    lastFetchPromise = (async () => {
+      const client = await window.SupabaseClient.init();
+      const resp = await client.rpc('get_active_fleet_tracking', { p_limit: 1000, p_offset: 0 });
+      lastFetchPromise = null;
+      if (resp.error) throw resp.error;
+      return Array.isArray(resp.data) ? resp.data : [];
+    })();
+    return lastFetchPromise;
+  }
+
+  async function refresh() {
+    try {
+      const rows = await fetchFleetData();
+      if (!rows.length) {
+        mapHost.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      mapHost.classList.remove('hidden');
+
+      updateMarkers(rows);
+      // preserve view if user moved map
+      if (!preserveView && rows.length) {
+        const first = rows.find((r) => r.latitude && r.longitude);
+        if (first) map.setView([Number(first.latitude), Number(first.longitude)], 12);
+      }
+    } catch (err) {
+      notify && notify('Fleet refresh error: ' + (err && err.message ? err.message : ''), 'error');
+    }
+  }
+
+  function setupControls(categories) {
+    controlsHost.innerHTML = '';
+    // status filter
+    const statusSelect = document.createElement('select');
+    statusSelect.className = 'rounded border px-2 py-1 text-sm';
+    statusSelect.innerHTML = `<option value="">All statuses</option><option value="active">Active</option><option value="idle">Idle</option><option value="overdue">Overdue</option>`;
+    controlsHost.appendChild(statusSelect);
+
+    // category filter
+    const catSelect = document.createElement('select');
+    catSelect.className = 'rounded border px-2 py-1 text-sm';
+    catSelect.innerHTML = `<option value="">All categories</option>${(Array.isArray(categories) ? categories : []).map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
+    controlsHost.appendChild(catSelect);
+
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.placeholder = 'Search vehicle or booking ID...';
+    search.className = 'rounded border px-2 py-1 text-sm';
+    controlsHost.appendChild(search);
+
+    const applyFilters = debounce(async () => {
+      const status = statusSelect.value;
+      const category = catSelect.value;
+      const term = search.value.trim().toLowerCase();
+      try {
+        const rows = await fetchFleetData();
+        const filtered = rows.filter(r => {
+          if (status && String(r.status || '').toLowerCase() !== status) return false;
+          if (category && String(r.category || '').toLowerCase() !== String(category).toLowerCase()) return false;
+          if (term) {
+            const name = String(r.vehicle_name || r.vehicleName || '').toLowerCase();
+            const bid = String(r.booking_id || r.bookingId || '').toLowerCase();
+            return name.indexOf(term) >= 0 || bid.indexOf(term) >= 0;
+          }
+          return true;
+        });
+        updateMarkers(filtered);
+      } catch (err) {
+        notify && notify('Filter error: ' + (err && err.message ? err.message : ''), 'error');
+      }
+    }, 350);
+
+    statusSelect.addEventListener('change', applyFilters);
+    catSelect.addEventListener('change', applyFilters);
+    search.addEventListener('input', applyFilters);
+  }
+
+  // wire refresh button
+  host.querySelector('#refreshFleetBtn')?.addEventListener('click', async () => {
+    notify && notify('Refreshing fleet data...', 'info');
+    await refresh();
+    notify && notify('Fleet refreshed', 'success');
+  });
+
+  // initialize map and start polling
+  (async function initMapAndPoll() {
+    try {
+      const L = await loadLeaflet();
+      map = L.map(mapHost, { zoomControl: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+
+      // basic view
+      map.setView([27.7, 85.3], 11);
+
+      // preserve user viewport when user interacts
+      map.on('movestart', () => { preserveView = true; });
+
+      // initial data
+      const rows = await fetchFleetData();
+      const categories = Array.from(new Set(rows.map(r => String(r.category || '').trim()).filter(Boolean))).slice(0, 20);
+      setupControls(categories);
+      updateMarkers(rows);
+
+      // polling every 60s
+      pollTimer = setInterval(() => refresh(), 60000);
+    } catch (err) {
+      notify && notify('Unable to initialize fleet map: ' + (err && err.message ? err.message : ''), 'error');
+      mapHost.textContent = 'Unable to load map.';
+    }
+  })();
+
+  // cleanup when module is removed (not strictly necessary in this SPA but good hygiene)
+  host.cleanup = () => {
+    if (pollTimer) clearInterval(pollTimer);
+    if (map) map.remove();
+    markers.clear();
+  };
 
   return host;
 }
