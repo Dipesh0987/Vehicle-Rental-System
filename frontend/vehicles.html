@@ -373,6 +373,16 @@
       </nav>
 
       <div class="flex items-center justify-end gap-3">
+        <button type="button" data-theme-toggle id="publicThemeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme" title="Toggle theme">
+          <svg class="h-5 w-5" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="1.2" y="1.2" width="21.6" height="21.6" rx="5.5" stroke="currentColor" stroke-opacity="0.12" fill="none"/>
+            <circle cx="12" cy="12" r="6" fill="#F3F4F6" />
+            <clipPath id="vrs-left-half">
+              <rect x="0" y="0" width="12" height="24" />
+            </clipPath>
+            <circle cx="12" cy="12" r="6" fill="#374151" clip-path="url(#vrs-left-half)" />
+          </svg>
+        </button>
         <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-[#204144] lg:flex">
           <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-panel" href="login.html">Sign In</a>
           <a href="registration.html" class="rounded-full bg-accent px-8 py-3 text-[16px] font-medium leading-none text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
