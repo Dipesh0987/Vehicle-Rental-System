@@ -228,6 +228,35 @@
     }
   }
 
+  function isoToday() {
+    var now = new Date();
+    var yyyy = now.getFullYear();
+    var mm = String(now.getMonth() + 1).padStart(2, '0');
+    var dd = String(now.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  function ensureValidDates() {
+    var startInput = byId('bookingStartDate');
+    var endInput = byId('bookingEndDate');
+    if (!startInput || !endInput) return;
+
+    var today = isoToday();
+    var start = normalizeString(startInput.value, '');
+    var end = normalizeString(endInput.value, '');
+
+    // If start is invalid or in the past, set to today
+    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(start) || start < today) {
+      startInput.value = today;
+      start = today;
+    }
+
+    // If end is invalid or before start, set end = start
+    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(end) || end < start) {
+      endInput.value = start;
+    }
+  }
+
   function setBannerMessage(targetId, text, mode) {
     var element = byId(targetId);
     if (!element) {
@@ -335,7 +364,7 @@
     var lockedDisplay = byId("bookingVehicleLockedDisplay");
     var lockedHint = byId("bookingVehicleLockedHint");
 
-    if (!select || !lockedDisplay || !lockedHint) {
+    if (!select || !lockedDisplay) {
       return;
     }
 
@@ -346,7 +375,9 @@
 
       lockedDisplay.value = normalizeString(vehicleLabel, "Selected vehicle");
       lockedDisplay.classList.remove("hidden");
-      lockedHint.classList.remove("hidden");
+      if (lockedHint) {
+        lockedHint.classList.remove("hidden");
+      }
       return;
     }
 
@@ -356,7 +387,9 @@
 
     lockedDisplay.classList.add("hidden");
     lockedDisplay.value = "";
-    lockedHint.classList.add("hidden");
+    if (lockedHint) {
+      lockedHint.classList.add("hidden");
+    }
   }
 
   function syncVehicleSelectionLock(state) {
@@ -459,10 +492,89 @@
       return;
     }
 
-    label.textContent = text;
+    if (!text || String(text).trim() === "") {
+      label.textContent = "";
+      label.classList.add("hidden");
+      label.className = "hidden text-[12px] font-semibold";
+    } else {
+      label.textContent = text;
+      label.classList.remove("hidden");
+      
+      // Add success/error styling based on content
+      if (String(text).indexOf("✓") === 0 || String(text).indexOf("applied") > -1) {
+        label.className = "text-[12px] font-semibold text-[#16a34a]";
+      } else {
+        label.className = "text-[12px] font-semibold text-[#dc2626]";
+      }
+    }
   }
 
-  function syncQuoteFromState(state) {
+  async function validateAndApplyPromoCode(state, code, baseAmount) {
+    if (!code) {
+      return { promoDiscount: 0, couponMessage: "", code: "" };
+    }
+
+    try {
+      // Resolve Supabase client consistently
+      var client = null;
+      if (window.SupabaseRuntime && window.SupabaseRuntime.client) {
+        client = window.SupabaseRuntime.client;
+      } else if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+        client = await window.SupabaseClient.init();
+      } else if (window.supabase) {
+        client = window.supabase;
+      }
+
+      if (!client || typeof client.rpc !== 'function') {
+        console.error('Supabase client not available for RPC', client);
+        return { promoDiscount: 0, couponMessage: 'Service unavailable', code: '' };
+      }
+
+      var response = await client.rpc('validate_discount_code', {
+        p_code: code.toUpperCase().trim(),
+        p_booking_amount: baseAmount
+      });
+
+      if (response.error) {
+        console.error('Error validating promo code:', response.error);
+        return { promoDiscount: 0, couponMessage: response.error.message || 'Unable to validate code', code: '' };
+      }
+
+      var rows = response.data;
+      if (!rows || (Array.isArray(rows) && rows.length === 0)) {
+        return { promoDiscount: 0, couponMessage: 'Promo code not found', code: '' };
+      }
+
+      var result = Array.isArray(rows) ? rows[0] : rows;
+
+      if (!result.is_valid) {
+        return {
+          promoDiscount: 0,
+          couponMessage: result.error_message || 'This code is not valid for your booking',
+          code: ''
+        };
+      }
+
+      var discountAmount = Number(result.discount_amount || 0);
+      var discountType = result.discount_type || '';
+      var discountValue = result.discount_value || 0;
+
+      var message = discountType === 'percentage'
+        ? '✓ Promo applied: ' + discountValue + '% discount'
+        : '✓ Promo applied: NPR ' + discountAmount.toFixed(2) + ' discount';
+
+      return {
+        promoDiscount: discountAmount,
+        couponMessage: message,
+        code: code.toUpperCase().trim()
+      };
+    } catch (error) {
+      console.error('Error validating promo code:', error);
+      return { promoDiscount: 0, couponMessage: 'Error validating code', code: '' };
+    }
+  }
+
+  async function syncQuoteFromState(state) {
     var vehicle = state.selectedVehicle;
     var values = readFormValues();
 
@@ -471,24 +583,39 @@
       return;
     }
 
+    // First calculate quote without promo to get base amount
+    var baseQuote = window.VehicleBookingService.calculateBookingQuote({
+      dailyRate: parseDailyRate(vehicle),
+      startDate: values.startDate,
+      endDate: values.endDate,
+    });
+
+    var promoInfo = { promoDiscount: 0, couponMessage: "", code: "" };
+    
+    // Then validate promo code if provided
+    if (values.couponCode) {
+      promoInfo = await validateAndApplyPromoCode(state, values.couponCode, baseQuote.baseAmount);
+    }
+
+    // Calculate final quote with promo discount
     var quote = window.VehicleBookingService.calculateBookingQuote({
       dailyRate: parseDailyRate(vehicle),
       startDate: values.startDate,
       endDate: values.endDate,
-      couponCode: values.couponCode,
+      promoDiscount: promoInfo.promoDiscount,
+      couponMessage: promoInfo.couponMessage,
+      couponCode: promoInfo.code
     });
 
     state.latestQuote = quote;
+    state.appliedPromoCode = promoInfo.code;
+    state.appliedPromoDiscount = promoInfo.promoDiscount;
     renderQuote(quote);
 
     if (values.couponCode) {
-      if (quote.couponCode) {
-        applyCouponStatus(quote.couponMessage);
-      } else {
-        applyCouponStatus("Promo code not recognized. Try SAVE10 or WEEKEND50.");
-      }
+      applyCouponStatus(promoInfo.couponMessage);
     } else {
-      applyCouponStatus("Enter a promo code like SAVE10 or WEEKEND50, then click Apply.");
+      applyCouponStatus("");
     }
   }
 
@@ -536,6 +663,8 @@
         clearCustomFieldError(input);
         setBannerMessage("bookingFormError", "", "error");
         updateAvailabilityPill("default", "Choose dates to check availability");
+        // Ensure dates are valid before syncing quote
+        ensureValidDates();
         syncQuoteFromState(state);
         scheduleAvailabilityCheck(state);
       });
@@ -559,6 +688,13 @@
 
         event.preventDefault();
         syncQuoteFromState(state);
+      });
+
+      couponCode.addEventListener("change", function () {
+        if (!this.value.trim()) {
+          applyCouponStatus("");
+          syncQuoteFromState(state);
+        }
       });
     }
 
@@ -820,7 +956,13 @@
     var safeCustomerPhone = escapeHtml(normalizeString(values.customerPhone, "-"));
     var safeCustomerEmail = escapeHtml(normalizeString(values.customerEmail, "-"));
     var safeDurationText = escapeHtml(String(bookingDays) + " day" + (bookingDays === 1 ? "" : "s"));
+    var safeBaseAmount = escapeHtml(formatMoney(quote.baseAmount));
+    var safeServiceFee = escapeHtml(formatMoney(quote.serviceFee));
+    var safeTaxAmount = escapeHtml(formatMoney(quote.taxAmount));
+    var safeDiscountAmount = escapeHtml(formatMoney(quote.discountAmount));
     var safeTotalAmount = escapeHtml(formatMoney(quote.totalAmount));
+    var hasDiscount = Number(quote.discountAmount) > 0;
+    var promoCodeHtml = values.couponCode ? '<div class="booking-review-row flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700"><span class="font-semibold">Promo Code</span><span class="font-bold">' + escapeHtml(values.couponCode) + '</span></div>' : '';
 
     return [
       '<div class="grid gap-2">',
@@ -839,9 +981,16 @@
       '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Phone</span><span>' + safeCustomerPhone + '</span></div>',
       '</div>',
       '<div class="booking-review-row flex items-center justify-between rounded-xl border px-3 py-2"><span class="font-semibold">Email</span><span>' + safeCustomerEmail + '</span></div>',
+      promoCodeHtml,
       '<div class="booking-review-total mt-2 rounded-xl border px-3 py-3">',
-      '<div class="flex items-center justify-between"><span class="font-semibold">Duration</span><span class="font-semibold">' + safeDurationText + '</span></div>',
-      '<div class="mt-1 flex items-center justify-between"><span class="font-semibold">Total</span><span class="font-bold">' + safeTotalAmount + '</span></div>',
+      '<div class="space-y-1 text-[12px] text-slate-600">',
+      '<div class="flex items-center justify-between"><span>Duration</span><span class="font-semibold">' + safeDurationText + '</span></div>',
+      '<div class="flex items-center justify-between"><span>Base</span><span class="font-semibold">' + safeBaseAmount + '</span></div>',
+      '<div class="flex items-center justify-between"><span>Service Fee</span><span class="font-semibold">' + safeServiceFee + '</span></div>',
+      '<div class="flex items-center justify-between"><span>Tax</span><span class="font-semibold">' + safeTaxAmount + '</span></div>',
+      (hasDiscount ? '<div class="flex items-center justify-between text-green-600"><span>Discount</span><span class="font-semibold">-' + safeDiscountAmount + '</span></div>' : ''),
+      '</div>',
+      '<div class="mt-3 border-t border-slate-200 pt-2 flex items-center justify-between"><span class="font-semibold">Total</span><span class="text-lg font-bold">' + safeTotalAmount + '</span></div>',
       '</div>',
       '</div>'
     ].join('');
@@ -1236,6 +1385,8 @@
       availabilityTimerId: null,
       availabilityRequestId: 0,
       lastConfirmedBookingCode: "",
+      appliedPromoCode: "",
+      appliedPromoDiscount: 0,
       latestQuote: {
         bookingDays: 0,
         baseAmount: 0,
@@ -1268,11 +1419,15 @@
     }
 
     var preferredVehicleId = queryVehicle || (state.vehicles[0] && state.vehicles[0].id ? state.vehicles[0].id : "");
+    // Only lock the vehicle selection when the booking was opened with an explicit handoff/query lock.
+    // Normal booking flow keeps the dropdown available for vehicle selection.
     state.isVehicleSelectionLocked = Boolean(shouldLockVehicleSelection && preferredVehicleId);
 
     fillVehicleSelect(state.vehicles, preferredVehicleId);
     selectVehicleById(state, preferredVehicleId);
     syncVehicleSelectionLock(state);
+    // Make sure dates are valid after any prefill/defaults
+    ensureValidDates();
     wireBaseInteractions(state);
     wireReviewFlow(state);
     wireSuccessModal();

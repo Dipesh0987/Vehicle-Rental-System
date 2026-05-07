@@ -399,24 +399,27 @@
     var dailyRate = Math.max(0, toNumber(payload.dailyRate, 0));
     var startDate = normalizeDate(payload.startDate);
     var endDate = normalizeDate(payload.endDate);
+    var promoDiscount = toFixedAmount(payload.promoDiscount || 0);
     var couponCode = normalizeCoupon(payload.couponCode);
 
     var bookingDays = countBookingDays(startDate, endDate);
     var baseAmount = roundMoney(dailyRate * bookingDays);
     var serviceFee = roundMoney(Math.max(15, baseAmount * 0.05));
     var taxAmount = roundMoney((baseAmount + serviceFee) * 0.13);
-    var discountAmount = 0;
-    var couponMessage = "";
+    var discountAmount = promoDiscount;
+    var couponMessage = payload.couponMessage || "";
 
-    if (couponCode) {
+    // Fallback to hardcoded COUPON_RULES for backward compatibility
+    if (!promoDiscount && couponCode) {
       var coupon = COUPON_RULES[couponCode];
-      if (coupon.type === "percent") {
-        discountAmount = roundMoney(baseAmount * coupon.value);
-      } else if (coupon.type === "flat") {
-        discountAmount = roundMoney(coupon.value);
+      if (coupon) {
+        if (coupon.type === "percent") {
+          discountAmount = roundMoney(baseAmount * coupon.value);
+        } else if (coupon.type === "flat") {
+          discountAmount = roundMoney(coupon.value);
+        }
+        couponMessage = coupon.label;
       }
-
-      couponMessage = coupon.label;
     }
 
     var subtotal = roundMoney(baseAmount + serviceFee + taxAmount);
