@@ -50,12 +50,12 @@ const availability = await apiClient.checkAvailability(vehicleId, startDate, end
 
 **Filter Properties**:
 - Location: `pickupLocation`, `dropoffLocation`, `pickupDateTime`, `dropoffDateTime`
-- Vehicle: `vehicleTypes`, `brands`, `models`, `transmission`, `fuelType`, `seats`
+- Vehicle: `searchText`, `vehicleTypes`, `brands`, `models`, `transmission`, `fuelType`, `seats`
 - Features: `features[]` (AC, GPS, Bluetooth, etc.)
 - Price: `minPrice`, `maxPrice` (NPR 0-NPR 50,000)
 - Rating: `minRating` (0-5 stars)
 - Options: `insuranceTypes[]`, `driverOptions[]`, `mileagePolicy[]`
-- Other: `availabilityOnly`, `minEVRange`, `searchText`
+- Other: `availabilityOnly`, `minEVRange`
 
 **Usage**:
 ```javascript
@@ -87,6 +87,9 @@ filterMgr.onFilterChange((results, filters) => {
 - `attachFilterEventListeners()` - Setup event handlers
 
 **Filter Categories Included**:
+- Keyword Search
+- Pickup Location
+- Brand
 - Vehicle Type (Economy, Sedan, SUV, Luxury, Van)
 - Transmission (Manual, Automatic)
 - Fuel Type (Petrol, Diesel, Electric, Hybrid)
