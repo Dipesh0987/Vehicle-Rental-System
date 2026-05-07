@@ -126,7 +126,26 @@ class SearchFilterManager {
      */
     updateFilter(filterName, value) {
         if (filterName in this.filters) {
-            this.filters[filterName] = value;
+            const numericValue = Number(value);
+            const nextValue = Number.isFinite(numericValue) ? numericValue : value;
+
+            if (filterName === "minPrice" && Number.isFinite(numericValue) && numericValue > Number(this.filters.maxPrice)) {
+                this.filters.maxPrice = numericValue;
+            }
+
+            if (filterName === "maxPrice" && Number.isFinite(numericValue) && numericValue < Number(this.filters.minPrice)) {
+                this.filters.minPrice = numericValue;
+            }
+
+            if (filterName === "minSeats" && Number.isFinite(numericValue) && numericValue > Number(this.filters.maxSeats)) {
+                this.filters.maxSeats = numericValue;
+            }
+
+            if (filterName === "maxSeats" && Number.isFinite(numericValue) && numericValue < Number(this.filters.minSeats)) {
+                this.filters.minSeats = numericValue;
+            }
+
+            this.filters[filterName] = nextValue;
             // Trigger filtering on the current dataset
             this.applyFilters(this.allVehicles);
             this.notifyListeners();
@@ -413,20 +432,16 @@ class SearchFilterManager {
      * @param {string} filterName - Filter name to clear
      */
     clearFilter(filterName) {
+        const defaults = this.initializeFilters();
+
         if (Array.isArray(this.filters[filterName])) {
             this.filters[filterName] = [];
         } else if (typeof this.filters[filterName] === "boolean") {
-            this.filters[filterName] = false;
+            this.filters[filterName] = Boolean(defaults[filterName]);
         } else if (typeof this.filters[filterName] === "number") {
-            if (filterName.includes("min")) {
-                this.filters[filterName] = 0;
-            } else if (filterName === "maxPrice") {
-                this.filters[filterName] = DEFAULT_MAX_PRICE_NPR;
-            } else {
-                this.filters[filterName] = 999;
-            }
+            this.filters[filterName] = Number(defaults[filterName]);
         } else {
-            this.filters[filterName] = "";
+            this.filters[filterName] = defaults[filterName] || "";
         }
         this.notifyListeners();
     }

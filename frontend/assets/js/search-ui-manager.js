@@ -8,7 +8,37 @@ class SearchUIManager {
         this.filterManager = filterManager;
         this.apiClient = apiClient;
         this.filterCategories = this.defineFilterCategories();
+        this.filterSections = this.defineFilterSections();
         this.isFiltersPanelOpen = false;
+    }
+
+    /**
+     * Define the visual groupings for the filter rail.
+     */
+    defineFilterSections() {
+        return [
+            {
+                key: "priority",
+                title: "Priority Controls",
+                description: "Use these sliders first to narrow the fleet by budget, comfort, and review quality.",
+                cards: ["priceRange", "seating", "rating"],
+                layoutClass: "grid gap-3 lg:grid-cols-3",
+            },
+            {
+                key: "vehicle",
+                title: "Vehicle Specs",
+                description: "Match the vehicle style, powertrain, and cabin layout to your trip.",
+                cards: ["vehicleType", "transmission", "fuelType"],
+                layoutClass: "grid gap-3 lg:grid-cols-3",
+            },
+            {
+                key: "experience",
+                title: "Experience Filters",
+                description: "Refine the rental policy, amenities, and availability rules.",
+                cards: ["features", "insurance", "driverOption", "mileage", "availability"],
+                layoutClass: "grid gap-3 lg:grid-cols-2",
+            },
+        ];
     }
 
     /**
@@ -147,7 +177,8 @@ class SearchUIManager {
             <div class="space-y-5">
                 <section class="rounded-3xl border border-[#d4ddd7] bg-[linear-gradient(145deg,#ffffff,#f6f2ea)] px-4 py-4 shadow-[0_12px_24px_rgba(9,30,34,0.1)]">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b7376]">Refine Results</p>
-                    <p class="mt-1 text-[15px] font-bold text-[#1f4043]">Search Filters</p>
+                    <p class="mt-1 text-[15px] font-bold text-[#1f4043]">Search Intelligence Filters</p>
+                    <p class="mt-1 text-[12px] leading-5 text-[#5b7376]">Start with the live sliders, then expand the other groups only when you need more precision.</p>
                     <button id="clearPanelFilters" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f0cdb4] bg-[#fff2e8] py-2.5 text-sm font-semibold text-[#b26431] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ffe8d7]">
                         <i class="fas fa-rotate-left"></i> Reset All Filters
                     </button>
@@ -158,9 +189,9 @@ class SearchUIManager {
                 </div>
         `;
 
-        // Render each filter category
-        for (const [key, config] of Object.entries(this.filterCategories)) {
-            html += this.renderFilterCategory(key, config);
+        // Render grouped sections so the primary sliders stay prominent.
+        for (const section of this.filterSections) {
+            html += this.renderFilterSection(section);
         }
 
         html += `
@@ -172,11 +203,33 @@ class SearchUIManager {
     }
 
     /**
+     * Render a grouped filter section.
+     */
+    renderFilterSection(section) {
+        const cards = (section.cards || [])
+            .map((key) => this.renderFilterCategory(key, this.filterCategories[key]))
+            .filter(Boolean)
+            .join("");
+
+        return `
+            <section class="space-y-3 rounded-3xl border border-[#d7e0da] bg-[linear-gradient(150deg,#ffffff,#f7f4ee)] px-4 py-4 shadow-[0_10px_20px_rgba(9,30,34,0.08)]">
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b7376]">${section.title}</p>
+                    <p class="mt-1 text-[12px] leading-5 text-[#607a7d]">${section.description}</p>
+                </div>
+                <div class="${section.layoutClass || "space-y-3"}">
+                    ${cards}
+                </div>
+            </section>
+        `;
+    }
+
+    /**
      * Render a single filter category
      */
     renderFilterCategory(key, config) {
         let html = `
-            <div class="filter-category rounded-2xl border border-[#d7e0da] bg-[linear-gradient(150deg,#ffffff,#f7f4ee)] px-4 py-4 shadow-[0_8px_18px_rgba(9,30,34,0.07)]">
+            <div class="filter-category rounded-2xl border border-[#d7e0da] bg-white/85 px-4 py-4 shadow-[0_8px_18px_rgba(9,30,34,0.07)]">
                 <div class="filter-toggle mb-3 flex cursor-pointer items-center gap-2" data-filter="${key}">
                     <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#d1ddd8] bg-white text-[#2f5e62]">
                         <i class="fas ${config.icon} text-[12px]"></i>
@@ -233,27 +286,27 @@ class SearchUIManager {
         const maxKey = config.maxKey;
         const currentMin = this.filterManager.filters[minKey];
         const currentMax = this.filterManager.filters[maxKey];
+        const minDisplay = this.formatRangeDisplay(config, currentMin, minKey);
+        const maxDisplay = maxKey ? this.formatRangeDisplay(config, currentMax, maxKey) : "";
 
         let html = `
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <span class="rounded-full border border-[#d6e0da] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#4a6568]">
-                        ${config.display ? config.display(currentMin) : formatNpr(currentMin)}
+                        <span data-range-value-for="${minKey}" data-range-role="min">${minDisplay}</span>
                     </span>
-                    <span class="rounded-full border border-[#d6e0da] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#4a6568]">
-                        ${config.display && maxKey ? config.display(currentMax) : maxKey ? formatNpr(currentMax) : ""}
-                    </span>
+                    ${maxKey ? `<span class="rounded-full border border-[#d6e0da] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#4a6568]"><span data-range-value-for="${maxKey}" data-range-role="max">${maxDisplay}</span></span>` : ""}
                 </div>
         `;
 
         if (maxKey) {
             html += `
-                <input type="range" class="filter-range h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#d4ded9] accent-accent" data-filter="${minKey}" min="${config.min}" max="${config.max}" step="${config.step}" value="${currentMin}" />
-                <input type="range" class="filter-range h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#d4ded9] accent-accent" data-filter="${maxKey}" min="${config.min}" max="${config.max}" step="${config.step}" value="${currentMax}" />
+                <input type="range" class="filter-range h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#d4ded9] accent-accent" data-filter="${minKey}" data-range-role="min" min="${config.min}" max="${config.max}" step="${config.step}" value="${currentMin}" aria-label="${config.label} minimum" />
+                <input type="range" class="filter-range h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#d4ded9] accent-accent" data-filter="${maxKey}" data-range-role="max" min="${config.min}" max="${config.max}" step="${config.step}" value="${currentMax}" aria-label="${config.label} maximum" />
             `;
         } else {
             html += `
-                <input type="range" class="filter-range h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#d4ded9] accent-accent" data-filter="${minKey}" min="${config.min}" max="${config.max}" step="${config.step}" value="${currentMin}" />
+                <input type="range" class="filter-range h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#d4ded9] accent-accent" data-filter="${minKey}" data-range-role="value" min="${config.min}" max="${config.max}" step="${config.step}" value="${currentMin}" aria-label="${config.label}" />
             `;
         }
 
@@ -297,8 +350,9 @@ class SearchUIManager {
             slider.dataset.listenerBound = "true";
             slider.addEventListener("input", (e) => {
                 const filterKey = e.target.dataset.filter;
-                const value = parseInt(e.target.value);
+                const value = Number(e.target.value);
                 this.filterManager.updateFilter(filterKey, value);
+                this.syncRangeLabel(filterKey, e.target.dataset.rangeRole || "value", value);
                 this.updateActiveFilterTags();
             });
         });
@@ -335,6 +389,39 @@ class SearchUIManager {
                 this.updateActiveFilterTags();
             });
         }
+    }
+
+    /**
+     * Keep the on-screen slider labels in sync during drag.
+     */
+    syncRangeLabel(filterKey, role, value) {
+        const target = document.querySelector(`[data-range-value-for="${filterKey}"][data-range-role="${role}"]`);
+        if (!target) return;
+
+        const config = this.getRangeConfigForKey(filterKey);
+        target.textContent = this.formatRangeDisplay(config, value, filterKey);
+    }
+
+    /**
+     * Resolve the range config for a filter key.
+     */
+    getRangeConfigForKey(filterKey) {
+        return Object.values(this.filterCategories).find((config) => config.minKey === filterKey || config.maxKey === filterKey) || null;
+    }
+
+    /**
+     * Format the value displayed next to a slider.
+     */
+    formatRangeDisplay(config, value, filterKey) {
+        if (config && typeof config.display === "function") {
+            return config.display(value);
+        }
+
+        if (String(filterKey || "").toLowerCase().includes("price")) {
+            return formatNpr(value);
+        }
+
+        return String(value ?? "");
     }
 
     /**
@@ -400,7 +487,9 @@ class SearchUIManager {
         if (filterKey === "minPrice") return `Min: ${formatNpr(value)}`;
         if (filterKey === "maxPrice") return `Max: ${formatNpr(value)}`;
         if (filterKey === "minSeats") return `${value}+ seats`;
+        if (filterKey === "maxSeats") return `Up to ${value} seats`;
         if (filterKey === "minRating") return `${value}★+`;
+        if (filterKey === "maxRating") return `Up to ${value}★`;
 
         // Capitalize and format value
         return String(value)
