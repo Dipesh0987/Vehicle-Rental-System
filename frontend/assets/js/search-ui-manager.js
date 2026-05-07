@@ -202,12 +202,12 @@ class SearchUIManager {
         const filterPanel = document.getElementById("filterPanel");
         if (!filterPanel) return;
 
+        // Simpler, sequential panel layout (restored visual design)
         let html = `
             <div class="space-y-5">
                 <section class="rounded-3xl border border-[#d4ddd7] bg-[linear-gradient(145deg,#ffffff,#f6f2ea)] px-4 py-4 shadow-[0_12px_24px_rgba(9,30,34,0.1)]">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b7376]">Refine Results</p>
-                    <p class="mt-1 text-[15px] font-bold text-[#1f4043]">Search Intelligence Filters</p>
-                    <p class="mt-1 text-[12px] leading-5 text-[#5b7376]">Start with the live sliders, then expand the other groups only when you need more precision.</p>
+                    <p class="mt-1 text-[15px] font-bold text-[#1f4043]">Search Filters</p>
                     <button id="clearPanelFilters" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f0cdb4] bg-[#fff2e8] py-2.5 text-sm font-semibold text-[#b26431] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ffe8d7]">
                         <i class="fas fa-rotate-left"></i> Reset All Filters
                     </button>
@@ -218,9 +218,9 @@ class SearchUIManager {
                 </div>
         `;
 
-        // Render grouped sections so the primary sliders stay prominent.
-        for (const section of this.filterSections) {
-            html += this.renderFilterSection(section);
+        // Render each filter category in the original sequential order to preserve the prior visual layout
+        for (const [key, config] of Object.entries(this.filterCategories)) {
+            html += this.renderFilterCategory(key, config);
         }
 
         html += `
