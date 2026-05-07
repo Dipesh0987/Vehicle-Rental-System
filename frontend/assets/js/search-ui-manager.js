@@ -46,6 +46,14 @@ class SearchUIManager {
      */
     defineFilterCategories() {
         return {
+            brand: {
+                label: "Brand",
+                icon: "fa-industry",
+                type: "checkbox",
+                options: [],
+                filterKey: "brands",
+                dynamicOptions: true,
+            },
             vehicleType: {
                 label: "Vehicle Type",
                 icon: "fa-car",
@@ -60,8 +68,8 @@ class SearchUIManager {
                 filterKey: "vehicleTypes",
             },
             transmission: {
-                label: "Transmission",
-                icon: "fa-gears",
+                    cards: ["brand", "vehicleType", "transmission", "fuelType"],
+                    layoutClass: "grid gap-3 lg:grid-cols-2",
                 type: "checkbox",
                 options: [
                     { value: "manual", label: "Manual" },
@@ -264,8 +272,9 @@ class SearchUIManager {
      * Render checkbox filter options
      */
     renderCheckboxOptions(config) {
+        const options = config.dynamicOptions ? this.getDynamicCheckboxOptions(config) : config.options;
         let html = "";
-        for (const option of config.options) {
+        for (const option of options) {
             const isChecked = this.filterManager.filters[config.filterKey]?.includes(option.value);
             html += `
                 <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-transparent bg-white/80 p-2 text-sm text-[#30484b] transition hover:border-[#d4ddd8] hover:bg-white">
@@ -276,6 +285,38 @@ class SearchUIManager {
             `;
         }
         return html;
+    }
+
+    /**
+     * Build dynamic checkbox options from the current vehicle catalog.
+     */
+    getDynamicCheckboxOptions(config) {
+        const vehicles = Array.isArray(this.filterManager.allVehicles) ? this.filterManager.allVehicles : [];
+        const seen = new Set();
+        const options = [];
+
+        for (const vehicle of vehicles) {
+            const rawBrand = String(vehicle?.brand || "").trim();
+            if (!rawBrand) {
+                continue;
+            }
+
+            const value = rawBrand.toLowerCase();
+            if (value === "general" || seen.has(value)) {
+                continue;
+            }
+
+            seen.add(value);
+            options.push({
+                value,
+                label: rawBrand,
+                icon: config.icon,
+            });
+        }
+
+        options.sort((a, b) => a.label.localeCompare(b.label));
+
+        return options.length ? options : [{ value: "general", label: "General", icon: config.icon }];
     }
 
     /**
