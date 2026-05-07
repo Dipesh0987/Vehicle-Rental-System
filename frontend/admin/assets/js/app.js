@@ -52,6 +52,21 @@ const globalSearchState = {
   items: [],
   activeIndex: -1,
   query: '',
+  activeType: '',
+};
+
+const searchTypeToNavId = {
+  vehicles: 'vehicles',
+  bookings: 'bookings',
+  customers: 'customers',
+  admins: 'admins',
+};
+
+const searchTypeLabels = {
+  vehicles: 'Vehicles module',
+  bookings: 'Bookings module',
+  customers: 'Customers module',
+  admins: 'Admin roles module',
 };
 
 function escapeHtml(value) {
@@ -201,6 +216,13 @@ function closeGlobalSearchResults() {
   globalSearchState.items = [];
   globalSearchState.activeIndex = -1;
   globalSearchState.query = '';
+  globalSearchState.activeType = '';
+}
+
+function syncSidebarToSearchType(type) {
+  const navId = searchTypeToNavId[type] || '';
+  if (!navId) return;
+  setActiveNav(navId);
 }
 
 function handleGlobalSearchOutsideClick(event) {
@@ -294,6 +316,8 @@ function renderGlobalSearchResults(query) {
     }))
   );
   globalSearchState.activeIndex = globalSearchState.items.length ? 0 : -1;
+  globalSearchState.activeType = groups[0]?.key || '';
+  syncSidebarToSearchType(globalSearchState.activeType);
 
   if (!groups.length) {
     closeGlobalSearchResults();
@@ -319,11 +343,11 @@ function renderGlobalSearchResults(query) {
     for (const item of g.items) {
       const flatIndex = globalSearchState.items.findIndex((entry) => entry.type === g.key && entry.id === item.id);
       const isActive = flatIndex === globalSearchState.activeIndex;
-      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" class="group flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-brand-500/10 ring-1 ring-inset ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
+      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" aria-label="Open ${escapeHtml(item.label)} in ${escapeHtml(searchTypeLabels[g.key] || g.title)}" class="group flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-brand-500/10 ring-1 ring-inset ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
       html.push(`<span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${isActive ? 'bg-brand-600 shadow-[0_0_0_4px_rgba(31,118,104,0.12)]' : 'bg-slate-300 group-hover:bg-brand-400'}"></span>`);
       html.push(`<span class="min-w-0 flex-1">`);
       html.push(`<div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(item.label)}</div>`);
-      html.push(`<div class="text-xs text-slate-500">${escapeHtml(item.meta)}</div>`);
+      html.push(`<div class="mt-0.5 flex items-center gap-2 text-xs text-slate-500"><span>${escapeHtml(item.meta)}</span><span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
       html.push(`</span>`);
       html.push(`</button>`);
     }
@@ -351,10 +375,15 @@ function renderGlobalSearchResults(query) {
 
     btn.addEventListener('mouseenter', () => {
       const nextIndex = Number(btn.getAttribute('data-search-index'));
+      const nextType = btn.getAttribute('data-search-type') || '';
       if (!Number.isNaN(nextIndex) && nextIndex !== globalSearchState.activeIndex) {
         globalSearchState.activeIndex = nextIndex;
-        renderGlobalSearchResults(globalSearchState.query);
       }
+      if (nextType && nextType !== globalSearchState.activeType) {
+        globalSearchState.activeType = nextType;
+        syncSidebarToSearchType(nextType);
+      }
+      renderGlobalSearchResults(globalSearchState.query);
     });
   });
 }
@@ -379,6 +408,11 @@ function handleGlobalSearchKeydown(event) {
     const direction = key === 'ArrowDown' ? 1 : -1;
     const nextIndex = (globalSearchState.activeIndex + direction + globalSearchState.items.length) % globalSearchState.items.length;
     globalSearchState.activeIndex = nextIndex;
+    const activeItem = globalSearchState.items[nextIndex];
+    if (activeItem?.type && activeItem.type !== globalSearchState.activeType) {
+      globalSearchState.activeType = activeItem.type;
+      syncSidebarToSearchType(activeItem.type);
+    }
     renderGlobalSearchResults(appState.globalSearch);
     const nextButton = document.querySelector(`#globalSearchResults [data-search-index="${nextIndex}"]`);
     nextButton?.scrollIntoView({ block: 'nearest' });
@@ -389,6 +423,7 @@ function handleGlobalSearchKeydown(event) {
     event.preventDefault();
     const active = globalSearchState.items[globalSearchState.activeIndex] || globalSearchState.items[0];
     if (active) {
+      syncSidebarToSearchType(active.type);
       handleGlobalSearchSelect(active.type, active.id);
     }
   }
@@ -406,6 +441,7 @@ function handleGlobalSearchSelect(type, id) {
   const targetModule = moduleMap[type] || 'overview';
   appState.activeModule = targetModule;
   setActiveNav(targetModule);
+  syncSidebarToSearchType(type);
   if (type === 'customers') {
     history.replaceState(null, '', `${window.location.pathname}${window.location.search}#customer:${encodeURIComponent(id)}`);
   } else {

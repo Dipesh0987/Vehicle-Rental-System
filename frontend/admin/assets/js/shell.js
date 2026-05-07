@@ -322,6 +322,9 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onSea
 }
 
 export function setActiveNav(id) {
+  const activeButton = document.querySelector(`[data-nav-item="${CSS.escape(String(id || ''))}"]`);
+  const activeGroup = activeButton?.closest('[data-nav-children]')?.getAttribute('data-nav-children') || '';
+
   document.querySelectorAll('[data-nav-item]').forEach((button) => {
     const active = button.getAttribute('data-nav-item') === id;
     button.classList.toggle('bg-slate-900/10', active);
@@ -329,6 +332,25 @@ export function setActiveNav(id) {
     button.classList.toggle('dark:bg-white/20', active);
     button.classList.toggle('dark:text-white', active);
   });
+
+  document.querySelectorAll('[data-nav-group]').forEach((button) => {
+    const group = button.getAttribute('data-nav-group');
+    const active = Boolean(activeGroup) && group === activeGroup;
+    button.classList.toggle('bg-slate-900/10', active);
+    button.classList.toggle('text-slate-900', active);
+    button.classList.toggle('dark:bg-white/20', active);
+    button.classList.toggle('dark:text-white', active);
+  });
+
+  if (activeGroup) {
+    document.querySelectorAll(`[data-nav-children="${CSS.escape(activeGroup)}"]`).forEach((container) => {
+      container.classList.remove('hidden');
+    });
+    const parentGroupButton = document.querySelector(`[data-nav-group="${CSS.escape(activeGroup)}"]`);
+    parentGroupButton?.scrollIntoView({ block: 'nearest' });
+  }
+
+  activeButton?.scrollIntoView({ block: 'nearest' });
 }
 
 function initSidebarBehavior() {
