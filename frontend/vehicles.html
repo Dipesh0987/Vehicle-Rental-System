@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
     <link rel="stylesheet" href="assets/css/theme.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -372,16 +373,9 @@
         <a data-auth-bookings-link data-open-bookings-panel class="vrs-global-nav-link hidden bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Your Bookings</a>
       </nav>
 
-      <div class="flex items-center justify-end gap-3">
+      <div class="flex items-center justify-end gap-4">
         <button type="button" data-theme-toggle id="publicThemeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme" title="Toggle theme">
-          <svg class="h-5 w-5" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="1.2" y="1.2" width="21.6" height="21.6" rx="5.5" stroke="currentColor" stroke-opacity="0.12" fill="none"/>
-            <circle cx="12" cy="12" r="6" fill="#F3F4F6" />
-            <clipPath id="vrs-left-half">
-              <rect x="0" y="0" width="12" height="24" />
-            </clipPath>
-            <circle cx="12" cy="12" r="6" fill="#374151" clip-path="url(#vrs-left-half)" />
-          </svg>
+          <span class="material-symbols-outlined">contrast</span>
         </button>
         <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-[#204144] lg:flex">
           <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-panel" href="login.html">Sign In</a>
