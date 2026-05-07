@@ -678,9 +678,6 @@ class AdvancedSearchSystem {
         // Search bar
         this.setupSearchBar();
 
-        // Quick filters
-        this.setupQuickFilters();
-
         // Sort dropdown
         this.setupSorting();
 

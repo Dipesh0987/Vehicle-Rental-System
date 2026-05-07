@@ -10,6 +10,7 @@
   var PAYMENT_DONE_COLUMNS = ["is_paid", "payment_done", "paid"];
   var BOOKING_NOTE_PICKUP_PREFIX = "Pickup Location:";
   var BOOKING_NOTE_MESSAGE_PREFIX = "User Message:";
+  var APPROVED_VERIFICATION_STATUS = "approved";
 
   var COUPON_RULES = {
     SAVE10: { type: "percent", value: 0.1, label: "10% off applied" },
@@ -346,6 +347,10 @@
     var text = errorMessage(error).toLowerCase();
     var code = String(error && error.code ? error.code : "").toUpperCase();
 
+    if (code === "BOOKING_VERIFICATION_REQUIRED") {
+      return "Booking cannot be completed until your account is verified. Please complete the verification process to start booking.";
+    }
+
     if (isOverlapConstraintError(error)) {
       return "The selected dates are no longer available for this vehicle.";
     }
@@ -386,6 +391,31 @@
     error.code = "VALIDATION_ERROR";
     error.fields = fields || {};
     return error;
+  }
+
+  function bookingVerificationRequiredError(status) {
+    var error = new Error("Booking cannot be completed until your account is verified. Please complete the verification process to start booking.");
+    error.code = "BOOKING_VERIFICATION_REQUIRED";
+    error.verificationStatus = normalizeString(status, "not_submitted").toLowerCase() || "not_submitted";
+    return error;
+  }
+
+  async function readVerificationStatus(client, userId) {
+    if (!client || !userId) {
+      return "not_submitted";
+    }
+
+    var result = await client
+      .from("user_profiles")
+      .select("verification_status")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (result.error) {
+      throw new Error(errorMessage(result.error));
+    }
+
+    return normalizeString(result.data && result.data.verification_status, "not_submitted").toLowerCase() || "not_submitted";
   }
 
   function normalizeName(value) {
@@ -902,6 +932,15 @@
 
     var sessionUser = await readSessionUser(client);
     var userId = normalizeString(sessionUser && sessionUser.id, "");
+
+    if (!userId) {
+      throw bookingVerificationRequiredError("not_submitted");
+    }
+
+    var verificationStatus = await readVerificationStatus(client, userId);
+    if (verificationStatus !== APPROVED_VERIFICATION_STATUS) {
+      throw bookingVerificationRequiredError(verificationStatus);
+    }
 
     var insertPayload = {
       vehicle_id: normalized.vehicleId,

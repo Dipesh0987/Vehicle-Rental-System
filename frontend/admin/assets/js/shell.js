@@ -8,6 +8,7 @@ export const navItems = [
     icon: 'settings_suggest',
     children: [
       { id: 'vehicles', label: 'Vehicles', icon: 'directions_car' },
+      { id: 'fleet', label: 'Live Fleet', icon: 'map' },
       { id: 'bookings', label: 'Bookings', icon: 'event_note' },
       { id: 'customers', label: 'Customers', icon: 'groups' },
       { id: 'drivers', label: 'Drivers', icon: 'badge' },

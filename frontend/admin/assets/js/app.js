@@ -5,6 +5,7 @@ import { renderOverviewModule } from './modules/overview.js';
 import { renderVehiclesModule } from './modules/vehicles.js';
 import { renderBookingsModule } from './modules/bookings.js';
 import { renderCustomersModule } from './modules/customers.js';
+import { renderFleetModule } from './modules/fleet.js';
 import { renderDriversModule } from './modules/drivers.js';
 import { renderPaymentsModule } from './modules/payments.js';
 import { renderPricingModule } from './modules/pricing.js';
@@ -20,6 +21,7 @@ const modules = {
   overview: renderOverviewModule,
   vehicles: renderVehiclesModule,
   bookings: renderBookingsModule,
+  fleet: renderFleetModule,
   customers: renderCustomersModule,
   drivers: renderDriversModule,
   payments: renderPaymentsModule,

@@ -89,6 +89,52 @@
     return normalizeString(status, "").toLowerCase() === "approved";
   }
 
+  function getVerificationBlockedMessage() {
+    return "Booking cannot be completed until your account is verified. Please complete the verification process to start booking.";
+  }
+
+  async function ensureBookingVerificationAccess(state, targetBannerId) {
+    var verificationStatus = normalizeString(state && state.verificationStatus, "").toLowerCase();
+
+    if (verificationStatus !== "approved") {
+      verificationStatus = await readVerificationStatus();
+      if (state) {
+        state.verificationStatus = verificationStatus;
+      }
+    }
+
+    if (!isVerificationApproved(verificationStatus)) {
+      var bannerId = targetBannerId || "bookingFormError";
+      var bannerEl = byId(bannerId);
+      if (bannerEl) {
+        var safeText = escapeHtml(getVerificationBlockedMessage());
+        var btnId = "bookingVerifyNowBtn";
+        bannerEl.classList.remove("hidden");
+        bannerEl.classList.remove("border-emerald-200", "bg-emerald-50", "text-emerald-700");
+        bannerEl.classList.add("border-rose-200", "bg-rose-50", "text-rose-700");
+        bannerEl.innerHTML = '<span>' + safeText + '</span> <button id="' + btnId + '" class="ml-3 inline-flex items-center rounded bg-accent px-3 py-1 text-sm font-semibold text-white">Verify now</button>';
+
+        // Attach click handler to redirect to profile verification page
+        try {
+          var verifyBtn = byId(btnId);
+          if (verifyBtn) {
+            verifyBtn.addEventListener("click", function (e) {
+              e.preventDefault();
+              window.location.href = "profile-verification.html";
+            });
+          }
+        } catch (_err) {
+          // ignore attach errors
+        }
+      }
+
+      updateAvailabilityPill("error", "Verification required before booking");
+      return false;
+    }
+
+    return true;
+  }
+
   function formatMoney(amount) {
     var numeric = Number(amount || 0);
     if (!Number.isFinite(numeric)) {
@@ -1124,6 +1170,10 @@
           return;
         }
 
+        if (!await ensureBookingVerificationAccess(state, "bookingConfirmError")) {
+          return;
+        }
+
         if (!state.pendingBookingValues || !state.selectedVehicle) {
           setBannerMessage("bookingConfirmError", "Booking context is missing. Please review the form again.", "error");
           return;
@@ -1210,6 +1260,10 @@
 
       if (!ensureRegisteredBookingAccess()) {
         setBannerMessage("bookingFormError", "Please register or sign in before booking a vehicle.", "error");
+        return;
+      }
+
+      if (!await ensureBookingVerificationAccess(state, "bookingFormError")) {
         return;
       }
 
