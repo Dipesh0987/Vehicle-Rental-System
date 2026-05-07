@@ -174,6 +174,151 @@ function handleQuickAction(id) {
 function handleGlobalSearch(query) {
   appState.globalSearch = query;
   renderActiveModule();
+  // also render the floating dropdown for immediate results
+  try {
+    renderGlobalSearchResults(query);
+  } catch (e) {
+    // non-blocking
+  }
+}
+
+// Render dropdown results for global admin search and handle selections
+function renderGlobalSearchResults(query) {
+  const hostInput = document.getElementById('globalSearch');
+  if (!hostInput) return;
+
+  // Remove existing dropdown if empty query or short
+  const existing = document.getElementById('globalSearchResults');
+  if (!query || String(query).trim().length < 2) {
+    existing?.remove();
+    return;
+  }
+
+  const q = String(query || '').toLowerCase().trim();
+  const results = {
+    vehicles: [],
+    bookings: [],
+    customers: [],
+    admins: [],
+  };
+
+  // Search vehicles
+  if (Array.isArray(appState.data.vehicles)) {
+    for (const v of appState.data.vehicles) {
+      const hay = `${v.id} ${v.name || ''} ${v.brand || ''} ${v.vehicleNumber || ''}`.toLowerCase();
+      if (hay.indexOf(q) >= 0) results.vehicles.push({ id: v.id, label: v.name || v.id, meta: v.brand || v.category || '' });
+      if (results.vehicles.length >= 6) break;
+    }
+  }
+
+  // Search bookings
+  if (Array.isArray(appState.data.bookings)) {
+    for (const b of appState.data.bookings) {
+      const hay = `${b.id} ${b.bookingId || ''} ${b.customer || ''} ${b.vehicle || ''}`.toLowerCase();
+      if (hay.indexOf(q) >= 0) results.bookings.push({ id: b.bookingId || b.id, label: b.id || b.bookingId, meta: b.customer || '' });
+      if (results.bookings.length >= 6) break;
+    }
+  }
+
+  // Search customers
+  if (Array.isArray(appState.data.customers)) {
+    for (const c of appState.data.customers) {
+      const hay = `${c.id} ${c.name || ''} ${c.email || ''} ${c.phoneNumber || ''}`.toLowerCase();
+      if (hay.indexOf(q) >= 0) results.customers.push({ id: c.id, label: c.name || c.id, meta: c.email || c.city || '' });
+      if (results.customers.length >= 6) break;
+    }
+  }
+
+  // Search admins
+  if (Array.isArray(appState.data.adminUsers)) {
+    for (const a of appState.data.adminUsers) {
+      const hay = `${a.id} ${a.name || ''} ${a.role || ''}`.toLowerCase();
+      if (hay.indexOf(q) >= 0) results.admins.push({ id: a.id, label: a.name || a.id, meta: a.role || '' });
+      if (results.admins.length >= 6) break;
+    }
+  }
+
+  // Build HTML
+  const groups = [];
+  if (results.vehicles.length) groups.push({ title: 'Vehicles', key: 'vehicles', items: results.vehicles });
+  if (results.bookings.length) groups.push({ title: 'Bookings', key: 'bookings', items: results.bookings });
+  if (results.customers.length) groups.push({ title: 'Customers', key: 'customers', items: results.customers });
+  if (results.admins.length) groups.push({ title: 'Admins', key: 'admins', items: results.admins });
+
+  if (!groups.length) {
+    existing?.remove();
+    return;
+  }
+
+  const html = [`<div id="globalSearchResults" class="absolute z-40 mt-1 w-full max-w-[760px] rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-black/20">`];
+  for (const g of groups) {
+    html.push(`<div class="p-3 border-b last:border-b-0">`);
+    html.push(`<div class="text-xs font-semibold text-slate-500 mb-2">${g.title}</div>`);
+    for (const item of g.items) {
+      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" class="w-full text-left px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5">`);
+      html.push(`<div class="text-sm font-semibold">${escapeHtml(item.label)}</div>`);
+      html.push(`<div class="text-xs text-slate-500">${escapeHtml(item.meta)}</div>`);
+      html.push(`</button>`);
+    }
+    html.push(`</div>`);
+  }
+  html.push(`</div>`);
+
+  // Insert dropdown after input label
+  existing?.remove();
+  const wrapper = document.createElement('div');
+  wrapper.className = 'relative';
+  wrapper.innerHTML = html.join('');
+  // place next to the input's parent label
+  const parent = hostInput.closest('label') || hostInput.parentElement;
+  if (!parent) return;
+  // ensure the container for dropdown exists
+  parent.appendChild(wrapper.firstChild);
+
+  // Attach click handlers
+  document.querySelectorAll('#globalSearchResults [data-search-type]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const t = btn.getAttribute('data-search-type');
+      const id = btn.getAttribute('data-search-id');
+      handleGlobalSearchSelect(t, id);
+    });
+  });
+}
+
+function handleGlobalSearchSelect(type, id) {
+  if (!type || !id) return;
+  const moduleMap = {
+    vehicles: 'vehicles',
+    bookings: 'bookings',
+    customers: 'customers',
+    admins: 'admins',
+  };
+
+  const targetModule = moduleMap[type] || 'overview';
+  appState.activeModule = targetModule;
+  setActiveNav(targetModule);
+  renderActiveModule();
+
+  // Try to open detail in the rendered module by triggering the appropriate control
+  window.setTimeout(() => {
+    let selectorMap = {
+      vehicles: `[data-edit-id="${id}"]`,
+      bookings: `[data-edit-booking-id="${id}"]`,
+      customers: `[data-open-customer-id="${id}"]`,
+      admins: `[data-permission="${id}"]`,
+    };
+
+    const sel = selectorMap[type];
+    const el = document.querySelector(sel);
+    if (el) {
+      el.click();
+    }
+  }, 120);
+
+  // Clear dropdown and input
+  document.getElementById('globalSearchResults')?.remove();
+  const input = document.getElementById('globalSearch');
+  if (input) input.value = '';
 }
 
 async function hydrateVehiclesFromCatalog({ silent = false } = {}) {
