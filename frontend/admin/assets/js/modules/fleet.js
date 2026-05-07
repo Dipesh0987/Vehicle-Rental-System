@@ -33,6 +33,7 @@ export function renderFleetModule({ data, query, notify }) {
     <section class="${classMap.panel} p-4 sm:p-5">
       <div id="fleetControls" class="mb-3 flex flex-wrap items-center gap-3"></div>
       <div id="fleetMapHost" class="h-[560px] w-full rounded-xl border border-slate-200 bg-white dark:bg-[#071018] dark:border-white/5"></div>
+      <div id="fleetMapStatus" class="mt-3 text-sm text-slate-600"></div>
       <div id="fleetEmptyState" class="hidden mt-4">No active rentals found.</div>
     </section>
   `;
@@ -40,6 +41,7 @@ export function renderFleetModule({ data, query, notify }) {
   const mapHost = host.querySelector('#fleetMapHost');
   const controlsHost = host.querySelector('#fleetControls');
   const emptyState = host.querySelector('#fleetEmptyState');
+  const fleetMapStatus = host.querySelector('#fleetMapStatus');
 
   let map = null;
   let markers = new Map();
@@ -174,20 +176,34 @@ export function renderFleetModule({ data, query, notify }) {
   async function refresh() {
     try {
       const rows = await fetchFleetData();
-      if (!rows.length) {
+      const withCoords = rows.filter(r => r && r.latitude != null && r.longitude != null);
+      const withoutCoords = rows.length - withCoords.length;
+
+      if (!rows.length || !withCoords.length) {
         mapHost.classList.add('hidden');
         emptyState.classList.remove('hidden');
+        const msg = rows.length ? `${withoutCoords} active booking(s) have no location data.` : 'No active rentals found.';
+        fleetMapStatus && (fleetMapStatus.textContent = msg + ' You can seed sample telemetry or enable device ingestion.');
         return;
       }
 
       emptyState.classList.add('hidden');
       mapHost.classList.remove('hidden');
 
-      updateMarkers(rows);
-      // preserve view if user moved map
-      if (!preserveView && rows.length) {
-        const first = rows.find((r) => r.latitude && r.longitude);
-        if (first) map.setView([Number(first.latitude), Number(first.longitude)], 12);
+      updateMarkers(withCoords);
+
+      fleetMapStatus && (fleetMapStatus.textContent = `${withCoords.length} vehicle(s) showing on the map. ${withoutCoords ? withoutCoords + ' missing location.' : ''}`);
+
+      // preserve view if user moved map; otherwise fit to bounds of available markers
+      if (!preserveView && withCoords.length) {
+        const latlngs = withCoords.map(r => [Number(r.latitude), Number(r.longitude)]);
+        try {
+          const bounds = L.latLngBounds(latlngs);
+          map.fitBounds(bounds.pad(0.4));
+        } catch (e) {
+          const first = withCoords[0];
+          if (first) map.setView([Number(first.latitude), Number(first.longitude)], 12);
+        }
       }
     } catch (err) {
       notify && notify('Fleet refresh error: ' + (err && err.message ? err.message : ''), 'error');
@@ -252,11 +268,40 @@ export function renderFleetModule({ data, query, notify }) {
   (async function initMapAndPoll() {
     try {
       const L = await loadLeaflet();
-      map = L.map(mapHost, { zoomControl: true });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      map = L.map(mapHost, {
+        zoomControl: true,
+        // Nepal bounding box: lat ~ [26,31], lon ~ [80,89]
+        maxBounds: [[26, 80], [31, 89]],
+        minZoom: 6,
+        maxZoom: 18,
+        worldCopyJump: false,
+      });
 
-      // basic view
-      map.setView([27.7, 85.3], 11);
+      // prefer OpenStreetMap tiles but provide a fallback if tile requests fail (400/403)
+      const osmUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const cartoUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+      function attachTileLayer(url, attribution) {
+        const tl = L.tileLayer(url, { attribution, maxZoom: 19 });
+        tl.addTo(map);
+        tl.on('tileerror', function (err) {
+          // switch to fallback once on error
+          if (url === osmUrl) {
+            try {
+              map.eachLayer(function (layer) {
+                if (layer && layer._url && layer._url.indexOf('openstreetmap') >= 0) map.removeLayer(layer);
+              });
+            } catch (e) {}
+            attachTileLayer(cartoUrl, '&copy; OpenStreetMap contributors & CartoDB');
+          }
+        });
+        return tl;
+      }
+
+      attachTileLayer(osmUrl, '&copy; OpenStreetMap contributors');
+
+      // initial view: center Nepal (Kathmandu area) but allow bounds to keep focus on Nepal
+      map.setView([27.7172, 85.3240], 7);
 
       // preserve user viewport when user interacts
       map.on('movestart', () => { preserveView = true; });
