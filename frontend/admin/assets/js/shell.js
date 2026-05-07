@@ -183,7 +183,7 @@ export function renderShell() {
 
         <label class="relative min-w-[230px] flex-1 max-w-[480px]">
           <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
-          <input id="globalSearch" placeholder="Search bookings, customer, invoice, vehicle..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
+          <input id="globalSearch" placeholder="Search vehicles, bookings, customers, and admins..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
         </label>
 
         <div id="quickActions" class="hidden items-center gap-2 xl:flex">${renderQuickActions()}</div>
