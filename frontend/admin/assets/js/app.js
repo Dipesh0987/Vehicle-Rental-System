@@ -294,9 +294,12 @@ function renderGlobalSearchResults(query) {
     for (const item of g.items) {
       const flatIndex = globalSearchState.items.findIndex((entry) => entry.type === g.key && entry.id === item.id);
       const isActive = flatIndex === globalSearchState.activeIndex;
-      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" class="w-full rounded-lg px-2 py-2 text-left ${isActive ? 'bg-brand-500/10 ring-1 ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
-      html.push(`<div class="text-sm font-semibold">${escapeHtml(item.label)}</div>`);
+      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" class="group flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-brand-500/10 ring-1 ring-inset ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
+      html.push(`<span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${isActive ? 'bg-brand-600 shadow-[0_0_0_4px_rgba(31,118,104,0.12)]' : 'bg-slate-300 group-hover:bg-brand-400'}"></span>`);
+      html.push(`<span class="min-w-0 flex-1">`);
+      html.push(`<div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(item.label)}</div>`);
       html.push(`<div class="text-xs text-slate-500">${escapeHtml(item.meta)}</div>`);
+      html.push(`</span>`);
       html.push(`</button>`);
     }
     html.push(`</div>`);
@@ -319,6 +322,14 @@ function renderGlobalSearchResults(query) {
       const t = btn.getAttribute('data-search-type');
       const id = btn.getAttribute('data-search-id');
       handleGlobalSearchSelect(t, id);
+    });
+
+    btn.addEventListener('mouseenter', () => {
+      const nextIndex = Number(btn.getAttribute('data-search-index'));
+      if (!Number.isNaN(nextIndex) && nextIndex !== globalSearchState.activeIndex) {
+        globalSearchState.activeIndex = nextIndex;
+        renderGlobalSearchResults(globalSearchState.query);
+      }
     });
   });
 }
