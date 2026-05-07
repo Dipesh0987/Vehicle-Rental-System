@@ -104,7 +104,30 @@
     }
 
     if (!isVerificationApproved(verificationStatus)) {
-      setBannerMessage(targetBannerId || "bookingFormError", getVerificationBlockedMessage(), "error");
+      var bannerId = targetBannerId || "bookingFormError";
+      var bannerEl = byId(bannerId);
+      if (bannerEl) {
+        var safeText = escapeHtml(getVerificationBlockedMessage());
+        var btnId = "bookingVerifyNowBtn";
+        bannerEl.classList.remove("hidden");
+        bannerEl.classList.remove("border-emerald-200", "bg-emerald-50", "text-emerald-700");
+        bannerEl.classList.add("border-rose-200", "bg-rose-50", "text-rose-700");
+        bannerEl.innerHTML = '<span>' + safeText + '</span> <button id="' + btnId + '" class="ml-3 inline-flex items-center rounded bg-accent px-3 py-1 text-sm font-semibold text-white">Verify now</button>';
+
+        // Attach click handler to redirect to profile verification page
+        try {
+          var verifyBtn = byId(btnId);
+          if (verifyBtn) {
+            verifyBtn.addEventListener("click", function (e) {
+              e.preventDefault();
+              window.location.href = "profile-verification.html";
+            });
+          }
+        } catch (_err) {
+          // ignore attach errors
+        }
+      }
+
       updateAvailabilityPill("error", "Verification required before booking");
       return false;
     }
