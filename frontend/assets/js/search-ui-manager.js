@@ -46,6 +46,20 @@ class SearchUIManager {
      */
     defineFilterCategories() {
         return {
+            searchText: {
+                label: "Keyword Search",
+                icon: "fa-magnifying-glass",
+                type: "text",
+                filterKey: "searchText",
+                placeholder: "Search by brand, model, or feature",
+            },
+            pickupLocation: {
+                label: "Location",
+                icon: "fa-location-dot",
+                type: "text",
+                filterKey: "pickupLocation",
+                placeholder: "Filter by pickup city",
+            },
             brand: {
                 label: "Brand",
                 icon: "fa-industry",
@@ -54,6 +68,13 @@ class SearchUIManager {
                 filterKey: "brands",
                 dynamicOptions: true,
             },
+                key: "search",
+                title: "Search Terms",
+                description: "Search by keywords or narrow vehicles to a specific location.",
+                cards: ["searchText", "pickupLocation"],
+                layoutClass: "grid gap-3 lg:grid-cols-2",
+            },
+            {
             vehicleType: {
                 label: "Vehicle Type",
                 icon: "fa-car",
@@ -249,6 +270,9 @@ class SearchUIManager {
         `;
 
         switch (config.type) {
+            case "text":
+                html += this.renderTextFilter(config);
+                break;
             case "checkbox":
                 html += this.renderCheckboxOptions(config);
                 break;
@@ -266,6 +290,23 @@ class SearchUIManager {
         `;
 
         return html;
+    }
+
+    /**
+     * Render a text filter control.
+     */
+    renderTextFilter(config) {
+        const currentValue = this.filterManager.filters[config.filterKey] || "";
+
+        return `
+            <label class="block space-y-2 rounded-2xl border border-[#d4ddd7] bg-white/85 px-4 py-4 text-sm text-[#30484b] shadow-[0_8px_18px_rgba(9,30,34,0.07)]">
+                <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5b7376]">
+                    <i class="fas ${config.icon} text-[12px]"></i>
+                    ${config.label}
+                </span>
+                <input type="text" class="filter-text-input w-full rounded-xl border border-[#d4ddd7] bg-white px-3 py-2 text-sm font-medium text-[#203f42] outline-none transition placeholder:text-[#8ca0a3] focus:border-accent focus:ring-2 focus:ring-accent/25" data-filter="${config.filterKey}" placeholder="${config.placeholder || config.label}" value="${currentValue}" />
+            </label>
+        `;
     }
 
     /**
@@ -381,6 +422,17 @@ class SearchUIManager {
             checkbox.dataset.listenerBound = "true";
             checkbox.addEventListener("change", (e) => {
                 this.filterManager.toggleFilter(e.target.dataset.filter, e.target.dataset.value);
+                this.updateActiveFilterTags();
+            });
+        });
+
+        // Text filters
+        document.querySelectorAll(".filter-text-input").forEach((input) => {
+            if (input.dataset.listenerBound === "true") return;
+            input.dataset.listenerBound = "true";
+            input.addEventListener("input", (e) => {
+                const filterKey = e.target.dataset.filter;
+                this.filterManager.updateFilter(filterKey, String(e.target.value || "").trim());
                 this.updateActiveFilterTags();
             });
         });
