@@ -476,6 +476,7 @@
     var seatsRaw = Number(payload.seats);
     var seats = Number.isFinite(seatsRaw) ? Math.trunc(seatsRaw) : NaN;
     var priceRaw = toNumber(payload.pricePerDay || payload.daily || payload.dailyRate, NaN);
+    var ratingRaw = payload.rating === "" || payload.rating === null || payload.rating === undefined ? NaN : toNumber(payload.rating, NaN);
     var fuelType = normalizeFuelTypeValue(payload.fuelType || payload.fuel);
     var images = toFileArray(payload.images).slice(0, MAX_IMAGE_COUNT);
 
@@ -501,6 +502,10 @@
 
     if (!Number.isFinite(priceRaw) || priceRaw < MIN_PRICE_PER_DAY || priceRaw > MAX_PRICE_PER_DAY) {
       errors.pricePerDay = "Daily price must be between " + MIN_PRICE_PER_DAY + " and " + MAX_PRICE_PER_DAY + ".";
+    }
+
+    if (Number.isFinite(ratingRaw) && (ratingRaw < 0 || ratingRaw > 5)) {
+      errors.rating = "Rating must be between 0 and 5.";
     }
 
     if (!fuelType || ALLOWED_FUEL_TYPES.indexOf(fuelType) < 0) {
@@ -541,6 +546,7 @@
         type: type,
         seats: seats,
         pricePerDay: Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : 0,
+        rating: Number.isFinite(ratingRaw) ? Math.round(ratingRaw * 100) / 100 : 4.6,
         fuelType: fuelType,
         images: images,
         status: normalizeString(payload.status, "Available") || "Available",
@@ -791,6 +797,7 @@
         status: normalized.status,
         pricePerDay: normalized.pricePerDay,
         daily: normalized.pricePerDay,
+        rating: normalized.rating,
         imageUrls: imageUrls,
         primaryImageUrl: imageUrls[0] || "",
         features: normalized.features,
