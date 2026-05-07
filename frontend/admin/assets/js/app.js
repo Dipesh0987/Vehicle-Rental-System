@@ -48,6 +48,11 @@ const appState = {
 const catalogService = createCatalogService({ data: appState.data });
 let catalogUnsubscribe = null;
 let bookingUnsubscribe = null;
+const globalSearchState = {
+  items: [],
+  activeIndex: -1,
+  query: '',
+};
 
 function escapeHtml(value) {
   return String(value || '')
@@ -75,7 +80,7 @@ async function bootstrap() {
 
   updateVerificationNotificationBadge(0);
   initTheme();
-  bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
+  bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch, handleGlobalSearchKeydown);
   renderActiveModule();
   setActiveNav(appState.activeModule);
 
@@ -198,11 +203,15 @@ function renderGlobalSearchResults(query) {
   // Remove existing dropdown if empty query or short
   const existing = document.getElementById('globalSearchResults');
   if (!query || String(query).trim().length < 2) {
+    globalSearchState.items = [];
+    globalSearchState.activeIndex = -1;
+    globalSearchState.query = '';
     existing?.remove();
     return;
   }
 
   const q = String(query || '').toLowerCase().trim();
+  globalSearchState.query = q;
   const results = {
     vehicles: [],
     bookings: [],
@@ -253,8 +262,28 @@ function renderGlobalSearchResults(query) {
   if (results.customers.length) groups.push({ title: 'Customers', key: 'customers', items: results.customers });
   if (results.admins.length) groups.push({ title: 'Admins', key: 'admins', items: results.admins });
 
+  globalSearchState.items = groups.flatMap((group) =>
+    group.items.map((item) => ({
+      type: group.key,
+      ...item,
+    }))
+  );
+  globalSearchState.activeIndex = globalSearchState.items.length ? 0 : -1;
+
   if (!groups.length) {
     existing?.remove();
+    const parent = hostInput.closest('label') || hostInput.parentElement;
+    if (!parent) return;
+    const emptyState = document.createElement('div');
+    emptyState.id = 'globalSearchResults';
+    emptyState.className = 'absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-black/20';
+    emptyState.innerHTML = `
+      <div class="p-4 text-sm text-slate-600 dark:text-slate-300">
+        <p class="font-semibold text-slate-900 dark:text-white">No matches found</p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Try a different keyword or search another record type.</p>
+      </div>
+    `;
+    parent.appendChild(emptyState);
     return;
   }
 
@@ -263,7 +292,9 @@ function renderGlobalSearchResults(query) {
     html.push(`<div class="border-b border-slate-200 p-3 last:border-b-0 dark:border-white/10">`);
     html.push(`<div class="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">${escapeHtml(g.title)}</div>`);
     for (const item of g.items) {
-      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" class="w-full text-left px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5">`);
+      const flatIndex = globalSearchState.items.findIndex((entry) => entry.type === g.key && entry.id === item.id);
+      const isActive = flatIndex === globalSearchState.activeIndex;
+      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" class="w-full rounded-lg px-2 py-2 text-left ${isActive ? 'bg-brand-500/10 ring-1 ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
       html.push(`<div class="text-sm font-semibold">${escapeHtml(item.label)}</div>`);
       html.push(`<div class="text-xs text-slate-500">${escapeHtml(item.meta)}</div>`);
       html.push(`</button>`);
@@ -290,6 +321,41 @@ function renderGlobalSearchResults(query) {
       handleGlobalSearchSelect(t, id);
     });
   });
+}
+
+function handleGlobalSearchKeydown(event) {
+  const key = String(event.key || '');
+  const hasResults = Array.isArray(globalSearchState.items) && globalSearchState.items.length > 0;
+
+  if (key === 'Escape') {
+    document.getElementById('globalSearchResults')?.remove();
+    globalSearchState.items = [];
+    globalSearchState.activeIndex = -1;
+    return;
+  }
+
+  if (!hasResults) {
+    return;
+  }
+
+  if (key === 'ArrowDown' || key === 'ArrowUp') {
+    event.preventDefault();
+    const direction = key === 'ArrowDown' ? 1 : -1;
+    const nextIndex = (globalSearchState.activeIndex + direction + globalSearchState.items.length) % globalSearchState.items.length;
+    globalSearchState.activeIndex = nextIndex;
+    renderGlobalSearchResults(appState.globalSearch);
+    const nextButton = document.querySelector(`#globalSearchResults [data-search-index="${nextIndex}"]`);
+    nextButton?.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+
+  if (key === 'Enter') {
+    event.preventDefault();
+    const active = globalSearchState.items[globalSearchState.activeIndex] || globalSearchState.items[0];
+    if (active) {
+      handleGlobalSearchSelect(active.type, active.id);
+    }
+  }
 }
 
 function handleGlobalSearchSelect(type, id) {
@@ -331,7 +397,12 @@ function handleGlobalSearchSelect(type, id) {
   // Clear dropdown and input
   document.getElementById('globalSearchResults')?.remove();
   const input = document.getElementById('globalSearch');
-  if (input) input.value = '';
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  globalSearchState.items = [];
+  globalSearchState.activeIndex = -1;
 }
 
 async function hydrateVehiclesFromCatalog({ silent = false } = {}) {

@@ -251,7 +251,7 @@ export function pushToast(message, variant = 'info') {
   }, 2800);
 }
 
-export function bindShellInteractions(onNavigate, onQuickAction, onSearch) {
+export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onSearchKeyDown) {
   const navButtons = document.querySelectorAll('[data-nav-item]');
   navButtons.forEach((button) => {
     button.addEventListener('click', () => {
@@ -288,6 +288,11 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch) {
   if (searchInput) {
     searchInput.addEventListener('input', (event) => {
       onSearch(event.target.value || '');
+    });
+    searchInput.addEventListener('keydown', (event) => {
+      if (typeof onSearchKeyDown === 'function') {
+        onSearchKeyDown(event);
+      }
     });
   }
 
