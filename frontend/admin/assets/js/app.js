@@ -81,6 +81,7 @@ async function bootstrap() {
   updateVerificationNotificationBadge(0);
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch, handleGlobalSearchKeydown);
+  document.addEventListener('pointerdown', handleGlobalSearchOutsideClick);
   renderActiveModule();
   setActiveNav(appState.activeModule);
 
@@ -195,6 +196,33 @@ function handleGlobalSearch(query) {
   }
 }
 
+function closeGlobalSearchResults() {
+  document.getElementById('globalSearchResults')?.remove();
+  globalSearchState.items = [];
+  globalSearchState.activeIndex = -1;
+  globalSearchState.query = '';
+}
+
+function handleGlobalSearchOutsideClick(event) {
+  const searchInput = document.getElementById('globalSearch');
+  const resultsPanel = document.getElementById('globalSearchResults');
+
+  if (!searchInput || !resultsPanel) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof Node)) {
+    return;
+  }
+
+  if (searchInput.contains(target) || resultsPanel.contains(target)) {
+    return;
+  }
+
+  closeGlobalSearchResults();
+}
+
 // Render dropdown results for global admin search and handle selections
 function renderGlobalSearchResults(query) {
   const hostInput = document.getElementById('globalSearch');
@@ -203,10 +231,7 @@ function renderGlobalSearchResults(query) {
   // Remove existing dropdown if empty query or short
   const existing = document.getElementById('globalSearchResults');
   if (!query || String(query).trim().length < 2) {
-    globalSearchState.items = [];
-    globalSearchState.activeIndex = -1;
-    globalSearchState.query = '';
-    existing?.remove();
+    closeGlobalSearchResults();
     return;
   }
 
@@ -271,7 +296,7 @@ function renderGlobalSearchResults(query) {
   globalSearchState.activeIndex = globalSearchState.items.length ? 0 : -1;
 
   if (!groups.length) {
-    existing?.remove();
+    closeGlobalSearchResults();
     const parent = hostInput.closest('label') || hostInput.parentElement;
     if (!parent) return;
     const emptyState = document.createElement('div');
@@ -406,7 +431,7 @@ function handleGlobalSearchSelect(type, id) {
   }, 120);
 
   // Clear dropdown and input
-  document.getElementById('globalSearchResults')?.remove();
+  closeGlobalSearchResults();
   const input = document.getElementById('globalSearch');
   if (input) {
     input.value = '';
