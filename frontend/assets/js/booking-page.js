@@ -89,6 +89,29 @@
     return normalizeString(status, "").toLowerCase() === "approved";
   }
 
+  function getVerificationBlockedMessage() {
+    return "Booking cannot be completed until your account is verified. Please complete the verification process to start booking.";
+  }
+
+  async function ensureBookingVerificationAccess(state, targetBannerId) {
+    var verificationStatus = normalizeString(state && state.verificationStatus, "").toLowerCase();
+
+    if (verificationStatus !== "approved") {
+      verificationStatus = await readVerificationStatus();
+      if (state) {
+        state.verificationStatus = verificationStatus;
+      }
+    }
+
+    if (!isVerificationApproved(verificationStatus)) {
+      setBannerMessage(targetBannerId || "bookingFormError", getVerificationBlockedMessage(), "error");
+      updateAvailabilityPill("error", "Verification required before booking");
+      return false;
+    }
+
+    return true;
+  }
+
   function formatMoney(amount) {
     var numeric = Number(amount || 0);
     if (!Number.isFinite(numeric)) {
@@ -1124,6 +1147,10 @@
           return;
         }
 
+        if (!await ensureBookingVerificationAccess(state, "bookingConfirmError")) {
+          return;
+        }
+
         if (!state.pendingBookingValues || !state.selectedVehicle) {
           setBannerMessage("bookingConfirmError", "Booking context is missing. Please review the form again.", "error");
           return;
@@ -1210,6 +1237,10 @@
 
       if (!ensureRegisteredBookingAccess()) {
         setBannerMessage("bookingFormError", "Please register or sign in before booking a vehicle.", "error");
+        return;
+      }
+
+      if (!await ensureBookingVerificationAccess(state, "bookingFormError")) {
         return;
       }
 
