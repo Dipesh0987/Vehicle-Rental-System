@@ -472,11 +472,18 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
     <form id="vehicleCatalogForm" class="space-y-4 pb-6" novalidate>
       <div id="vehicleGlobalError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-300"></div>
 
-      <label class="block space-y-1">
-        <span class="text-xs font-semibold">Vehicle Name <span class="text-rose-500">*</span></span>
-        <input name="name" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="Toyota Corolla" />
-        <p data-error-for="name" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-      </label>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label class="block space-y-1">
+          <span class="text-xs font-semibold">Vehicle Name <span class="text-rose-500">*</span></span>
+          <input name="name" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="Toyota Corolla" />
+          <p data-error-for="name" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
+        </label>
+
+        <label class="block space-y-1">
+          <span class="text-xs font-semibold">Brand</span>
+          <input name="brand" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="Toyota" />
+        </label>
+      </div>
 
       <label class="block space-y-1">
         <span class="text-xs font-semibold">Vehicle Number <span class="text-rose-500">*</span></span>
@@ -531,6 +538,13 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
         <span class="text-xs font-semibold">Daily Price (NPR) <span class="text-rose-500">*</span></span>
         <input name="dailyPrice" type="number" min="${limits.minPricePerDay}" max="${limits.maxPricePerDay}" step="0.01" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" />
         <p data-error-for="pricePerDay" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
+      </label>
+
+      <label class="block space-y-1">
+        <span class="text-xs font-semibold">User Rating</span>
+        <input name="rating" type="number" min="0" max="5" step="0.1" value="4.6" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" />
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">This value feeds the public rating filter.</p>
+        <p data-error-for="rating" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
       </label>
 
       <label class="block space-y-1">
@@ -640,7 +654,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
   };
 
   const applyErrors = (errors) => {
-    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'images', 'bulkRows'].forEach((key) => {
+    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'rating', 'images', 'bulkRows'].forEach((key) => {
       setFieldError(key, errors[key] || '');
     });
   };
@@ -736,6 +750,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
 
     const values = {
       name: String(formData.get('name') || '').trim(),
+      brand: String(formData.get('brand') || '').trim(),
       vehicleNumber: String(formData.get('vehicleNumber') || '').trim().toUpperCase(),
       type: String(formData.get('category') || '').trim(),
       status: String(formData.get('status') || 'Available').trim(),
@@ -743,6 +758,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       fuelType: String(formData.get('fuelType') || '').trim(),
       seats: Number(formData.get('seats') || NaN),
       pricePerDay: Number(formData.get('dailyPrice') || NaN),
+      rating: Number(formData.get('rating') || NaN),
       location: String(formData.get('location') || '').trim(),
       features: String(formData.get('features') || '')
         .split(',')
@@ -840,6 +856,10 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       errors.pricePerDay = `Daily price must be between ${limits.minPricePerDay} and ${limits.maxPricePerDay}.`;
     }
 
+    if (Number.isFinite(values.rating) && (values.rating < 0 || values.rating > 5)) {
+      errors.rating = 'Rating must be between 0 and 5.';
+    }
+
     if (!values.images.length) {
       errors.images = 'At least one image is required.';
     } else if (values.images.length > limits.maxImages) {
@@ -880,7 +900,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       } else {
         const imageUrls = await readFilesAsDataUrls(values.images);
         await catalogService.saveVehicle({
-          brand: deriveBrandFromVehicleName(values.name),
+          brand: values.brand || deriveBrandFromVehicleName(values.name),
           name: values.name,
           vehicleNumber: values.vehicleNumber,
           category: values.type,
@@ -895,7 +915,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
           primaryImageUrl: imageUrls[0] || DEFAULT_IMAGE_URL,
           features: values.features,
           location: values.location,
-          rating: 4.6,
+          rating: Number.isFinite(values.rating) ? values.rating : 4.6,
         });
       }
 
