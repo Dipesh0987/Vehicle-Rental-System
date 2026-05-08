@@ -115,6 +115,7 @@
     var roleClass = message.role === "user"
       ? "ml-auto rounded-2xl rounded-br-md bg-[linear-gradient(135deg,#166a61,#1f7c72)] text-white"
       : "mr-auto rounded-2xl rounded-bl-md border border-[#d7e7e1] bg-white text-[#143a3f]";
+    var bubbleBemClass = "vrs-ai-chat__bubble " + (message.role === "user" ? "vrs-ai-chat__bubble--user" : "vrs-ai-chat__bubble--assistant");
     var safeText = escapeHtml(message.text || "").replace(/\n/g, "<br />");
     var bodyHtml = safeText;
 
@@ -151,7 +152,7 @@
     }
 
     return (
-      "<article class=\"max-w-[92%] px-3 py-2.5 text-[13px] leading-relaxed shadow-[0_4px_12px_rgba(10,37,40,0.08)] " + roleClass + "\">" +
+      "<article class=\"" + bubbleBemClass + " max-w-[92%] px-3 py-2.5 text-[13px] leading-relaxed shadow-[0_4px_12px_rgba(10,37,40,0.08)] " + roleClass + "\">" +
       "<p>" + bodyHtml + "</p>" +
       citationsHtml +
       actionsHtml +
