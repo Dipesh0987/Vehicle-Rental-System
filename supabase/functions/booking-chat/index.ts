@@ -26,14 +26,27 @@ type VehicleRow = {
   name: string | null;
   brand: string | null;
   category: string | null;
+  seats?: number | null;
+  daily_rate?: number | null;
+  price_per_day?: number | null;
+  fuel_type?: string | null;
+  transmission?: string | null;
+  image_url?: string | null;
+  primary_image_url?: string | null;
+  features?: string[] | null;
+  is_available?: boolean | null;
+  status?: string | null;
+  rating?: number | null;
+  location?: string | null;
 };
 
 type ActionItem = {
-  type: "view_booking" | "open_vehicle" | "confirmation_cta" | "contact_support";
+  type: "view_booking" | "open_vehicle" | "confirmation_cta" | "contact_support" | "suggest_vehicle" | "book_vehicle";
   label: string;
   bookingId?: string;
   vehicleId?: string;
   href?: string;
+  meta?: Record<string, unknown>;
 };
 
 type Citation = {
@@ -193,6 +206,29 @@ function readRelativeWindow(query: string, now: Date): { start: Date; end: Date 
     return { start: saturday, end: new Date(sunday.getTime() + dayMs - 1) };
   }
 
+  if (lower.includes("this week")) {
+    const day = base.getUTCDay();
+    const monday = new Date(base.getTime() - ((day === 0 ? 6 : day - 1) * dayMs));
+    const sunday = new Date(monday.getTime() + 6 * dayMs);
+    return { start: monday, end: new Date(sunday.getTime() + dayMs - 1) };
+  }
+
+  if (lower.includes("next week")) {
+    const day = base.getUTCDay();
+    const daysUntilNextMonday = ((8 - day) % 7) || 7;
+    const monday = new Date(base.getTime() + daysUntilNextMonday * dayMs);
+    const sunday = new Date(monday.getTime() + 6 * dayMs);
+    return { start: monday, end: new Date(sunday.getTime() + dayMs - 1) };
+  }
+
+  if (lower.includes("next month")) {
+    const year = now.getUTCMonth() === 11 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
+    const month = (now.getUTCMonth() + 1) % 12;
+    const start = new Date(Date.UTC(year, month, 1));
+    const end = new Date(Date.UTC(year, month + 1, 0));
+    return { start, end: new Date(end.getTime() + dayMs - 1) };
+  }
+
   return null;
 }
 
@@ -213,6 +249,9 @@ function classifyIntent(query: string):
   | "cancellation"
   | "refund"
   | "invoice"
+  | "list"
+  | "price"
+  | "trip"
   | "unknown" {
   const lower = query.toLowerCase();
 
@@ -220,11 +259,15 @@ function classifyIntent(query: string):
     return "modify";
   }
 
-  if (/(upcoming|next booking|tomorrow|today|weekend|when|date)\b/.test(lower)) {
+  if (/(trip|travel|journey|road\s*trip|plan.*trip|vacation|holiday|tour|group.*ride|family.*ride|\d+\s*(people|person|passenger|pax|member|friend|seat)|need.*car.*for|suggest.*vehicle|recommend.*car|which.*car.*for|best.*car|suitable.*vehicle)/.test(lower)) {
+    return "trip";
+  }
+
+  if (/(upcoming|next booking|tomorrow|today|weekend|when.*(date|booking|pickup)|this week|next week|next month)\b/.test(lower)) {
     return "upcoming";
   }
 
-  if (/(vehicle|car|which one|model|details)\b/.test(lower)) {
+  if (/(vehicle|car|which one|model|what.*rented|what.*booked)\b/.test(lower)) {
     return "vehicle";
   }
 
@@ -232,15 +275,246 @@ function classifyIntent(query: string):
     return "cancellation";
   }
 
-  if (/(refund|money back|reimburse)\b/.test(lower)) {
+  if (/(refund|money back|reimburse|get.*back)\b/.test(lower)) {
     return "refund";
   }
 
-  if (/(invoice|receipt|bill)\b/.test(lower)) {
+  if (/(invoice|receipt|bill|download.*pdf)\b/.test(lower)) {
     return "invoice";
   }
 
+  if (/(all.*booking|my.*booking|list.*booking|show.*booking|how many.*booking)/.test(lower)) {
+    return "list";
+  }
+
+  if (/(price|cost|how much|total|amount|payment|paid)\b/.test(lower)) {
+    return "price";
+  }
+
   return "unknown";
+}
+
+/* ─── Trip Context Parsing ─── */
+type TripContext = {
+  people: number;
+  budget: number;
+  destinationType: string;
+  duration: number;
+};
+
+function parseTripContext(query: string): TripContext {
+  const lower = query.toLowerCase();
+  let people = 0;
+  let budget = 0;
+  let destinationType = "";
+  let duration = 0;
+
+  // People count
+  const pMatch = lower.match(/(\d+)\s*(people|person|passenger|pax|member|friend|seat|of us)/);
+  if (pMatch) people = Math.max(1, parseInt(pMatch[1], 10));
+  else if (/\b(solo|alone|just me|myself)\b/.test(lower)) people = 1;
+  else if (/\b(couple|two of us|me and my (wife|husband|partner|friend))\b/.test(lower)) people = 2;
+  else if (/\bfamily\b/.test(lower)) people = 5;
+  else if (/\bgroup\b/.test(lower)) people = 7;
+
+  // Budget
+  const bMatch = lower.match(/(?:budget|under|below|max|upto|up to|within|around|about)\s*(?:npr|rs\.?|rupees?)?\s*(\d[\d,]*)/);
+  if (bMatch) budget = parseInt(bMatch[1].replace(/,/g, ""), 10);
+  else {
+    const bMatch2 = lower.match(/(\d[\d,]*)\s*(?:npr|rs\.?|rupees?)\s*(?:per day|\/day|daily|a day)?/);
+    if (bMatch2) budget = parseInt(bMatch2[1].replace(/,/g, ""), 10);
+  }
+
+  // Destination type
+  if (/\b(mountain|hill|himal|mustang|manang|everest|annapurna|off.?road|rugged|4wd|4x4)\b/.test(lower)) destinationType = "mountain";
+  else if (/\b(city|urban|kathmandu|pokhara|lalitpur|bhaktapur|town)\b/.test(lower)) destinationType = "city";
+  else if (/\b(highway|long.?drive|terai|chitwan|lumbini|flat)\b/.test(lower)) destinationType = "highway";
+
+  // Duration
+  const dMatch = lower.match(/(\d+)\s*(day|night|week)/);
+  if (dMatch) {
+    const num = parseInt(dMatch[1], 10);
+    duration = dMatch[2].startsWith("week") ? num * 7 : num;
+  }
+
+  return { people, budget, destinationType, duration };
+}
+
+function missingTripInfo(ctx: TripContext): string[] {
+  const missing: string[] = [];
+  if (!ctx.people) missing.push("passengers");
+  if (!ctx.budget) missing.push("budget");
+  if (!ctx.destinationType) missing.push("destination");
+  return missing;
+}
+
+async function fetchAvailableVehicles(minSeats: number, maxBudget: number, destType: string): Promise<VehicleRow[]> {
+  const columns = "id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,available,is_available,status,rating,location";
+  let query = supabaseAdmin
+    .from("vehicles")
+    .select(columns)
+    .or("available.eq.true,is_available.eq.true")
+    .order("rating", { ascending: false })
+    .limit(20);
+
+  if (minSeats > 0) query = query.gte("seats", minSeats);
+  if (maxBudget > 0) query = query.lte("price_per_day", maxBudget);
+
+  const result = await query;
+  if (result.error) {
+    console.error("vehicle fetch error", result.error.message);
+    return [];
+  }
+
+  let vehicles = (result.data || []) as VehicleRow[];
+
+  // Prefer SUVs/trucks for mountains, sedans for city
+  function vCat(v: VehicleRow): string {
+    return (normalizeText(v.category) || normalizeText((v as Record<string, unknown>).type as string)).toLowerCase();
+  }
+  if (destType === "mountain") {
+    vehicles.sort((a, b) => {
+      const scoreA = (vCat(a) === "suv" || vCat(a) === "truck") ? 0 : 1;
+      const scoreB = (vCat(b) === "suv" || vCat(b) === "truck") ? 0 : 1;
+      return scoreA - scoreB;
+    });
+  } else if (destType === "city") {
+    vehicles.sort((a, b) => {
+      const scoreA = (vCat(a) === "sedan" || vCat(a) === "electric") ? 0 : 1;
+      const scoreB = (vCat(b) === "sedan" || vCat(b) === "electric") ? 0 : 1;
+      return scoreA - scoreB;
+    });
+  }
+
+  return vehicles;
+}
+
+async function handleTripPlanning(input: {
+  query: string;
+  ctx: TripContext;
+  timezone: string;
+  now: Date;
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const ctx = input.ctx;
+  const missing = missingTripInfo(ctx);
+
+  // Ask clarifying questions if 2+ key details are missing and this looks like an initial vague request
+  if (missing.length >= 2 && GEMINI_API_KEY) {
+    const clarifyPrompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      "The user wants to plan a trip but hasn't provided enough details.",
+      "Missing info: " + missing.join(", ") + ".",
+      "Ask 2-3 SHORT, friendly clarifying questions to help recommend the best vehicle.",
+      "Questions should cover: number of passengers, daily budget (in NPR), and destination type (city/mountain/highway).",
+      "Keep it to 2-3 sentences max. Be warm.",
+      "",
+      "User message: " + input.query,
+    ].join("\n");
+    const clarifyAnswer = await callGemini(clarifyPrompt, 200);
+    if (clarifyAnswer) {
+      return {
+        answer: clarifyAnswer,
+        actions: [],
+        citations: [],
+      };
+    }
+  }
+
+  // Fetch vehicles
+  const vehicles = await fetchAvailableVehicles(ctx.people || 1, ctx.budget, ctx.destinationType);
+
+  if (!vehicles.length) {
+    const noVehicleAnswer = ctx.people
+      ? `I couldn't find available vehicles with ${ctx.people}+ seats${ctx.budget ? " under NPR " + ctx.budget : ""} right now. Try adjusting your requirements or contact our support team.`
+      : "I couldn't find available vehicles matching your needs right now. Please contact our support team.";
+    return {
+      answer: noVehicleAnswer,
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  }
+
+  function vPrice(v: VehicleRow): number { return Number(v.price_per_day || v.daily_rate || 0); }
+  function vType(v: VehicleRow): string { return normalizeText(v.category) || normalizeText((v as Record<string, unknown>).type as string) || "sedan"; }
+
+  const top = vehicles.slice(0, 3);
+  const vehicleSummary = top.map((v, i) => {
+    const name = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+    const seats = v.seats || 5;
+    const price = vPrice(v);
+    const fuel = normalizeText(v.fuel_type) || "Petrol";
+    const cat = vType(v);
+    return `#${i + 1} ${name} | ${cat} | ${seats} seats | NPR ${Math.round(price).toLocaleString()}/day | ${fuel}`;
+  }).join("\n");
+
+  const contextLabel = [
+    ctx.people ? `${ctx.people} passengers` : "",
+    ctx.budget ? `budget NPR ${ctx.budget}/day` : "",
+    ctx.destinationType || "",
+    ctx.duration ? `${ctx.duration} days` : "",
+  ].filter(Boolean).join(", ");
+
+  let answer = "";
+  let reasons: string[] = [];
+
+  if (GEMINI_API_KEY) {
+    const prompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      "The user wants to plan a trip" + (contextLabel ? " (" + contextLabel + ")" : "") + ".",
+      "Below are the top 3 available vehicles ranked by suitability.",
+      "For EACH vehicle, write ONE short sentence explaining why it's a good fit for this trip.",
+      "Then write a brief 1-2 sentence overall recommendation.",
+      "Format EXACTLY like this (no markdown):",
+      "REASON1: <reason for vehicle 1>",
+      "REASON2: <reason for vehicle 2>",
+      "REASON3: <reason for vehicle 3>",
+      "SUMMARY: <overall recommendation>",
+      "",
+      "VEHICLES:",
+      vehicleSummary,
+      "",
+      "User query: " + input.query,
+    ].join("\n");
+    const geminiOut = await callGemini(prompt, 400);
+
+    if (geminiOut) {
+      const r1 = geminiOut.match(/REASON1:\s*(.+?)(?=REASON2:|$)/s);
+      const r2 = geminiOut.match(/REASON2:\s*(.+?)(?=REASON3:|$)/s);
+      const r3 = geminiOut.match(/REASON3:\s*(.+?)(?=SUMMARY:|$)/s);
+      const summary = geminiOut.match(/SUMMARY:\s*(.+)/s);
+      reasons = [
+        normalizeText(r1?.[1]),
+        normalizeText(r2?.[1]),
+        normalizeText(r3?.[1]),
+      ];
+      answer = normalizeText(summary?.[1]) || geminiOut;
+    }
+  }
+
+  if (!answer) {
+    answer = `Here are my top 3 recommendations${contextLabel ? " for " + contextLabel : ""}. Tap "Book this" to start your reservation!`;
+  }
+
+  const actions: ActionItem[] = top.map((v, i) => ({
+    type: "suggest_vehicle" as const,
+    label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+    vehicleId: v.id,
+    meta: {
+      seats: v.seats || 5,
+      price: vPrice(v),
+      fuel: normalizeText(v.fuel_type) || "Petrol",
+      transmission: normalizeText(v.transmission) || "Automatic",
+      image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+      category: vType(v),
+      rating: v.rating || 0,
+      location: normalizeText(v.location) || "",
+      reason: reasons[i] || "",
+      rank: i + 1,
+    },
+  }));
+  actions.push(defaultSupportAction());
+
+  return { answer, actions, citations: [] };
 }
 
 async function fetchBookingsForUser(userId: string, email: string): Promise<BookingRow[]> {
@@ -486,12 +760,88 @@ function buildRuleAnswer(params: {
     };
   }
 
+  if (intent === "list") {
+    const summaryLines = bookings.slice(0, 5).map((b, i) => {
+      const code = bookingCode(b);
+      const vName = vehicleName(b, vehicleMap);
+      const status = normalizeText(b.status) || "unknown";
+      return `${i + 1}. ${code} — ${vName} (${status})`;
+    });
+    const cite = citationFrom(latestBooking);
+    return {
+      answer: `${sourcePrefix(cite)} here are your recent bookings:\n${summaryLines.join("\n")}${bookings.length > 5 ? "\n...and " + (bookings.length - 5) + " more." : ""}`,
+      actions: bookings.slice(0, 3).map((b) => ({
+        type: "view_booking" as const,
+        label: `View ${bookingCode(b)}`,
+        bookingId: b.id,
+      })),
+      citations: [cite],
+      unresolved: false,
+    };
+  }
+
+  if (intent === "price") {
+    const target = latestBooking;
+    const cite = citationFrom(target);
+    const amount = formatMoney(target.total_amount, target.currency);
+    const paid = Boolean(target.is_paid) || normalizeText(target.payment_status).toLowerCase() === "paid";
+    return {
+      answer: `${sourcePrefix(cite)} the total for ${vehicleName(target, vehicleMap)} is ${amount}. Payment status: ${paid ? "Paid" : "Pending"}.`,
+      actions: [
+        { type: "view_booking" as const, label: "Here is your booking \u2014 tap to view", bookingId: target.id },
+      ],
+      citations: [cite],
+      unresolved: false,
+    };
+  }
+
   return {
     answer: "I could not confidently resolve that booking request from available fields.",
     actions: [defaultSupportAction()],
     citations: [citationFrom(latestBooking)],
     unresolved: true,
   };
+}
+
+async function callGemini(prompt: string, maxTokens = 300): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    return "";
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [{ text: prompt }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: maxTokens,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    try {
+      const txt = await response.text();
+      console.error("gemini error", response.status, txt);
+    } catch (e) {
+      console.error("gemini error status", response.status);
+    }
+    return "";
+  }
+
+  const payload = await response.json();
+  return normalizeText(
+    payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => normalizeText(part?.text)).join(" ")
+  );
 }
 
 async function maybeRefineWithGemini(input: {
@@ -520,41 +870,69 @@ async function maybeRefineWithGemini(input: {
     `User query: ${input.query}`,
   ].join("\n");
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+  const result = await callGemini(prompt, 260);
+  return result || input.draftAnswer;
+}
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 260,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    try {
-      const txt = await response.text();
-      console.error("gemini error", response.status, txt);
-    } catch (e) {
-      console.error("gemini error status", response.status);
-    }
-    return input.draftAnswer;
+function summarizeBookings(bookings: BookingRow[], vehicleMap: Record<string, VehicleRow>): string {
+  if (!bookings.length) {
+    return "No bookings found for this user.";
   }
 
-  const payload = await response.json();
-  const outputText = normalizeText(
-    payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => normalizeText(part?.text)).join(" ")
-  );
-  return outputText || input.draftAnswer;
+  return bookings.slice(0, 5).map((b) => {
+    const code = bookingCode(b);
+    const vName = vehicleName(b, vehicleMap);
+    const status = normalizeText(b.status) || "unknown";
+    const start = normalizeText(b.start_date) || "?";
+    const end = normalizeText(b.end_date) || "?";
+    const amount = formatMoney(b.total_amount, b.currency);
+    return `- ${code}: ${vName}, ${start} to ${end}, status: ${status}, amount: ${amount}`;
+  }).join("\n");
+}
+
+async function handleGeneralQuery(input: {
+  query: string;
+  bookings: BookingRow[];
+  vehicleMap: Record<string, VehicleRow>;
+  timezone: string;
+  now: Date;
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const bookingSummary = summarizeBookings(input.bookings, input.vehicleMap);
+  const latestBooking = input.bookings[0] || null;
+
+  const prompt = [
+    "You are a friendly, professional AI booking assistant for RentAVehicle Nepal — a vehicle rental service.",
+    "RULES:",
+    "- Be warm, concise, and helpful (2-4 sentences max).",
+    "- If the user greets you (hi, hello, hey, etc.), greet them back and briefly mention you can help with booking dates, vehicle info, cancellation, refunds, invoices, or general rental questions.",
+    "- If the user asks about their bookings, ONLY use the real booking data provided below. NEVER invent or fabricate booking data.",
+    "- If the user asks something you cannot answer from the data, say so honestly and offer to connect to support.",
+    "- You CANNOT modify, cancel, or create bookings. If asked, tell the user to use the booking modification page.",
+    "- Always mention the booking code (e.g. BK-XXXX) when referencing a specific booking.",
+    "- Current date/time: " + input.now.toISOString() + " (" + input.timezone + ")",
+    "",
+    "USER'S BOOKING DATA (from vehicle_bookings table):",
+    bookingSummary,
+    "",
+    "User message: " + input.query,
+  ].join("\n");
+
+  const result = await callGemini(prompt, 400);
+  const answer = result || "Hello! I'm your booking assistant. I can help with upcoming dates, vehicle details, cancellation policy, refund status, or invoices. What would you like to know?";
+
+  const actions: ActionItem[] = [];
+  const citations: Citation[] = [];
+  if (latestBooking) {
+    citations.push(citationFrom(latestBooking));
+    actions.push({
+      type: "view_booking",
+      label: "View your latest booking",
+      bookingId: latestBooking.id,
+    });
+  }
+  actions.push(defaultSupportAction());
+
+  return { answer, actions, citations };
 }
 
 Deno.serve(async (request: Request): Promise<Response> => {
@@ -611,6 +989,23 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const bookings = await fetchBookingsForUser(userId, email);
     const vehicleMap = await fetchVehicleMap(bookings);
 
+    const intent = classifyIntent(query);
+
+    // Handle trip planning separately (doesn't need bookings)
+    if (intent === "trip") {
+      const ctx = parseTripContext(query);
+      const tripResult = await handleTripPlanning({ query, ctx, timezone, now: safeNow });
+      return jsonResponse(200, {
+        success: true,
+        answer: tripResult.answer,
+        actions: tripResult.actions as unknown as JsonValue,
+        citations: tripResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+      });
+    }
+
     const ruleAnswer = buildRuleAnswer({
       query,
       now: safeNow,
@@ -619,23 +1014,29 @@ Deno.serve(async (request: Request): Promise<Response> => {
       vehicleMap,
     });
 
-    const refinedAnswer = await maybeRefineWithGemini({
-      query,
-      draftAnswer: ruleAnswer.answer,
-      citations: ruleAnswer.citations,
-      actions: ruleAnswer.actions,
-    });
+    let finalAnswer: string;
+    let finalActions = ruleAnswer.actions;
+    let finalCitations = ruleAnswer.citations;
 
-    const citations = ruleAnswer.citations;
-    const answerWithCitation = citations.length
-      ? refinedAnswer
-      : `${refinedAnswer} Based on your booking data source: vehicle_bookings.`;
+    if (ruleAnswer.unresolved && GEMINI_API_KEY) {
+      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow });
+      finalAnswer = geminiResult.answer;
+      finalActions = geminiResult.actions;
+      finalCitations = geminiResult.citations;
+    } else {
+      finalAnswer = await maybeRefineWithGemini({
+        query,
+        draftAnswer: ruleAnswer.answer,
+        citations: ruleAnswer.citations,
+        actions: ruleAnswer.actions,
+      });
+    }
 
     return jsonResponse(200, {
       success: true,
-      answer: answerWithCitation,
-      actions: ruleAnswer.actions as unknown as JsonValue,
-      citations: citations as unknown as JsonValue,
+      answer: finalAnswer,
+      actions: finalActions as unknown as JsonValue,
+      citations: finalCitations as unknown as JsonValue,
       unresolved: ruleAnswer.unresolved,
       support: {
         email: SUPPORT_EMAIL,

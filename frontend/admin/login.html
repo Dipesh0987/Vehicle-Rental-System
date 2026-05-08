@@ -10,91 +10,6 @@
     <link rel="stylesheet" href="../assets/css/tailwind.css" />
     <link rel="stylesheet" href="../assets/css/theme.css" />
     <script src="../assets/js/theme-manager.js"></script>
-    <script>
-      window.__legacyTailwindConfig = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Manrope', 'sans-serif'],
-              mono: ['IBM Plex Mono', 'monospace'],
-            },
-            colors: {
-              brand: {
-                50: '#f2f7f5',
-                100: '#dcece7',
-                500: '#1f7668',
-                600: '#185e53',
-                700: '#12453d',
-                900: '#0a211d',
-              },
-              sand: '#f5f1e8',
-              ink: '#182227',
-              peach: '#f08f5f',
-            },
-            keyframes: {
-              stageIn: {
-                '0%': { opacity: '0', transform: 'translateY(12px) scale(0.985)' },
-                '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
-              },
-              slideIn: {
-                '0%': { opacity: '0', transform: 'translateY(16px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-              floatOrb: {
-                '0%, 100%': { transform: 'translate3d(0, 0, 0)' },
-                '50%': { transform: 'translate3d(0, -9px, 0)' },
-              },
-              pulseLine: {
-                '0%, 100%': { opacity: '0.45', transform: 'scaleX(1)' },
-                '50%': { opacity: '1', transform: 'scaleX(1.08)' },
-              },
-            },
-            animation: {
-              stageIn: 'stageIn 760ms cubic-bezier(0.2, 1, 0.22, 1) forwards',
-              slideIn: 'slideIn 620ms ease forwards',
-              floatOrb: 'floatOrb 7.5s ease-in-out infinite',
-              pulseLine: 'pulseLine 3s ease-in-out infinite',
-            },
-            boxShadow: {
-              soft: '0 10px 30px rgba(16, 26, 31, 0.08)',
-              panel: '0 20px 45px rgba(9, 19, 23, 0.12)',
-            },
-          },
-        },
-      };
-    </script>
-    <style>
-      @keyframes adminStageIn {
-        0% {
-          opacity: 0;
-          transform: translateY(12px) scale(0.985);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-
-      @keyframes adminSlideIn {
-        0% {
-          opacity: 0;
-          transform: translateY(16px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      .animate-stageIn {
-        animation: adminStageIn 760ms cubic-bezier(0.2, 1, 0.22, 1) forwards;
-      }
-
-      .animate-slideIn {
-        animation: adminSlideIn 620ms ease forwards;
-      }
-    </style>
   </head>
   <body class="vrs-page h-full bg-sand text-ink antialiased">
     <div class="relative min-h-full overflow-hidden bg-[radial-gradient(circle_at_top_right,#e4eee9_0%,#f5f1e8_48%,#ece7dc_100%)]">
@@ -177,10 +92,9 @@
             <button
               id="adminLoginSubmit"
               type="submit"
-              style="background:linear-gradient(135deg,#1f7668 0%,#2f5f7b 100%);color:#ffffff;"
               class="w-full rounded-full bg-[linear-gradient(135deg,#1f7668_0%,#2f5f7b_100%)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_16px_28px_rgba(20,73,89,0.28)] disabled:cursor-not-allowed disabled:opacity-65"
             >
-              <span id="adminLoginSubmitLabel" style="color:#ffffff;">Sign In to Admin</span>
+              <span id="adminLoginSubmitLabel">Sign In to Admin</span>
             </button>
           </form>
 

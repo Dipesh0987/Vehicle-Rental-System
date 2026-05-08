@@ -5,21 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modify Booking - Vehicle Rental System</title>
     <link rel="stylesheet" href="assets/css/tailwind.css">
-    <style>
-        .fade-enter {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        .fade-enter-active {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/theme.css">
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 min-h-screen">
     <!-- Navigation -->
@@ -230,6 +216,10 @@
     </main>
 
     <!-- Scripts -->
+    <script src="assets/js/supabase.config.local.js"></script>
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/ai-booking-chat.js"></script>
     <script type="module" src="assets/js/modify-booking.js"></script>
 </body>
 </html>

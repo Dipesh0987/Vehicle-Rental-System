@@ -14,76 +14,9 @@
     <link rel="stylesheet" href="assets/css/tailwind.css" />
     <link rel="stylesheet" href="assets/css/theme.css" />
     <script src="assets/js/theme-manager.js"></script>
-    <script>
-      window.__legacyTailwindConfig = {
-        theme: {
-          extend: {
-            fontFamily: {
-              poppins: ["Poppins", "sans-serif"],
-            },
-            colors: {
-              accent: "#E58C4E",
-              panel: "#2C766E",
-              ink: "#0E2528",
-              muted: "#6C7074",
-              paper: "#F2F3F1",
-            },
-            keyframes: {
-              drift: {
-                "0%, 100%": { transform: "translate3d(0, 0, 0)" },
-                "50%": { transform: "translate3d(0, -8px, 0)" },
-              },
-              loginStageIn: {
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0) scale(1)",
-                },
-              },
-              loginSectionIn: {
-                from: {
-                  opacity: "0",
-                  transform: "translateY(14px)",
-                },
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0)",
-                },
-              },
-              vehicleReveal: {
-                from: {
-                  opacity: "0",
-                  transform: "translateY(16px) scale(0.985)",
-                },
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0) scale(1)",
-                },
-              },
-              vehicleFloat: {
-                "0%, 100%": { transform: "translateY(0)" },
-                "50%": { transform: "translateY(-4px)" },
-              },
-              accentPulse: {
-                "0%, 100%": { opacity: "0.5", transform: "scaleX(1)" },
-                "50%": { opacity: "1", transform: "scaleX(1.08)" },
-              },
-            },
-            animation: {
-              drift: "drift 8s ease-in-out infinite",
-              loginStageIn: "loginStageIn 720ms cubic-bezier(0.19, 1, 0.22, 1) forwards",
-              loginSectionIn: "loginSectionIn 640ms ease forwards",
-              vehicleReveal: "vehicleReveal 760ms cubic-bezier(0.18, 0.88, 0.2, 1) 260ms both",
-              vehicleFloat: "vehicleFloat 6.2s ease-in-out 900ms infinite",
-              accentPulse: "accentPulse 3s ease-in-out infinite",
-            },
-          },
-        },
-      };
-    </script>
   </head>
   <body
-    class="vrs-page min-h-screen overflow-hidden bg-paper font-poppins text-ink"
-    style="background: radial-gradient(circle at 88% 8%, rgba(19, 87, 81, 0.34), transparent 42%), radial-gradient(circle at 10% 88%, rgba(229, 140, 78, 0.24), transparent 36%), linear-gradient(148deg, #f8faf8 0%, #eef3ef 50%, #e7edeb 100%);"
+    class="vrs-page min-h-screen overflow-hidden bg-paper bg-[radial-gradient(circle_at_88%_8%,rgba(19,87,81,0.34),transparent_42%),radial-gradient(circle_at_10%_88%,rgba(229,140,78,0.24),transparent_36%),linear-gradient(148deg,#f8faf8_0%,#eef3ef_50%,#e7edeb_100%)] font-poppins text-ink"
   >
     <main id="loginMain" class="vrs-theme-scope relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8 transition duration-200">
       <div class="pointer-events-none absolute right-[-100px] top-[-95px] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle_at_32%_28%,rgba(229,140,78,0.78),rgba(229,140,78,0.12))] opacity-75 blur-[12px] animate-drift" aria-hidden="true"></div>
