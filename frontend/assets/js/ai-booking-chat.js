@@ -393,7 +393,7 @@
       "</header>" +
       "<div class=\"relative min-h-0\">" +
       "<div class=\"h-full space-y-2 overflow-y-auto bg-[linear-gradient(180deg,rgba(246,252,250,0.95),rgba(239,248,245,0.95))] px-3 py-3 vrs-ai-chat__thread\" data-ai-thread></div>" +
-      "<aside class=\"absolute inset-y-0 right-0 hidden w-[78%] border-l border-[#d7e6e1] bg-[#f3faf8] p-3\" data-ai-history-panel>" +
+      "<aside class=\"vrs-ai-chat__history-panel absolute hidden w-[78%] border-l border-[#d7e6e1] bg-[#f3faf8] p-3 overflow-y-auto\" data-ai-history-panel>" +
       "<div class=\"mb-2 flex items-center justify-between\"><h3 class=\"text-[12px] font-bold text-[#17484b]\">Searches & History</h3><button type=\"button\" class=\"rounded-md px-2 py-1 text-[10px] font-semibold text-[#28595e] hover:bg-[#dff0ec]\" data-ai-history-close>Hide</button></div>" +
       "<div class=\"max-h-full overflow-y-auto pr-1\" data-ai-history-body></div>" +
       "</aside>" +
