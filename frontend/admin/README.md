@@ -29,6 +29,13 @@ This directory contains the enterprise-grade admin console for the Vehicle Renta
 - Admin actions (`Approve`, `Reject`, `Set Pending`) call RPC `admin_update_user_verification_status`.
 - Customer trip counts are dynamically merged from booking records.
 
+## Global Search
+
+- The top-bar search is now a shared admin search surface.
+- Results are grouped by entity type: bookings, customers, invoices, and vehicles.
+- Selecting a result deep-links into the matching record detail page and clears the search query.
+- The search panel closes on outside click or `Escape`.
+
 ## Vehicle Bulk Add
 
 - In Vehicle Management, the Add Vehicle drawer now supports bulk creation.

@@ -2,12 +2,18 @@ import { classMap } from '../config.js';
 import { filterRows } from '../table-utils.js';
 import { openModal, renderEmptyState } from '../ui.js';
 
-export function renderPaymentsModule({ data, query, notify }) {
+const paymentUiState = {
+  selectedInvoiceId: '',
+};
+
+export function renderPaymentsModule({ data, query, notify, rerender }) {
   const host = document.createElement('section');
-  const rows = filterRows(data.payments, query, ['id', 'booking', 'method', 'status', 'invoice']);
+  const sourceRows = Array.isArray(data && data.payments) ? data.payments : [];
+  const selectedPayment = resolveSelectedPayment(sourceRows);
+  const rows = filterRows(sourceRows, query, ['id', 'booking', 'method', 'status', 'invoice']);
 
   host.className = 'space-y-4';
-  host.innerHTML = `
+  host.innerHTML = selectedPayment ? renderPaymentDetailPage(selectedPayment) : `
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Finance</p>
@@ -68,6 +74,12 @@ export function renderPaymentsModule({ data, query, notify }) {
     </section>
   `;
 
+  host.querySelector('[data-back-to-payments-list]')?.addEventListener('click', () => {
+    paymentUiState.selectedInvoiceId = '';
+    writeInvoiceIdToHash('');
+    rerender?.();
+  });
+
   host.querySelector('#exportPaymentsBtn')?.addEventListener('click', () => {
     openModal({
       title: 'Export Revenue Report',
@@ -83,6 +95,100 @@ export function renderPaymentsModule({ data, query, notify }) {
   });
 
   return host;
+}
+
+function resolveSelectedPayment(rows) {
+  const selectedId = String(paymentUiState.selectedInvoiceId || readInvoiceIdFromHash() || '').trim();
+  if (!selectedId) {
+    return null;
+  }
+
+  const selected = (Array.isArray(rows) ? rows : []).find((row) => String(row && row.invoice ? row.invoice : row && row.id ? row.id : '') === selectedId) || null;
+  if (!selected) {
+    paymentUiState.selectedInvoiceId = '';
+    writeInvoiceIdToHash('');
+    return null;
+  }
+
+  paymentUiState.selectedInvoiceId = selectedId;
+  return selected;
+}
+
+function readInvoiceIdFromHash() {
+  const hash = String(window.location.hash || '').trim();
+  if (!hash || hash.indexOf('#invoice:') !== 0) {
+    return '';
+  }
+
+  return decodeURIComponent(hash.replace('#invoice:', '')).trim();
+}
+
+function writeInvoiceIdToHash(value) {
+  const id = String(value || '').trim();
+  if (!id) {
+    if (String(window.location.hash || '').indexOf('#invoice:') === 0) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    return;
+  }
+
+  history.replaceState(null, '', `${window.location.pathname}${window.location.search}#invoice:${encodeURIComponent(id)}`);
+}
+
+function renderPaymentDetailPage(row) {
+  return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <button type="button" data-back-to-payments-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+        <span class="material-symbols-outlined text-[16px]">west</span>
+        <span>Back to Payments</span>
+      </button>
+      <span class="${statusClass(row && row.status ? row.status : 'Pending')}">${escapeHtml(row && row.status ? row.status : 'Pending')}</span>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5 xl:col-span-2">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Invoice Detail Page</p>
+        <h3 class="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-slate-900 dark:text-slate-100">${escapeHtml(row && row.invoice ? row.invoice : row && row.id ? row.id : 'Invoice')}</h3>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(row && row.booking ? row.booking : 'Booking')} · ${escapeHtml(row && row.method ? row.method : 'Method')}</p>
+
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          ${renderPaymentField('Transaction', row && row.id ? row.id : '-')}
+          ${renderPaymentField('Booking', row && row.booking ? row.booking : '-')}
+          ${renderPaymentField('Method', row && row.method ? row.method : '-')}
+          ${renderPaymentField('Amount', formatNpr(row && row.amount ? row.amount : 0))}
+          ${renderPaymentField('Status', row && row.status ? row.status : '-')}
+          ${renderPaymentField('Invoice', row && row.invoice ? row.invoice : '-')}
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button data-invoice="${escapeHtml(row && row.invoice ? row.invoice : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Generate Invoice</button>
+        </div>
+      </article>
+
+      <aside class="space-y-3">
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Payment Snapshot</h4>
+          <div class="mt-3 space-y-2 text-xs">
+            ${renderPaymentField('Invoice No.', row && row.invoice ? row.invoice : '-')}
+            ${renderPaymentField('Status', row && row.status ? row.status : '-')}
+            ${renderPaymentField('Amount', formatNpr(row && row.amount ? row.amount : 0))}
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Processing Notes</h4>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml('Invoices here are generated from the current booking payment record and can be exported from the row or detail page.')}</p>
+        </article>
+      </aside>
+    </div>
+  </section>`;
+}
+
+function renderPaymentField(label, value) {
+  return `<article class="rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-slate-900/40">
+    <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
+    <p class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(value || '-')}</p>
+  </article>`;
 }
 
 function statusClass(status) {

@@ -8,6 +8,7 @@ const COLUMN_STORAGE_KEY = 'vrs-admin-booking-visible-columns';
 const bookingUiState = {
   page: 1,
   pageSize: 8,
+  selectedBookingId: '',
 };
 const BOOKING_TABLE_COLUMNS = [
   { key: 'booking', label: 'Booking' },
@@ -24,10 +25,12 @@ const BOOKING_TABLE_COLUMNS = [
   { key: 'actions', label: 'Action' },
 ];
 
-export function renderBookingsModule({ data, query, notify, reloadBookingsData, bookingService }) {
+export function renderBookingsModule({ data, query, notify, reloadBookingsData, bookingService, rerender }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
+  const sourceRows = Array.isArray(data && data.bookings) ? data.bookings : [];
+  const selectedBooking = resolveSelectedBooking(sourceRows);
   const dateFilter = '';
   const statusFilter = '';
   const typeFilter = '';
@@ -35,7 +38,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   let visibleColumns = loadVisibleColumns();
 
   const getSearchedRows = () => filterRows(
-    Array.isArray(data && data.bookings) ? data.bookings : [],
+    sourceRows,
     query,
     ['id', 'customer', 'customerEmail', 'customerPhone', 'vehicle', 'type', 'driverOption', 'status', 'pickupLocation', 'paymentLabel']
   );
@@ -54,6 +57,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   const activeCount = initialSortedRows.filter((row) => String(row && row.status ? row.status : '').toLowerCase() === 'confirmed').length;
 
   host.innerHTML = `
+    ${selectedBooking ? renderBookingDetailPage(selectedBooking) : `
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reservations</p>
@@ -131,6 +135,7 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
           .join('')}
       </div>
     </section>
+    `}
   `;
 
   const rowsBody = host.querySelector('#bookingRowsBody');
@@ -142,6 +147,12 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   const columnPanel = host.querySelector('#bookingColumnPanel');
   const pagerHost = host.querySelector('#bookingPager');
   const userMessageTop = host.querySelector('#bookingUserMessageTop');
+
+  host.querySelector('[data-back-to-bookings-list]')?.addEventListener('click', () => {
+    bookingUiState.selectedBookingId = '';
+    writeBookingIdToHash('');
+    rerender?.();
+  });
 
   function getFilteredSortedRows() {
     return sortRows(applyAdminFilters(getSearchedRows(), readFilters()), 'createdAt').slice().reverse();
@@ -389,6 +400,19 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   host.addEventListener('click', (event) => {
     const target = event.target;
     if (!target) {
+      return;
+    }
+
+    const openBookingButton = target.closest('[data-open-booking-id]');
+    if (openBookingButton) {
+      const bookingId = String(openBookingButton.getAttribute('data-open-booking-id') || '').trim();
+      if (!bookingId) {
+        return;
+      }
+
+      bookingUiState.selectedBookingId = bookingId;
+      writeBookingIdToHash(bookingId);
+      rerender?.();
       return;
     }
 
@@ -655,7 +679,7 @@ function renderBookingRow(row) {
   const paymentDone = Boolean(row && row.paymentDone);
 
   return `<tr class="border-b border-slate-100 dark:border-white/5" data-booking-id="${escapeHtml(bookingId)}" data-booking-code="${escapeHtml(bookingCode)}" data-current-status="${escapeHtml(currentStatus)}">
-    <td data-col="booking" class="py-3 pr-3 font-bold">${escapeHtml(row.id || '-')}</td>
+    <td data-col="booking" class="py-3 pr-3 font-bold"><button type="button" data-open-booking-id="${escapeHtml(bookingId)}" class="text-left text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-800 dark:text-brand-300 dark:decoration-brand-500/50">${escapeHtml(row.id || '-')}</button></td>
     <td data-col="customer" class="booking-customer-cell py-3 pr-3">
       ${row && row.userMessage ? `<p class="booking-user-message-chip mb-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-800">User Message: ${escapeHtml(row.userMessage)}</p>` : ''}
       <p class="booking-customer-name font-semibold">${escapeHtml(row.customer || '-')}</p>
@@ -687,6 +711,116 @@ function renderBookingRow(row) {
       </div>
     </td>
   </tr>`;
+}
+
+function resolveSelectedBooking(rows) {
+  const selectedId = String(bookingUiState.selectedBookingId || readBookingIdFromHash() || '').trim();
+  if (!selectedId) {
+    return null;
+  }
+
+  const selected = (Array.isArray(rows) ? rows : []).find((row) => String(row && (row.bookingId || row.id) ? (row.bookingId || row.id) : '') === selectedId) || null;
+  if (!selected) {
+    bookingUiState.selectedBookingId = '';
+    writeBookingIdToHash('');
+    return null;
+  }
+
+  bookingUiState.selectedBookingId = selectedId;
+  return selected;
+}
+
+function readBookingIdFromHash() {
+  const hash = String(window.location.hash || '').trim();
+  if (!hash || hash.indexOf('#booking:') !== 0) {
+    return '';
+  }
+
+  return decodeURIComponent(hash.replace('#booking:', '')).trim();
+}
+
+function writeBookingIdToHash(value) {
+  const id = String(value || '').trim();
+  if (!id) {
+    if (String(window.location.hash || '').indexOf('#booking:') === 0) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    return;
+  }
+
+  history.replaceState(null, '', `${window.location.pathname}${window.location.search}#booking:${encodeURIComponent(id)}`);
+}
+
+function renderBookingDetailPage(row) {
+  const status = normalizeBookingStatusLabel(row && row.status ? row.status : 'Confirmed');
+  const paymentDone = Boolean(row && row.paymentDone);
+
+  return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <button type="button" data-back-to-bookings-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+        <span class="material-symbols-outlined text-[16px]">west</span>
+        <span>Back to Bookings</span>
+      </button>
+      <span class="${statusSelectClass(status, false)} inline-flex w-auto items-center">${escapeHtml(status)}</span>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5 xl:col-span-2">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Booking Detail Page</p>
+            <h3 class="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-slate-900 dark:text-slate-100">${escapeHtml(row && row.id ? row.id : 'Booking')}</h3>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(row && row.customer ? row.customer : 'Customer')} · ${escapeHtml(row && row.vehicle ? row.vehicle : 'Vehicle')}</p>
+          </div>
+          <div class="flex flex-col items-end gap-2 text-right">
+            <span class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">${escapeHtml(row && row.type ? row.type : 'Vehicle')}</span>
+            <span class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">${paymentDone ? 'Paid' : 'Unpaid'}</span>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          ${renderBookingField('Customer', row && row.customer ? row.customer : '-')}
+          ${renderBookingField('Customer Email', row && row.customerEmail ? row.customerEmail : '-')}
+          ${renderBookingField('Customer Phone', row && row.customerPhone ? row.customerPhone : '-')}
+          ${renderBookingField('Vehicle', row && row.vehicle ? row.vehicle : '-')}
+          ${renderBookingField('Pickup Location', row && row.pickupLocation ? row.pickupLocation : '-')}
+          ${renderBookingField('Driver Option', row && row.driverOption ? row.driverOption : '-')}
+          ${renderBookingField('Date From', row && row.start ? row.start : '-')}
+          ${renderBookingField('Date To', row && row.end ? row.end : '-')}
+          ${renderBookingField('Payment', paymentDone ? 'Yes' : 'No')}
+          ${renderBookingField('Total', formatNpr(row && row.total ? row.total : 0))}
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" data-edit-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Booking</button>
+          <button type="button" data-delete-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" data-delete-booking-code="${escapeHtml(row && row.id ? row.id : '')}" class="rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600">Delete Booking</button>
+        </div>
+      </article>
+
+      <aside class="space-y-3">
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Trip Summary</h4>
+          <div class="mt-3 grid grid-cols-1 gap-2 text-xs">
+            ${renderBookingField('Booking Code', row && row.id ? row.id : '-')}
+            ${renderBookingField('Booking ID', row && row.bookingId ? row.bookingId : '-')}
+            ${renderBookingField('Created', row && row.createdAt ? row.createdAt : '-')}
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Message</h4>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(row && row.userMessage ? row.userMessage : 'No user message recorded for this booking.')}</p>
+        </article>
+      </aside>
+    </div>
+  </section>`;
+}
+
+function renderBookingField(label, value) {
+  return `<article class="rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-slate-900/40">
+    <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
+    <p class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(value || '-')}</p>
+  </article>`;
 }
 
 function statusOptionStyle(status) {

@@ -10,11 +10,18 @@ const STATUS_OPTIONS = ['Available', 'Unavailable', 'Maintenance', 'Inactive'];
 const REQUIRED_FUEL_TYPES = ['Petrol', 'Diesel', 'Electric'];
 const FALLBACK_ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
+const vehicleUiState = {
+  selectedVehicleId: '',
+};
+
 export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, reloadVehiclesData, rerender }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
-  const filtered = filterRows(data.vehicles, query, [
+  const sourceRows = Array.isArray(data && data.vehicles) ? data.vehicles : [];
+  const selectedVehicle = resolveSelectedVehicle(sourceRows);
+
+  const filtered = filterRows(sourceRows, query, [
     'id',
     'name',
     'vehicleNumber',
@@ -46,7 +53,10 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
 
   const canDeleteWithWrite = canDeleteCatalog && Boolean(canWriteCatalog);
 
-  host.innerHTML = `
+  if (selectedVehicle) {
+    host.innerHTML = renderVehicleDetailPage(selectedVehicle);
+  } else {
+    host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Operations</p>
@@ -144,6 +154,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
       </div>
     </section>
   `;
+  }
 
   const pagerHost = host.querySelector('#vehiclePager');
   if (pagerHost) {
@@ -273,11 +284,120 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
     });
   });
 
+  host.querySelector('[data-back-to-vehicles-list]')?.addEventListener('click', () => {
+    vehicleUiState.selectedVehicleId = '';
+    writeVehicleIdToHash('');
+    rerender?.();
+  });
+
   host.querySelector('#resetVehicleSearch')?.addEventListener('click', () => {
     notify('Reset search from global input', 'info');
   });
 
   return host;
+}
+
+function resolveSelectedVehicle(rows) {
+  const selectedId = String(vehicleUiState.selectedVehicleId || readVehicleIdFromHash() || '').trim();
+  if (!selectedId) {
+    return null;
+  }
+
+  const selected = (Array.isArray(rows) ? rows : []).find((row) => String(row && row.id ? row.id : '') === selectedId) || null;
+  if (!selected) {
+    vehicleUiState.selectedVehicleId = '';
+    writeVehicleIdToHash('');
+    return null;
+  }
+
+  vehicleUiState.selectedVehicleId = selectedId;
+  return selected;
+}
+
+function readVehicleIdFromHash() {
+  const hash = String(window.location.hash || '').trim();
+  if (!hash || hash.indexOf('#vehicle:') !== 0) {
+    return '';
+  }
+
+  return decodeURIComponent(hash.replace('#vehicle:', '')).trim();
+}
+
+function writeVehicleIdToHash(value) {
+  const id = String(value || '').trim();
+  if (!id) {
+    if (String(window.location.hash || '').indexOf('#vehicle:') === 0) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    return;
+  }
+
+  history.replaceState(null, '', `${window.location.pathname}${window.location.search}#vehicle:${encodeURIComponent(id)}`);
+}
+
+function renderVehicleDetailPage(vehicle) {
+  return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <button type="button" data-back-to-vehicles-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+        <span class="material-symbols-outlined text-[16px]">west</span>
+        <span>Back to Vehicles</span>
+      </button>
+      <span class="${statusClass(vehicle && vehicle.status ? vehicle.status : 'Available')}">${escapeHtml(vehicle && vehicle.status ? vehicle.status : 'Available')}</span>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5 xl:col-span-2">
+        <div class="flex flex-wrap items-start gap-4">
+          <img src="${escapeHtml(vehicle && vehicle.image ? vehicle.image : DEFAULT_IMAGE_URL)}" alt="${escapeHtml(vehicle && vehicle.name ? vehicle.name : 'Vehicle')}" class="h-40 w-full max-w-[260px] rounded-2xl object-cover" />
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Vehicle Detail Page</p>
+            <h3 class="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-slate-900 dark:text-slate-100">${escapeHtml(formatVehicleTitle(vehicle))}</h3>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')} · ${escapeHtml(vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : 'No vehicle number')}</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button data-edit-id="${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Vehicle</button>
+              <button data-delete-id="${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')}" class="rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600">Delete Vehicle</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          ${renderVehicleField('Category', vehicle && vehicle.category ? vehicle.category : '-')}
+          ${renderVehicleField('Brand', vehicle && vehicle.brand ? vehicle.brand : '-')}
+          ${renderVehicleField('Transmission', vehicle && vehicle.transmission ? vehicle.transmission : '-')}
+          ${renderVehicleField('Fuel Type', vehicle && vehicle.fuelType ? vehicle.fuelType : '-')}
+          ${renderVehicleField('Seats', String(vehicle && vehicle.seats ? vehicle.seats : '5'))}
+          ${renderVehicleField('Location', vehicle && vehicle.location ? vehicle.location : '-')}
+          ${renderVehicleField('Daily', formatNpr(vehicle && vehicle.daily ? vehicle.daily : 0))}
+          ${renderVehicleField('Weekly', formatNpr(vehicle && vehicle.weekly ? vehicle.weekly : 0))}
+          ${renderVehicleField('Seasonal', formatNpr(vehicle && vehicle.seasonal ? vehicle.seasonal : 0))}
+          ${renderVehicleField('Rating', String(vehicle && vehicle.rating ? vehicle.rating : '4.6'))}
+        </div>
+      </article>
+
+      <aside class="space-y-3">
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Vehicle Snapshot</h4>
+          <div class="mt-3 space-y-2 text-xs">
+            ${renderVehicleField('Vehicle ID', vehicle && vehicle.id ? vehicle.id : '-')}
+            ${renderVehicleField('Vehicle Number', vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : '-')}
+            ${renderVehicleField('Status', vehicle && vehicle.status ? vehicle.status : '-')}
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <h4 class="text-sm font-extrabold">Features</h4>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(Array.isArray(vehicle && vehicle.features) && vehicle.features.length ? vehicle.features.join(', ') : 'No features listed.')}</p>
+        </article>
+      </aside>
+    </div>
+  </section>`;
+}
+
+function renderVehicleField(label, value) {
+  return `<article class="rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-slate-900/40">
+    <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">${escapeHtml(label)}</p>
+    <p class="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(value || '-')}</p>
+  </article>`;
 }
 
 function statusClass(status) {
