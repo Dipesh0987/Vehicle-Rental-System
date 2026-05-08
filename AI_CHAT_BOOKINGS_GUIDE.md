@@ -7,7 +7,7 @@ The booking AI chat is now integrated with:
 - A secure Supabase Edge Function endpoint: `supabase/functions/booking-chat/index.ts`
 - A reusable frontend chat widget: `frontend/assets/js/ai-booking-chat.js`
 - Booking modal deep-link API in auth layer: `backend/js/auth.js`
-- Shared UI styling: `frontend/assets/css/theme.css`
+- Tailwind-first floating chat UI with icon launcher and in-chat history drawer
 
 ## Feature Coverage
 
@@ -26,6 +26,9 @@ The booking AI chat is now integrated with:
 - Session-only history in browser `sessionStorage`
 - `Clear chat` resets conversation and starts from a welcome message
 - Chat history is not uploaded; only current prompt is sent to server
+- In-chat three-line menu opens:
+  - recent searches
+  - session chat history
 
 ## Where To Connect AI API
 
@@ -36,11 +39,25 @@ The recommended production integration point is the Supabase Edge Function:
 
 Set API credentials as Supabase Edge Function secrets (never in frontend JS):
 
-- `OPENAI_API_KEY`
-- Optional: `BOOKING_AI_MODEL` (default `gpt-4.1-mini`)
+- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`)
+- Optional: `BOOKING_AI_MODEL` (default `gemini-2.0-flash`)
 - Optional support values:
   - `BOOKING_SUPPORT_EMAIL`
   - `BOOKING_SUPPORT_PHONE`
+
+## Free Chatbot API (Gemini)
+
+You can use Gemini free tier from Google AI Studio.
+
+1. Open https://aistudio.google.com/
+2. Sign in and create an API key.
+3. Use that key as `GEMINI_API_KEY` in Supabase Edge Function secrets.
+
+Notes:
+
+- Free tier has request/token limits.
+- Keep key only in server-side secrets, never in frontend JS.
+- Current implementation uses rule-based booking resolution first, and Gemini only for response refinement.
 
 ### Deploy Function
 
@@ -51,8 +68,8 @@ supabase functions deploy booking-chat
 ### Set Secrets
 
 ```bash
-supabase secrets set OPENAI_API_KEY=your_key_here
-supabase secrets set BOOKING_AI_MODEL=gpt-4.1-mini
+supabase secrets set GEMINI_API_KEY=your_key_here
+supabase secrets set BOOKING_AI_MODEL=gemini-2.0-flash
 supabase secrets set BOOKING_SUPPORT_EMAIL=support@rentavehiclenepal.com
 supabase secrets set BOOKING_SUPPORT_PHONE=+977-9862147350
 ```

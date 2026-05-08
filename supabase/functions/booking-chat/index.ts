@@ -44,8 +44,8 @@ type Citation = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
-const OPENAI_MODEL = Deno.env.get("BOOKING_AI_MODEL") ?? "gpt-4.1-mini";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GOOGLE_API_KEY") ?? "";
+const GEMINI_MODEL = Deno.env.get("BOOKING_AI_MODEL") ?? "gemini-2.0-flash";
 const SUPPORT_EMAIL = Deno.env.get("BOOKING_SUPPORT_EMAIL") ?? "support@rentavehiclenepal.com";
 const SUPPORT_PHONE = Deno.env.get("BOOKING_SUPPORT_PHONE") ?? "+977-9862147350";
 
@@ -493,13 +493,13 @@ function buildRuleAnswer(params: {
   };
 }
 
-async function maybeRefineWithOpenAI(input: {
+async function maybeRefineWithGemini(input: {
   query: string;
   draftAnswer: string;
   citations: Citation[];
   actions: ActionItem[];
 }): Promise<string> {
-  if (!OPENAI_API_KEY) {
+  if (!GEMINI_API_KEY) {
     return input.draftAnswer;
   }
 
@@ -519,17 +519,23 @@ async function maybeRefineWithOpenAI(input: {
     `User query: ${input.query}`,
   ].join("\n");
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: OPENAI_MODEL,
-      input: prompt,
-      temperature: 0.2,
-      max_output_tokens: 260,
+      contents: [
+        {
+          parts: [{ text: prompt }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 260,
+      },
     }),
   });
 
@@ -538,7 +544,9 @@ async function maybeRefineWithOpenAI(input: {
   }
 
   const payload = await response.json();
-  const outputText = normalizeText(payload?.output_text);
+  const outputText = normalizeText(
+    payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => normalizeText(part?.text)).join(" ")
+  );
   return outputText || input.draftAnswer;
 }
 
@@ -604,7 +612,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
       vehicleMap,
     });
 
-    const refinedAnswer = await maybeRefineWithOpenAI({
+    const refinedAnswer = await maybeRefineWithGemini({
       query,
       draftAnswer: ruleAnswer.answer,
       citations: ruleAnswer.citations,

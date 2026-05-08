@@ -4,6 +4,7 @@
   var STORAGE_KEY = "vrs:ai-chat-session-v1";
   var WELCOME_MESSAGE = "Welcome to Booking Assistant. Ask me about your upcoming dates, vehicle details, cancellation policy, refund status, or invoice availability.";
   var MAX_MESSAGES = 80;
+  var MAX_SEARCHES = 20;
 
   function uid(prefix) {
     return [prefix || "id", Date.now().toString(36), Math.random().toString(36).slice(2, 8)].join("-");
@@ -31,6 +32,7 @@
       sessionId: String(payload.sessionId || uid("chat-session")).trim(),
       startedAt: String(payload.startedAt || new Date().toISOString()),
       messages: payload.messages.slice(0, MAX_MESSAGES),
+      searches: Array.isArray(payload.searches) ? payload.searches.slice(0, MAX_SEARCHES) : [],
     };
   }
 
@@ -48,6 +50,7 @@
           actions: [],
         },
       ],
+      searches: [],
     };
   }
 
@@ -80,6 +83,20 @@
     persistState(state);
   }
 
+  function trackSearch(state, query) {
+    var text = trimText(query);
+    if (!text) {
+      return;
+    }
+
+    state.searches = [text].concat(
+      (state.searches || []).filter(function (entry) {
+        return trimText(entry).toLowerCase() !== text.toLowerCase();
+      })
+    ).slice(0, MAX_SEARCHES);
+    persistState(state);
+  }
+
   function replaceTypingMessage(state, replacement) {
     for (var index = state.messages.length - 1; index >= 0; index -= 1) {
       if (state.messages[index] && state.messages[index].isTyping) {
@@ -93,23 +110,25 @@
   }
 
   function renderMessage(message) {
-    var roleClass = message.role === "user" ? "vrs-ai-chat__bubble--user" : "vrs-ai-chat__bubble--assistant";
+    var roleClass = message.role === "user"
+      ? "ml-auto rounded-2xl rounded-br-md bg-[linear-gradient(135deg,#166a61,#1f7c72)] text-white"
+      : "mr-auto rounded-2xl rounded-bl-md border border-[#d7e7e1] bg-white text-[#143a3f]";
     var safeText = escapeHtml(message.text || "").replace(/\n/g, "<br />");
     var citations = Array.isArray(message.citations) ? message.citations : [];
     var actions = Array.isArray(message.actions) ? message.actions : [];
 
     var citationsHtml = "";
     if (citations.length) {
-      citationsHtml = "<div class=\"vrs-ai-chat__citations\">" + citations.map(function (citation) {
-        return "<span class=\"vrs-ai-chat__citation\">Source: " + escapeHtml(citation.bookingCode || "booking") + " (" + escapeHtml(citation.source || "vehicle_bookings") + ")</span>";
+      citationsHtml = "<div class=\"mt-2 flex flex-wrap gap-1.5\">" + citations.map(function (citation) {
+        return "<span class=\"inline-flex rounded-full bg-[#e4f3ef] px-2 py-1 text-[10px] font-semibold text-[#1f665f]\">Source: " + escapeHtml(citation.bookingCode || "booking") + " (" + escapeHtml(citation.source || "vehicle_bookings") + ")</span>";
       }).join("") + "</div>";
     }
 
     var actionsHtml = "";
     if (actions.length) {
-      actionsHtml = "<div class=\"vrs-ai-chat__actions\">" + actions.map(function (action) {
+      actionsHtml = "<div class=\"mt-2 flex flex-wrap gap-2\">" + actions.map(function (action) {
         return (
-          "<button type=\"button\" class=\"vrs-ai-chat__action\" data-action-type=\"" + escapeHtml(action.type || "") + "\"" +
+          "<button type=\"button\" class=\"rounded-full border border-[#c7e1db] bg-[#edf8f5] px-3 py-1.5 text-[11px] font-semibold text-[#16524f] transition hover:-translate-y-[1px] hover:bg-[#dbf1ec]\" data-action-type=\"" + escapeHtml(action.type || "") + "\"" +
           " data-action-booking-id=\"" + escapeHtml(action.bookingId || "") + "\"" +
           " data-action-vehicle-id=\"" + escapeHtml(action.vehicleId || "") + "\"" +
           " data-action-href=\"" + escapeHtml(action.href || "") + "\">" +
@@ -120,12 +139,37 @@
     }
 
     return (
-      "<article class=\"vrs-ai-chat__bubble " + roleClass + "\">" +
+      "<article class=\"max-w-[92%] px-3 py-2.5 text-[13px] leading-relaxed shadow-[0_4px_12px_rgba(10,37,40,0.08)] " + roleClass + "\">" +
       "<p>" + safeText + "</p>" +
       citationsHtml +
       actionsHtml +
       "</article>"
     );
+  }
+
+  function renderHistoryPanel(ui, state) {
+    var searches = Array.isArray(state.searches) ? state.searches : [];
+    var recentSearchesHtml = searches.length
+      ? searches.map(function (item, index) {
+          return "<button type=\"button\" data-ai-search-value=\"" + escapeHtml(item) + "\" class=\"w-full rounded-xl border border-[#d8e7e2] bg-white px-3 py-2 text-left text-[12px] text-[#1a4348] transition hover:bg-[#f1f8f6]\"><span class=\"mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#e9f4f1] text-[10px] font-bold text-[#1d6660]\">" + String(index + 1) + "</span>" + escapeHtml(item) + "</button>";
+        }).join("")
+      : "<p class=\"rounded-xl border border-dashed border-[#cddfda] bg-white px-3 py-2 text-[12px] text-[#5a7478]\">No searches yet. Ask your first booking question.</p>";
+
+    var chatHistoryItems = state.messages.slice(-20).map(function (message) {
+      var label = message.role === "user" ? "You" : "AI";
+      var tone = message.role === "user" ? "text-[#175e59]" : "text-[#2c5a61]";
+      return "<li class=\"rounded-lg bg-white px-2.5 py-2\"><p class=\"text-[11px] font-semibold " + tone + "\">" + label + "</p><p class=\"mt-1 line-clamp-2 text-[11px] text-[#35565b]\">" + escapeHtml(trimText(message.text || "-")) + "</p></li>";
+    }).join("");
+
+    ui.historyBody.innerHTML =
+      "<section>" +
+      "<h4 class=\"mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#3a6668]\">Recent Searches</h4>" +
+      "<div class=\"space-y-2\">" + recentSearchesHtml + "</div>" +
+      "</section>" +
+      "<section class=\"mt-4\">" +
+      "<h4 class=\"mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#3a6668]\">Chat History</h4>" +
+      "<ul class=\"space-y-2\">" + chatHistoryItems + "</ul>" +
+      "</section>";
   }
 
   function renderChat(ui, state) {
@@ -134,14 +178,19 @@
   }
 
   function openPanel(ui) {
-    ui.panel.classList.add("is-open");
+    ui.panel.classList.remove("opacity-0", "translate-y-2", "pointer-events-none", "scale-95");
     ui.launchButton.setAttribute("aria-expanded", "true");
     ui.input.focus();
   }
 
   function closePanel(ui) {
-    ui.panel.classList.remove("is-open");
+    ui.panel.classList.add("opacity-0", "translate-y-2", "pointer-events-none", "scale-95");
     ui.launchButton.setAttribute("aria-expanded", "false");
+    ui.historyPanel.classList.add("hidden");
+  }
+
+  function toggleHistoryPanel(ui) {
+    ui.historyPanel.classList.toggle("hidden");
   }
 
   async function getSupabaseClient() {
@@ -265,21 +314,36 @@
 
   function buildUi() {
     var shell = document.createElement("section");
-    shell.className = "vrs-ai-chat";
+    shell.className = "fixed bottom-16 right-3 z-[320] sm:bottom-20 sm:right-4";
     shell.innerHTML =
-      "<button type=\"button\" class=\"vrs-ai-chat__launch\" aria-expanded=\"false\" aria-controls=\"vrsAiChatPanel\">Booking AI</button>" +
-      "<div id=\"vrsAiChatPanel\" class=\"vrs-ai-chat__panel\" role=\"dialog\" aria-label=\"Booking AI Chat\">" +
-      "<header class=\"vrs-ai-chat__header\">" +
-      "<div><h3>Booking AI Assistant</h3><p>Session-only chat. No history sync.</p></div>" +
-      "<div class=\"vrs-ai-chat__header-actions\">" +
-      "<button type=\"button\" class=\"vrs-ai-chat__text-btn\" data-ai-clear-chat>Clear chat</button>" +
-      "<button type=\"button\" class=\"vrs-ai-chat__text-btn\" data-ai-close-chat>Close</button>" +
+      "<button type=\"button\" class=\"group inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#166a61,#1f7c72)] text-white shadow-[0_16px_32px_rgba(7,35,39,0.34)] transition hover:-translate-y-[2px]\" aria-expanded=\"false\" aria-controls=\"vrsAiChatPanel\" aria-label=\"Open booking chat\">" +
+      "<svg viewBox=\"0 0 24 24\" class=\"h-6 w-6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 5h16v10H7l-3 3V5z\"></path></svg>" +
+      "</button>" +
+      "<div id=\"vrsAiChatPanel\" class=\"pointer-events-none absolute bottom-16 right-0 grid h-[min(74vh,620px)] w-[min(95vw,420px)] scale-95 grid-rows-[auto_1fr_auto] overflow-hidden rounded-3xl border border-[#cfe4de] bg-[linear-gradient(170deg,rgba(255,255,255,0.99),rgba(245,251,249,0.97))] opacity-0 shadow-[0_28px_56px_rgba(8,33,37,0.28)] transition duration-200 sm:bottom-16\" role=\"dialog\" aria-label=\"Booking AI Chat\">" +
+      "<header class=\"flex items-start justify-between border-b border-[#d8e7e2] bg-[#ebf7f4] px-4 py-3\">" +
+      "<div><h3 class=\"text-[15px] font-bold text-[#12353a]\">Booking Assistant</h3><p class=\"mt-0.5 text-[11px] text-[#496b6f]\">Session-only chat history on this device</p></div>" +
+      "<div class=\"flex items-center gap-1\">" +
+      "<button type=\"button\" class=\"inline-flex h-8 w-8 items-center justify-center rounded-full text-[#1d5f5a] transition hover:bg-[#daf0ea]\" data-ai-history-toggle aria-label=\"Open searches and history\">" +
+      "<svg viewBox=\"0 0 24 24\" class=\"h-4 w-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 7h16M4 12h16M4 17h16\"/></svg>" +
+      "</button>" +
+      "<button type=\"button\" class=\"inline-flex h-8 w-8 items-center justify-center rounded-full text-[#1d5f5a] transition hover:bg-[#daf0ea]\" data-ai-clear-chat aria-label=\"Clear chat\">" +
+      "<svg viewBox=\"0 0 24 24\" class=\"h-4 w-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 6h18M8 6V4h8v2m-9 0v14h10V6\"/></svg>" +
+      "</button>" +
+      "<button type=\"button\" class=\"inline-flex h-8 w-8 items-center justify-center rounded-full text-[#1d5f5a] transition hover:bg-[#daf0ea]\" data-ai-close-chat aria-label=\"Close chat\">" +
+      "<svg viewBox=\"0 0 24 24\" class=\"h-4 w-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>" +
+      "</button>" +
       "</div>" +
       "</header>" +
-      "<div class=\"vrs-ai-chat__thread\" data-ai-thread></div>" +
-      "<form class=\"vrs-ai-chat__composer\" data-ai-form>" +
-      "<input type=\"text\" data-ai-input maxlength=\"320\" placeholder=\"Ask about my bookings...\" autocomplete=\"off\" />" +
-      "<button type=\"submit\">Send</button>" +
+      "<div class=\"relative min-h-0\">" +
+      "<div class=\"h-full space-y-2 overflow-y-auto bg-[linear-gradient(180deg,rgba(246,252,250,0.95),rgba(239,248,245,0.95))] px-3 py-3\" data-ai-thread></div>" +
+      "<aside class=\"absolute inset-y-0 right-0 hidden w-[78%] border-l border-[#d7e6e1] bg-[#f3faf8] p-3\" data-ai-history-panel>" +
+      "<div class=\"mb-2 flex items-center justify-between\"><h3 class=\"text-[12px] font-bold text-[#17484b]\">Searches & History</h3><button type=\"button\" class=\"rounded-md px-2 py-1 text-[10px] font-semibold text-[#28595e] hover:bg-[#dff0ec]\" data-ai-history-close>Hide</button></div>" +
+      "<div class=\"max-h-full overflow-y-auto pr-1\" data-ai-history-body></div>" +
+      "</aside>" +
+      "</div>" +
+      "<form class=\"grid grid-cols-[1fr_auto] gap-2 border-t border-[#d6e6e0] bg-white px-3 py-3\" data-ai-form>" +
+      "<input type=\"text\" data-ai-input maxlength=\"320\" placeholder=\"Ask about my booking dates, refund or invoice...\" autocomplete=\"off\" class=\"w-full rounded-full border border-[#c9dfd9] px-4 py-2 text-[13px] text-[#174248] outline-none transition focus:border-[#4ea598] focus:ring-2 focus:ring-[#4ea598]/25\" />" +
+      "<button type=\"submit\" class=\"rounded-full bg-[#1c756b] px-4 py-2 text-[12px] font-bold text-white transition hover:-translate-y-[1px] hover:brightness-105\">Send</button>" +
       "</form>" +
       "</div>";
 
@@ -287,13 +351,17 @@
 
     return {
       root: shell,
-      launchButton: shell.querySelector(".vrs-ai-chat__launch"),
-      panel: shell.querySelector(".vrs-ai-chat__panel"),
+      launchButton: shell.querySelector("button[aria-controls='vrsAiChatPanel']"),
+      panel: shell.querySelector("#vrsAiChatPanel"),
       thread: shell.querySelector("[data-ai-thread]"),
       form: shell.querySelector("[data-ai-form]"),
       input: shell.querySelector("[data-ai-input]"),
       clearButton: shell.querySelector("[data-ai-clear-chat]"),
       closeButton: shell.querySelector("[data-ai-close-chat]"),
+      historyToggleButton: shell.querySelector("[data-ai-history-toggle]"),
+      historyCloseButton: shell.querySelector("[data-ai-history-close]"),
+      historyPanel: shell.querySelector("[data-ai-history-panel]"),
+      historyBody: shell.querySelector("[data-ai-history-body]"),
     };
   }
 
@@ -323,9 +391,10 @@
     var ui = buildUi();
     var state = loadState();
     renderChat(ui, state);
+    renderHistoryPanel(ui, state);
 
     ui.launchButton.addEventListener("click", function () {
-      if (ui.panel.classList.contains("is-open")) {
+      if (!ui.panel.classList.contains("pointer-events-none")) {
         closePanel(ui);
       } else {
         openPanel(ui);
@@ -340,14 +409,49 @@
       state = createFreshState();
       persistState(state);
       renderChat(ui, state);
+      renderHistoryPanel(ui, state);
+    });
+
+    ui.historyToggleButton.addEventListener("click", function () {
+      toggleHistoryPanel(ui);
+    });
+
+    ui.historyCloseButton.addEventListener("click", function () {
+      ui.historyPanel.classList.add("hidden");
     });
 
     ui.thread.addEventListener("click", function (event) {
       var target = event.target;
-      if (!target || !target.classList.contains("vrs-ai-chat__action")) {
+      if (!target) {
         return;
       }
-      runAction(target);
+
+      var actionTarget = target.closest("button[data-action-type]");
+      if (!actionTarget) {
+        return;
+      }
+      runAction(actionTarget);
+    });
+
+    ui.historyBody.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target) {
+        return;
+      }
+
+      var searchButton = target.closest("button[data-ai-search-value]");
+      if (!searchButton) {
+        return;
+      }
+
+      var searchValue = trimText(searchButton.getAttribute("data-ai-search-value"));
+      if (!searchValue) {
+        return;
+      }
+
+      ui.input.value = searchValue;
+      ui.input.focus();
+      ui.historyPanel.classList.add("hidden");
     });
 
     ui.form.addEventListener("submit", async function (event) {
@@ -359,6 +463,7 @@
       }
 
       ui.input.value = "";
+      trackSearch(state, query);
       appendMessage(state, {
         id: uid("msg"),
         role: "user",
@@ -400,6 +505,7 @@
       }
 
       renderChat(ui, state);
+      renderHistoryPanel(ui, state);
     });
 
     document.addEventListener("keydown", function (event) {
