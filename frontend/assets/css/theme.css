@@ -1248,6 +1248,49 @@ body.vrs-page .vrs-ai-chat__launch:hover {
   color: #245356;
 }
 
+html[data-theme="dark"] .premium-chip {
+  border-color: rgba(140, 210, 200, 0.36);
+  background: rgba(44, 118, 110, 0.22);
+  color: #d8efe8 !important;
+}
+
+/* Vehicle result cards on the search page need explicit dark-mode treatment because
+   their background uses an inline linear-gradient that the generic [class*="bg-[#f"]
+   override does not match. */
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card {
+  background: linear-gradient(165deg, rgba(20, 32, 38, 0.96), rgba(13, 22, 28, 0.94)) !important;
+  border-color: var(--vrs-border) !important;
+  box-shadow: var(--vrs-shadow) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card h3 {
+  color: #f1f7fa !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card p,
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card span,
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card div[class*="text-["] {
+  color: #c8d6dc !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card .view-details,
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card .book-vehicle {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #e0ecf0 !important;
+  border-color: rgba(140, 168, 171, 0.32) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .vehicle-result-card .book-vehicle {
+  color: #6fc5b7 !important;
+  border-color: rgba(111, 197, 183, 0.45) !important;
+}
+
+/* Search filter sidebar card uses the same gradient pattern. */
+html[data-theme="dark"] .vrs-theme-scope #filterPanel section {
+  background: linear-gradient(150deg, rgba(20, 32, 38, 0.96), rgba(13, 22, 28, 0.94)) !important;
+  border-color: var(--vrs-border) !important;
+}
+
 /* ========================================================================
    SHARED KEYFRAME ANIMATIONS
    ======================================================================== */
