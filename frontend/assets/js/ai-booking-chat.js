@@ -172,11 +172,17 @@
     if (!count) {
       ui.unreadBadge.classList.add("hidden");
       ui.unreadBadge.textContent = "";
+      if (ui.launchButton) {
+        ui.launchButton.classList.remove("animate-pulse", "ring-4", "ring-[#f15a29]/35");
+      }
       return;
     }
 
     ui.unreadBadge.classList.remove("hidden");
     ui.unreadBadge.textContent = count > 99 ? "99+" : String(count);
+    if (ui.launchButton) {
+      ui.launchButton.classList.add("animate-pulse", "ring-4", "ring-[#f15a29]/35");
+    }
   }
 
   function markRead(ui, state) {
