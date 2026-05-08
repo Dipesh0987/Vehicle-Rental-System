@@ -33,6 +33,7 @@
       startedAt: String(payload.startedAt || new Date().toISOString()),
       messages: payload.messages.slice(0, MAX_MESSAGES),
       searches: Array.isArray(payload.searches) ? payload.searches.slice(0, MAX_SEARCHES) : [],
+      unreadCount: Number.isFinite(Number(payload.unreadCount)) ? Math.max(0, Number(payload.unreadCount)) : 0,
     };
   }
 
@@ -51,6 +52,7 @@
         },
       ],
       searches: [],
+      unreadCount: 0,
     };
   }
 
@@ -114,6 +116,16 @@
       ? "ml-auto rounded-2xl rounded-br-md bg-[linear-gradient(135deg,#166a61,#1f7c72)] text-white"
       : "mr-auto rounded-2xl rounded-bl-md border border-[#d7e7e1] bg-white text-[#143a3f]";
     var safeText = escapeHtml(message.text || "").replace(/\n/g, "<br />");
+    var bodyHtml = safeText;
+
+    if (message.isTyping) {
+      bodyHtml =
+        "<span class=\"inline-flex items-center gap-1.5\">" +
+        "<span class=\"h-2 w-2 rounded-full bg-[#1b625c] animate-pulse\"></span>" +
+        "<span class=\"h-2 w-2 rounded-full bg-[#1b625c] animate-pulse [animation-delay:120ms]\"></span>" +
+        "<span class=\"h-2 w-2 rounded-full bg-[#1b625c] animate-pulse [animation-delay:240ms]\"></span>" +
+        "</span>";
+    }
     var citations = Array.isArray(message.citations) ? message.citations : [];
     var actions = Array.isArray(message.actions) ? message.actions : [];
 
@@ -140,11 +152,47 @@
 
     return (
       "<article class=\"max-w-[92%] px-3 py-2.5 text-[13px] leading-relaxed shadow-[0_4px_12px_rgba(10,37,40,0.08)] " + roleClass + "\">" +
-      "<p>" + safeText + "</p>" +
+      "<p>" + bodyHtml + "</p>" +
       citationsHtml +
       actionsHtml +
       "</article>"
     );
+  }
+
+  function isPanelOpen(ui) {
+    return !ui.panel.classList.contains("pointer-events-none");
+  }
+
+  function renderUnreadBadge(ui, state) {
+    if (!ui.unreadBadge) {
+      return;
+    }
+
+    var count = Math.max(0, Number(state.unreadCount || 0));
+    if (!count) {
+      ui.unreadBadge.classList.add("hidden");
+      ui.unreadBadge.textContent = "";
+      return;
+    }
+
+    ui.unreadBadge.classList.remove("hidden");
+    ui.unreadBadge.textContent = count > 99 ? "99+" : String(count);
+  }
+
+  function markRead(ui, state) {
+    state.unreadCount = 0;
+    persistState(state);
+    renderUnreadBadge(ui, state);
+  }
+
+  function bumpUnread(ui, state) {
+    if (isPanelOpen(ui)) {
+      return;
+    }
+
+    state.unreadCount = Math.max(0, Number(state.unreadCount || 0)) + 1;
+    persistState(state);
+    renderUnreadBadge(ui, state);
   }
 
   function renderHistoryPanel(ui, state) {
@@ -318,6 +366,7 @@
     shell.innerHTML =
       "<button type=\"button\" class=\"group inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#166a61,#1f7c72)] text-white shadow-[0_16px_32px_rgba(7,35,39,0.34)] transition hover:-translate-y-[2px]\" aria-expanded=\"false\" aria-controls=\"vrsAiChatPanel\" aria-label=\"Open booking chat\">" +
       "<svg viewBox=\"0 0 24 24\" class=\"h-6 w-6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 5h16v10H7l-3 3V5z\"></path></svg>" +
+      "<span data-ai-unread-badge class=\"absolute -right-1 -top-1 hidden min-w-[1.2rem] rounded-full bg-[#f15a29] px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white shadow-[0_6px_12px_rgba(104,32,18,0.3)]\"></span>" +
       "</button>" +
       "<div id=\"vrsAiChatPanel\" class=\"pointer-events-none absolute bottom-16 right-0 grid h-[min(74vh,620px)] w-[min(95vw,420px)] scale-95 grid-rows-[auto_1fr_auto] overflow-hidden rounded-3xl border border-[#cfe4de] bg-[linear-gradient(170deg,rgba(255,255,255,0.99),rgba(245,251,249,0.97))] opacity-0 shadow-[0_28px_56px_rgba(8,33,37,0.28)] transition duration-200 sm:bottom-16\" role=\"dialog\" aria-label=\"Booking AI Chat\">" +
       "<header class=\"flex items-start justify-between border-b border-[#d8e7e2] bg-[#ebf7f4] px-4 py-3\">" +
@@ -358,6 +407,7 @@
       input: shell.querySelector("[data-ai-input]"),
       clearButton: shell.querySelector("[data-ai-clear-chat]"),
       closeButton: shell.querySelector("[data-ai-close-chat]"),
+      unreadBadge: shell.querySelector("[data-ai-unread-badge]"),
       historyToggleButton: shell.querySelector("[data-ai-history-toggle]"),
       historyCloseButton: shell.querySelector("[data-ai-history-close]"),
       historyPanel: shell.querySelector("[data-ai-history-panel]"),
@@ -392,12 +442,14 @@
     var state = loadState();
     renderChat(ui, state);
     renderHistoryPanel(ui, state);
+    renderUnreadBadge(ui, state);
 
     ui.launchButton.addEventListener("click", function () {
       if (!ui.panel.classList.contains("pointer-events-none")) {
         closePanel(ui);
       } else {
         openPanel(ui);
+        markRead(ui, state);
       }
     });
 
@@ -410,6 +462,7 @@
       persistState(state);
       renderChat(ui, state);
       renderHistoryPanel(ui, state);
+      renderUnreadBadge(ui, state);
     });
 
     ui.historyToggleButton.addEventListener("click", function () {
@@ -484,6 +537,7 @@
       });
 
       renderChat(ui, state);
+      renderHistoryPanel(ui, state);
 
       try {
         var apiResponse = await callBookingChatApi(query);
@@ -500,8 +554,10 @@
           citations: normalizeCitations(apiResponse && apiResponse.citations),
           actions: normalizeActions(apiResponse && apiResponse.actions),
         });
+        bumpUnread(ui, state);
       } catch (error) {
         replaceTypingMessage(state, buildFallbackAssistantMessage(trimText(error && error.message)));
+        bumpUnread(ui, state);
       }
 
       renderChat(ui, state);
