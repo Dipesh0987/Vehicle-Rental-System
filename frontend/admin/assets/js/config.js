@@ -23,5 +23,6 @@ export const classMap = {
 export const quickActions = [
   { id: 'newBooking', label: 'Create Booking', icon: 'event_available' },
   { id: 'addVehicle', label: 'Add Vehicle', icon: 'directions_car' },
+  { id: 'addDriver', label: 'Add Driver', icon: 'person_add' },
   { id: 'markMaintenance', label: 'Report Damage', icon: 'car_repair' },
 ];

@@ -193,6 +193,7 @@ function handleQuickAction(id) {
   const actionToModule = {
     newBooking: 'bookings',
     addVehicle: 'vehicles',
+    addDriver: 'drivers',
     markMaintenance: 'maintenance',
   };
 
