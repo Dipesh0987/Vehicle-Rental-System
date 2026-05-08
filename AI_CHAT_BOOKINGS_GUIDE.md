@@ -74,6 +74,17 @@ supabase secrets set BOOKING_SUPPORT_EMAIL=support@rentavehiclenepal.com
 supabase secrets set BOOKING_SUPPORT_PHONE=+977-9862147350
 ```
 
+## Quick helper: Copy SQL
+
+I added a small helper page to view and one-click copy/download the validation SQL file used by the chat.
+
+- Open this page in your browser (serve the `frontend/` folder):
+
+- `frontend/tools/copy-sql.html` — loads `database/queries/ai_chat_setup_and_validation.sql`, provides **Copy SQL** and **Download SQL** buttons.
+
+If you host the frontend from a web server, open `/tools/copy-sql.html` to use the helper. If the SQL fails to load, open `database/queries/ai_chat_setup_and_validation.sql` directly in the repo.
+
+
 ## Frontend Runtime Flow
 
 1. User sends a chat query.
