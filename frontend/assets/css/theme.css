@@ -1138,3 +1138,27 @@ html[data-theme="dark"] body.vrs-page .vrs-ai-chat__composer input {
     height: min(76vh, 520px);
   }
 }
+/* subtle professional float animation for the chat launcher */
+@keyframes vrs-float-updown {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+body.vrs-page .vrs-ai-chat__launch {
+  will-change: transform;
+  animation: vrs-float-updown 3.6s ease-in-out infinite;
+}
+
+body.vrs-page .vrs-ai-chat__launch:hover {
+  animation-play-state: paused;
+  transform: translateY(-4px) !important;
+}

@@ -233,12 +233,14 @@
 
   function openPanel(ui) {
     ui.panel.classList.remove("opacity-0", "translate-y-2", "pointer-events-none", "scale-95");
+    ui.panel.classList.add("is-open");
     ui.launchButton.setAttribute("aria-expanded", "true");
     ui.input.focus();
   }
 
   function closePanel(ui) {
     ui.panel.classList.add("opacity-0", "translate-y-2", "pointer-events-none", "scale-95");
+    ui.panel.classList.remove("is-open");
     ui.launchButton.setAttribute("aria-expanded", "false");
     ui.historyPanel.classList.add("hidden");
   }
