@@ -59,6 +59,7 @@ const searchTypeToNavId = {
   vehicles: 'vehicles',
   bookings: 'bookings',
   customers: 'customers',
+  drivers: 'drivers',
   admins: 'admins',
 };
 
@@ -66,6 +67,7 @@ const searchTypeLabels = {
   vehicles: 'Vehicles module',
   bookings: 'Bookings module',
   customers: 'Customers module',
+  drivers: 'Drivers module',
   admins: 'Admin roles module',
 };
 
@@ -263,6 +265,7 @@ function renderGlobalSearchResults(query) {
     vehicles: [],
     bookings: [],
     customers: [],
+    drivers: [],
     admins: [],
   };
 
@@ -293,6 +296,15 @@ function renderGlobalSearchResults(query) {
     }
   }
 
+  // Search drivers
+  if (Array.isArray(appState.data.drivers)) {
+    for (const d of appState.data.drivers) {
+      const hay = `${d.id} ${d.name || ''} ${d.phone || ''} ${d.licenceNumber || ''} ${d.availability || ''}`.toLowerCase();
+      if (hay.indexOf(q) >= 0) results.drivers.push({ id: d.id, label: d.name || d.id, meta: `${d.availability || ''} · ${d.licenceStatus || ''}` });
+      if (results.drivers.length >= 6) break;
+    }
+  }
+
   // Search admins
   if (Array.isArray(appState.data.adminUsers)) {
     for (const a of appState.data.adminUsers) {
@@ -307,6 +319,7 @@ function renderGlobalSearchResults(query) {
   if (results.vehicles.length) groups.push({ title: 'Vehicles', key: 'vehicles', items: results.vehicles });
   if (results.bookings.length) groups.push({ title: 'Bookings', key: 'bookings', items: results.bookings });
   if (results.customers.length) groups.push({ title: 'Customers', key: 'customers', items: results.customers });
+  if (results.drivers.length) groups.push({ title: 'Drivers', key: 'drivers', items: results.drivers });
   if (results.admins.length) groups.push({ title: 'Admins', key: 'admins', items: results.admins });
 
   globalSearchState.items = groups.flatMap((group) =>
