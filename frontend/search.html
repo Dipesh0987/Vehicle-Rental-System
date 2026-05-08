@@ -8,58 +8,6 @@
     <link rel="stylesheet" href="assets/css/tailwind.css" />
     <link rel="stylesheet" href="assets/css/theme.css" />
     <script src="assets/js/theme-manager.js"></script>
-    <style>
-      :root {
-        --admin-surface: #f4f3ef;
-        --admin-surface-soft: #e9e0d7;
-        --admin-ink: #182227;
-        --admin-teal: #2d7a72;
-        --admin-accent: #e58c4e;
-      }
-
-      @keyframes softFloat {
-        0%,
-        100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-8px);
-        }
-      }
-
-      @keyframes shimmerSweep {
-        0% {
-          transform: translateX(-100%);
-        }
-        100% {
-          transform: translateX(100%);
-        }
-      }
-
-      @keyframes pulseDot {
-        0%,
-        100% {
-          transform: scale(0.9);
-          opacity: 0.62;
-        }
-        50% {
-          transform: scale(1.04);
-          opacity: 1;
-        }
-      }
-
-      .loader-bar::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.7) 50%, transparent 100%);
-        animation: shimmerSweep 1.2s ease-in-out infinite;
-      }
-
-      .pulse-dot {
-        animation: pulseDot 1s ease-in-out infinite;
-      }
-    </style>
   </head>
   <body class="vrs-page vrs-theme-scope relative flex min-h-screen items-center justify-center overflow-clip bg-[linear-gradient(160deg,#f7f4ec,#ebe3d8)] px-6 font-poppins text-[#182227]">
     <div class="pointer-events-none absolute -left-12 -top-16 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(229,140,78,0.44),rgba(229,140,78,0.06))] blur-sm [animation:softFloat_5.5s_ease-in-out_infinite]"></div>

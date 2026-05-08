@@ -1466,6 +1466,7 @@
     }
 
     var bookings = [];
+    var preferredBookingId = String(modalRoot.getAttribute("data-bookings-preferred-id") || "").trim();
 
     try {
       bookings = await loadCurrentUserBookings();
@@ -1500,7 +1501,10 @@
     }
 
     list.innerHTML = "";
-    var activeId = bookings[0].id;
+    var preferredBooking = bookings.find(function (booking) {
+      return booking.id === preferredBookingId || booking.reference === preferredBookingId;
+    }) || null;
+    var activeId = preferredBooking ? preferredBooking.id : bookings[0].id;
     var rowLookup = {};
 
     function setActive(id) {
@@ -1636,8 +1640,17 @@
     return overlay;
   }
 
-  function openBookingsModal() {
+  function openBookingsModal(options) {
+    var opts = options || {};
+    var preferredBookingId = String(opts.bookingId || "").trim();
     var overlay = ensureBookingsModal();
+
+    if (preferredBookingId) {
+      overlay.setAttribute("data-bookings-preferred-id", preferredBookingId);
+    } else {
+      overlay.removeAttribute("data-bookings-preferred-id");
+    }
+
     void renderBookingsWorkspace(overlay);
 
     overlay.classList.remove("opacity-0", "pointer-events-none");
@@ -3622,6 +3635,22 @@
   window.VehicleAuthUI = {
     init: init,
     requireBookingAccess: requireBookingAccess,
+    openBookingsPanel: function (options) {
+      var opts = options || {};
+      if (!requireBookingAccess({
+        message: "Please register or sign in to view your bookings. Redirecting to registration...",
+        autoRedirect: true,
+        delayMs: 700,
+      })) {
+        return false;
+      }
+
+      openBookingsModal({
+        bookingId: String(opts.bookingId || "").trim(),
+      });
+
+      return true;
+    },
     logout: function () {
       performLogout();
     },

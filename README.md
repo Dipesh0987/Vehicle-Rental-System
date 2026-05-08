@@ -17,6 +17,7 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `frontend/assets/js/auth.supabase.js` - Shared Supabase auth service (sign-up/sign-in/reset/logout)
 - `frontend/assets/js/vehicle-catalog.service.js` - Shared vehicle catalog data service used by public/admin pages
 - `frontend/assets/js/booking.service.js` - Shared booking data service (quote, validation, availability, persistence)
+- `frontend/assets/js/ai-booking-chat.js` - Session-only AI booking chat widget (client-side)
 - `frontend/assets/js/booking-page.js` - Booking page controller with confirmation and success flows
 - `frontend/assets/js/register.js` - Registration form logic with real Supabase sign-up
 - `backend/js/auth.js` - Shared client-side auth/profile UI logic used by frontend pages
@@ -28,6 +29,8 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `database/migrations/005_vehicle_catalog_schema_hotfix.sql` - SQL migration to backfill required vehicle columns/defaults for legacy projects
 - `database/migrations/006_vehicle_bookings_system.sql` - SQL migration for secure booking persistence and overlap prevention
 - `database/migrations/012_user_profile_verification_workflow.sql` - SQL migration for customer KYC fields, verification statuses, and admin approval RPC
+- `supabase/functions/booking-chat/index.ts` - Authenticated booking AI endpoint for natural-language booking Q&A
+- `AI_CHAT_BOOKINGS_GUIDE.md` - Full implementation and deployment guide for AI booking chat
 
 ## Run
 
