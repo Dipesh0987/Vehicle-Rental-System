@@ -48,6 +48,7 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GOOGLE_AP
 const GEMINI_MODEL = Deno.env.get("BOOKING_AI_MODEL") ?? "gemini-2.0-flash";
 const SUPPORT_EMAIL = Deno.env.get("BOOKING_SUPPORT_EMAIL") ?? "support@rentavehiclenepal.com";
 const SUPPORT_PHONE = Deno.env.get("BOOKING_SUPPORT_PHONE") ?? "+977-9862147350";
+const DEBUG_MODE = (Deno.env.get("BOOKING_CHAT_DEBUG") || "").toLowerCase() === "true";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -540,6 +541,12 @@ async function maybeRefineWithGemini(input: {
   });
 
   if (!response.ok) {
+    try {
+      const txt = await response.text();
+      console.error("gemini error", response.status, txt);
+    } catch (e) {
+      console.error("gemini error status", response.status);
+    }
     return input.draftAnswer;
   }
 
@@ -638,13 +645,22 @@ Deno.serve(async (request: Request): Promise<Response> => {
     });
   } catch (error) {
     console.error("booking-chat error", error);
-    return jsonResponse(500, {
+    const payload: JsonObject = {
       success: false,
       message: "Unable to resolve booking query right now.",
       fallback: {
         supportEmail: SUPPORT_EMAIL,
         supportPhone: SUPPORT_PHONE,
       } as unknown as JsonValue,
-    });
+    };
+
+    if (DEBUG_MODE) {
+      payload.debug = {
+        errorMessage: String(error?.message || error),
+        stack: String(error?.stack || ""),
+      } as unknown as JsonValue;
+    }
+
+    return jsonResponse(500, payload);
   }
 });
