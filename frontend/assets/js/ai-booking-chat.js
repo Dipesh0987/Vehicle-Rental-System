@@ -368,14 +368,14 @@
 
   function buildUi() {
     var shell = document.createElement("section");
-    shell.className = "fixed bottom-16 right-3 z-[320] sm:bottom-20 sm:right-4";
+    shell.className = "vrs-ai-chat fixed bottom-16 right-3 z-[320] sm:bottom-20 sm:right-4";
     shell.innerHTML =
-      "<button type=\"button\" class=\"group inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#166a61,#1f7c72)] text-white shadow-[0_16px_32px_rgba(7,35,39,0.34)] transition hover:-translate-y-[2px]\" aria-expanded=\"false\" aria-controls=\"vrsAiChatPanel\" aria-label=\"Open booking chat\">" +
+      "<button type=\"button\" class=\"vrs-ai-chat__launch group inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#166a61,#1f7c72)] text-white shadow-[0_16px_32px_rgba(7,35,39,0.34)] transition hover:-translate-y-[2px]\" aria-expanded=\"false\" aria-controls=\"vrsAiChatPanel\" aria-label=\"Open booking chat\">" +
       "<svg viewBox=\"0 0 24 24\" class=\"h-6 w-6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 5h16v10H7l-3 3V5z\"></path></svg>" +
       "<span data-ai-unread-badge class=\"absolute -right-1 -top-1 hidden min-w-[1.2rem] rounded-full bg-[#f15a29] px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white shadow-[0_6px_12px_rgba(104,32,18,0.3)]\"></span>" +
       "</button>" +
-      "<div id=\"vrsAiChatPanel\" class=\"pointer-events-none absolute bottom-16 right-0 grid h-[min(74vh,620px)] w-[min(95vw,420px)] scale-95 grid-rows-[auto_1fr_auto] overflow-hidden rounded-3xl border border-[#cfe4de] bg-[linear-gradient(170deg,rgba(255,255,255,0.99),rgba(245,251,249,0.97))] opacity-0 shadow-[0_28px_56px_rgba(8,33,37,0.28)] transition duration-200 sm:bottom-16\" role=\"dialog\" aria-label=\"Booking AI Chat\">" +
-      "<header class=\"flex items-start justify-between border-b border-[#d8e7e2] bg-[#ebf7f4] px-4 py-3\">" +
+      "<div id=\"vrsAiChatPanel\" class=\"vrs-ai-chat__panel pointer-events-none absolute bottom-16 right-0 grid h-[min(74vh,620px)] w-[min(95vw,420px)] scale-95 grid-rows-[auto_1fr_auto] overflow-hidden rounded-3xl border border-[#cfe4de] bg-[linear-gradient(170deg,rgba(255,255,255,0.99),rgba(245,251,249,0.97))] opacity-0 shadow-[0_28px_56px_rgba(8,33,37,0.28)] transition duration-200 sm:bottom-16\" role=\"dialog\" aria-label=\"Booking AI Chat\">" +
+      "<header class=\"vrs-ai-chat__header flex items-start justify-between border-b border-[#d8e7e2] bg-[#ebf7f4] px-4 py-3\">" +
       "<div><h3 class=\"text-[15px] font-bold text-[#12353a]\">Booking Assistant</h3><p class=\"mt-0.5 text-[11px] text-[#496b6f]\">Session-only chat history on this device</p></div>" +
       "<div class=\"flex items-center gap-1\">" +
       "<button type=\"button\" class=\"inline-flex h-8 w-8 items-center justify-center rounded-full text-[#1d5f5a] transition hover:bg-[#daf0ea]\" data-ai-history-toggle aria-label=\"Open searches and history\">" +
@@ -390,13 +390,13 @@
       "</div>" +
       "</header>" +
       "<div class=\"relative min-h-0\">" +
-      "<div class=\"h-full space-y-2 overflow-y-auto bg-[linear-gradient(180deg,rgba(246,252,250,0.95),rgba(239,248,245,0.95))] px-3 py-3\" data-ai-thread></div>" +
+      "<div class=\"h-full space-y-2 overflow-y-auto bg-[linear-gradient(180deg,rgba(246,252,250,0.95),rgba(239,248,245,0.95))] px-3 py-3 vrs-ai-chat__thread\" data-ai-thread></div>" +
       "<aside class=\"absolute inset-y-0 right-0 hidden w-[78%] border-l border-[#d7e6e1] bg-[#f3faf8] p-3\" data-ai-history-panel>" +
       "<div class=\"mb-2 flex items-center justify-between\"><h3 class=\"text-[12px] font-bold text-[#17484b]\">Searches & History</h3><button type=\"button\" class=\"rounded-md px-2 py-1 text-[10px] font-semibold text-[#28595e] hover:bg-[#dff0ec]\" data-ai-history-close>Hide</button></div>" +
       "<div class=\"max-h-full overflow-y-auto pr-1\" data-ai-history-body></div>" +
       "</aside>" +
       "</div>" +
-      "<form class=\"grid grid-cols-[1fr_auto] gap-2 border-t border-[#d6e6e0] bg-white px-3 py-3\" data-ai-form>" +
+      "<form class=\"vrs-ai-chat__composer grid grid-cols-[1fr_auto] gap-2 border-t border-[#d6e6e0] bg-white px-3 py-3\" data-ai-form>" +
       "<input type=\"text\" data-ai-input maxlength=\"320\" placeholder=\"Ask about my booking dates, refund or invoice...\" autocomplete=\"off\" class=\"w-full rounded-full border border-[#c9dfd9] px-4 py-2 text-[13px] text-[#174248] outline-none transition focus:border-[#4ea598] focus:ring-2 focus:ring-[#4ea598]/25\" />" +
       "<button type=\"submit\" class=\"rounded-full bg-[#1c756b] px-4 py-2 text-[12px] font-bold text-white transition hover:-translate-y-[1px] hover:brightness-105\">Send</button>" +
       "</form>" +
