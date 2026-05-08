@@ -125,6 +125,11 @@
       return;
     }
 
+    // Skip floating toggle on admin pages where a built-in theme button (#themeToggle) exists.
+    if (document.getElementById("themeToggle")) {
+      return;
+    }
+
     if (!document.body) {
       return;
     }
