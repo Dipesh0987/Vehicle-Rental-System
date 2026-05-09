@@ -662,6 +662,14 @@
       pickFirst(row, ["is_paid", "payment_done", "paid"], null),
       toLower(pickFirst(row, ["payment_status"], "")) === "paid"
     );
+    var paymentStatusLabel = toLower(pickFirst(row, ["payment_status"], paidFlag ? "paid" : "unpaid"));
+    var totalAmountValue = toFixedAmount(row.total_amount);
+    var paidAmountValue = toFixedAmount(pickFirst(row, ["paid_amount"], 0));
+    var rawRemaining = pickFirst(row, ["remaining_amount"], null);
+    var remainingAmountValue = rawRemaining === null || typeof rawRemaining === "undefined"
+      ? Math.max(0, totalAmountValue - paidAmountValue)
+      : toFixedAmount(rawRemaining);
+    var paymentDeadlineValue = normalizeString(pickFirst(row, ["payment_deadline"], ""), "");
 
     return {
       id: normalizeString(row.id, ""),
@@ -682,6 +690,10 @@
       statusLabel: bookingStatusLabel(status),
       paymentDone: paidFlag,
       paymentLabel: paidFlag ? "Yes" : "No",
+      paymentStatus: paymentStatusLabel,
+      paidAmount: paidAmountValue,
+      remainingAmount: remainingAmountValue,
+      paymentDeadline: paymentDeadlineValue,
       type: type,
       vehicleName: cleanedVehicleName,
       quote: {
@@ -689,7 +701,7 @@
         serviceFee: toFixedAmount(row.service_fee),
         taxAmount: toFixedAmount(row.tax_amount),
         discountAmount: toFixedAmount(row.discount_amount),
-        totalAmount: toFixedAmount(row.total_amount),
+        totalAmount: totalAmountValue,
         currency: normalizeString(row.currency, "NPR"),
       },
       createdAt: normalizeString(row.created_at, ""),
@@ -783,7 +795,8 @@
     var modernColumns = [
       "id", "booking_code", "customer_user_id", "vehicle_id", "customer_name", "customer_email", "customer_phone", "notes",
       "start_date", "end_date", "pickup_time", "driver_option", "status", "currency", "base_amount", "service_fee", "tax_amount",
-      "discount_amount", "total_amount", "created_at", "is_paid", "paid", "payment_status"
+      "discount_amount", "total_amount", "created_at", "is_paid", "paid", "payment_status",
+      "paid_amount", "remaining_amount", "payment_deadline"
     ];
 
     var legacyColumns = [
@@ -942,6 +955,12 @@
       throw bookingVerificationRequiredError(verificationStatus);
     }
 
+    // Customers must complete payment within 15 minutes of finishing the
+    // booking form. Persisting the deadline server-side means the timer is
+    // tamper-proof and the Edge Function can refuse late payments.
+    var paymentDeadlineIso = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    var totalAmountForLedger = toFixedAmount(normalized.quote.totalAmount);
+
     var insertPayload = {
       vehicle_id: normalized.vehicleId,
       customer_user_id: userId || null,
@@ -959,6 +978,10 @@
       tax_amount: normalized.quote.taxAmount,
       discount_amount: normalized.quote.discountAmount,
       total_amount: normalized.quote.totalAmount,
+      paid_amount: 0,
+      remaining_amount: totalAmountForLedger,
+      payment_status: "unpaid",
+      payment_deadline: paymentDeadlineIso,
       coupon_code: normalized.couponCode || null,
       notes: composeBookingNotes(normalized.notes, normalized.userMessage),
     };
@@ -966,7 +989,7 @@
     var result = await client
       .from(tableName)
       .insert(insertPayload)
-      .select("id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,created_at")
+      .select("id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,paid_amount,remaining_amount,payment_status,payment_deadline,is_paid,created_at")
       .limit(1)
       .single();
 
@@ -1232,6 +1255,66 @@
     };
   }
 
+  async function getBookingById(bookingId) {
+    var id = normalizeString(bookingId, "");
+    if (!id) {
+      return null;
+    }
+
+    var client = await getClient();
+    var tableName = await resolveBookingTable(client);
+    if (!tableName) {
+      return null;
+    }
+
+    if (tableName === "bookings") {
+      var legacyResult = await client
+        .from(tableName)
+        .select("*")
+        .eq("id", id)
+        .limit(1)
+        .maybeSingle();
+      if (legacyResult.error) {
+        throw new Error(errorMessage(legacyResult.error));
+      }
+      if (!legacyResult.data) return null;
+      var legacyVehiclesById = await buildVehicleMap();
+      return mapLegacyBookingRow(legacyResult.data, legacyVehiclesById);
+    }
+
+    // Modern table: try the rich select first, fall back if any column is
+    // missing on an older deployment.
+    var richColumns = "id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,paid_amount,remaining_amount,payment_status,payment_deadline,is_paid,created_at";
+    var richResult = await client
+      .from(tableName)
+      .select(richColumns)
+      .eq("id", id)
+      .limit(1)
+      .maybeSingle();
+
+    if (richResult.error) {
+      var fallback = await client
+        .from(tableName)
+        .select("*")
+        .eq("id", id)
+        .limit(1)
+        .maybeSingle();
+      if (fallback.error) {
+        throw new Error(errorMessage(fallback.error));
+      }
+      if (!fallback.data) return null;
+      var fallbackVehiclesById = await buildVehicleMap();
+      return mapBookingRow(fallback.data, fallbackVehiclesById);
+    }
+
+    if (!richResult.data) {
+      return null;
+    }
+
+    var richVehiclesById = await buildVehicleMap();
+    return mapBookingRow(richResult.data, richVehiclesById);
+  }
+
   window.VehicleBookingService = {
     statuses: ALL_BOOKING_STATUSES.slice(),
     driverOptions: ALL_DRIVER_OPTIONS.slice(),
@@ -1240,6 +1323,7 @@
     calculateBookingQuote: calculateBookingQuote,
     validateBookingInput: validateBookingInput,
     listBookings: listBookings,
+    getBookingById: getBookingById,
     checkAvailability: checkAvailability,
     createBooking: createBooking,
     updateBookingStatus: updateBookingStatus,

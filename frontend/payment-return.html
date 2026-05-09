@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Status | Vehicle Rental System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
+    <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <link rel="stylesheet" href="assets/css/theme.css" />
+    <link rel="stylesheet" href="assets/css/payment.css" />
+    <script src="assets/js/theme-manager.js"></script>
+  </head>
+  <body class="vrs-page min-h-screen bg-paper font-sans text-ink antialiased">
+    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(44,118,110,0.42),transparent_68%)] blur-sm"></div>
+      <div class="absolute -bottom-20 -left-16 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(229,140,78,0.34),transparent_68%)] blur-sm"></div>
+    </div>
+
+    <header class="vrs-theme-scope relative z-[90] mx-auto grid w-[95%] max-w-[1390px] grid-cols-[auto,1fr,auto] items-center gap-6 py-4">
+      <a href="index.html" class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
+        <span class="vrs-brand-wordmark block bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent lg:text-[34px]">RENT A VEHICLE</span>
+        <span class="vrs-brand-tagline -mt-1 block text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">Luxury Vehicle Service</span>
+      </a>
+      <div></div>
+      <div class="flex items-center justify-end gap-4">
+        <button type="button" data-theme-toggle id="publicThemeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme" title="Toggle theme">
+          <span class="material-symbols-outlined">contrast</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="vrs-theme-scope mx-auto w-[95%] max-w-[820px] pb-14">
+      <section class="rounded-[34px] border border-[rgba(23,57,60,0.14)] bg-[linear-gradient(150deg,rgba(255,255,255,0.95),rgba(246,239,229,0.88))] p-6 shadow-[0_24px_52px_rgba(10,31,34,0.1)] backdrop-blur-sm sm:p-8">
+        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3c6667]">Payment Status</p>
+
+        <div id="paymentReturnLoading" class="mt-4 rounded-3xl border border-[#d5e0db] bg-white p-8 text-center text-[#3d5f61]">
+          <span class="material-symbols-outlined animate-spin text-[40px] text-[#1f5b57]">progress_activity</span>
+          <h2 class="mt-3 text-[22px] font-extrabold text-[#14373b]">Verifying your payment...</h2>
+          <p class="mt-1 text-[13.5px]">We are double-checking with Khalti. This usually takes a few seconds.</p>
+          <p class="mt-3 text-[12px] text-[#5f7a7d]">Khalti reference (pidx): <span id="paymentReturnPidxLabel" class="font-mono">-</span></p>
+        </div>
+
+        <div id="paymentReturnSuccess" class="hidden">
+          <div class="mt-3 rounded-3xl border border-emerald-200 bg-[linear-gradient(155deg,#ffffff,#eaf7ef)] p-6">
+            <div class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#2c766e,#1f5b57)] text-[26px] text-white shadow-[0_14px_32px_rgba(31,91,87,0.34)]">&#10003;</div>
+            <h2 class="mt-4 text-[28px] font-extrabold leading-tight text-[#133438]">Payment received</h2>
+            <p class="mt-1 text-[13.5px] text-[#2e5255]">Thank you. Your booking is now confirmed and a receipt is on its way to your inbox.</p>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <div class="rounded-2xl border border-[#cfe5d8] bg-white p-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#4f7867]">Transaction ID</p>
+                <p id="paymentReturnTransactionCode" class="mt-1 text-[18px] font-extrabold text-[#14373b]">-</p>
+              </div>
+              <div class="rounded-2xl border border-[#cfe5d8] bg-white p-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#4f7867]">Khalti Reference</p>
+                <p id="paymentReturnKhaltiTxn" class="mt-1 break-all text-[14px] font-mono text-[#14373b]">-</p>
+              </div>
+              <div class="rounded-2xl border border-[#cfe5d8] bg-white p-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#4f7867]">Booking Code</p>
+                <p id="paymentReturnBookingCode" class="mt-1 text-[16px] font-bold text-[#14373b]">-</p>
+              </div>
+              <div class="rounded-2xl border border-[#cfe5d8] bg-white p-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#4f7867]">Payment Type</p>
+                <p id="paymentReturnPaymentType" class="mt-1 text-[16px] font-bold capitalize text-[#14373b]">-</p>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-2xl border border-[#f2d3bb] bg-[#fff6ef] px-4 py-3">
+              <div class="flex items-center justify-between">
+                <span class="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#7f4c22]">Amount Paid</span>
+                <span id="paymentReturnAmount" class="text-[24px] font-extrabold text-[#6d3e18]">NPR 0.00</span>
+              </div>
+            </div>
+
+            <div class="mt-3 grid gap-2 sm:grid-cols-3 text-[13px]">
+              <div class="rounded-2xl border border-[#d6dfd9] bg-white px-3 py-2"><span class="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4f7867]">Total</span><span id="paymentReturnTotal" class="font-bold text-[#14373b]">NPR 0.00</span></div>
+              <div class="rounded-2xl border border-[#d6dfd9] bg-white px-3 py-2"><span class="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4f7867]">Paid</span><span id="paymentReturnPaid" class="font-bold text-[#14373b]">NPR 0.00</span></div>
+              <div class="rounded-2xl border border-[#d6dfd9] bg-white px-3 py-2"><span class="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4f7867]">Remaining</span><span id="paymentReturnRemaining" class="font-bold text-[#14373b]">NPR 0.00</span></div>
+            </div>
+
+            <p id="paymentReturnNextStep" class="mt-4 text-[13.5px] text-[#3d5f61]">Your booking is fully paid.</p>
+
+            <div class="mt-5 flex flex-wrap gap-2">
+              <a id="paymentReturnReceiptBtn" href="#" class="rounded-full bg-accent px-5 py-2 text-[13px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105">View receipt</a>
+              <a id="paymentReturnBookingsBtn" data-open-bookings-panel href="#" class="rounded-full border border-[#d0ddd8] bg-white px-5 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">My bookings</a>
+              <a href="index.html" class="rounded-full border border-[#d0ddd8] bg-white px-5 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">Back to home</a>
+            </div>
+          </div>
+        </div>
+
+        <div id="paymentReturnFailure" class="hidden">
+          <div class="mt-3 rounded-3xl border border-rose-200 bg-[linear-gradient(155deg,#ffffff,#fff1f2)] p-6">
+            <div class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#9b1f3a,#b94350)] text-[26px] text-white">!</div>
+            <h2 class="mt-4 text-[28px] font-extrabold leading-tight text-[#7a142a]">Payment did not complete</h2>
+            <p class="mt-1 text-[13.5px] text-[#7a142a]/80">We could not finalize this transaction. No charge was applied to your account.</p>
+
+            <div class="mt-4 rounded-2xl border border-rose-200 bg-white p-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-600">Reason</p>
+              <p id="paymentReturnFailureReason" class="mt-1 text-[14px] font-semibold text-[#7a142a]">-</p>
+            </div>
+
+            <div class="mt-3 rounded-2xl border border-rose-100 bg-white p-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-500">Transaction ID</p>
+              <p id="paymentReturnFailureTransaction" class="mt-1 text-[14px] font-mono text-[#7a142a]">-</p>
+            </div>
+
+            <div class="mt-5 flex flex-wrap gap-2">
+              <a id="paymentReturnRetryBtn" href="vehicles.html" class="rounded-full bg-accent px-5 py-2 text-[13px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105">Retry payment</a>
+              <a href="#" data-open-bookings-panel class="rounded-full border border-[#d0ddd8] bg-white px-5 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">My bookings</a>
+              <a href="index.html" class="rounded-full border border-[#d0ddd8] bg-white px-5 py-2 text-[13px] font-semibold text-[#365659] transition hover:bg-[#f3f8f6]">Back to home</a>
+            </div>
+          </div>
+        </div>
+
+        <div id="paymentReturnPending" class="hidden">
+          <div class="mt-3 rounded-3xl border border-amber-200 bg-[linear-gradient(155deg,#ffffff,#fff7e6)] p-6">
+            <div class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#a36815,#d59423)] text-[26px] text-white">&#x21bb;</div>
+            <h2 class="mt-4 text-[24px] font-extrabold leading-tight text-[#7a4c0d]">Payment is still processing</h2>
+            <p id="paymentReturnPendingNote" class="mt-1 text-[13.5px] text-[#7a4c0d]">Khalti is still processing this transaction.</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <a href="javascript:window.location.reload()" class="rounded-full bg-accent px-5 py-2 text-[13px] font-semibold text-white">Check again</a>
+              <a href="#" data-open-bookings-panel class="rounded-full border border-[#d0ddd8] bg-white px-5 py-2 text-[13px] font-semibold text-[#365659]">My bookings</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="assets/js/supabase.config.local.js"></script>
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/auth.supabase.js"></script>
+    <script src="assets/js/vehicle-catalog.service.js"></script>
+    <script src="assets/js/booking.service.js"></script>
+    <script src="assets/js/payment.service.js"></script>
+    <script src="../backend/js/auth.js"></script>
+    <script src="assets/js/payment-return-page.js"></script>
+    <script>
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+          window.VehicleAuthUI.init("home");
+        }
+      } catch (error) {
+        console.warn("VehicleAuthUI init failed:", error);
+      }
+    </script>
+  </body>
+</html>

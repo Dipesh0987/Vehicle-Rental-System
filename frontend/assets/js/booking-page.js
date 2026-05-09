@@ -1208,17 +1208,56 @@
           var savedBooking = await window.VehicleBookingService.createBooking(payload);
           state.lastConfirmedBookingCode = normalizeString(savedBooking && savedBooking.bookingCode, "");
           setModalState("bookingConfirmModal", "bookingConfirmCard", false);
+
+          var savedBookingId = savedBooking && savedBooking.id ? String(savedBooking.id) : "";
+          var savedTotal = savedBooking && savedBooking.quote
+            ? Number(savedBooking.quote.totalAmount || 0)
+            : Number(state.latestQuote && state.latestQuote.totalAmount || 0);
+
+          // If we have a real booking id and a non-zero total, send the user
+          // straight to the payment page so they can complete the 60% / 100%
+          // Khalti flow within the 15-minute window. The payment-return.html
+          // page will surface the same confirmation modal data on success.
+          if (savedBookingId && savedTotal > 0) {
+            try {
+              if (window.sessionStorage) {
+                window.sessionStorage.setItem(
+                  "vrs.recentBooking",
+                  JSON.stringify({
+                    bookingId: savedBookingId,
+                    bookingCode: savedBooking && savedBooking.bookingCode,
+                    vehicleName: getVehicleDisplayName(state.selectedVehicle || {}),
+                    totalAmount: savedTotal,
+                    startDate: savedBooking && savedBooking.startDate,
+                    endDate: savedBooking && savedBooking.endDate,
+                    customerName: values.customerName,
+                    paymentDeadline: savedBooking && savedBooking.paymentDeadline,
+                  })
+                );
+              }
+            } catch (_storageError) {
+              // ignore storage failures; payment page still works.
+            }
+
+            resetBookingFormForNext(state);
+            setBannerMessage("bookingFormError", "", "error");
+            updateAvailabilityPill("ok", "Booking saved. Redirecting to payment...");
+
+            window.location.assign("payment.html?booking=" + encodeURIComponent(savedBookingId));
+            return;
+          }
+
+          // Fallback: zero-total bookings or missing id keep the legacy
+          // success modal so the user still sees a confirmation.
           showSuccessModal({
             bookingCode: savedBooking && savedBooking.bookingCode,
             startDate: savedBooking && savedBooking.startDate,
             endDate: savedBooking && savedBooking.endDate,
             vehicleId: savedBooking && savedBooking.vehicleId,
             vehicleName: getVehicleDisplayName(state.selectedVehicle || {}),
-            totalAmount: savedBooking && savedBooking.quote ? savedBooking.quote.totalAmount : state.latestQuote.totalAmount,
+            totalAmount: savedTotal,
             customerName: values.customerName,
           });
-
-          window.alert("Your booking has been submitted in Pending status. It will be marked Confirmed only after admin approval.");
 
           resetBookingFormForNext(state);
           setBannerMessage("bookingFormError", "", "error");
