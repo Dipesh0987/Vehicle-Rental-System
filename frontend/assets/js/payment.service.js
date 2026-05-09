@@ -41,21 +41,64 @@
     return fallback || "Payment service error.";
   }
 
+  function describeNetworkError(rawMessage) {
+    var msg = String(rawMessage || "").toLowerCase();
+    var isNetwork =
+      msg.indexOf("failed to send a request") >= 0
+      || msg.indexOf("failed to fetch") >= 0
+      || msg.indexOf("networkerror") >= 0
+      || msg.indexOf("network error") >= 0;
+    if (!isNetwork) return "";
+    return [
+      "Payment service is unreachable.",
+      "Make sure the 'khalti-payment' edge function is deployed",
+      "and that KHALTI_BASE_URL + KHALTI_SECRET_KEY secrets are set.",
+    ].join(" ");
+  }
+
+  // FunctionsHttpError responses include a `context` Response object whose
+  // body holds the JSON payload our edge function returned. Read it so we
+  // can show the real reason instead of "Edge Function returned a non-2xx
+  // status code".
+  async function readFunctionErrorBody(error) {
+    if (!error) return null;
+    var ctx = error.context;
+    if (!ctx || typeof ctx.json !== "function") return null;
+    try {
+      return await ctx.json();
+    } catch (_jsonErr) {
+      try {
+        var text = typeof ctx.text === "function" ? await ctx.text() : "";
+        return text ? { message: text } : null;
+      } catch (_textErr) {
+        return null;
+      }
+    }
+  }
+
   async function invokeFunction(action, body) {
     var client = await getClient();
     var payload = Object.assign({ action: action }, body || {});
 
-    var response = await client.functions.invoke(FUNCTION_NAME, { body: payload });
+    var response;
+    try {
+      response = await client.functions.invoke(FUNCTION_NAME, { body: payload });
+    } catch (networkError) {
+      var networkHint = describeNetworkError(networkError && networkError.message);
+      var networkErr = new Error(networkHint || (networkError && networkError.message) || "Payment service unreachable.");
+      networkErr.code = "PAYMENT_NETWORK_ERROR";
+      throw networkErr;
+    }
 
     if (response.error) {
-      // Supabase swallows the response body when the HTTP status is non-2xx.
-      // We bubble the message up so the UI can show it to the user.
-      var serverPayload = response.data || {};
-      var message = pickMessage(serverPayload, response.error.message || "Payment service error.");
-      var err = new Error(message);
-      err.code = "PAYMENT_API_ERROR";
-      err.payload = serverPayload;
-      throw err;
+      var serverPayload = response.data || (await readFunctionErrorBody(response.error)) || {};
+      var rawMessage = response.error.message || "";
+      var apiHint = describeNetworkError(rawMessage);
+      var apiMessage = apiHint || pickMessage(serverPayload, rawMessage || "Payment service error.");
+      var apiErr = new Error(apiMessage);
+      apiErr.code = apiHint ? "PAYMENT_NETWORK_ERROR" : "PAYMENT_API_ERROR";
+      apiErr.payload = serverPayload;
+      throw apiErr;
     }
 
     var data = response.data || {};
