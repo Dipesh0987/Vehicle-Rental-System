@@ -42,15 +42,18 @@
       '  <span data-bell-badge class="vrs-bell-badge hidden absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">0</span>',
       '</button>',
       '<div id="' + DROPDOWN_ID + '" data-bell-dropdown',
-      '  class="vrs-bell-dropdown hidden absolute right-0 top-[calc(100%+10px)] z-[140] w-[360px] max-w-[88vw] overflow-hidden rounded-2xl border border-[rgba(22,57,60,0.18)] bg-white shadow-[0_22px_50px_rgba(7,29,31,0.22)]">',
-      '  <div class="flex items-center justify-between border-b border-[#e6ede9] px-4 py-3">',
-      '    <p class="text-[14px] font-bold text-[#14373b]">Notifications</p>',
-      '    <button type="button" data-bell-mark-all class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1f5b57] hover:underline">Mark all read</button>',
+      '  class="vrs-bell-dropdown hidden absolute right-0 top-[calc(100%+12px)] z-[140] w-[400px] max-w-[92vw] overflow-hidden rounded-2xl border border-[rgba(22,57,60,0.18)] bg-white shadow-[0_22px_50px_rgba(7,29,31,0.22)]">',
+      '  <div class="flex items-center justify-between gap-4 border-b border-[#e6ede9] px-5 py-4">',
+      '    <div class="min-w-0">',
+      '      <p class="text-[15px] font-bold leading-tight text-[#14373b]">Notifications</p>',
+      '      <p data-bell-subtitle class="mt-0.5 text-[12px] text-[#54716f]">You are all caught up</p>',
+      '    </div>',
+      '    <button type="button" data-bell-mark-all',
+      '      class="vrs-bell-mark-all hidden whitespace-nowrap rounded-full border border-[#d3ddd7] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#1f5b57] transition hover:border-[#1f5b57] hover:bg-[#f4faf7]">',
+      '      Mark all read',
+      '    </button>',
       '  </div>',
       '  <div data-bell-list class="vrs-bell-list max-h-[60vh] overflow-y-auto"></div>',
-      '  <div class="border-t border-[#e6ede9] px-4 py-2 text-center">',
-      '    <button type="button" data-bell-bookings class="text-[12px] font-semibold text-[#1f5b57] hover:underline">Open my bookings</button>',
-      '  </div>',
       '</div>',
     ].join("");
 
@@ -71,7 +74,6 @@
     var trigger = wrap.querySelector("[data-bell-trigger]");
     var dropdown = wrap.querySelector("[data-bell-dropdown]");
     var markAllBtn = wrap.querySelector("[data-bell-mark-all]");
-    var bookingsBtn = wrap.querySelector("[data-bell-bookings]");
 
     if (trigger) {
       trigger.addEventListener("click", function (event) {
@@ -88,18 +90,6 @@
           }
           await refresh();
         } catch (_e) { /* ignore */ }
-      });
-    }
-    if (bookingsBtn) {
-      bookingsBtn.addEventListener("click", function (event) {
-        event.stopPropagation();
-        closeDropdown();
-        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.openBookingsPanel === "function") {
-          window.VehicleAuthUI.openBookingsPanel({});
-          return;
-        }
-        var fallback = document.querySelector("[data-open-bookings-panel]");
-        if (fallback) fallback.click();
       });
     }
 
@@ -150,14 +140,26 @@
     var wrap = document.getElementById(BELL_CONTAINER_ID);
     if (!wrap) return;
     var badge = wrap.querySelector("[data-bell-badge]");
-    if (!badge) return;
+    var subtitle = wrap.querySelector("[data-bell-subtitle]");
+    var markAllBtn = wrap.querySelector("[data-bell-mark-all]");
 
     state.lastCount = Number(count) || 0;
-    if (state.lastCount > 0) {
-      badge.classList.remove("hidden");
-      badge.textContent = state.lastCount > 99 ? "99+" : String(state.lastCount);
-    } else {
-      badge.classList.add("hidden");
+    if (badge) {
+      if (state.lastCount > 0) {
+        badge.classList.remove("hidden");
+        badge.textContent = state.lastCount > 99 ? "99+" : String(state.lastCount);
+      } else {
+        badge.classList.add("hidden");
+      }
+    }
+    if (subtitle) {
+      subtitle.textContent = state.lastCount > 0
+        ? state.lastCount + (state.lastCount === 1 ? " unread update" : " unread updates")
+        : "You are all caught up";
+    }
+    if (markAllBtn) {
+      if (state.lastCount > 0) markAllBtn.classList.remove("hidden");
+      else markAllBtn.classList.add("hidden");
     }
   }
 
@@ -193,10 +195,10 @@
 
     if (!state.lastList.length) {
       list.innerHTML =
-        '<div class="px-4 py-6 text-center text-[13px] text-[#54716f]">' +
-        '<span class="material-symbols-outlined block text-[32px] text-[#aabcb8]">notifications_off</span>' +
-        '<p class="mt-2">No notifications yet.</p>' +
-        '<p class="mt-1 text-[12px] text-[#90a3a0]">We will tell you about payments, receipts and booking updates here.</p>' +
+        '<div class="flex flex-col items-center px-6 py-10 text-center">' +
+        '<span class="material-symbols-outlined text-[36px] text-[#aabcb8]">notifications_off</span>' +
+        '<p class="mt-3 text-[14px] font-semibold text-[#14373b]">No notifications yet</p>' +
+        '<p class="mt-1 text-[12.5px] leading-snug text-[#54716f]">We will let you know about payments, receipts and booking updates here.</p>' +
         '</div>';
       return;
     }
@@ -207,16 +209,16 @@
       var iconTone = pickTone(n.type);
       return [
         '<button type="button" data-bell-item="' + escapeHtml(n.id) + '"',
-        '  class="vrs-bell-item ' + (unread ? "is-unread " : "") + 'flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[#f4faf7]">',
+        '  class="vrs-bell-item ' + (unread ? "is-unread " : "") + 'flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-[#f4faf7]">',
         '  <span class="vrs-bell-item-icon mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ' + iconTone + '">',
         '    <span class="material-symbols-outlined text-[18px]">' + escapeHtml(iconName) + '</span>',
         '  </span>',
         '  <span class="min-w-0 flex-1">',
-        '    <span class="block text-[13.5px] font-semibold text-[#14373b]">' + escapeHtml(n.title) + '</span>',
-        '    <span class="mt-0.5 block text-[12.5px] text-[#54716f]">' + escapeHtml(n.body) + '</span>',
-        '    <span class="mt-1 block text-[11px] uppercase tracking-[0.1em] text-[#90a3a0]">' + escapeHtml(formatRelative(n.created_at)) + '</span>',
+        '    <span class="block text-[13.5px] font-semibold leading-snug text-[#14373b]">' + escapeHtml(n.title) + '</span>',
+        '    <span class="mt-0.5 block text-[12.5px] leading-snug text-[#54716f]">' + escapeHtml(n.body) + '</span>',
+        '    <span class="mt-1.5 block text-[10.5px] uppercase tracking-[0.12em] text-[#90a3a0]">' + escapeHtml(formatRelative(n.created_at)) + '</span>',
         '  </span>',
-        unread ? '<span class="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-rose-500"></span>' : '',
+        unread ? '<span class="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-rose-500"></span>' : '',
         '</button>',
       ].join("");
     }).join("");
@@ -283,31 +285,36 @@
     var meta = (item && item.metadata) || {};
     var bookingId = meta.bookingId || "";
     var transactionCode = meta.transactionCode || "";
+    var type = String(item && item.type ? item.type : "");
 
-    if (item && (item.type === "payment_success" || item.type === "receipt_sent") && transactionCode) {
-      window.location.assign("payment-receipt.html?payment=" + encodeURIComponent(transactionCode));
-      return;
-    }
-
-    if (item && (item.type === "payment_failed" || item.type === "payment_expired" || item.type === "payment_due") && bookingId) {
+    // For payment_failed / payment_expired / payment_due we still send the
+    // user straight to the payment page so they can finish/retry.
+    if (bookingId && (type === "payment_failed" || type === "payment_expired" || type === "payment_due")) {
       window.location.assign("payment.html?booking=" + encodeURIComponent(bookingId));
       return;
     }
 
-    if (item && (item.type === "booking_confirmed" || item.type === "booking_status_changed") && bookingId) {
+    // For every other booking-linked notification (confirmation, status
+    // change, payment success, receipt sent) - open the bookings panel
+    // directly and pre-select that booking. This is what the user expects:
+    // "show booking directly".
+    if (bookingId) {
       if (window.VehicleAuthUI && typeof window.VehicleAuthUI.openBookingsPanel === "function") {
-        window.VehicleAuthUI.openBookingsPanel({ bookingId: String(bookingId) });
         closeDropdown();
+        window.VehicleAuthUI.openBookingsPanel({ bookingId: String(bookingId) });
         return;
       }
     }
 
+    // No booking context but we have a transaction - jump to the receipt.
+    if (transactionCode && (type === "payment_success" || type === "receipt_sent")) {
+      window.location.assign("payment-receipt.html?payment=" + encodeURIComponent(transactionCode));
+      return;
+    }
+
     if (url) {
-      // Strip the leading /frontend prefix if we are already on /frontend.
       var normalized = url.replace(/^\/frontend\//, "");
-      try {
-        window.location.assign(normalized || url);
-      } catch (_e) { /* ignore */ }
+      try { window.location.assign(normalized || url); } catch (_e) { /* ignore */ }
     }
   }
 

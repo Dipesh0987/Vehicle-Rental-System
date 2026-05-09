@@ -1930,6 +1930,21 @@ html[data-theme="dark"] body.vrs-page .vrs-bell-item .text-\[\#90a3a0\] {
   color: rgba(214, 228, 230, 0.7);
 }
 
+body.vrs-page .vrs-bell-mark-all {
+  letter-spacing: 0.01em;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bell-mark-all {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #b9d8d4;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bell-mark-all:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(185, 216, 212, 0.4);
+}
+
 /* ------------------------------------------------------------------------
    Bookings panel - payment ledger row, Pay Remaining button, View Receipt
    ------------------------------------------------------------------------ */
