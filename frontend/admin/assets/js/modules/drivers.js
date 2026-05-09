@@ -48,7 +48,7 @@ export function renderDriversModule({ data, query, notify, rerender }) {
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Operations</p>
-        <h2 class="${classMap.heading}">Driver Management</h2>
+        <h2 class="${classMap.heading} text-slate-900 dark:text-white">Driver Management</h2>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <button id="addDriverBtn" class="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600">
@@ -79,7 +79,7 @@ export function renderDriversModule({ data, query, notify, rerender }) {
           })
         : `<section class="${classMap.panel} p-4 sm:p-5">
       <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
+        <table class="min-w-full text-sm text-slate-900 dark:text-slate-100">
           <thead>
             <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-[0.16em] text-slate-500 dark:border-white/10 dark:text-slate-400">
               <th class="pb-2 pr-3">Driver</th>
@@ -95,15 +95,15 @@ export function renderDriversModule({ data, query, notify, rerender }) {
               .map(
                 (row) => `<tr class="border-b border-slate-100 transition hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/5 cursor-pointer" data-driver-row="${row.id}">
                   <td class="py-3 pr-3">
-                    <p class="font-bold">${escapeHtml(row.name)}</p>
+                    <p class="font-bold text-slate-900 dark:text-white">${escapeHtml(row.name)}</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.id)}</p>
                   </td>
                   <td class="py-3 pr-3"><span class="${licenceStatusClass(row.licenceStatus)}">${escapeHtml(row.licenceStatus || 'N/A')}</span></td>
                   <td class="py-3 pr-3"><span class="${availabilityClass(row.availability)}">${escapeHtml(row.availability)}</span></td>
-                  <td class="py-3 pr-3">${escapeHtml(row.assigned)}</td>
-                  <td class="py-3 pr-3">${escapeHtml(row.phone || '-')}</td>
+                  <td class="py-3 pr-3 text-slate-700 dark:text-slate-300">${escapeHtml(row.assigned)}</td>
+                  <td class="py-3 pr-3 text-slate-700 dark:text-slate-300">${escapeHtml(row.phone || '-')}</td>
                   <td class="py-3 pr-3 text-right whitespace-nowrap">
-                    <button data-edit-driver="${row.id}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10" title="Edit">
+                    <button data-edit-driver="${row.id}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10" title="Edit">
                       <span class="material-symbols-outlined text-[14px] align-middle">edit</span>
                     </button>
                     <button data-delete-driver="${row.id}" class="ml-1 rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10" title="Delete">
@@ -193,15 +193,15 @@ export function renderDriversModule({ data, query, notify, rerender }) {
 function renderDetailView(host, driver, data, notify, rerender) {
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
-      <button id="driverBackBtn" class="rounded-lg border border-slate-200 p-2 transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">
+      <button id="driverBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
       </button>
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Driver Detail</p>
-        <h2 class="${classMap.heading}">${escapeHtml(driver.name)}</h2>
+        <h2 class="${classMap.heading} text-slate-900 dark:text-white">${escapeHtml(driver.name)}</h2>
       </div>
       <div class="ml-auto flex gap-2">
-        <button id="detailEditBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">
+        <button id="detailEditBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
           <span class="material-symbols-outlined mr-1 text-[16px] align-middle">edit</span> Edit
         </button>
         <button id="detailDeleteBtn" class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">
@@ -282,12 +282,12 @@ function renderDriverForm(host, existingDriver, data, notify, rerender) {
 
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
-      <button id="formBackBtn" class="rounded-lg border border-slate-200 p-2 transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">
+      <button id="formBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
       </button>
       <div>
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Operations</p>
-        <h2 class="${classMap.heading}">${isEdit ? 'Edit Driver' : 'Onboard New Driver'}</h2>
+        <h2 class="${classMap.heading} text-slate-900 dark:text-white">${isEdit ? 'Edit Driver' : 'Onboard New Driver'}</h2>
       </div>
     </header>
 
@@ -325,7 +325,7 @@ function renderDriverForm(host, existingDriver, data, notify, rerender) {
 
       <!-- Actions -->
       <div class="md:col-span-2 flex justify-end gap-2">
-        <button type="button" id="formCancelBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">Cancel</button>
+        <button type="button" id="formCancelBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">Cancel</button>
         <button type="submit" class="rounded-xl bg-brand-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600">
           ${isEdit ? 'Save Changes' : 'Add Driver'}
         </button>
@@ -406,15 +406,16 @@ function renderDriverForm(host, existingDriver, data, notify, rerender) {
 function detailField(label, value) {
   return `<div class="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
     <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">${label}</span>
-    <span class="text-sm font-semibold">${escapeHtml(value)}</span>
+    <span class="text-sm font-semibold text-slate-900 dark:text-white">${escapeHtml(value)}</span>
   </div>`;
 }
 
 function formField(label, name, type, value, required, placeholder) {
+  const extraAttrs = type === 'number' ? ' min="0"' : '';
   return `<div>
     <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">${label}${required ? ' <span class="text-rose-500">*</span>' : ''}</label>
-    <input name="${name}" type="${type}" value="${escapeHtml(value || '')}" ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''} ${required ? 'required' : ''}
-      class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white" />
+    <input name="${name}" type="${type}" value="${escapeHtml(value || '')}" ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''} ${required ? 'required' : ''}${extraAttrs}
+      class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white" />
   </div>`;
 }
 
@@ -422,14 +423,14 @@ function formTextarea(label, name, value, required, placeholder) {
   return `<div>
     <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">${label}${required ? ' <span class="text-rose-500">*</span>' : ''}</label>
     <textarea name="${name}" rows="2" ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''} ${required ? 'required' : ''}
-      class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white">${escapeHtml(value || '')}</textarea>
+      class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white">${escapeHtml(value || '')}</textarea>
   </div>`;
 }
 
 function formSelect(label, name, options, selected) {
   return `<div>
     <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">${label}</label>
-    <select name="${name}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white">
+    <select name="${name}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white">
       ${options.map((o) => `<option value="${escapeHtml(o)}" ${o === selected ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('')}
     </select>
   </div>`;
