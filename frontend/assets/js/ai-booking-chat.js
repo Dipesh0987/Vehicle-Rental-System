@@ -1112,8 +1112,9 @@
             ref.state.messages[0].showSuggestions = false; save(ref.state, ref.library);
           }
           var lvSuggest = val.toLowerCase();
-          /* Intercept "Plan a trip" / "Multi-stop trip" to start the wizard. */
-          if (lvSuggest === "plan a trip" || lvSuggest === "multi-stop trip" || lvSuggest === "multistop trip") {
+          /* Intercept "Plan a trip" / "Multi-stop trip" to start the wizard.
+           * (Also catches plural/spacing variants for safety.) */
+          if (/^plan\s+a?\s*trip$/.test(lvSuggest) || /^multi[\s-]?stop\s*trips?$/.test(lvSuggest)) {
             pushMsg(ref.state, {
               id: uid("m"), role: "user", text: val,
               timestamp: new Date().toISOString(), citations: [], actions: [],
@@ -1184,11 +1185,23 @@
       }
 
       /* Intercept trip-planning keywords to start the wizard. Multi-stop
-       * keywords ("multi-stop", "multiple stops", "few places") jump straight
-       * into the multi-stop branch; bare "plan a trip" goes to single. */
+       * keywords ("multi-stop", "multiple stops", "few places", "round trip")
+       * jump straight into the multi-stop branch; bare "plan a trip" goes to
+       * the single branch. We accept both singular ("multiple stop") and
+       * plural ("multiple stops") since users phrase it both ways. */
       var lq = q.toLowerCase();
-      var isMultiStop = /(multi.?stop|multiple\s+(stops|places|destinations|cities)|few\s+(stops|places)|several\s+(stops|places)|package\s+price|estimate.*package|itinerary)/i.test(lq);
-      var isSingleTrip = (/^plan\s*(a\s*)?trip$/i.test(lq) || (/^(i\s+want\s+to\s+)?plan\s*(a\s*)?trip/i.test(lq) && lq.length < 30));
+      var isMultiStop = /(multi[\s-]?stops?|multiple\s+(stops?|places?|destinations?|cities|locations?)|many\s+(stops?|places?)|few\s+(stops?|places?)|several\s+(stops?|places?|cities)|package\s+price|package\s+(quote|deal)|estimate.*package|itinerary|round[\s-]?trip|tour\s+(around|of)|hop\s+(between|across))/i.test(lq);
+      /* Detect single-trip intent. We removed the length cap because users
+       * typing longer phrases like "i want to plan a trip" should still hit
+       * the wizard. Multi-stop check above takes priority for itinerary words. */
+      var hasTripWord = /\b(trip|travel|journey|vacation|holiday|tour|road\s*trip)\b/.test(lq);
+      var hasPlanIntent = /(plan|book|arrange|organize|recommend|suggest|find\s+(me\s+)?a)\s+(a\s+)?(trip|travel|journey|vacation|holiday|tour|vehicle|car)/.test(lq) ||
+        /(want|need|looking)\s+(to|for)\s+(plan|book|go|travel|rent)/.test(lq);
+      var isSingleTrip = !isMultiStop && (
+        /^plan\s*(a\s*)?trip$/i.test(lq) ||
+        (hasTripWord && hasPlanIntent) ||
+        /^(i\s+want\s+to\s+)?plan\s*(a\s*)?trip/i.test(lq)
+      );
       if (isMultiStop || isSingleTrip) {
         pushMsg(ref.state, {
           id: uid("m"), role: "user", text: q,

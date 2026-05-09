@@ -273,7 +273,7 @@ function classifyIntent(query: string):
     return "modify";
   }
 
-  if (/(trip|travel|journey|road\s*trip|plan.*trip|vacation|holiday|tour|group.*ride|family.*ride|\d+\s*(people|person|passenger|pax|member|friend|seat)|need.*car.*for|suggest.*vehicle|recommend.*car|which.*car.*for|best.*car|suitable.*vehicle|itinerary|multi.?stop|estimate.*(price|cost|package|quote)|package.*price|total.*cost.*for|how much.*(trip|tour|travel))/.test(lower)) {
+  if (/(trip|travel|journey|road\s*trip|plan.*trip|vacation|holiday|tour|group.*ride|family.*ride|\d+\s*(people|person|passenger|pax|member|friend|seat)|need.*car.*for|suggest.*vehicle|recommend.*car|which.*car.*for|best.*car|suitable.*vehicle|itinerary|multi[\s-]?stops?|multiple\s+(stops?|places?|destinations?|cities|locations?)|many\s+(stops?|places?)|few\s+(stops?|places?)|several\s+(stops?|places?|cities)|round[\s-]?trip|tour\s+(around|of)|estimate.*(price|cost|package|quote)|package.*(price|deal|quote)|total.*cost.*for|how much.*(trip|tour|travel))/.test(lower)) {
     return "trip";
   }
 
@@ -629,16 +629,16 @@ async function handleTripPlanning(input: {
   // Ask clarifying questions if 2+ key details are missing and this looks like an initial vague request
   if (missing.length >= 2 && GEMINI_API_KEY) {
     const clarifyPrompt = [
-      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
-      "The user wants to plan a trip but hasn't provided enough details.",
-      "Missing info: " + missing.join(", ") + ".",
-      "Ask 2-3 SHORT, friendly clarifying questions to help recommend the best vehicle.",
-      "Questions should cover: number of passengers, daily budget (in NPR), and destination type (city/mountain/highway).",
-      "Keep it to 2-3 sentences max. Be warm.",
+      "You are RentAVehicle Nepal's friendly AI Booking Assistant.",
+      "The user wants to plan a trip but the request is vague. Acknowledge their intent first, then ask 2-3 short clarifying questions to help recommend the best vehicle.",
+      "Missing info to gather: " + missing.join(", ") + ".",
+      "Cover (in friendly language): number of passengers, daily budget (NPR), and where they want to go OR the type of destination (city/mountain/highway/multi-stop).",
+      "Mention that we can plan a multi-stop itinerary if they want to visit several places.",
+      "Keep it to 2-3 short sentences. Use warm, conversational tone. End with a question.",
       "",
       "User message: " + input.query,
     ].join("\n");
-    const clarifyAnswer = await callGemini(clarifyPrompt, 200);
+    const clarifyAnswer = await callGemini(clarifyPrompt, 220);
     if (clarifyAnswer) {
       return {
         answer: clarifyAnswer,
@@ -646,17 +646,60 @@ async function handleTripPlanning(input: {
         citations: [],
       };
     }
+    /* Gemini unavailable: still offer a helpful clarification rather than a
+     * dead-end "no vehicles" message. */
+    return {
+      answer: "I'd love to help plan your trip! Could you tell me a bit more — how many passengers, your daily budget (NPR), and where you'd like to go? If you have multiple stops in mind, just say something like \"Pokhara 3 days, Chitwan 2 days\" and I'll quote the whole itinerary for you.",
+      actions: [],
+      citations: [],
+    };
   }
 
   // Fetch vehicles
   const vehicles = await fetchAvailableVehicles(ctx.people || 1, ctx.budget, ctx.destinationType, ctx.fuelPref);
 
   if (!vehicles.length) {
-    const noVehicleAnswer = ctx.people
-      ? `I couldn't find available vehicles with ${ctx.people}+ seats${ctx.budget ? " under NPR " + ctx.budget : ""} right now. Try adjusting your requirements or contact our support team.`
-      : "I couldn't find available vehicles matching your needs right now. Please contact our support team.";
+    /* No matches under the user's constraints — instead of dead-ending,
+     * loosen the filters once and try again so we always surface something.
+     * If even the loose fetch is empty (very rare), we hand off to the
+     * dynamic general handler for a conversational reply. */
+    const fallback = await fetchAvailableVehicles(1, 0, "", "");
+    if (fallback.length) {
+      const top = fallback.slice(0, 3);
+      const summary = top.map((v) => {
+        const name = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim() || "Vehicle";
+        const seats = v.seats || 5;
+        const price = vehiclePrice(v);
+        return `${name} (${seats} seats, NPR ${Math.round(price).toLocaleString()}/day)`;
+      }).join("; ");
+      const constraintNote = ctx.people
+        ? `with ${ctx.people}+ seats${ctx.budget ? " under NPR " + ctx.budget : ""}`
+        : "matching all your filters";
+      return {
+        answer: `I couldn't find vehicles ${constraintNote} right now, but here are some options that are close: ${summary}. Want me to relax the budget or seat count?`,
+        actions: top.map((v, i) => ({
+          type: "suggest_vehicle" as const,
+          label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+          vehicleId: v.id,
+          meta: {
+            seats: v.seats || 5,
+            price: vehiclePrice(v),
+            fuel: normalizeText(v.fuel_type) || "Petrol",
+            transmission: normalizeText(v.transmission) || "Automatic",
+            image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+            category: vehicleCategory(v) || "sedan",
+            rating: v.rating || 0,
+            location: normalizeText(v.location) || "",
+            reason: "",
+            rank: i + 1,
+          },
+        })),
+        citations: [],
+      };
+    }
+    /* DB really has nothing usable — at least respond conversationally. */
     return {
-      answer: noVehicleAnswer,
+      answer: "I'm having trouble finding live vehicle data at the moment. While I get that sorted, you can browse our full fleet on the Vehicles page or I can connect you to support.",
       actions: [defaultSupportAction()],
       citations: [],
     };
@@ -783,7 +826,12 @@ async function handleMultiLegQuote(input: {
   const fuelCostLow = Math.round(totalKm * fuelRate * 0.9);
   const fuelCostHigh = Math.round(totalKm * fuelRate * 1.15);
 
-  const vehicles = await fetchAvailableVehicles(ctx.people || 1, ctx.budget, ctx.destinationType, ctx.fuelPref);
+  let vehicles = await fetchAvailableVehicles(ctx.people || 1, ctx.budget, ctx.destinationType, ctx.fuelPref);
+  /* If strict filters returned nothing, loosen them so the user still gets
+   * an itinerary with realistic vehicle options instead of a dead-end. */
+  if (!vehicles.length) {
+    vehicles = await fetchAvailableVehicles(1, 0, "", "");
+  }
   const top = vehicles.slice(0, 3);
 
   /* Per-vehicle package estimates: rental + fuel band. */
