@@ -1883,19 +1883,25 @@ body.vrs-page .vrs-bell-list {
 }
 
 body.vrs-page .vrs-bell-item {
-  border-bottom: 1px solid #f1f5f3;
+  border-radius: 0;
 }
 
-body.vrs-page .vrs-bell-item:last-child {
-  border-bottom: none;
+body.vrs-page .vrs-bell-section + .vrs-bell-section {
+  border-top: 1px solid #f1f5f3;
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
 }
 
 body.vrs-page .vrs-bell-item.is-unread {
-  background: #f4faf7;
+  background: transparent;
 }
 
 body.vrs-page .vrs-bell-item.is-unread:hover {
-  background: #ecf6f1;
+  background: #f4faf7;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bell-section + .vrs-bell-section {
+  border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 body.vrs-page .vrs-bell-list::-webkit-scrollbar {
