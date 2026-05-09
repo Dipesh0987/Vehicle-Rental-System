@@ -1462,6 +1462,77 @@ html[data-theme="dark"] .booking-success-total {
   background: rgba(107, 61, 32, 0.32) !important;
 }
 
+/* ---------------------------------------------------------------------------
+   Booking page - dark mode shells.
+   The outer <section> uses bg-[linear-gradient(...)] which the generic dark
+   mode override does not match. We force a dark surface on these specific
+   containers so the auto-lightened text becomes legible.
+   --------------------------------------------------------------------------- */
+html[data-theme="dark"] .booking-form-shell {
+  background: linear-gradient(150deg, rgba(15, 24, 30, 0.96), rgba(20, 30, 36, 0.92)) !important;
+  border-color: rgba(150, 176, 188, 0.24) !important;
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42) !important;
+}
+
+html[data-theme="dark"] .booking-form-card {
+  background: linear-gradient(165deg, rgba(20, 30, 36, 0.96), rgba(15, 24, 30, 0.94)) !important;
+  border-color: rgba(150, 176, 188, 0.24) !important;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Coupon "Apply" button + cancel/back-style buttons live on the white shell */
+html[data-theme="dark"] .booking-form-card #bookingApplyCoupon,
+html[data-theme="dark"] .booking-form-shell #bookingLiveStatus,
+html[data-theme="dark"] .booking-form-shell a[href="vehicles.html"],
+html[data-theme="dark"] .booking-form-card #bookingAvailabilityStatus {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(150, 176, 188, 0.28) !important;
+  color: #d6e5eb !important;
+}
+
+/* The orange-tinted "Price Per Day" mini card and "Total Due" pill keep
+   their warm accent in dark mode but on a darker base so the kicker text
+   remains readable. */
+html[data-theme="dark"] .booking-price-pill {
+  background: linear-gradient(145deg, rgba(107, 61, 32, 0.42), rgba(78, 45, 25, 0.42)) !important;
+  border-color: rgba(240, 168, 114, 0.34) !important;
+}
+
+html[data-theme="dark"] .booking-price-pill > p:first-child {
+  color: #ffd9bf !important;
+}
+
+html[data-theme="dark"] .booking-price-pill #bookingVehiclePrice {
+  color: #f7e1c5 !important;
+}
+
+html[data-theme="dark"] .booking-total-pill {
+  background: rgba(107, 61, 32, 0.32) !important;
+  border-color: rgba(240, 168, 114, 0.34) !important;
+  color: #ffd9bf !important;
+}
+
+html[data-theme="dark"] .booking-total-pill > div {
+  color: #ffd9bf !important;
+}
+
+/* Form-level error banner uses Tailwind rose-* utility classes which the
+   generic [class*="text-[#"] selector cannot reach. Style it explicitly. */
+html[data-theme="dark"] #bookingFormError,
+html[data-theme="dark"] #bookingConfirmError {
+  background: rgba(160, 38, 60, 0.22) !important;
+  border-color: rgba(255, 138, 158, 0.42) !important;
+  color: #ffc8d1 !important;
+}
+
+/* Kickers and section labels written in tracking-wide uppercase teal
+   stay readable against the new dark surface. */
+html[data-theme="dark"] .booking-form-shell h1,
+html[data-theme="dark"] .booking-form-card h2,
+html[data-theme="dark"] .booking-form-card h3 {
+  color: #f1f7fa !important;
+}
+
 /* ========================================================================
    VEHICLES PAGE — vehicles.html
    ======================================================================== */
