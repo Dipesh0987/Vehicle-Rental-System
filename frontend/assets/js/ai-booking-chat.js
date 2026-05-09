@@ -685,8 +685,11 @@
       '<p style="display:flex;align-items:center;gap:4px;font-size:10px;color:' + t.headerSub + ';margin:0"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 4px rgba(16,185,129,0.6)"></span>Online &middot; Session only</p>' +
       "</div></div>" +
       '<div style="display:flex;align-items:center;gap:2px">' +
-      '<button type="button" data-ai-history-toggle style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Search history">' + ICON_HISTORY + "</button>" +
-      '<button type="button" data-ai-clear style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Clear chat">' + ICON_CLEAR + "</button>" +
+      '<button type="button" data-ai-new-header style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Start a new chat" aria-label="Start a new chat">' +
+      '<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' +
+      "</button>" +
+      '<button type="button" data-ai-history-toggle style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Chat history">' + ICON_HISTORY + "</button>" +
+      '<button type="button" data-ai-clear style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Reset this chat">' + ICON_CLEAR + "</button>" +
       '<button type="button" data-ai-close style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Close">' + ICON_CLOSE + "</button>" +
       "</div></header>" +
 
@@ -697,7 +700,7 @@
       /* History panel overlay */
       '<div data-ai-history class="vrs-history-slide is-hidden" style="position:absolute;inset:0;z-index:20;overflow-y:auto;background:' + t.histBg + ';padding:16px">' +
       '<div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">' +
-      '<h4 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.histTitle + '">History & Searches</h4>' +
+      '<h4 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.histTitle + '">Chat History</h4>' +
       '<button type="button" data-ai-history-close style="border-radius:6px;padding:4px 8px;font-size:10px;font-weight:600;color:' + t.histTitle + ';cursor:pointer;border:1px solid ' + t.panelBorder + ';background:' + t.histItemBg + '">Close</button>' +
       "</div>" +
       '<div data-ai-history-body></div>' +
@@ -726,6 +729,7 @@
       form: shell.querySelector("[data-ai-form]"),
       input: shell.querySelector("[data-ai-input]"),
       send: shell.querySelector("[data-ai-send]"),
+      newHeaderBtn: shell.querySelector("[data-ai-new-header]"),
       clearBtn: shell.querySelector("[data-ai-clear]"),
       closeBtn: shell.querySelector("[data-ai-close]"),
       historyToggle: shell.querySelector("[data-ai-history-toggle]"),
@@ -780,31 +784,69 @@
     });
   }
 
-  function renderHistory(ui, state) {
+  function renderHistory(ui, state, library) {
     var t = T();
-    var searches = state.searches || [];
-    var searchHtml = searches.length
-      ? searches.map(function (s, i) {
-          return '<button type="button" data-ai-search-val="' + esc(s) + '" ' +
-            'style="display:flex;width:100%;align-items:center;gap:8px;border-radius:8px;border:1px solid ' + t.actionBorder + ';background:' + t.histItemBg + ';padding:8px 12px;text-align:left;font-size:12px;color:' + t.histItemText + ';cursor:pointer;margin-bottom:6px">' +
-            '<span style="flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:' + t.citeBg + ';font-size:10px;font-weight:700;color:' + t.citeText + '">' + (i + 1) + "</span>" +
-            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s) + "</span></button>";
-        }).join("")
-      : '<p style="border-radius:8px;border:1px dashed ' + t.panelBorder + ';background:' + t.histItemBg + ';padding:12px;text-align:center;font-size:12px;color:' + t.timestamp + '">No searches yet</p>';
 
-    var chatItems = state.messages.filter(function (m) { return !m.isTyping; }).slice(-15).map(function (m) {
-      var who = m.role === "user" ? "You" : "AI";
-      var whoColor = m.role === "user" ? t.citeText : t.headerBtn;
-      return '<li style="border-radius:8px;background:' + t.histItemBg + ';padding:8px 12px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,0.04)">' +
-        '<p style="font-size:10px;font-weight:700;color:' + whoColor + '">' + who + ' <span style="font-weight:400;color:' + t.timestamp + '">' + esc(relTime(m.timestamp)) + "</span></p>" +
-        '<p style="margin-top:2px;font-size:11px;color:' + t.histItemSub + ';overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + esc(trim(m.text || "-")) + "</p></li>";
+    /* ─── Session list (the main change in v1) ─── */
+    var sessions = library ? listSessions(library) : [];
+    var activeId = library ? library.activeId : "";
+
+    var sessionsHtml = sessions.map(function (s) {
+      var isActive = s.sessionId === activeId;
+      var preview = "";
+      var lastMsg = (s.messages || []).filter(function (m) { return !m.isTyping; }).slice(-1)[0];
+      if (lastMsg) preview = trim(lastMsg.text || "").replace(/\s+/g, " ");
+      var title = trim(s.title) || "New chat";
+      var msgCount = (s.messages || []).filter(function (m) { return !m.isTyping; }).length;
+      var when = relTime(s.updatedAt);
+      /* Outer is a div with role=button (NOT a <button>) because we nest a
+       * real <button> for "delete chat" inside, and nested buttons are
+       * invalid HTML5. Keyboard support is provided via tabindex+keydown. */
+      return '<div role="button" tabindex="0" data-ai-session-id="' + esc(s.sessionId) + '" aria-label="Open chat: ' + esc(title) + '" ' +
+        'style="position:relative;display:block;width:100%;text-align:left;border-radius:10px;border:1px solid ' + (isActive ? t.cardPrice : t.actionBorder) + ';' +
+        'background:' + (isActive ? t.citeBg : t.histItemBg) + ';padding:10px 30px 10px 12px;cursor:pointer;margin-bottom:6px;transition:transform .12s,border-color .12s">' +
+        '<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:' + (isActive ? t.citeText : t.histItemText) + '">' +
+        (isActive ? '<span style="flex-shrink:0;width:6px;height:6px;border-radius:50%;background:' + t.cardPrice + ';box-shadow:0 0 0 2px ' + t.cardPrice + '33"></span>' : '') +
+        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(title) + '</span>' +
+        '</div>' +
+        (preview ? '<p style="margin:3px 0 0;font-size:10px;color:' + t.histItemSub + ';line-height:1.4;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden">' + esc(preview) + '</p>' : '') +
+        '<p style="margin:4px 0 0;font-size:9px;color:' + t.timestamp + ';font-weight:600;letter-spacing:0.04em">' + esc(when) + ' \u2022 ' + esc(String(msgCount)) + ' message' + (msgCount === 1 ? '' : 's') + '</p>' +
+        '<button type="button" data-ai-session-delete="' + esc(s.sessionId) + '" aria-label="Delete chat" title="Delete chat" ' +
+        'style="position:absolute;top:6px;right:6px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:none;background:transparent;color:' + t.timestamp + ';cursor:pointer">' +
+        '<svg viewBox="0 0 16 16" style="width:12px;height:12px" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h10M6 5V3.5A0.5 0.5 0 0 1 6.5 3h3a0.5 0.5 0 0 1 0.5 0.5V5M5 5v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V5"/></svg>' +
+        '</button>' +
+        '</div>';
     }).join("");
 
+    if (!sessions.length) {
+      sessionsHtml = '<p style="border-radius:8px;border:1px dashed ' + t.panelBorder + ';background:' + t.histItemBg + ';padding:12px;text-align:center;font-size:12px;color:' + t.timestamp + '">No chats yet \u2014 start a new one!</p>';
+    }
+
+    var newChatBtn = '<button type="button" data-ai-new-session ' +
+      'style="display:flex;width:100%;align-items:center;justify-content:center;gap:6px;border-radius:10px;border:1px dashed ' + t.cardPrice + ';background:' + t.citeBg + ';padding:9px 12px;font-size:12px;font-weight:700;color:' + t.citeText + ';cursor:pointer;margin-bottom:10px">' +
+      '<svg viewBox="0 0 16 16" style="width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>' +
+      'Start a new chat' +
+      '</button>';
+
+    /* ─── Recent searches ─── */
+    var searches = state.searches || [];
+    var searchHtml = searches.length
+      ? searches.slice(0, 8).map(function (s, i) {
+          return '<button type="button" data-ai-search-val="' + esc(s) + '" ' +
+            'style="display:flex;width:100%;align-items:center;gap:8px;border-radius:8px;border:1px solid ' + t.actionBorder + ';background:' + t.histItemBg + ';padding:7px 10px;text-align:left;font-size:12px;color:' + t.histItemText + ';cursor:pointer;margin-bottom:5px">' +
+            '<span style="flex-shrink:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:' + t.citeBg + ';font-size:9px;font-weight:700;color:' + t.citeText + '">' + (i + 1) + "</span>" +
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s) + "</span></button>";
+        }).join("")
+      : '<p style="border-radius:8px;border:1px dashed ' + t.panelBorder + ';background:' + t.histItemBg + ';padding:10px;text-align:center;font-size:11px;color:' + t.timestamp + '">No searches yet</p>';
+
     ui.historyBody.innerHTML =
-      '<section style="margin-bottom:16px"><h5 style="margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Recent Searches</h5>' +
-      '<div>' + searchHtml + "</div></section>" +
-      '<section><h5 style="margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Conversation</h5>' +
-      '<ul style="list-style:none;padding:0;margin:0">' + chatItems + "</ul></section>";
+      '<section style="margin-bottom:14px">' +
+      '<h5 style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Your Chats</h5>' +
+      newChatBtn +
+      sessionsHtml +
+      "</section>" +
+      '<section><h5 style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Recent Searches</h5>' +
+      '<div>' + searchHtml + "</div></section>";
   }
 
   /* ─── Input Lock ─── */
@@ -1020,6 +1062,14 @@
 
     ui.closeBtn.addEventListener("click", function () { closePanel(ui); });
 
+    /* Header "+" — open a new session straight away (does NOT delete the
+     * current one; it stays in history). */
+    if (ui.newHeaderBtn) {
+      ui.newHeaderBtn.addEventListener("click", function () {
+        newSession(ref, ui);
+      });
+    }
+
     /* Clear chat — replaces the active session's content with a fresh welcome
      * (without removing the session from history). */
     ui.clearBtn.addEventListener("click", function () {
@@ -1079,16 +1129,19 @@
 
     /* History-panel clicks: session switch / delete / search re-fill */
     ui.historyBody.addEventListener("click", function (e) {
-      var sessBtn = e.target && e.target.closest("button[data-ai-session-id]");
-      if (sessBtn) {
-        var deleteBtn = e.target && e.target.closest("button[data-ai-session-delete]");
-        if (deleteBtn) {
-          var delId = deleteBtn.getAttribute("data-ai-session-delete");
-          if (delId) deleteSession(ref, ui, delId);
-          e.stopPropagation();
-          return;
-        }
-        var sid = sessBtn.getAttribute("data-ai-session-id");
+      /* Delete button — must be checked BEFORE the session-row check because
+       * it sits inside one. */
+      var deleteBtn = e.target && e.target.closest("button[data-ai-session-delete]");
+      if (deleteBtn) {
+        var delId = deleteBtn.getAttribute("data-ai-session-delete");
+        if (delId) deleteSession(ref, ui, delId);
+        e.stopPropagation();
+        return;
+      }
+
+      var sessRow = e.target && e.target.closest("[data-ai-session-id]");
+      if (sessRow) {
+        var sid = sessRow.getAttribute("data-ai-session-id");
         if (sid && sid !== ref.library.activeId) activateSession(ref, ui, sid);
         return;
       }
@@ -1100,6 +1153,16 @@
       if (!btn) return;
       var val = trim(btn.getAttribute("data-ai-search-val"));
       if (val) { ui.input.value = val; ui.input.focus(); ui.historyPanel.classList.add("is-hidden"); }
+    });
+
+    /* Keyboard support for the role=button session rows (Enter/Space). */
+    ui.historyBody.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var sessRow = e.target && e.target.closest && e.target.closest("[data-ai-session-id][role='button']");
+      if (!sessRow) return;
+      e.preventDefault();
+      var sid = sessRow.getAttribute("data-ai-session-id");
+      if (sid && sid !== ref.library.activeId) activateSession(ref, ui, sid);
     });
 
     /* Form submit */
