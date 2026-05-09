@@ -185,6 +185,21 @@
     } catch (_e) { return ""; }
   }
 
+  function formatAbsoluteDateTime(iso) {
+    var ms = Date.parse(String(iso || ""));
+    if (!Number.isFinite(ms)) return "";
+    try {
+      return new Date(ms).toLocaleString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (_e) { return ""; }
+  }
+
   function renderList(items) {
     var wrap = document.getElementById(BELL_CONTAINER_ID);
     if (!wrap) return;
@@ -207,8 +222,11 @@
       var unread = !n.read_at;
       var iconName = pickIcon(n.type);
       var iconTone = pickTone(n.type);
+      var absoluteTime = formatAbsoluteDateTime(n.created_at);
+      var relativeTime = formatRelative(n.created_at);
       return [
         '<button type="button" data-bell-item="' + escapeHtml(n.id) + '"',
+        '  title="' + escapeHtml(absoluteTime) + '"',
         '  class="vrs-bell-item ' + (unread ? "is-unread " : "") + 'flex w-full items-start gap-4 px-6 py-4 text-left transition hover:bg-[#f4faf7]">',
         '  <span class="vrs-bell-item-dot mt-2.5 h-2 w-2 flex-shrink-0 rounded-full ' + (unread ? "bg-rose-500" : "bg-transparent") + '"></span>',
         '  <span class="vrs-bell-item-icon mt-0.5 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full ' + iconTone + '">',
@@ -217,7 +235,10 @@
         '  <span class="min-w-0 flex-1">',
         '    <span class="block text-[14px] font-semibold leading-[1.4] text-[#14373b]">' + escapeHtml(n.title) + '</span>',
         '    <span class="mt-1 block text-[13px] leading-[1.45] text-[#54716f]">' + escapeHtml(n.body) + '</span>',
-        '    <span class="mt-2 block text-[12px] text-[#90a3a0]">' + escapeHtml(formatRelative(n.created_at)) + '</span>',
+        '    <span class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-[#90a3a0]">',
+        '      <span class="font-medium text-[#54716f]">' + escapeHtml(absoluteTime) + '</span>',
+        relativeTime ? '      <span aria-hidden="true">&middot;</span><span>' + escapeHtml(relativeTime) + '</span>' : '',
+        '    </span>',
         '  </span>',
         '</button>',
       ].join("");
@@ -256,9 +277,12 @@
       case "payment_initiated": return "credit_card";
       case "receipt_sent": return "mail";
       case "booking_confirmed": return "event_available";
+      case "booking_created": return "directions_car";
       case "booking_status_changed": return "sync";
       case "payment_due": return "warning";
       case "admin_payment_alert": return "shield_person";
+      case "verification_approved": return "verified_user";
+      case "verification_rejected": return "gpp_bad";
       default: return "notifications";
     }
   }
@@ -268,12 +292,15 @@
       case "payment_success":
       case "booking_confirmed":
       case "receipt_sent":
+      case "verification_approved":
         return "bg-emerald-50 text-emerald-700";
       case "payment_failed":
       case "payment_expired":
+      case "verification_rejected":
         return "bg-rose-50 text-rose-700";
       case "payment_due":
       case "payment_initiated":
+      case "booking_created":
         return "bg-amber-50 text-amber-700";
       default:
         return "bg-slate-100 text-slate-700";
@@ -287,9 +314,23 @@
     var transactionCode = meta.transactionCode || "";
     var type = String(item && item.type ? item.type : "");
 
-    // For payment_failed / payment_expired / payment_due we still send the
-    // user straight to the payment page so they can finish/retry.
-    if (bookingId && (type === "payment_failed" || type === "payment_expired" || type === "payment_due")) {
+    // Verification decisions take the user to the profile-verification
+    // page so they can either celebrate or fix and resubmit.
+    if (type === "verification_approved" || type === "verification_rejected") {
+      window.location.assign("profile-verification.html");
+      return;
+    }
+
+    // booking_created / payment_failed / payment_expired / payment_due all
+    // need the customer to take action - send them to the payment page so
+    // they can pay (or retry).
+    if (bookingId && (
+      type === "booking_created"
+      || type === "payment_failed"
+      || type === "payment_expired"
+      || type === "payment_due"
+      || type === "payment_initiated"
+    )) {
       window.location.assign("payment.html?booking=" + encodeURIComponent(bookingId));
       return;
     }

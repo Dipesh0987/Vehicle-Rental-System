@@ -367,6 +367,13 @@
       return "Booking schema is missing driver option support. Run migration 009_booking_driver_option.sql.";
     }
 
+    if (
+      (text.indexOf("paid_amount") >= 0 || text.indexOf("remaining_amount") >= 0 || text.indexOf("payment_deadline") >= 0)
+      && (text.indexOf("column") >= 0 || text.indexOf("could not find") >= 0)
+    ) {
+      return "Booking schema is missing payment ledger columns. Run migration 023_khalti_payment_integration.sql.";
+    }
+
     if (text.indexOf("email") >= 0 && text.indexOf("check") >= 0) {
       return "Please enter a valid customer email address.";
     }
@@ -986,18 +993,59 @@
       notes: composeBookingNotes(normalized.notes, normalized.userMessage),
     };
 
-    var result = await client
-      .from(tableName)
-      .insert(insertPayload)
-      .select("id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,paid_amount,remaining_amount,payment_status,payment_deadline,is_paid,created_at")
-      .limit(1)
-      .single();
+    // Columns that only exist after migration 023_khalti_payment_integration.
+    // If the project has not run that migration yet, PostgREST will reject
+    // the insert with "Could not find the 'paid_amount' column ..." - we
+    // strip those keys and retry so legacy deployments still work.
+    var ledgerColumns = ["paid_amount", "remaining_amount", "payment_deadline"];
+    var richSelect = "id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,paid_amount,remaining_amount,payment_status,payment_deadline,is_paid,created_at";
+    var fallbackSelect = "id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,payment_status,is_paid,created_at";
 
-    if (result.error) {
+    var currentPayload = insertPayload;
+    var currentSelect = richSelect;
+    var attempts = 0;
+    var result;
+
+    while (true) {
+      attempts += 1;
+      result = await client
+        .from(tableName)
+        .insert(currentPayload)
+        .select(currentSelect)
+        .limit(1)
+        .single();
+
+      if (!result.error) break;
+
+      var missingColumn = extractMissingColumn(result.error);
+      if (
+        missingColumn
+        && attempts < 4
+        && (Object.prototype.hasOwnProperty.call(currentPayload, missingColumn) || ledgerColumns.indexOf(missingColumn) >= 0)
+      ) {
+        var nextPayload = Object.assign({}, currentPayload);
+        delete nextPayload[missingColumn];
+        currentPayload = nextPayload;
+        currentSelect = currentSelect
+          .split(",")
+          .filter(function (col) { return col !== missingColumn; })
+          .join(",");
+        continue;
+      }
+
       if (isOverlapConstraintError(result.error)) {
         var overlapError = new Error("Selected dates are no longer available.");
         overlapError.code = "BOOKING_CONFLICT";
         throw overlapError;
+      }
+
+      // Last-ditch: if all 3 ledger columns are missing simultaneously,
+      // retry once with the slim select so we still return a usable row.
+      if (attempts === 1 && currentSelect === richSelect) {
+        currentSelect = fallbackSelect;
+        currentPayload = Object.assign({}, currentPayload);
+        ledgerColumns.forEach(function (col) { delete currentPayload[col]; });
+        continue;
       }
 
       throw new Error(errorMessage(result.error));
