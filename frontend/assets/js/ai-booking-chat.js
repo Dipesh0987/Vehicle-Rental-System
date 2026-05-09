@@ -2,7 +2,13 @@
   "use strict";
 
   /* ─── Constants ─── */
-  var STORAGE_KEY = "vrs:ai-chat-session-v2";
+  /* Legacy single-session key (kept for migration). */
+  var LEGACY_SESSION_KEY = "vrs:ai-chat-session-v2";
+  /* New multi-session store. localStorage so chats survive across reloads
+   * and tabs. The library is shaped { activeId, sessions: { [id]: state } }. */
+  var LIBRARY_KEY = "vrs:ai-chat-library-v1";
+  var MAX_SESSIONS = 30;
+  var TITLE_MAX_LEN = 60;
   var WELCOME =
     "Hi there! I'm your AI Booking Assistant. I can help you with:\n" +
     "\u2022 Trip planning & vehicle recommendations\n" +
@@ -204,14 +210,24 @@
     return mode === "multi" ? TRIP_STEPS_MULTI : TRIP_STEPS_SINGLE;
   }
 
-  /* ─── State Management (sessionStorage only) ─── */
-  function freshState() {
+  /* ─── State & Library Management ─────────────────────────────────────
+   * The chat now persists multiple sessions ("chats") in localStorage so
+   * users can keep their history across page reloads and switch back to
+   * older threads. The active session is tracked by an id and rehydrated
+   * into a single in-memory `state` object. All mutators go through the
+   * library helpers below to keep storage in sync. */
+
+  function freshState(opts) {
+    opts = opts || {};
+    var nowIso = new Date().toISOString();
     return {
-      sessionId: uid("s"),
-      startedAt: new Date().toISOString(),
+      sessionId: opts.id || uid("s"),
+      title: opts.title || "New chat",
+      startedAt: nowIso,
+      updatedAt: nowIso,
       messages: [{
         id: uid("m"), role: "assistant", text: WELCOME,
-        timestamp: new Date().toISOString(), citations: [], actions: [],
+        timestamp: nowIso, citations: [], actions: [],
         showSuggestions: true,
       }],
       searches: [],
@@ -220,12 +236,14 @@
     };
   }
 
-  function loadState() {
-    var p = safeJson(sessionStorage.getItem(STORAGE_KEY), null);
-    if (!p || !Array.isArray(p.messages)) return freshState();
+  function normalizeSessionState(p) {
+    if (!p || !Array.isArray(p.messages)) return null;
+    var nowIso = new Date().toISOString();
     return {
       sessionId: trim(p.sessionId) || uid("s"),
-      startedAt: trim(p.startedAt) || new Date().toISOString(),
+      title: trim(p.title) || "New chat",
+      startedAt: trim(p.startedAt) || nowIso,
+      updatedAt: trim(p.updatedAt) || trim(p.startedAt) || nowIso,
       messages: p.messages.slice(0, MAX_MESSAGES),
       searches: Array.isArray(p.searches) ? p.searches.slice(0, MAX_SEARCHES) : [],
       unreadCount: Math.max(0, Number(p.unreadCount) || 0),
@@ -233,33 +251,136 @@
     };
   }
 
-  function save(state) {
-    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { /* noop */ }
+  /* Load the entire library plus migrate any legacy single-session blob. */
+  function loadLibrary() {
+    var lib = safeJson(localStorage.getItem(LIBRARY_KEY), null);
+    var sessions = {};
+    var order = [];
+    if (lib && lib.sessions && typeof lib.sessions === "object") {
+      Object.keys(lib.sessions).forEach(function (id) {
+        var s = normalizeSessionState(lib.sessions[id]);
+        if (s) {
+          s.sessionId = id;
+          sessions[id] = s;
+          order.push(id);
+        }
+      });
+    }
+
+    /* One-time migration of legacy v2 single-session storage. */
+    if (!order.length) {
+      var legacy = safeJson(sessionStorage.getItem(LEGACY_SESSION_KEY), null) ||
+                   safeJson(localStorage.getItem(LEGACY_SESSION_KEY), null);
+      var migrated = normalizeSessionState(legacy);
+      if (migrated) {
+        if (!migrated.title || migrated.title === "New chat") {
+          migrated.title = deriveSessionTitle(migrated);
+        }
+        sessions[migrated.sessionId] = migrated;
+        order.push(migrated.sessionId);
+      }
+    }
+
+    var activeId = trim(lib && lib.activeId);
+    if (!activeId || !sessions[activeId]) activeId = order[0] || "";
+
+    if (!order.length) {
+      var fresh = freshState();
+      sessions[fresh.sessionId] = fresh;
+      order.push(fresh.sessionId);
+      activeId = fresh.sessionId;
+    }
+
+    return { activeId: activeId, sessions: sessions, order: order };
   }
 
-  function pushMsg(state, msg) {
+  function saveLibrary(library) {
+    try {
+      /* Trim oldest sessions if we're over the cap (keeps storage small). */
+      var ids = Object.keys(library.sessions);
+      if (ids.length > MAX_SESSIONS) {
+        ids
+          .map(function (id) { return library.sessions[id]; })
+          .sort(function (a, b) { return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(); })
+          .slice(0, ids.length - MAX_SESSIONS)
+          .forEach(function (s) { delete library.sessions[s.sessionId]; });
+      }
+      var payload = { activeId: library.activeId, sessions: library.sessions };
+      localStorage.setItem(LIBRARY_KEY, JSON.stringify(payload));
+    } catch (_) { /* storage full, ignored */ }
+  }
+
+  function deriveSessionTitle(state) {
+    /* Use first non-empty user message as the natural title. Fall back to
+     * the first assistant message excerpt, or a date-based stub. */
+    var firstUser = (state.messages || []).find(function (m) {
+      return m && m.role === "user" && trim(m.text);
+    });
+    var seed = firstUser ? trim(firstUser.text) : "";
+    if (!seed) {
+      var firstAi = (state.messages || []).find(function (m) {
+        return m && m.role === "assistant" && trim(m.text) && !m.isTyping;
+      });
+      seed = firstAi ? trim(firstAi.text).split(/\n/)[0] : "";
+    }
+    if (!seed) {
+      try { return "Chat " + new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+      catch (_) { return "New chat"; }
+    }
+    var clean = seed.replace(/\s+/g, " ").trim();
+    if (clean.length > TITLE_MAX_LEN) clean = clean.slice(0, TITLE_MAX_LEN - 1).trim() + "\u2026";
+    return clean;
+  }
+
+  /* Persist the active state slot into the library. */
+  function save(state, library) {
+    if (!state || !library) return;
+    state.updatedAt = new Date().toISOString();
+    /* Auto-title sessions that still carry the default once the user has
+     * actually typed something. This gives history items a meaningful name. */
+    if ((!state.title || state.title === "New chat") && state.messages && state.messages.length) {
+      var derived = deriveSessionTitle(state);
+      if (derived) state.title = derived;
+    }
+    library.sessions[state.sessionId] = state;
+    library.activeId = state.sessionId;
+    saveLibrary(library);
+  }
+
+  function pushMsg(state, msg, library) {
     state.messages.push(msg);
     if (state.messages.length > MAX_MESSAGES) state.messages = state.messages.slice(-MAX_MESSAGES);
-    save(state);
+    save(state, library);
   }
 
-  function replaceTyping(state, msg) {
+  function replaceTyping(state, msg, library) {
     for (var i = state.messages.length - 1; i >= 0; i--) {
       if (state.messages[i] && state.messages[i].isTyping) {
         state.messages.splice(i, 1, msg);
-        save(state);
+        save(state, library);
         return;
       }
     }
-    pushMsg(state, msg);
+    pushMsg(state, msg, library);
   }
 
-  function trackSearch(state, q) {
+  function trackSearch(state, q, library) {
     var t = trim(q); if (!t) return;
     state.searches = [t].concat(state.searches.filter(function (s) {
       return trim(s).toLowerCase() !== t.toLowerCase();
     })).slice(0, MAX_SEARCHES);
-    save(state);
+    save(state, library);
+  }
+
+  /* Sort sessions by updatedAt descending (most recent first) for the
+   * history panel's chronological list. */
+  function listSessions(library) {
+    var ids = Object.keys(library.sessions);
+    return ids
+      .map(function (id) { return library.sessions[id]; })
+      .sort(function (a, b) {
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
   }
 
   /* ─── API ─── */
@@ -643,12 +764,12 @@
     ui.badge.textContent = c > 99 ? "99+" : String(c);
   }
 
-  function clearUnread(ui, state) { state.unreadCount = 0; save(state); renderBadge(ui, state); }
+  function clearUnread(ui, state, library) { state.unreadCount = 0; save(state, library); renderBadge(ui, state); }
 
-  function bumpUnread(ui, state) {
+  function bumpUnread(ui, state, library) {
     if (isOpen(ui)) return;
     state.unreadCount = (state.unreadCount || 0) + 1;
-    save(state); renderBadge(ui, state);
+    save(state, library); renderBadge(ui, state);
   }
 
   /* ─── Render ─── */
@@ -701,13 +822,13 @@
   }
 
   /* ─── Trip Wizard ─── */
-  function startTripWizard(ui, state, mode) {
+  function startTripWizard(ui, state, library, mode) {
     state.tripWizard = { mode: mode === "multi" ? "multi" : "single", step: 0, answers: {} };
-    save(state);
-    showWizardStep(ui, state);
+    save(state, library);
+    showWizardStep(ui, state, library);
   }
 
-  function showWizardStep(ui, state) {
+  function showWizardStep(ui, state, library) {
     var wiz = state.tripWizard;
     if (!wiz) return;
     var steps = getWizardSteps(wiz.mode);
@@ -718,12 +839,12 @@
       timestamp: new Date().toISOString(), citations: [], actions: [],
       wizardOptions: step.options,
       wizardAllowTyping: step.allowTyping,
-    });
-    save(state);
+    }, library);
+    save(state, library);
     renderThread(ui, state);
   }
 
-  function advanceWizard(ui, state, answer) {
+  function advanceWizard(ui, state, library, answer) {
     var wiz = state.tripWizard;
     if (!wiz) return;
     var steps = getWizardSteps(wiz.mode);
@@ -742,21 +863,21 @@
     pushMsg(state, {
       id: uid("m"), role: "user", text: answer,
       timestamp: new Date().toISOString(), citations: [], actions: [],
-    });
+    }, library);
 
     wiz.answers[step.key] = answer;
     wiz.step++;
-    save(state);
+    save(state, library);
     renderThread(ui, state);
 
     if (wiz.step >= steps.length) {
       /* All steps done — build query and call AI */
       var query = buildWizardQuery(wiz.answers, wiz.mode);
       state.tripWizard = null;
-      save(state);
-      handleSubmit(ui, state, query);
+      save(state, library);
+      handleSubmit(ui, state, library, query);
     } else {
-      showWizardStep(ui, state);
+      showWizardStep(ui, state, library);
     }
   }
 
@@ -790,16 +911,16 @@
   }
 
   /* ─── Submit ─── */
-  async function handleSubmit(ui, state, query) {
-    trackSearch(state, query);
+  async function handleSubmit(ui, state, library, query) {
+    trackSearch(state, query, library);
     pushMsg(state, {
       id: uid("m"), role: "user", text: query,
       timestamp: new Date().toISOString(), citations: [], actions: [],
-    });
+    }, library);
     pushMsg(state, {
       id: uid("m"), role: "assistant", text: "",
       timestamp: new Date().toISOString(), citations: [], actions: [], isTyping: true,
-    });
+    }, library);
     renderThread(ui, state);
     lockInput(ui);
 
@@ -812,16 +933,66 @@
         timestamp: new Date().toISOString(),
         citations: normCitations(data && data.citations),
         actions: normActions(data && data.actions),
-      });
-      bumpUnread(ui, state);
+      }, library);
+      bumpUnread(ui, state, library);
     } catch (err) {
-      replaceTyping(state, fallbackMsg(trim(err && err.message)));
-      bumpUnread(ui, state);
+      replaceTyping(state, fallbackMsg(trim(err && err.message)), library);
+      bumpUnread(ui, state, library);
     }
 
     unlockInput(ui);
     renderThread(ui, state);
-    renderHistory(ui, state);
+    renderHistory(ui, state, library);
+  }
+
+  /* ─── Session switching helpers ─────────────────────────────────────
+   * These helpers operate on the closure-captured state via `ref` so any
+   * listener attached to the panel always reads/writes the *currently
+   * active* session (not the one captured at attach time). */
+  function activateSession(ref, ui, sessionId) {
+    if (!ref.library.sessions[sessionId]) return;
+    /* Persist the current state before switching so we don't lose updates. */
+    save(ref.state, ref.library);
+    ref.library.activeId = sessionId;
+    ref.state = ref.library.sessions[sessionId];
+    saveLibrary(ref.library);
+    renderThread(ui, ref.state);
+    renderBadge(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
+  }
+
+  function newSession(ref, ui) {
+    var fresh = freshState();
+    ref.library.sessions[fresh.sessionId] = fresh;
+    ref.library.activeId = fresh.sessionId;
+    ref.state = fresh;
+    saveLibrary(ref.library);
+    renderThread(ui, ref.state);
+    renderBadge(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
+  }
+
+  function deleteSession(ref, ui, sessionId) {
+    if (!ref.library.sessions[sessionId]) return;
+    delete ref.library.sessions[sessionId];
+    /* If we deleted the active session, switch to the next most recent or
+     * create a fresh one when the library is empty. */
+    if (ref.library.activeId === sessionId) {
+      var remaining = listSessions(ref.library);
+      if (remaining.length) {
+        ref.library.activeId = remaining[0].sessionId;
+        ref.state = remaining[0];
+      } else {
+        var fresh = freshState();
+        ref.library.sessions[fresh.sessionId] = fresh;
+        ref.library.activeId = fresh.sessionId;
+        ref.state = fresh;
+      }
+    }
+    saveLibrary(ref.library);
+    renderThread(ui, ref.state);
+    renderBadge(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
   }
 
   /* ─── Init ─── */
@@ -829,24 +1000,36 @@
     if (!document.body || document.body.classList.contains("vrs-admin-page")) return;
     injectStyles();
     var ui = buildUi();
-    var state = loadState();
 
-    renderThread(ui, state);
-    renderHistory(ui, state);
-    renderBadge(ui, state);
+    /* `ref` is shared across every listener so that handlers always operate
+     * on the *currently active* state/library, even after the user switches
+     * to a different session via the history panel. */
+    var library = loadLibrary();
+    var state = library.sessions[library.activeId];
+    var ref = { state: state, library: library };
+
+    renderThread(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
+    renderBadge(ui, ref.state);
 
     /* FAB toggle */
     ui.fab.addEventListener("click", function () {
       if (isOpen(ui)) { closePanel(ui); }
-      else { openPanel(ui); clearUnread(ui, state); }
+      else { openPanel(ui); clearUnread(ui, ref.state, ref.library); }
     });
 
     ui.closeBtn.addEventListener("click", function () { closePanel(ui); });
 
-    /* Clear chat */
+    /* Clear chat — replaces the active session's content with a fresh welcome
+     * (without removing the session from history). */
     ui.clearBtn.addEventListener("click", function () {
-      state = freshState(); save(state);
-      renderThread(ui, state); renderHistory(ui, state); renderBadge(ui, state);
+      var fresh = freshState({ id: ref.state.sessionId });
+      ref.library.sessions[fresh.sessionId] = fresh;
+      ref.state = fresh;
+      saveLibrary(ref.library);
+      renderThread(ui, ref.state);
+      renderHistory(ui, ref.state, ref.library);
+      renderBadge(ui, ref.state);
     });
 
     /* History panel */
@@ -857,9 +1040,9 @@
     ui.thread.addEventListener("click", function (e) {
       /* Wizard option pick */
       var wizBtn = e.target && e.target.closest("button[data-wizard-pick]");
-      if (wizBtn && state.tripWizard) {
+      if (wizBtn && ref.state.tripWizard) {
         var wizVal = wizBtn.getAttribute("data-wizard-pick");
-        advanceWizard(ui, state, wizVal);
+        advanceWizard(ui, ref.state, ref.library, wizVal);
         return;
       }
 
@@ -875,27 +1058,44 @@
         var val = trim(suggest.getAttribute("data-ai-suggest"));
         if (val) {
           /* Remove suggestion chips from welcome message */
-          if (state.messages.length && state.messages[0].showSuggestions) {
-            state.messages[0].showSuggestions = false; save(state);
+          if (ref.state.messages.length && ref.state.messages[0].showSuggestions) {
+            ref.state.messages[0].showSuggestions = false; save(ref.state, ref.library);
           }
           var lvSuggest = val.toLowerCase();
           /* Intercept "Plan a trip" / "Multi-stop trip" to start the wizard. */
           if (lvSuggest === "plan a trip" || lvSuggest === "multi-stop trip" || lvSuggest === "multistop trip") {
-            pushMsg(state, {
+            pushMsg(ref.state, {
               id: uid("m"), role: "user", text: val,
               timestamp: new Date().toISOString(), citations: [], actions: [],
-            });
-            renderThread(ui, state);
-            startTripWizard(ui, state, lvSuggest === "plan a trip" ? "single" : "multi");
+            }, ref.library);
+            renderThread(ui, ref.state);
+            startTripWizard(ui, ref.state, ref.library, lvSuggest === "plan a trip" ? "single" : "multi");
             return;
           }
-          handleSubmit(ui, state, val);
+          handleSubmit(ui, ref.state, ref.library, val);
         }
       }
     });
 
-    /* Search history clicks */
+    /* History-panel clicks: session switch / delete / search re-fill */
     ui.historyBody.addEventListener("click", function (e) {
+      var sessBtn = e.target && e.target.closest("button[data-ai-session-id]");
+      if (sessBtn) {
+        var deleteBtn = e.target && e.target.closest("button[data-ai-session-delete]");
+        if (deleteBtn) {
+          var delId = deleteBtn.getAttribute("data-ai-session-delete");
+          if (delId) deleteSession(ref, ui, delId);
+          e.stopPropagation();
+          return;
+        }
+        var sid = sessBtn.getAttribute("data-ai-session-id");
+        if (sid && sid !== ref.library.activeId) activateSession(ref, ui, sid);
+        return;
+      }
+
+      var newBtn = e.target && e.target.closest("button[data-ai-new-session]");
+      if (newBtn) { newSession(ref, ui); return; }
+
       var btn = e.target && e.target.closest("button[data-ai-search-val]");
       if (!btn) return;
       var val = trim(btn.getAttribute("data-ai-search-val"));
@@ -910,14 +1110,14 @@
       ui.input.value = "";
 
       /* If wizard is active, feed typed answer into wizard */
-      if (state.tripWizard) {
-        advanceWizard(ui, state, q);
+      if (ref.state.tripWizard) {
+        advanceWizard(ui, ref.state, ref.library, q);
         return;
       }
 
       /* Remove suggestion chips from welcome message */
-      if (state.messages.length && state.messages[0].showSuggestions) {
-        state.messages[0].showSuggestions = false; save(state);
+      if (ref.state.messages.length && ref.state.messages[0].showSuggestions) {
+        ref.state.messages[0].showSuggestions = false; save(ref.state, ref.library);
       }
 
       /* Intercept trip-planning keywords to start the wizard. Multi-stop
@@ -927,16 +1127,16 @@
       var isMultiStop = /(multi.?stop|multiple\s+(stops|places|destinations|cities)|few\s+(stops|places)|several\s+(stops|places)|package\s+price|estimate.*package|itinerary)/i.test(lq);
       var isSingleTrip = (/^plan\s*(a\s*)?trip$/i.test(lq) || (/^(i\s+want\s+to\s+)?plan\s*(a\s*)?trip/i.test(lq) && lq.length < 30));
       if (isMultiStop || isSingleTrip) {
-        pushMsg(state, {
+        pushMsg(ref.state, {
           id: uid("m"), role: "user", text: q,
           timestamp: new Date().toISOString(), citations: [], actions: [],
-        });
-        renderThread(ui, state);
-        startTripWizard(ui, state, isMultiStop ? "multi" : "single");
+        }, ref.library);
+        renderThread(ui, ref.state);
+        startTripWizard(ui, ref.state, ref.library, isMultiStop ? "multi" : "single");
         return;
       }
 
-      handleSubmit(ui, state, q);
+      handleSubmit(ui, ref.state, ref.library, q);
     });
 
     /* Escape to close */
@@ -969,8 +1169,8 @@
       ui.input.style.color = t.inputText;
       var hist = ui.historyPanel;
       if (hist) hist.style.background = t.histBg;
-      renderThread(ui, state);
-      renderHistory(ui, state);
+      renderThread(ui, ref.state);
+      renderHistory(ui, ref.state, ref.library);
     }
     try {
       var mo = new MutationObserver(function (muts) {
