@@ -42,18 +42,18 @@
       '  <span data-bell-badge class="vrs-bell-badge hidden absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">0</span>',
       '</button>',
       '<div id="' + DROPDOWN_ID + '" data-bell-dropdown',
-      '  class="vrs-bell-dropdown hidden absolute right-0 top-[calc(100%+12px)] z-[140] w-[400px] max-w-[92vw] overflow-hidden rounded-2xl border border-[rgba(22,57,60,0.18)] bg-white shadow-[0_22px_50px_rgba(7,29,31,0.22)]">',
-      '  <div class="flex items-center justify-between gap-4 border-b border-[#e6ede9] px-5 py-4">',
+      '  class="vrs-bell-dropdown hidden absolute right-0 top-[calc(100%+14px)] z-[140] w-[480px] max-w-[94vw] overflow-hidden rounded-2xl border border-[rgba(22,57,60,0.18)] bg-white shadow-[0_28px_60px_rgba(7,29,31,0.25)]">',
+      '  <div class="flex items-center justify-between gap-4 border-b border-[#e6ede9] px-6 py-5">',
       '    <div class="min-w-0">',
-      '      <p class="text-[15px] font-bold leading-tight text-[#14373b]">Notifications</p>',
-      '      <p data-bell-subtitle class="mt-0.5 text-[12px] text-[#54716f]">You are all caught up</p>',
+      '      <p class="text-[18px] font-bold leading-tight tracking-[-0.01em] text-[#14373b]">Notifications</p>',
+      '      <p data-bell-subtitle class="mt-1 text-[12.5px] text-[#54716f]">You are all caught up</p>',
       '    </div>',
       '    <button type="button" data-bell-mark-all',
-      '      class="vrs-bell-mark-all hidden whitespace-nowrap rounded-full border border-[#d3ddd7] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#1f5b57] transition hover:border-[#1f5b57] hover:bg-[#f4faf7]">',
+      '      class="vrs-bell-mark-all hidden whitespace-nowrap rounded-full border border-[#d3ddd7] bg-white px-4 py-2 text-[12.5px] font-semibold text-[#1f5b57] transition hover:border-[#1f5b57] hover:bg-[#f4faf7]">',
       '      Mark all read',
       '    </button>',
       '  </div>',
-      '  <div data-bell-list class="vrs-bell-list max-h-[60vh] overflow-y-auto"></div>',
+      '  <div data-bell-list class="vrs-bell-list max-h-[70vh] overflow-y-auto"></div>',
       '</div>',
     ].join("");
 
@@ -195,10 +195,10 @@
 
     if (!state.lastList.length) {
       list.innerHTML =
-        '<div class="flex flex-col items-center px-6 py-10 text-center">' +
-        '<span class="material-symbols-outlined text-[36px] text-[#aabcb8]">notifications_off</span>' +
-        '<p class="mt-3 text-[14px] font-semibold text-[#14373b]">No notifications yet</p>' +
-        '<p class="mt-1 text-[12.5px] leading-snug text-[#54716f]">We will let you know about payments, receipts and booking updates here.</p>' +
+        '<div class="flex flex-col items-center px-6 py-12 text-center">' +
+        '<span class="material-symbols-outlined text-[40px] text-[#aabcb8]">notifications_off</span>' +
+        '<p class="mt-3 text-[15px] font-semibold text-[#14373b]">No notifications yet</p>' +
+        '<p class="mt-1.5 max-w-[300px] text-[13px] leading-snug text-[#54716f]">We will let you know about payments, receipts and booking updates here.</p>' +
         '</div>';
       return;
     }
@@ -209,16 +209,16 @@
       var iconTone = pickTone(n.type);
       return [
         '<button type="button" data-bell-item="' + escapeHtml(n.id) + '"',
-        '  class="vrs-bell-item ' + (unread ? "is-unread " : "") + 'flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-[#f4faf7]">',
-        '  <span class="vrs-bell-item-icon mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ' + iconTone + '">',
-        '    <span class="material-symbols-outlined text-[18px]">' + escapeHtml(iconName) + '</span>',
+        '  class="vrs-bell-item ' + (unread ? "is-unread " : "") + 'flex w-full items-start gap-4 px-6 py-4 text-left transition hover:bg-[#f4faf7]">',
+        '  <span class="vrs-bell-item-dot mt-2.5 h-2 w-2 flex-shrink-0 rounded-full ' + (unread ? "bg-rose-500" : "bg-transparent") + '"></span>',
+        '  <span class="vrs-bell-item-icon mt-0.5 inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full ' + iconTone + '">',
+        '    <span class="material-symbols-outlined text-[20px]">' + escapeHtml(iconName) + '</span>',
         '  </span>',
         '  <span class="min-w-0 flex-1">',
-        '    <span class="block text-[13.5px] font-semibold leading-snug text-[#14373b]">' + escapeHtml(n.title) + '</span>',
-        '    <span class="mt-0.5 block text-[12.5px] leading-snug text-[#54716f]">' + escapeHtml(n.body) + '</span>',
-        '    <span class="mt-1.5 block text-[10.5px] uppercase tracking-[0.12em] text-[#90a3a0]">' + escapeHtml(formatRelative(n.created_at)) + '</span>',
+        '    <span class="block text-[14px] font-semibold leading-[1.4] text-[#14373b]">' + escapeHtml(n.title) + '</span>',
+        '    <span class="mt-1 block text-[13px] leading-[1.45] text-[#54716f]">' + escapeHtml(n.body) + '</span>',
+        '    <span class="mt-2 block text-[12px] text-[#90a3a0]">' + escapeHtml(formatRelative(n.created_at)) + '</span>',
         '  </span>',
-        unread ? '<span class="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-rose-500"></span>' : '',
         '</button>',
       ].join("");
     }).join("");

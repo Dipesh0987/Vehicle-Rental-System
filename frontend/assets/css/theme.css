@@ -1878,8 +1878,12 @@ body.vrs-page .vrs-bell-dropdown {
   background: #ffffff;
 }
 
+body.vrs-page .vrs-bell-list {
+  padding-bottom: 0.5rem;
+}
+
 body.vrs-page .vrs-bell-item {
-  border-bottom: 1px solid #eef3f0;
+  border-bottom: 1px solid #f1f5f3;
 }
 
 body.vrs-page .vrs-bell-item:last-child {
@@ -1887,7 +1891,11 @@ body.vrs-page .vrs-bell-item:last-child {
 }
 
 body.vrs-page .vrs-bell-item.is-unread {
-  background: #f7fbf9;
+  background: #f4faf7;
+}
+
+body.vrs-page .vrs-bell-item.is-unread:hover {
+  background: #ecf6f1;
 }
 
 body.vrs-page .vrs-bell-list::-webkit-scrollbar {
