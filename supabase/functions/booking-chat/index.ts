@@ -250,6 +250,8 @@ function bookingTouchesWindow(booking: BookingRow, window: { start: Date; end: D
 }
 
 function classifyIntent(query: string):
+  | "greeting"
+  | "policy"
   | "modify"
   | "upcoming"
   | "vehicle"
@@ -260,7 +262,12 @@ function classifyIntent(query: string):
   | "price"
   | "trip"
   | "unknown" {
-  const lower = query.toLowerCase();
+  const lower = query.toLowerCase().trim();
+
+  /* Bare greetings — route to friendly general handler. */
+  if (/^(hi|hii+|hey+|hello+|namaste|namaskar|good\s*(morning|afternoon|evening|day)|yo|sup)[\s!.?]*$/i.test(lower)) {
+    return "greeting";
+  }
 
   if (/(modify|change|resched|update|edit)\b/.test(lower)) {
     return "modify";
@@ -276,15 +283,22 @@ function classifyIntent(query: string):
     return "trip";
   }
 
+  /* Generic policy / service questions that don't reference the user's own
+   * booking. These should always go through Gemini with a service-aware
+   * system prompt rather than hitting booking-specific rule answers. */
+  if (/(do you|are you|what.*(documents?|requirements?|process|policy|terms|hours|payment\s+method|insurance|damage|fuel\s+policy|driver|driving\s+license|deposit|age\s+limit|delivery|pickup\s+location|drop\s*off|return|extend|late\s+return|child\s+seat|gps|wifi|extra)|how\s+(do|does|can|long).*(rent|book|pay|deliver|return|process|verify|extend|sign|register)|where\s+(is|are|do)|tell me about|what is|explain|airport\s+(pickup|drop)|home\s+delivery|self\s+drive|chauffeur)/.test(lower)) {
+    return "policy";
+  }
+
   if (/(upcoming|next booking|tomorrow|today|weekend|when.*(date|booking|pickup)|this week|next week|next month)\b/.test(lower)) {
     return "upcoming";
   }
 
-  if (/(vehicle|car|which one|model|what.*rented|what.*booked)\b/.test(lower)) {
+  if (/(my\s+vehicle|my\s+car|which one|what.*rented|what.*booked|what.*vehicle.*(i|me)|the\s+vehicle\s+(i|me))/.test(lower)) {
     return "vehicle";
   }
 
-  if (/(cancel|cancellation policy|can i cancel|policy)\b/.test(lower)) {
+  if (/(cancel|cancellation)\b/.test(lower)) {
     return "cancellation";
   }
 
@@ -300,7 +314,7 @@ function classifyIntent(query: string):
     return "list";
   }
 
-  if (/(price|cost|how much|total|amount|payment|paid)\b/.test(lower)) {
+  if (/(my\s+(price|cost|total|amount|payment))/.test(lower)) {
     return "price";
   }
 
@@ -1270,29 +1284,63 @@ async function handleGeneralQuery(input: {
   vehicleMap: Record<string, VehicleRow>;
   timezone: string;
   now: Date;
+  intent?: string;
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
   const bookingSummary = summarizeBookings(input.bookings, input.vehicleMap);
   const latestBooking = input.bookings[0] || null;
+  const intent = input.intent || "unknown";
 
-  const prompt = [
-    "You are a friendly, professional AI booking assistant for RentAVehicle Nepal — a vehicle rental service.",
+  /* A richer system prompt grounded in the actual rental policy + service
+   * surface. The model is told what the platform supports so it can answer
+   * general questions ("how does pickup work?", "do you provide child
+   * seats?", etc.) without inventing data. */
+  const systemSection = [
+    "You are RentAVehicle Nepal's friendly, professional AI Booking Assistant.",
+    "Your audience: customers using a self-service vehicle rental platform in Nepal.",
+    "",
+    "WHAT THE PLATFORM SUPPORTS (use this for general questions):",
+    "- Browse and book a wide fleet (sedan, SUV, hatchback, electric, luxury, van, truck).",
+    "- Pickup is from the central rental office in Kathmandu by default; home/airport delivery may be arranged via support.",
+    "- Booking lifecycle: create -> admin approves -> customer pays -> picks up vehicle -> returns vehicle -> booking completes.",
+    "- Standard self-drive rental requires: a valid driving license, a government-issued ID, and a completed profile verification (KYC) on the website.",
+    "- Cancellation/refund go through admin review from the booking modification page; refunds for paid bookings are handled by the support team.",
+    "- Invoices are auto-generated for paid bookings and downloadable from the booking detail view.",
+    "- Multi-stop trip planning is available — the assistant can quote a per-stop itinerary including rental + fuel cost band.",
+    "- Common destinations: Kathmandu, Pokhara, Chitwan, Lumbini, Mustang, Manang, Bandipur, Bardiya, Ilam.",
+    "",
     "RULES:",
-    "- Be warm, concise, and helpful (2-4 sentences max).",
-    "- If the user greets you (hi, hello, hey, etc.), greet them back and briefly mention you can help with booking dates, vehicle info, cancellation, refunds, invoices, or general rental questions.",
-    "- If the user asks about their bookings, ONLY use the real booking data provided below. NEVER invent or fabricate booking data.",
-    "- If the user asks something you cannot answer from the data, say so honestly and offer to connect to support.",
-    "- You CANNOT modify, cancel, or create bookings. If asked, tell the user to use the booking modification page.",
+    "- Be warm, concise, and helpful (2-4 sentences typically; longer only when explicitly asked).",
+    "- If the user greets you, greet them back and briefly mention top capabilities: trip planning, multi-stop quotes, booking dates, vehicle info, cancellation, refunds, invoices.",
+    "- For general policy/service questions, answer using the platform context above. NEVER invent specific prices or guarantees the platform can't deliver.",
+    "- If the user asks about THEIR booking, ONLY use the booking data below. NEVER invent or fabricate booking data.",
+    "- If something requires admin/support action, say so and offer the support contact.",
+    "- You CANNOT modify, cancel, or create bookings directly. Direct the user to the booking modification page or support.",
     "- Always mention the booking code (e.g. BK-XXXX) when referencing a specific booking.",
+    "- Use NPR for prices.",
     "- Current date/time: " + input.now.toISOString() + " (" + input.timezone + ")",
+    "- Detected intent for context: " + intent,
     "",
     "USER'S BOOKING DATA (from vehicle_bookings table):",
     bookingSummary,
     "",
     "User message: " + input.query,
-  ].join("\n");
+  ];
 
-  const result = await callGemini(prompt, 400);
-  const answer = result || "Hello! I'm your booking assistant. I can help with upcoming dates, vehicle details, cancellation policy, refund status, or invoices. What would you like to know?";
+  const prompt = systemSection.join("\n");
+  const result = await callGemini(prompt, 450);
+
+  /* Sensible fallback when Gemini is unavailable. Distinguishes greetings
+   * from general/policy questions for a less robotic feel. */
+  let answer = result;
+  if (!answer) {
+    if (intent === "greeting") {
+      answer = "Hello! I'm your AI Booking Assistant. I can help with trip planning, multi-stop trip quotes, your upcoming bookings, vehicle details, cancellation, refunds, and invoices. What would you like to do?";
+    } else if (intent === "policy") {
+      answer = "Most rental questions (pickup process, required documents, payments, delivery, fuel policy) can be answered by support quickly. I can also look up your bookings or plan a trip if you'd like.";
+    } else {
+      answer = "I'm not 100% sure how to answer that just yet. I can help with trip planning, your bookings, cancellations, refunds, and invoices — or connect you to support.";
+    }
+  }
 
   const actions: ActionItem[] = [];
   const citations: Citation[] = [];
@@ -1384,6 +1432,29 @@ Deno.serve(async (request: Request): Promise<Response> => {
       });
     }
 
+    /* Greetings, generic policy/service questions, and unknowns go straight
+     * through the dynamic Gemini-backed general handler so the assistant
+     * actually responds rather than falling back to a canned booking line. */
+    if (intent === "greeting" || intent === "policy" || intent === "unknown") {
+      const generalResult = await handleGeneralQuery({
+        query,
+        bookings,
+        vehicleMap,
+        timezone,
+        now: safeNow,
+        intent,
+      });
+      return jsonResponse(200, {
+        success: true,
+        answer: generalResult.answer,
+        actions: generalResult.actions as unknown as JsonValue,
+        citations: generalResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: intent,
+      });
+    }
+
     const ruleAnswer = buildRuleAnswer({
       query,
       now: safeNow,
@@ -1397,7 +1468,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     let finalCitations = ruleAnswer.citations;
 
     if (ruleAnswer.unresolved && GEMINI_API_KEY) {
-      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow });
+      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow, intent });
       finalAnswer = geminiResult.answer;
       finalActions = geminiResult.actions;
       finalCitations = geminiResult.citations;
