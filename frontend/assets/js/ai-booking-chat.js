@@ -6,6 +6,7 @@
   var WELCOME =
     "Hi there! I'm your AI Booking Assistant. I can help you with:\n" +
     "\u2022 Trip planning & vehicle recommendations\n" +
+    "\u2022 Multi-stop itinerary quotes (rental + fuel estimate)\n" +
     "\u2022 Upcoming booking dates & details\n" +
     "\u2022 Vehicle information\n" +
     "\u2022 Cancellation policy & refund status\n" +
@@ -17,6 +18,7 @@
     "When is my next booking?",
     "Show my bookings",
     "Plan a trip",
+    "Multi-stop trip",
     "Refund status",
   ];
 
@@ -126,7 +128,7 @@
     '<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>';
 
   /* ─── Trip Wizard Steps ─── */
-  var TRIP_STEPS = [
+  var TRIP_STEPS_SINGLE = [
     {
       key: "people",
       question: "How many passengers will be traveling?",
@@ -174,6 +176,33 @@
       allowTyping: false,
     },
   ];
+
+  /* Multi-stop branch: ask for itinerary first, then reuse single-trip steps. */
+  var TRIP_STEPS_MULTI = [
+    {
+      key: "stops",
+      question:
+        "Great — list your stops in order with the days you'll spend at each.\n" +
+        "Examples:\n" +
+        "\u2022 Pokhara 3 days, Chitwan 2 days, Lumbini 1 day\n" +
+        "\u2022 Kathmandu to Pokhara to Chitwan, 5 days",
+      options: [
+        { label: "Pokhara 3d, Chitwan 2d", value: "Pokhara 3 days, Chitwan 2 days" },
+        { label: "Kathmandu \u2192 Pokhara \u2192 Lumbini, 6 days", value: "Kathmandu to Pokhara to Lumbini, 6 days" },
+        { label: "Pokhara \u2192 Mustang, 5 days", value: "Pokhara to Mustang, 5 days" },
+      ],
+      allowTyping: true,
+    },
+  ].concat([
+    TRIP_STEPS_SINGLE[0], // people
+    TRIP_STEPS_SINGLE[1], // fuel
+    TRIP_STEPS_SINGLE[2], // budget
+  ]);
+
+  /* Picks the right wizard branch based on active mode. */
+  function getWizardSteps(mode) {
+    return mode === "multi" ? TRIP_STEPS_MULTI : TRIP_STEPS_SINGLE;
+  }
 
   /* ─── State Management (sessionStorage only) ─── */
   function freshState() {
@@ -349,15 +378,70 @@
       }).join("") + "</div>";
     }
 
-    /* split actions: vehicle cards vs regular buttons */
+    /* split actions: trip quote panel, vehicle cards, regular buttons */
     var actions = Array.isArray(msg.actions) ? msg.actions : [];
+    var tripQuote = null;
     var vehicleCards = [];
     var regularActions = [];
     if (!isTyping) {
       actions.forEach(function (a) {
-        if (a.type === "suggest_vehicle" && a.meta) vehicleCards.push(a);
+        if (a.type === "trip_quote" && a.meta && !tripQuote) tripQuote = a;
+        else if (a.type === "suggest_vehicle" && a.meta) vehicleCards.push(a);
         else regularActions.push(a);
       });
+    }
+
+    /* trip-quote summary card (multi-stop itinerary + fuel band + per-vehicle totals) */
+    var quoteHtml = "";
+    if (tripQuote) {
+      var qm = tripQuote.meta || {};
+      var qStops = Array.isArray(qm.stops) ? qm.stops : [];
+      var qLegs = Array.isArray(qm.legs) ? qm.legs : [];
+      var qQuotes = Array.isArray(qm.quotes) ? qm.quotes : [];
+      var fuelLabel = trim(qm.fuelType) || "petrol";
+      var fuelLow = Math.round(Number(qm.fuelLow) || 0);
+      var fuelHigh = Math.round(Number(qm.fuelHigh) || 0);
+      var totalDays = Math.round(Number(qm.totalDays) || 0);
+      var totalKm = Math.round(Number(qm.totalKm) || 0);
+
+      var stopsHtml = qStops.map(function (s, idx) {
+        return '<li style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dashed ' + t.cardBorder + '">' +
+          '<span><span style="display:inline-block;min-width:18px;font-weight:700;color:' + t.cardPrice + '">' + (idx + 1) + '.</span> ' + esc(s.name || "") + '</span>' +
+          '<span style="color:' + t.cardSub + '">' + esc(String(s.days || 1)) + ' day' + ((s.days || 1) === 1 ? '' : 's') + '</span>' +
+          '</li>';
+      }).join("");
+
+      var legsHtml = qLegs.map(function (leg) {
+        return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:' + t.cardSub + ';padding:2px 0">' +
+          '<span>' + esc(leg.from || "") + ' \u2192 ' + esc(leg.to || "") + '</span>' +
+          '<span>~' + esc(String(leg.km || 0)) + ' km</span>' +
+          '</div>';
+      }).join("");
+
+      var quotesHtml = qQuotes.map(function (q) {
+        var rentalSubtotal = Math.round(Number(q.rentalSubtotal) || 0);
+        var packageLow = Math.round(Number(q.packageLow) || 0);
+        var packageHigh = Math.round(Number(q.packageHigh) || 0);
+        return '<div style="margin-top:6px;padding:8px 10px;border-radius:8px;border:1px solid ' + t.cardBorder + ';background:' + t.cardBg + '">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+          '<div style="font-size:12px;font-weight:700;color:' + t.cardTitle + '">#' + esc(String(q.rank || 1)) + ' ' + esc(q.vehicleLabel || 'Vehicle') + '</div>' +
+          '<div style="font-size:12px;font-weight:700;color:' + t.cardPrice + ';white-space:nowrap">NPR ' + packageLow.toLocaleString() + '\u2013' + packageHigh.toLocaleString() + '</div>' +
+          '</div>' +
+          '<div style="margin-top:2px;font-size:10px;color:' + t.cardSub + '">Rental NPR ' + rentalSubtotal.toLocaleString() + ' + Fuel NPR ' + fuelLow.toLocaleString() + '\u2013' + fuelHigh.toLocaleString() + '</div>' +
+          '</div>';
+      }).join("");
+
+      quoteHtml =
+        '<div style="margin-top:10px;border-radius:12px;border:1px solid ' + t.cardBorder + ';background:linear-gradient(165deg,' + t.cardBg + ',' + t.actionBg + ');padding:10px 12px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.cardPrice + '">Multi-stop Quote</div>' +
+        '<div style="font-size:11px;color:' + t.cardSub + '">' + esc(String(totalDays)) + 'd \u2022 ~' + esc(String(totalKm)) + ' km</div>' +
+        '</div>' +
+        (qStops.length ? '<ul style="list-style:none;margin:8px 0 0;padding:0;font-size:12px;color:' + t.cardTitle + '">' + stopsHtml + '</ul>' : '') +
+        (qLegs.length ? '<div style="margin-top:8px;padding-top:6px;border-top:1px solid ' + t.cardBorder + '">' + legsHtml + '</div>' : '') +
+        '<div style="margin-top:8px;font-size:11px;font-weight:600;color:' + t.cardSub + '">Fuel band (' + esc(fuelLabel) + '): NPR ' + fuelLow.toLocaleString() + '\u2013' + fuelHigh.toLocaleString() + '</div>' +
+        (quotesHtml ? '<div style="margin-top:6px">' + quotesHtml + '</div>' : '') +
+        '</div>';
     }
 
     /* vehicle suggestion cards */
@@ -444,7 +528,7 @@
       '<div style="min-width:0;' + (isUser ? 'max-width:82%' : 'flex:1;min-width:0') + '">' +
       '<div style="' + bubbleStyle + '">' +
       '<div style="font-size:13px;line-height:1.6">' + bodyHtml + "</div>" +
-      citeHtml + cardsHtml + actHtml + suggestHtml + wizardHtml +
+      citeHtml + quoteHtml + cardsHtml + actHtml + suggestHtml + wizardHtml +
       "</div>" +
       (ts && !isTyping ? '<p style="margin-top:4px;font-size:10px;color:' + t.timestamp + ';' + (isUser ? 'text-align:right' : '') + '">' + esc(ts) + "</p>" : "") +
       "</div></div>";
@@ -617,16 +701,18 @@
   }
 
   /* ─── Trip Wizard ─── */
-  function startTripWizard(ui, state) {
-    state.tripWizard = { step: 0, answers: {} };
+  function startTripWizard(ui, state, mode) {
+    state.tripWizard = { mode: mode === "multi" ? "multi" : "single", step: 0, answers: {} };
     save(state);
     showWizardStep(ui, state);
   }
 
   function showWizardStep(ui, state) {
     var wiz = state.tripWizard;
-    if (!wiz || wiz.step >= TRIP_STEPS.length) return;
-    var step = TRIP_STEPS[wiz.step];
+    if (!wiz) return;
+    var steps = getWizardSteps(wiz.mode);
+    if (wiz.step >= steps.length) return;
+    var step = steps[wiz.step];
     pushMsg(state, {
       id: uid("m"), role: "assistant", text: step.question,
       timestamp: new Date().toISOString(), citations: [], actions: [],
@@ -639,8 +725,10 @@
 
   function advanceWizard(ui, state, answer) {
     var wiz = state.tripWizard;
-    if (!wiz || wiz.step >= TRIP_STEPS.length) return;
-    var step = TRIP_STEPS[wiz.step];
+    if (!wiz) return;
+    var steps = getWizardSteps(wiz.mode);
+    if (wiz.step >= steps.length) return;
+    var step = steps[wiz.step];
 
     /* Remove wizard options from the last AI message to avoid re-clicking */
     for (var i = state.messages.length - 1; i >= 0; i--) {
@@ -661,9 +749,9 @@
     save(state);
     renderThread(ui, state);
 
-    if (wiz.step >= TRIP_STEPS.length) {
+    if (wiz.step >= steps.length) {
       /* All steps done — build query and call AI */
-      var query = buildWizardQuery(wiz.answers);
+      var query = buildWizardQuery(wiz.answers, wiz.mode);
       state.tripWizard = null;
       save(state);
       handleSubmit(ui, state, query);
@@ -672,13 +760,23 @@
     }
   }
 
-  function buildWizardQuery(answers) {
-    var parts = ["I want to plan a trip"];
-    if (answers.people) parts.push("for " + answers.people);
-    if (answers.fuel) parts.push("prefer " + answers.fuel + " vehicle");
-    if (answers.budget) parts.push(answers.budget);
-    if (answers.destination) parts.push("destination type " + answers.destination);
-    return parts.join(", ");
+  function buildWizardQuery(answers, mode) {
+    /* Multi-stop: lead with the itinerary so the backend's stop parser fires
+     * (handleMultiLegQuote requires 2+ stops to engage). */
+    if (mode === "multi" && answers.stops) {
+      var parts = ["Plan a multi-stop trip: " + answers.stops];
+      if (answers.people) parts.push("for " + answers.people);
+      if (answers.fuel) parts.push("prefer " + answers.fuel + " vehicle");
+      if (answers.budget) parts.push(answers.budget);
+      return parts.join(", ");
+    }
+
+    var parts2 = ["I want to plan a trip"];
+    if (answers.people) parts2.push("for " + answers.people);
+    if (answers.fuel) parts2.push("prefer " + answers.fuel + " vehicle");
+    if (answers.budget) parts2.push(answers.budget);
+    if (answers.destination) parts2.push("destination type " + answers.destination);
+    return parts2.join(", ");
   }
 
   /* ─── Fallback ─── */
@@ -780,14 +878,15 @@
           if (state.messages.length && state.messages[0].showSuggestions) {
             state.messages[0].showSuggestions = false; save(state);
           }
-          /* Intercept "Plan a trip" to start guided wizard */
-          if (val.toLowerCase() === "plan a trip") {
+          var lvSuggest = val.toLowerCase();
+          /* Intercept "Plan a trip" / "Multi-stop trip" to start the wizard. */
+          if (lvSuggest === "plan a trip" || lvSuggest === "multi-stop trip" || lvSuggest === "multistop trip") {
             pushMsg(state, {
               id: uid("m"), role: "user", text: val,
               timestamp: new Date().toISOString(), citations: [], actions: [],
             });
             renderThread(ui, state);
-            startTripWizard(ui, state);
+            startTripWizard(ui, state, lvSuggest === "plan a trip" ? "single" : "multi");
             return;
           }
           handleSubmit(ui, state, val);
@@ -821,15 +920,19 @@
         state.messages[0].showSuggestions = false; save(state);
       }
 
-      /* Intercept trip-planning keywords to start wizard */
+      /* Intercept trip-planning keywords to start the wizard. Multi-stop
+       * keywords ("multi-stop", "multiple stops", "few places") jump straight
+       * into the multi-stop branch; bare "plan a trip" goes to single. */
       var lq = q.toLowerCase();
-      if (/^plan\s*(a\s*)?trip$/i.test(lq) || /^(i\s+want\s+to\s+)?plan\s*(a\s*)?trip/i.test(lq) && lq.length < 30) {
+      var isMultiStop = /(multi.?stop|multiple\s+(stops|places|destinations|cities)|few\s+(stops|places)|several\s+(stops|places)|package\s+price|estimate.*package|itinerary)/i.test(lq);
+      var isSingleTrip = (/^plan\s*(a\s*)?trip$/i.test(lq) || (/^(i\s+want\s+to\s+)?plan\s*(a\s*)?trip/i.test(lq) && lq.length < 30));
+      if (isMultiStop || isSingleTrip) {
         pushMsg(state, {
           id: uid("m"), role: "user", text: q,
           timestamp: new Date().toISOString(), citations: [], actions: [],
         });
         renderThread(ui, state);
-        startTripWizard(ui, state);
+        startTripWizard(ui, state, isMultiStop ? "multi" : "single");
         return;
       }
 
