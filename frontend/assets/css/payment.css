@@ -81,6 +81,18 @@
 
 .payment-summary-row strong {
   color: #14373b;
+  font-weight: 700;
+}
+
+/* Dark "Booking Summary" card - light text for legibility on the
+   teal/green gradient background. */
+.payment-card--accent .payment-summary-row {
+  color: rgba(246, 252, 250, 0.78);
+  border-bottom-color: rgba(246, 252, 250, 0.14);
+}
+
+.payment-card--accent .payment-summary-row strong {
+  color: #ffffff;
 }
 
 .payment-option {
