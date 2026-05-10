@@ -392,35 +392,58 @@ function renderGlobalSearchResults(query) {
   globalSearchState.activeType = groups[0]?.key || '';
   syncSidebarToSearchType(globalSearchState.activeType);
 
+  // Detect live dark mode — inline styles bypass pre-built Tailwind CSS limitations
+  const isDark = document.documentElement.classList.contains('dark') || document.body.getAttribute('data-theme') === 'dark';
+  const clr = {
+    bg:          isDark ? '#0e1a25'                    : '#ffffff',
+    border:      isDark ? 'rgba(255,255,255,0.10)'     : '#e2e8f0',
+    divider:     isDark ? 'rgba(255,255,255,0.08)'     : '#e2e8f0',
+    groupTitle:  isDark ? '#94a3b8'                    : '#64748b',
+    label:       isDark ? '#f1f5f9'                    : '#0f172a',
+    meta:        isDark ? '#94a3b8'                    : '#64748b',
+    badgeBg:     isDark ? 'rgba(255,255,255,0.07)'     : '#f8fafc',
+    badgeBorder: isDark ? 'rgba(255,255,255,0.12)'     : '#e2e8f0',
+    activeBg:    isDark ? 'rgba(31,118,104,0.22)'      : 'rgba(31,118,104,0.08)',
+    hoverBg:     isDark ? 'rgba(255,255,255,0.05)'     : '#f1f5f9',
+    dotActive:   '#1f7668',
+    dotDefault:  isDark ? '#475569'                    : '#cbd5e1',
+  };
+
+  const panelStyle = `position:absolute;left:0;top:100%;z-index:40;margin-top:0.5rem;width:min(760px,calc(100vw - 2rem));overflow:hidden;border-radius:0.75rem;border:1px solid ${clr.border};background:${clr.bg};box-shadow:0 4px 24px rgba(0,0,0,0.15);`;
+
   if (!groups.length) {
     closeGlobalSearchResults();
     const parent = hostInput.closest('label') || hostInput.parentElement;
     if (!parent) return;
     const emptyState = document.createElement('div');
     emptyState.id = 'globalSearchResults';
-    emptyState.className = 'absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-[#0d1822]';
+    emptyState.setAttribute('style', panelStyle);
     emptyState.innerHTML = `
-      <div class="srch-no-results p-4 text-sm">
-        <p class="font-semibold">No matches found</p>
-        <p class="mt-1 text-xs">Try a different keyword or search another record type.</p>
+      <div style="padding:1rem;">
+        <p style="font-size:0.875rem;font-weight:700;color:${clr.label};">No matches found</p>
+        <p style="margin-top:0.25rem;font-size:0.75rem;color:${clr.meta};">Try a different keyword or search another record type.</p>
       </div>
     `;
     parent.appendChild(emptyState);
     return;
   }
 
-  const html = [`<div id="globalSearchResults" class="absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-[#0d1822]">`];
-  for (const g of groups) {
-    html.push(`<div class="border-b border-slate-200 p-3 last:border-b-0 dark:border-white/10">`);
-    html.push(`<div class="srch-group-title mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">${escapeHtml(g.title)}</div>`);
+  const html = [`<div id="globalSearchResults" style="${panelStyle}">`];
+  for (let gi = 0; gi < groups.length; gi++) {
+    const g = groups[gi];
+    const isLast = gi === groups.length - 1;
+    html.push(`<div style="padding:0.75rem;${isLast ? '' : `border-bottom:1px solid ${clr.divider};`}">`);
+    html.push(`<div style="margin-bottom:0.5rem;font-size:0.6875rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:${clr.groupTitle};">${escapeHtml(g.title)}</div>`);
     for (const item of g.items) {
       const flatIndex = globalSearchState.items.findIndex((entry) => entry.type === g.key && entry.id === item.id);
       const isActive = flatIndex === globalSearchState.activeIndex;
-      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" aria-label="Open ${escapeHtml(item.label)} in ${escapeHtml(searchTypeLabels[g.key] || g.title)}" class="group flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-brand-500/10 ring-1 ring-inset ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
-      html.push(`<span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${isActive ? 'bg-brand-600 shadow-[0_0_0_4px_rgba(31,118,104,0.12)]' : 'bg-slate-300 group-hover:bg-brand-400'}"></span>`);
-      html.push(`<span class="min-w-0 flex-1">`);
-      html.push(`<div class="srch-label text-sm font-semibold text-slate-900">${escapeHtml(item.label)}</div>`);
-      html.push(`<div class="srch-meta mt-0.5 flex items-center gap-2 text-xs text-slate-500"><span>${escapeHtml(item.meta)}</span><span class="srch-badge rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
+      const btnBg = isActive ? clr.activeBg : 'transparent';
+      const btnBorder = isActive ? `1px solid rgba(31,118,104,0.25)` : '1px solid transparent';
+      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" aria-label="Open ${escapeHtml(item.label)} in ${escapeHtml(searchTypeLabels[g.key] || g.title)}" style="display:flex;width:100%;align-items:flex-start;gap:0.75rem;border-radius:0.5rem;padding:0.5rem;text-align:left;background:${btnBg};border:${btnBorder};cursor:pointer;transition:background 150ms;" onmouseover="this.style.background='${isActive ? clr.activeBg : clr.hoverBg}'" onmouseout="this.style.background='${btnBg}'">`);
+      html.push(`<span style="margin-top:0.25rem;height:0.625rem;width:0.625rem;flex-shrink:0;border-radius:9999px;background:${isActive ? clr.dotActive : clr.dotDefault};${isActive ? 'box-shadow:0 0 0 4px rgba(31,118,104,0.14);' : ''}"></span>`);
+      html.push(`<span style="min-width:0;flex:1;">`);
+      html.push(`<div style="font-size:0.875rem;font-weight:600;color:${clr.label};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.label)}</div>`);
+      html.push(`<div style="margin-top:0.25rem;display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:${clr.meta};"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.meta)}</span><span style="flex-shrink:0;border-radius:9999px;border:1px solid ${clr.badgeBorder};background:${clr.badgeBg};padding:0.1rem 0.5rem;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:${clr.meta};">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
       html.push(`</span>`);
       html.push(`</button>`);
     }
@@ -454,19 +477,21 @@ function renderGlobalSearchResults(query) {
         globalSearchState.activeType = nextType;
         syncSidebarToSearchType(nextType);
       }
-      // Highlight without rebuilding DOM (rebuild caused click to fire on detached node)
+      // Highlight using inline styles (buttons use inline styles, not Tailwind classes)
+      const curDark = document.documentElement.classList.contains('dark') || document.body.getAttribute('data-theme') === 'dark';
+      const activeBg  = curDark ? 'rgba(31,118,104,0.22)' : 'rgba(31,118,104,0.08)';
+      const inactiveBg = 'transparent';
+      const dotActive  = '#1f7668';
+      const dotDefault = curDark ? '#475569' : '#cbd5e1';
       document.querySelectorAll('#globalSearchResults [data-search-type]').forEach((b) => {
         const bIdx = Number(b.getAttribute('data-search-index'));
         const isActive = bIdx === nextIndex;
-        b.classList.toggle('bg-brand-500/10',        isActive);
-        b.classList.toggle('dark:bg-brand-500/20',  isActive);
-        b.classList.toggle('ring-1',                isActive);
-        b.classList.toggle('ring-inset',            isActive);
-        b.classList.toggle('ring-brand-500/20',     isActive);
-        const dot = b.querySelector('span.rounded-full');
+        b.style.background = isActive ? activeBg : inactiveBg;
+        b.style.border = isActive ? '1px solid rgba(31,118,104,0.25)' : '1px solid transparent';
+        const dot = b.querySelector('span[style*="border-radius:9999px"]');
         if (dot) {
-          dot.classList.toggle('bg-brand-600',     isActive);
-          dot.classList.toggle('bg-slate-300',    !isActive);
+          dot.style.background = isActive ? dotActive : dotDefault;
+          dot.style.boxShadow  = isActive ? '0 0 0 4px rgba(31,118,104,0.14)' : 'none';
         }
       });
     });
