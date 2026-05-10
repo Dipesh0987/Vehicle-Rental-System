@@ -117,6 +117,7 @@ async function bootstrap() {
   await hydrateCustomersFromDatabase({ silent: true });
   await hydratePaymentsFromDatabase({ silent: true });
   await hydrateDriversFromDatabase({ silent: true });
+  await hydrateMainteinanceFromDatabase({ silent: true });
   renderActiveModule();
 
   setupCatalogSync();
@@ -130,6 +131,45 @@ async function bootstrap() {
     }
   } catch (error) {
     pushToast(`Vehicle DB sync failed: ${error.message}`, 'error');
+  }
+}
+
+async function hydrateMainteinanceFromDatabase({ silent = false } = {}) {
+  try {
+    if (!window.SupabaseClient || !window.SupabaseClient.isConfigured()) return;
+    const client = await window.SupabaseClient.init();
+    const { data: rows, error } = await client
+      .from('maintenance_records')
+      .select('*')
+      .order('schedule_date', { ascending: false })
+      .limit(300);
+    if (error) throw error;
+    if (!rows || !rows.length) return;
+    appState.data.maintenance = rows.map((r) => ({
+      dbId:            r.id,
+      id:              r.maintenance_id,
+      vehicle:         r.vehicle_name,
+      vehicleId:       r.vehicle_id || '',
+      schedule:        r.schedule_date,
+      serviceType:     r.service_type,
+      damage:          r.description,
+      status:          r.status,
+      costEstimate:    r.cost_estimate ? Number(r.cost_estimate) : 0,
+      technician:      r.technician || '',
+      reportedBy:      r.reported_by || '',
+      completedAt:     r.completed_at || '',
+      notes:           r.notes || '',
+      customerName:    r.customer_name || '',
+      customerEmail:   r.customer_email || '',
+      customerUserId:  r.customer_user_id || '',
+      linkedBookingId: r.linked_booking_id || '',
+      bookingRef:      r.booking_ref || '',
+    }));
+    if (!silent) pushToast('Maintenance records loaded', 'success');
+    renderActiveModule();
+  } catch (err) {
+    if (!silent) pushToast(`Maintenance load failed: ${err.message}`, 'warn');
+    console.warn('[maintenance] hydrate failed:', err.message);
   }
 }
 

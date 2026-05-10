@@ -237,6 +237,8 @@ function renderDetailView(host, rec, data, notify, rerender) {
         ${detailField('Vehicle', rec.vehicle)}
         ${detailField('Vehicle Number', rec.vehicleId || '-')}
         ${detailField('Service Type', rec.serviceType || '-')}
+        ${rec.customerName ? detailField('Damaged By', rec.customerName + (rec.customerEmail ? ' (' + rec.customerEmail + ')' : '')) : ''}
+        ${rec.bookingRef   ? detailField('Linked Booking', rec.bookingRef) : ''}
         ${detailField('Damage / Service', rec.damage)}
         ${detailField('Scheduled Date', rec.schedule)}
         ${rec.completedAt ? detailField('Completed On', rec.completedAt) : ''}
@@ -372,6 +374,28 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
         ${formTextarea('Damage / Service Description', 'damage', r.damage, true, 'Describe the issue or service required')}
       </section>
 
+      <!-- Damaged By Customer (Damage service type only) -->
+      <section id="customerPickerSection" class="${classMap.panel} p-4 sm:p-5 space-y-4 md:col-span-2${(r.serviceType && r.serviceType !== 'Damage') ? ' hidden' : ''}">
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">
+          <span class="material-symbols-outlined text-[15px] align-middle mr-1">person_search</span>
+          Damaged By Customer
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Link the customer whose trip caused the damage. Select from recent completed trips — name and email auto-fill. You can also enter details manually.</p>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Recent Completed Trips for this Vehicle</label>
+          <select id="customerPicker" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-[#1a2632] dark:text-white">
+            <option value="">— Select the vehicle above to load recent customers —</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          ${formField('Customer Name', 'customerName', 'text', r.customerName || '', false, 'Auto-filled or enter manually')}
+          ${formField('Customer Email', 'customerEmail', 'email', r.customerEmail || '', false, 'Auto-filled or enter manually')}
+        </div>
+        <input type="hidden" name="customerUserId"   value="${escapeHtml(r.customerUserId   || '')}" />
+        <input type="hidden" name="linkedBookingId"  value="${escapeHtml(r.linkedBookingId  || '')}" />
+        <input type="hidden" name="bookingRef"       value="${escapeHtml(r.bookingRef       || '')}" />
+      </section>
+
       <!-- Schedule & Status -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Schedule &amp; Status</h3>
@@ -404,6 +428,42 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     });
   }
 
+  // ── Customer picker ─────────────────────────────────────────
+  const serviceTypeEl    = host.querySelector('[name="serviceType"]');
+  const pickerSection    = host.querySelector('#customerPickerSection');
+  const pickerEl         = host.querySelector('#customerPicker');
+  const custNameEl       = host.querySelector('[name="customerName"]');
+  const custEmailEl      = host.querySelector('[name="customerEmail"]');
+  const custUserIdEl     = host.querySelector('[name="customerUserId"]');
+  const custBookingIdEl  = host.querySelector('[name="linkedBookingId"]');
+  const custBookingRefEl = host.querySelector('[name="bookingRef"]');
+
+  function toggleCustomerSection() {
+    const isDamage = serviceTypeEl?.value === 'Damage';
+    pickerSection?.classList.toggle('hidden', !isDamage);
+  }
+  serviceTypeEl?.addEventListener('change', toggleCustomerSection);
+
+  async function triggerCustomerLoad() {
+    const vName = vehicleInput?.value?.trim();
+    if (vName && serviceTypeEl?.value === 'Damage' && pickerEl) {
+      await loadRecentCustomersForVehicle(vName, vehicles, pickerEl);
+    }
+  }
+  vehicleInput?.addEventListener('change', triggerCustomerLoad);
+  vehicleInput?.addEventListener('blur',   triggerCustomerLoad);
+  if (r.vehicle && (r.serviceType === 'Damage' || !r.serviceType)) triggerCustomerLoad();
+
+  pickerEl?.addEventListener('change', () => {
+    const opt = pickerEl.selectedOptions?.[0];
+    if (!opt?.value) return;
+    if (custNameEl)       custNameEl.value       = opt.dataset.name  || '';
+    if (custEmailEl)      custEmailEl.value      = opt.dataset.email || '';
+    if (custUserIdEl)     custUserIdEl.value     = opt.dataset.uid   || '';
+    if (custBookingIdEl)  custBookingIdEl.value  = opt.value;
+    if (custBookingRefEl) custBookingRefEl.value = opt.dataset.code  || '';
+  });
+
   // Wire up schedule date change → update completed date min
   const scheduleInput = host.querySelector('[name="schedule"]');
   const completedInput = host.querySelector('[name="completedAt"]');
@@ -424,7 +484,7 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   host.querySelector('#formBackBtn')?.addEventListener('click', goBack);
   host.querySelector('#formCancelBtn')?.addEventListener('click', goBack);
 
-  host.querySelector('#maintForm')?.addEventListener('submit', (e) => {
+  host.querySelector('#maintForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const val = (name) => (form.querySelector(`[name="${name}"]`)?.value || '').trim();
@@ -465,19 +525,61 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     }
 
     const record = {
-      id: maintId,
+      id:              maintId,
+      dbId:            isEdit ? (existing.dbId || '') : '',
       vehicle,
-      vehicleId: val('vehicleId'),
+      vehicleId:       val('vehicleId'),
       schedule,
-      serviceType: val('serviceType'),
+      serviceType:     val('serviceType'),
       damage,
-      status: val('status'),
-      costEstimate: isNaN(costRaw) ? 0 : costRaw,
-      technician: val('technician'),
-      reportedBy: val('reportedBy'),
+      status:          val('status'),
+      costEstimate:    isNaN(costRaw) ? 0 : costRaw,
+      technician:      val('technician'),
+      reportedBy:      val('reportedBy'),
       completedAt,
-      notes: val('notes'),
+      notes:           val('notes'),
+      customerName:    val('customerName'),
+      customerEmail:   val('customerEmail'),
+      customerUserId:  val('customerUserId'),
+      linkedBookingId: val('linkedBookingId'),
+      bookingRef:      val('bookingRef'),
     };
+
+    // Persist to Supabase
+    try {
+      if (window.SupabaseClient?.isConfigured()) {
+        const client = await window.SupabaseClient.init();
+        const dbRow = {
+          maintenance_id:    record.id,
+          vehicle_name:      record.vehicle,
+          vehicle_id:        record.vehicleId || null,
+          schedule_date:     record.schedule,
+          service_type:      record.serviceType,
+          description:       record.damage,
+          status:            record.status,
+          cost_estimate:     record.costEstimate || null,
+          technician:        record.technician   || null,
+          reported_by:       record.reportedBy   || null,
+          completed_at:      record.completedAt  || null,
+          notes:             record.notes        || null,
+          customer_name:     record.customerName    || null,
+          customer_email:    record.customerEmail   || null,
+          customer_user_id:  record.customerUserId  || null,
+          linked_booking_id: record.linkedBookingId || null,
+          booking_ref:       record.bookingRef      || null,
+        };
+        if (isEdit && existing.dbId) {
+          await client.from('maintenance_records').update(dbRow).eq('id', existing.dbId);
+          record.dbId = existing.dbId;
+        } else {
+          const { data: ins } = await client
+            .from('maintenance_records').insert(dbRow).select('id').single();
+          if (ins?.id) record.dbId = ins.id;
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[maintenance] Supabase save failed:', dbErr.message);
+    }
 
     if (isEdit) {
       const idx = data.maintenance.findIndex((r) => r.id === existing.id);
@@ -561,6 +663,48 @@ function formSelect(label, name, options, selected) {
   </div>`;
 }
 
+async function loadRecentCustomersForVehicle(vehicleName, vehicles, pickerEl) {
+  pickerEl.innerHTML = '<option value="">Loading recent trips\u2026</option>';
+  pickerEl.disabled = true;
+  try {
+    if (!window.SupabaseClient?.isConfigured()) throw new Error('Supabase not configured');
+    const client = await window.SupabaseClient.init();
+    const vehicleObj = vehicles.find((v) => v.name === vehicleName);
+    if (!vehicleObj?.id) {
+      pickerEl.innerHTML = '<option value="">— Vehicle not found in catalog —</option>';
+      pickerEl.disabled = false;
+      return;
+    }
+    const { data: bookings, error } = await client
+      .from('vehicle_bookings')
+      .select('id,booking_code,customer_name,customer_email,customer_user_id,end_date')
+      .eq('vehicle_id', vehicleObj.id)
+      .eq('status', 'completed')
+      .order('end_date', { ascending: false })
+      .limit(15);
+    if (error || !bookings?.length) {
+      pickerEl.innerHTML = '<option value="">— No completed trips found for this vehicle —</option>';
+      pickerEl.disabled = false;
+      return;
+    }
+    pickerEl.innerHTML =
+      '<option value="">— Pick a customer from their completed trip —</option>' +
+      bookings.map((b) =>
+        `<option value="${escapeHtml(b.id)}" ` +
+        `data-name="${escapeHtml(b.customer_name)}" ` +
+        `data-email="${escapeHtml(b.customer_email)}" ` +
+        `data-uid="${escapeHtml(b.customer_user_id || '')}" ` +
+        `data-code="${escapeHtml(b.booking_code)}" ` +
+        `data-end="${escapeHtml(b.end_date)}"` +
+        `>${escapeHtml(b.customer_name)} \u2014 ${escapeHtml(b.booking_code)} (returned ${b.end_date})</option>`
+      ).join('');
+    pickerEl.disabled = false;
+  } catch (err) {
+    pickerEl.innerHTML = `<option value="">— Error: ${escapeHtml(err.message)} —</option>`;
+    pickerEl.disabled = false;
+  }
+}
+
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -610,9 +754,9 @@ function renderBillingForm(host, rec, data, notify, rerender) {
       <!-- Customer Details -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Customer Details</h3>
-        ${formField('Customer Name', 'customerName', 'text', '', true, 'Full name of the customer')}
-        ${formField('Customer Email', 'customerEmail', 'email', '', true, 'customer@example.com')}
-        ${formField('Booking Reference', 'bookingRef', 'text', '', false, 'BK-XXXX (optional)')}
+        ${formField('Customer Name', 'customerName', 'text', rec.customerName || '', true, 'Full name of the customer')}
+        ${formField('Customer Email', 'customerEmail', 'email', rec.customerEmail || '', true, 'customer@example.com')}
+        ${formField('Booking Reference', 'bookingRef', 'text', rec.bookingRef || '', false, 'BK-XXXX (optional)')}
       </section>
 
       <!-- Charge Details -->
