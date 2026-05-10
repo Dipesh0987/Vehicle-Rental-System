@@ -400,9 +400,9 @@ function renderGlobalSearchResults(query) {
     emptyState.id = 'globalSearchResults';
     emptyState.className = 'absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-[#0d1822]';
     emptyState.innerHTML = `
-      <div class="p-4 text-sm text-slate-600 dark:text-slate-300">
-        <p class="font-semibold text-slate-900 dark:text-white">No matches found</p>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Try a different keyword or search another record type.</p>
+      <div class="srch-no-results p-4 text-sm">
+        <p class="font-semibold">No matches found</p>
+        <p class="mt-1 text-xs">Try a different keyword or search another record type.</p>
       </div>
     `;
     parent.appendChild(emptyState);
@@ -412,15 +412,15 @@ function renderGlobalSearchResults(query) {
   const html = [`<div id="globalSearchResults" class="absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-[#0d1822]">`];
   for (const g of groups) {
     html.push(`<div class="border-b border-slate-200 p-3 last:border-b-0 dark:border-white/10">`);
-    html.push(`<div class="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">${escapeHtml(g.title)}</div>`);
+    html.push(`<div class="srch-group-title mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">${escapeHtml(g.title)}</div>`);
     for (const item of g.items) {
       const flatIndex = globalSearchState.items.findIndex((entry) => entry.type === g.key && entry.id === item.id);
       const isActive = flatIndex === globalSearchState.activeIndex;
       html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" aria-label="Open ${escapeHtml(item.label)} in ${escapeHtml(searchTypeLabels[g.key] || g.title)}" class="group flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-brand-500/10 ring-1 ring-inset ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
       html.push(`<span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${isActive ? 'bg-brand-600 shadow-[0_0_0_4px_rgba(31,118,104,0.12)]' : 'bg-slate-300 group-hover:bg-brand-400'}"></span>`);
       html.push(`<span class="min-w-0 flex-1">`);
-      html.push(`<div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(item.label)}</div>`);
-      html.push(`<div class="mt-0.5 flex items-center gap-2 text-xs text-slate-500"><span>${escapeHtml(item.meta)}</span><span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
+      html.push(`<div class="srch-label text-sm font-semibold text-slate-900">${escapeHtml(item.label)}</div>`);
+      html.push(`<div class="srch-meta mt-0.5 flex items-center gap-2 text-xs text-slate-500"><span>${escapeHtml(item.meta)}</span><span class="srch-badge rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
       html.push(`</span>`);
       html.push(`</button>`);
     }
@@ -858,7 +858,7 @@ function openNotificationPanel() {
     .slice(0, 6);
   for (const b of recentBookings) {
     items.push({
-      icon: 'event_note', iconColor: 'text-brand-500 dark:text-brand-400',
+      icon: 'event_note', iconHex: '#1f7668',
       title: `Booking ${b.id}`,
       body: `${b.customer} \u00b7 ${b.status}`,
       time: formatRelativeTime(b.createdAt),
@@ -871,7 +871,7 @@ function openNotificationPanel() {
     .filter((c) => c.isPendingReview).slice(0, 4);
   for (const c of pendingVerifs) {
     items.push({
-      icon: 'verified_user', iconColor: 'text-amber-500 dark:text-amber-400',
+      icon: 'verified_user', iconHex: '#f59e0b',
       title: `KYC: ${c.name}`,
       body: 'Profile verification pending review',
       time: formatRelativeTime(c.verificationSubmittedAt),
@@ -883,7 +883,7 @@ function openNotificationPanel() {
   const recentPayments = (Array.isArray(appState.data.payments) ? appState.data.payments : []).slice(0, 3);
   for (const p of recentPayments) {
     items.push({
-      icon: 'credit_card', iconColor: 'text-emerald-500 dark:text-emerald-400',
+      icon: 'credit_card', iconHex: '#10b981',
       title: `Payment \u2014 ${p.bookingCode || p.id || ''}`,
       body: `${p.customerName || ''} \u00b7 NPR ${Number(p.amount || 0).toLocaleString()}`,
       time: formatRelativeTime(p.paidAt || p.createdAt || ''),
@@ -893,31 +893,30 @@ function openNotificationPanel() {
 
   const panel = document.createElement('div');
   panel.id = 'notifPanelPopup';
-  panel.className = 'fixed z-[200] w-80 rounded-2xl border border-slate-200 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.22)] overflow-hidden dark:border-white/10 dark:bg-[#0d1822]';
   const rect = btn.getBoundingClientRect();
-  panel.style.top  = `${Math.round(rect.bottom + 8)}px`;
-  panel.style.right = `${Math.max(8, Math.round(window.innerWidth - rect.right))}px`;
+  const panelW = Math.min(400, window.innerWidth - 16);
+  panel.style.cssText = `position:fixed;top:${Math.round(rect.bottom + 8)}px;right:${Math.max(8, Math.round(window.innerWidth - rect.right))}px;z-index:200;width:${panelW}px;border-radius:1rem;box-shadow:0 8px 32px rgba(0,0,0,0.22);overflow:hidden;`;
 
   panel.innerHTML = `
-    <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-white/10">
-      <p class="text-sm font-bold text-slate-900 dark:text-white">
+    <div class="notif-header">
+      <span class="notif-heading">
         Notifications
-        ${items.length > 0 ? `<span class="ml-1.5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">${items.length}</span>` : ''}
-      </p>
-      <button id="notifViewAllBtn" class="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400">View all</button>
+        ${items.length > 0 ? `<span class="notif-badge">${items.length}</span>` : ''}
+      </span>
+      <button id="notifViewAllBtn" class="notif-view-all">View all</button>
     </div>
-    <div class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06]">
+    <div class="notif-list">
       ${items.length === 0
-        ? '<p class="p-4 text-sm text-slate-500 dark:text-slate-400">No pending items right now</p>'
+        ? '<p class="notif-empty">No pending items right now</p>'
         : items.map((item, i) =>
-            `<button data-notif-idx="${i}" class="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-white/5">
-              <span class="material-symbols-outlined mt-0.5 shrink-0 text-[20px] ${item.iconColor}">${item.icon}</span>
-              <span class="min-w-0 flex-1">
-                <p class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(item.title)}</p>
-                <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">${escapeHtml(item.body)}</p>
-                <p class="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">${escapeHtml(item.time)}</p>
+            `<button data-notif-idx="${i}" class="notif-item">
+              <span class="material-symbols-outlined notif-icon" style="color:${item.iconHex}">${item.icon}</span>
+              <span class="notif-item-body">
+                <p class="notif-title">${escapeHtml(item.title)}</p>
+                <p class="notif-body">${escapeHtml(item.body)}</p>
+                <p class="notif-time">${escapeHtml(item.time)}</p>
               </span>
-              <span class="material-symbols-outlined mt-1 shrink-0 text-[15px] text-slate-400 dark:text-slate-500">chevron_right</span>
+              <span class="material-symbols-outlined notif-chevron">chevron_right</span>
             </button>`
           ).join('')
       }
