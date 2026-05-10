@@ -220,7 +220,7 @@ function renderDetailView(host, rec, data, notify, rerender) {
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <!-- Record Info -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-3">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Record Details</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Record Details</h3>
         ${detailField('Maintenance ID', rec.id)}
         ${detailField('Vehicle', rec.vehicle)}
         ${detailField('Vehicle ID', rec.vehicleId || '-')}
@@ -232,7 +232,7 @@ function renderDetailView(host, rec, data, notify, rerender) {
 
       <!-- Status & Assignment -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-3">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Status &amp; Assignment</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Status &amp; Assignment</h3>
         <div class="flex items-center justify-between py-1 border-b border-slate-100 dark:border-white/5">
           <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Current Status</span>
           <span class="${statusClass(rec.status)}">${escapeHtml(rec.status)}</span>
@@ -240,13 +240,13 @@ function renderDetailView(host, rec, data, notify, rerender) {
 
         <!-- Quick Status Update -->
         <div class="space-y-2">
-          <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Update Status</p>
+          <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Update Status</p>
           <div class="flex flex-wrap gap-2">
             ${['Scheduled','In Progress','Completed','Cancelled'].map((s) =>
               `<button data-set-status="${s}" class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                 rec.status === s
-                  ? 'border-brand-400 bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                  : 'border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10'
+                  ? 'border-brand-500 bg-brand-500/10 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'
               }">${s}</button>`
             ).join('')}
           </div>
@@ -259,8 +259,8 @@ function renderDetailView(host, rec, data, notify, rerender) {
 
       <!-- Notes -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-3 md:col-span-2">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Notes</h3>
-        <p class="text-sm text-slate-700 dark:text-slate-300">${escapeHtml(rec.notes) || 'No notes.'}</p>
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Notes</h3>
+        <p class="text-sm text-slate-700 dark:text-slate-200">${escapeHtml(rec.notes) || '<span class="italic text-slate-400 dark:text-slate-500">No notes.</span>'}</p>
       </section>
     </div>
   `;
@@ -311,6 +311,13 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   const isEdit = Boolean(existing);
   const r = existing || {};
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
+  const vehicleMap = {};
+  for (const v of vehicles) { vehicleMap[v.name || v.id] = v.id; }
+  const scheduledMinAttr = isEdit ? '' : `min="${todayStr}"`;
+  const completedMinAttr = r.schedule ? `min="${r.schedule}"` : '';
+
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
       <button id="formBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
@@ -325,20 +332,19 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     <form id="maintForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" novalidate>
       <!-- Vehicle & Service -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Vehicle &amp; Service</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Vehicle &amp; Service</h3>
         ${formField('Maintenance ID', 'maintId', 'text', r.id, true, 'e.g. M-305')}
-        ${formField('Vehicle Name', 'vehicle', 'text', r.vehicle, true, 'e.g. Honda City')}
-        ${formField('Vehicle ID (optional)', 'vehicleId', 'text', r.vehicleId, false, 'e.g. V-112')}
+        ${vehicleComboField(vehicles, r.vehicle, r.vehicleId)}
         ${formSelect('Service Type', 'serviceType', SERVICE_TYPES, r.serviceType || 'Damage')}
         ${formTextarea('Damage / Service Description', 'damage', r.damage, true, 'Describe the issue or service required')}
       </section>
 
       <!-- Schedule & Status -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Schedule &amp; Status</h3>
-        ${formField('Scheduled Date', 'schedule', 'date', r.schedule, true)}
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Schedule &amp; Status</h3>
+        ${formField('Scheduled Date', 'schedule', 'date', r.schedule, true, '', scheduledMinAttr)}
         ${formSelect('Status', 'status', STATUS_OPTIONS.filter((s) => s !== 'All'), r.status || 'Scheduled')}
-        ${formField('Completed Date', 'completedAt', 'date', r.completedAt, false)}
+        ${formField('Completed Date', 'completedAt', 'date', r.completedAt, false, '', completedMinAttr)}
         ${formField('Technician', 'technician', 'text', r.technician, false, 'Technician name')}
         ${formField('Reported By', 'reportedBy', 'text', r.reportedBy, false, 'Admin / Driver ID')}
         ${formField('Cost Estimate (NPR)', 'costEstimate', 'number', r.costEstimate, false, '0')}
@@ -354,6 +360,28 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
       </div>
     </form>
   `;
+
+  // Wire up vehicle name → auto-fill vehicle ID
+  const vehicleInput = host.querySelector('[name="vehicle"]');
+  const vehicleIdInput = host.querySelector('[name="vehicleId"]');
+  if (vehicleInput && vehicleIdInput) {
+    vehicleInput.addEventListener('input', () => {
+      const match = vehicleMap[vehicleInput.value];
+      if (match) vehicleIdInput.value = match;
+    });
+  }
+
+  // Wire up schedule date change → update completed date min
+  const scheduleInput = host.querySelector('[name="schedule"]');
+  const completedInput = host.querySelector('[name="completedAt"]');
+  if (scheduleInput && completedInput) {
+    scheduleInput.addEventListener('change', () => {
+      completedInput.min = scheduleInput.value || '';
+      if (completedInput.value && completedInput.value < scheduleInput.value) {
+        completedInput.value = '';
+      }
+    });
+  }
 
   const goBack = () => {
     maintenanceUiState.mode = isEdit ? 'detail' : 'list';
@@ -378,6 +406,26 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
       return;
     }
 
+    // Schedule must not be in the past for new records
+    if (!isEdit && schedule < new Date().toISOString().slice(0, 10)) {
+      notify('Scheduled date cannot be in the past', 'error');
+      return;
+    }
+
+    // Completed date must be on or after scheduled date
+    const completedAt = val('completedAt');
+    if (completedAt && completedAt < schedule) {
+      notify('Completed date must be on or after the scheduled date', 'error');
+      return;
+    }
+
+    // Cost estimate must not be negative
+    const costRaw = parseFloat(val('costEstimate'));
+    if (!isNaN(costRaw) && costRaw < 0) {
+      notify('Cost estimate cannot be negative', 'error');
+      return;
+    }
+
     if (!isEdit && data.maintenance.some((r) => r.id === maintId)) {
       notify(`ID "${maintId}" already exists`, 'error');
       return;
@@ -391,10 +439,10 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
       serviceType: val('serviceType'),
       damage,
       status: val('status'),
-      costEstimate: parseFloat(val('costEstimate')) || 0,
+      costEstimate: isNaN(costRaw) ? 0 : costRaw,
       technician: val('technician'),
       reportedBy: val('reportedBy'),
-      completedAt: val('completedAt'),
+      completedAt,
       notes: val('notes'),
     };
 
@@ -434,11 +482,30 @@ function detailField(label, value) {
   </div>`;
 }
 
-function formField(label, name, type, value, required, placeholder) {
+function vehicleComboField(vehicles, selectedName, selectedId) {
+  const inputCls = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white';
+  return `<div class="space-y-3">
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Vehicle Name <span class="text-rose-500">*</span></label>
+      <input name="vehicle" list="maintVehicleList" value="${escapeHtml(selectedName || '')}" placeholder="Type to search vehicles..." required
+        class="${inputCls}" />
+      <datalist id="maintVehicleList">
+        ${vehicles.map((v) => `<option value="${escapeHtml(v.name || v.id)}">${escapeHtml(v.id)}</option>`).join('')}
+      </datalist>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Vehicle ID <span class="text-xs font-normal text-slate-400">(auto-filled)</span></label>
+      <input name="vehicleId" value="${escapeHtml(selectedId || '')}" placeholder="Auto-filled on selection"
+        class="${inputCls}" />
+    </div>
+  </div>`;
+}
+
+function formField(label, name, type, value, required, placeholder, extraHtml = '') {
   const extra = type === 'number' ? ' min="0"' : '';
   return `<div>
     <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">${label}${required ? ' <span class="text-rose-500">*</span>' : ''}</label>
-    <input name="${name}" type="${type}" value="${escapeHtml(value || '')}" ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''} ${required ? 'required' : ''}${extra}
+    <input name="${name}" type="${type}" value="${escapeHtml(value || '')}" ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''} ${required ? 'required' : ''}${extra}${extraHtml ? ' ' + extraHtml : ''}
       class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white" />
   </div>`;
 }

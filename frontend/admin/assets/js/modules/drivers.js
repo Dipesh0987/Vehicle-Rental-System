@@ -296,6 +296,10 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
   const isEdit = Boolean(existingDriver);
   const d = existingDriver || {};
 
+  const today = new Date();
+  const maxDob = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  const maxDobStr = maxDob.toISOString().slice(0, 10);
+
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
       <button id="formBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
@@ -310,17 +314,17 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
     <form id="driverForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" novalidate>
       <!-- Personal Information -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Personal Information</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Personal Information</h3>
         ${formField('Full Name', 'name', 'text', d.name, true, 'Enter full name')}
         ${formField('Phone', 'phone', 'tel', d.phone, true, '+977-98XXXXXXXX')}
         ${formField('Email', 'email', 'email', d.email, false, 'email@example.com')}
-        ${formField('Date of Birth', 'dateOfBirth', 'date', d.dateOfBirth, false)}
+        ${formField('Date of Birth', 'dateOfBirth', 'date', d.dateOfBirth, false, '', 'max="' + maxDobStr + '"')}
         ${formTextarea('Address', 'address', d.address, false, 'Full address')}
       </section>
 
       <!-- Licence & Work Details -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Licence & Work Details</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Licence & Work Details</h3>
         ${formField('Driver ID', 'driverId', 'text', d.id, true, 'e.g. D-55')}
         ${formField('Licence Number', 'licenceNumber', 'text', d.licenceNumber, true, 'LIC-XXXX-XXXXX')}
         ${formField('Licence Expiry', 'licenceExpiry', 'date', d.licenceExpiry, true)}
@@ -331,7 +335,7 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
 
       <!-- Assignment & Notes -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4 md:col-span-2">
-        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">Assignment & Notes</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Assignment & Notes</h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           ${formField('Current Booking', 'assigned', 'text', d.assigned === '-' ? '' : d.assigned, false, 'BK-XXXX or leave empty')}
           ${formField('Vehicle Assigned', 'vehicleAssigned', 'text', d.vehicleAssigned, false, 'V-XXX or leave empty')}
@@ -369,14 +373,43 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
     const driverId = getValue('driverId');
     const licenceNumber = getValue('licenceNumber');
     const licenceExpiry = getValue('licenceExpiry');
+    const dob = getValue('dateOfBirth');
+    const expYears = getValue('experienceYears');
 
-    // Basic validation
+    // Required fields
     if (!fullName || !phone || !driverId || !licenceNumber || !licenceExpiry) {
       notify('Please fill in all required fields (marked with *)', 'error');
       return;
     }
 
-    // Check duplicate ID (only for add, or if ID changed during edit)
+    // Phone: at least 7 digits
+    if (!/\d{7,}/.test(phone.replace(/[\s\-+()]/g, ''))) {
+      notify('Phone number must contain at least 7 digits', 'error');
+      return;
+    }
+
+    // Date of birth: must be at least 18 years old
+    if (dob) {
+      const dobDate = new Date(dob);
+      const minBirthDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+      if (dobDate > minBirthDate) {
+        notify('Driver must be at least 18 years old', 'error');
+        return;
+      }
+    }
+
+    // Experience: must not be negative
+    if (expYears !== '' && parseInt(expYears, 10) < 0) {
+      notify('Experience years cannot be negative', 'error');
+      return;
+    }
+
+    // Licence expiry: must be a valid future or current date
+    if (licenceExpiry && new Date(licenceExpiry) < new Date(new Date().toDateString())) {
+      // warn but don't block — licence may already be expired
+    }
+
+    // Check duplicate ID
     if (!isEdit || (isEdit && driverId !== existingDriver.id)) {
       if (data.drivers.some((d) => d.id === driverId)) {
         notify(`Driver ID "${driverId}" already exists`, 'error');
@@ -448,11 +481,11 @@ function detailField(label, value) {
   </div>`;
 }
 
-function formField(label, name, type, value, required, placeholder) {
+function formField(label, name, type, value, required, placeholder, extraHtml = '') {
   const extraAttrs = type === 'number' ? ' min="0"' : '';
   return `<div>
     <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">${label}${required ? ' <span class="text-rose-500">*</span>' : ''}</label>
-    <input name="${name}" type="${type}" value="${escapeHtml(value || '')}" ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''} ${required ? 'required' : ''}${extraAttrs}
+    <input name="${name}" type="${type}" value="${escapeHtml(value || '')}" ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''} ${required ? 'required' : ''}${extraAttrs}${extraHtml ? ' ' + extraHtml : ''}
       class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white" />
   </div>`;
 }
