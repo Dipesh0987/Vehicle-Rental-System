@@ -1973,25 +1973,28 @@ body.vrs-page .vrs-bell-item.is-unread:hover {
   background: rgba(31, 91, 87, 0.085);
 }
 
-/* Title - one-line clamp so we never blow up vertically on very long
-   "Booking status changed to confirmed (#BK-3091)" titles in narrow
-   dropdowns. */
+/* Title - allow up to 2 lines so longer titles like
+   "Booking status changed to confirmed (#BK-3091)" stay fully visible
+   on the wider 520px dropdown. Past 2 lines we ellipsise. */
 body.vrs-page .vrs-bell-item-title {
   display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
 }
 
-/* Body - clamp to 2 lines and ellipsise. The bell is a glance-able
-   surface, full body lives inside the bookings panel / receipt page. */
+/* Body - clamp to 3 lines so the full payment-amount + booking-code
+   sentence ("We received NPR 10.85 for your booking. Transaction
+   P-1004. Remaining balance: NPR 7.23.") is visible at a glance.
+   Anything longer is ellipsised - the full body still lives inside
+   the bookings panel / receipt page. */
 body.vrs-page .vrs-bell-item-body {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

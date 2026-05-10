@@ -42,7 +42,7 @@
       '  <span data-bell-badge class="vrs-bell-badge hidden absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">0</span>',
       '</button>',
       '<div id="' + DROPDOWN_ID + '" data-bell-dropdown',
-      '  class="vrs-bell-dropdown hidden absolute right-0 top-[calc(100%+14px)] z-[140] w-[420px] max-w-[94vw] overflow-hidden rounded-2xl border border-[rgba(22,57,60,0.18)] bg-white shadow-[0_28px_60px_rgba(7,29,31,0.25)]">',
+      '  class="vrs-bell-dropdown hidden absolute right-0 top-[calc(100%+14px)] z-[140] w-[520px] max-w-[96vw] overflow-hidden rounded-2xl border border-[rgba(22,57,60,0.18)] bg-white shadow-[0_28px_60px_rgba(7,29,31,0.25)]">',
       '  <div class="vrs-bell-header flex items-center justify-between gap-3 border-b border-[#e6ede9] px-4 py-3.5">',
       '    <p class="text-[17px] font-bold leading-tight tracking-[-0.015em] text-[#14373b]">Notifications</p>',
       '    <button type="button" data-bell-mark-all',
