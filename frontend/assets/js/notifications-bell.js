@@ -41,17 +41,17 @@
       '  <span class="material-symbols-outlined">notifications</span>',
       '  <span data-bell-badge class="vrs-bell-badge hidden absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">0</span>',
       '</button>',
-      '<div id="' + DROPDOWN_ID + '" data-bell-dropdown',
-      '  class="vrs-bell-dropdown hidden absolute right-0 top-[calc(100%+14px)] z-[140] w-[720px] max-w-[96vw] overflow-hidden rounded-2xl border border-[rgba(22,57,60,0.18)] bg-white shadow-[0_28px_60px_rgba(7,29,31,0.25)]">',
-      '  <div class="vrs-bell-header flex items-center justify-between gap-3 border-b border-[#e6ede9] px-5 py-4">',
-      '    <p class="text-[18px] font-bold leading-tight tracking-[-0.015em] text-[#14373b]">Notifications</p>',
-      '    <button type="button" data-bell-mark-all',
-      '      class="vrs-bell-mark-all hidden inline-flex h-9 w-9 items-center justify-center rounded-full text-[#54716f] transition hover:bg-[#f4faf7] hover:text-[#1f5b57]"',
-      '      title="Mark all as read" aria-label="Mark all as read">',
-      '      <span class="material-symbols-outlined text-[20px]">done_all</span>',
+      '<div id="' + DROPDOWN_ID + '" data-bell-dropdown class="vrs-bell-dropdown hidden">',
+      '  <div class="vrs-bell-header">',
+      '    <span class="vrs-bell-heading">',
+      '      Notifications',
+      '      <span data-bell-header-badge class="vrs-bell-badge-inline" style="display:none">0</span>',
+      '    </span>',
+      '    <button type="button" data-bell-mark-all class="vrs-bell-mark-all" style="display:none" title="Mark all as read" aria-label="Mark all as read">',
+      '      <span class="material-symbols-outlined">done_all</span>',
       '    </button>',
       '  </div>',
-      '  <div data-bell-list class="vrs-bell-list max-h-[78vh] overflow-y-auto pb-2"></div>',
+      '  <div data-bell-list class="vrs-bell-list"></div>',
       '</div>',
     ].join("");
 
@@ -149,9 +149,15 @@
         badge.classList.add("hidden");
       }
     }
+    // Also update the in-header badge to match admin style
+    var wrap2 = document.getElementById(BELL_CONTAINER_ID);
+    var headerBadge = wrap2 ? wrap2.querySelector("[data-bell-header-badge]") : null;
+    if (headerBadge) {
+      headerBadge.textContent = state.lastCount > 99 ? "99+" : String(state.lastCount);
+      headerBadge.style.display = state.lastCount > 0 ? "inline-flex" : "none";
+    }
     if (markAllBtn) {
-      if (state.lastCount > 0) markAllBtn.classList.remove("hidden");
-      else markAllBtn.classList.add("hidden");
+      markAllBtn.style.display = state.lastCount > 0 ? "inline-flex" : "none";
     }
   }
 
@@ -205,25 +211,20 @@
   function renderItem(n) {
     var unread = !n.read_at;
     var iconName = pickIcon(n.type);
-    var iconTone = pickTone(n.type);
+    var iconHex  = pickIconHex(n.type);
     var absoluteTime = formatAbsoluteDateTime(n.created_at);
     var relativeTime = formatRelative(n.created_at) || absoluteTime;
-    // YouTube-style row: leading unread pip on the far left (8px slot),
-    // 40px circular icon, then a roomy text column with title + body + time.
-    // Tooltip = absolute time so users can hover for the precise instant.
     return [
       '<button type="button" data-bell-item="' + escapeHtml(n.id) + '"',
       '  title="' + escapeHtml(absoluteTime) + '"',
-      '  class="vrs-bell-item ' + (unread ? "is-unread " : "") + 'group relative flex w-full items-start gap-4 px-5 py-3.5 text-left transition hover:bg-[#f4faf7]">',
-      '  <span aria-hidden="true" class="vrs-bell-item-pip"></span>',
-      '  <span class="vrs-bell-item-icon ' + iconTone + '">',
-      '    <span class="material-symbols-outlined">' + escapeHtml(iconName) + '</span>',
-      '  </span>',
+      '  class="vrs-bell-item ' + (unread ? "is-unread " : "") + '">',
+      '  <span class="material-symbols-outlined vrs-bell-item-icon" style="color:' + escapeHtml(iconHex) + '">' + escapeHtml(iconName) + '</span>',
       '  <span class="vrs-bell-item-content">',
       '    <span class="vrs-bell-item-title">' + escapeHtml(n.title) + '</span>',
       '    <span class="vrs-bell-item-body">' + escapeHtml(n.body) + '</span>',
       '    <span class="vrs-bell-item-time">' + escapeHtml(relativeTime) + '</span>',
       '  </span>',
+      '  <span class="material-symbols-outlined vrs-bell-chevron">chevron_right</span>',
       '</button>',
     ].join("");
   }
@@ -279,6 +280,26 @@
         handleNotificationActivation(item);
       });
     });
+  }
+
+  function pickIconHex(type) {
+    switch (String(type || "")) {
+      case "payment_success":
+      case "booking_confirmed":
+      case "receipt_sent":
+      case "verification_approved":
+        return "#10b981";
+      case "payment_failed":
+      case "payment_expired":
+      case "verification_rejected":
+        return "#ef4444";
+      case "payment_due":
+      case "payment_initiated":
+      case "booking_created":
+        return "#f59e0b";
+      default:
+        return "#64748b";
+    }
   }
 
   function pickIcon(type) {
