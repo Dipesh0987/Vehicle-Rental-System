@@ -251,7 +251,14 @@
     var btn = $("paymentSubmitBtn");
     if (!btn) return;
     btn.disabled = isSubmitting;
-    btn.textContent = isSubmitting ? "Connecting to eSewa..." : "Pay with eSewa";
+    // Only swap the label text - mutating btn.textContent would wipe the
+    // inline eSewa logo SVG and the lock chip out of the button.
+    var label = btn.querySelector("[data-payment-submit-label]");
+    if (label) {
+      label.textContent = isSubmitting ? "Connecting to eSewa..." : "Pay with eSewa";
+    } else {
+      btn.textContent = isSubmitting ? "Connecting to eSewa..." : "Pay with eSewa";
+    }
     btn.classList.toggle("payment-button--loading", isSubmitting);
   }
 
