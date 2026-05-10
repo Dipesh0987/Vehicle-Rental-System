@@ -352,6 +352,8 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   for (const v of vehicles) { vehicleMap[v.name || v.vehicle_number || v.id] = v.vehicle_number || v.id; }
   const scheduledMinAttr = isEdit ? '' : `min="${todayStr}"`;
   const completedMinAttr = r.schedule ? `min="${r.schedule}"` : '';
+  // For Damage type (default): hide schedule/completed/technician fields
+  const isDamageDefault = !r.serviceType || r.serviceType === 'Damage';
 
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
@@ -399,10 +401,10 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
       <!-- Schedule & Status -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Schedule &amp; Status</h3>
-        ${formField('Scheduled Date', 'schedule', 'date', r.schedule, true, '', scheduledMinAttr)}
-        ${formSelect('Status', 'status', STATUS_OPTIONS.filter((s) => s !== 'All'), r.status || 'Scheduled')}
-        ${formField('Completed Date', 'completedAt', 'date', r.completedAt, false, '', completedMinAttr)}
-        ${formField('Technician', 'technician', 'text', r.technician, false, 'Technician name')}
+        <div id="scheduleDateWrap"${isDamageDefault ? ' class="hidden"' : ''}>${formField('Scheduled Date', 'schedule', 'date', r.schedule, !isDamageDefault, '', scheduledMinAttr)}</div>
+        ${formSelect('Status', 'status', STATUS_OPTIONS.filter((s) => s !== 'All'), r.status || (isDamageDefault ? 'In Progress' : 'Scheduled'))}
+        <div id="completedDateWrap"${isDamageDefault ? ' class="hidden"' : ''}>${formField('Completed Date', 'completedAt', 'date', r.completedAt, false, '', completedMinAttr)}</div>
+        <div id="technicianWrap"${isDamageDefault ? ' class="hidden"' : ''}>${formField('Technician', 'technician', 'text', r.technician, false, 'Technician name')}</div>
         ${formField('Reported By', 'reportedBy', 'text', r.reportedBy, false, 'Admin / Driver ID')}
         ${formField('Cost Estimate (NPR)', 'costEstimate', 'number', r.costEstimate, false, '0')}
         ${formTextarea('Notes', 'notes', r.notes, false, 'Additional remarks')}
@@ -441,6 +443,14 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   function toggleCustomerSection() {
     const isDamage = serviceTypeEl?.value === 'Damage';
     pickerSection?.classList.toggle('hidden', !isDamage);
+    host.querySelector('#scheduleDateWrap')?.classList.toggle('hidden',  isDamage);
+    host.querySelector('#completedDateWrap')?.classList.toggle('hidden', isDamage);
+    host.querySelector('#technicianWrap')?.classList.toggle('hidden',    isDamage);
+    // Auto-fill schedule = today when switching to Damage
+    if (isDamage) {
+      const schedInput = host.querySelector('[name="schedule"]');
+      if (schedInput && !schedInput.value) schedInput.value = new Date().toISOString().slice(0, 10);
+    }
   }
   serviceTypeEl?.addEventListener('change', toggleCustomerSection);
 
@@ -489,18 +499,25 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     const form = e.target;
     const val = (name) => (form.querySelector(`[name="${name}"]`)?.value || '').trim();
 
-    const maintId   = val('maintId');
-    const vehicle   = val('vehicle');
-    const damage    = val('damage');
-    const schedule  = val('schedule');
+    const maintId     = val('maintId');
+    const vehicle     = val('vehicle');
+    const damage      = val('damage');
+    const serviceType = val('serviceType');
+    // Damage reports auto-use today as schedule date (field hidden)
+    let schedule = val('schedule');
+    if (!schedule && serviceType === 'Damage') schedule = new Date().toISOString().slice(0, 10);
 
-    if (!maintId || !vehicle || !damage || !schedule) {
+    if (!maintId || !vehicle || !damage) {
       notify('Please fill all required fields (marked *)', 'error');
       return;
     }
+    if (!schedule) {
+      notify('Please enter a scheduled date', 'error');
+      return;
+    }
 
-    // Schedule must not be in the past for new records
-    if (!isEdit && schedule < new Date().toISOString().slice(0, 10)) {
+    // Schedule must not be in the past for new non-Damage records
+    if (!isEdit && serviceType !== 'Damage' && schedule < new Date().toISOString().slice(0, 10)) {
       notify('Scheduled date cannot be in the past', 'error');
       return;
     }

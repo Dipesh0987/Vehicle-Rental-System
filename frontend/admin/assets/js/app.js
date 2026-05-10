@@ -108,6 +108,7 @@ async function bootstrap() {
   updateVerificationNotificationBadge(0);
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch, handleGlobalSearchKeydown);
+  document.getElementById('notificationBtn')?.addEventListener('click', openNotificationPanel);
   document.addEventListener('pointerdown', handleGlobalSearchOutsideClick);
   renderActiveModule();
   setActiveNav(appState.activeModule);
@@ -195,6 +196,7 @@ function renderActiveModule() {
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
+      navigate: handleNavigate,
       rerender: renderActiveModule,
     });
 
@@ -396,7 +398,7 @@ function renderGlobalSearchResults(query) {
     if (!parent) return;
     const emptyState = document.createElement('div');
     emptyState.id = 'globalSearchResults';
-    emptyState.className = 'absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-black/20';
+    emptyState.className = 'absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-[#0d1822]';
     emptyState.innerHTML = `
       <div class="p-4 text-sm text-slate-600 dark:text-slate-300">
         <p class="font-semibold text-slate-900 dark:text-white">No matches found</p>
@@ -407,7 +409,7 @@ function renderGlobalSearchResults(query) {
     return;
   }
 
-  const html = [`<div id="globalSearchResults" class="absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-black/20">`];
+  const html = [`<div id="globalSearchResults" class="absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-[#0d1822]">`];
   for (const g of groups) {
     html.push(`<div class="border-b border-slate-200 p-3 last:border-b-0 dark:border-white/10">`);
     html.push(`<div class="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">${escapeHtml(g.title)}</div>`);
@@ -447,14 +449,26 @@ function renderGlobalSearchResults(query) {
     btn.addEventListener('mouseenter', () => {
       const nextIndex = Number(btn.getAttribute('data-search-index'));
       const nextType = btn.getAttribute('data-search-type') || '';
-      if (!Number.isNaN(nextIndex) && nextIndex !== globalSearchState.activeIndex) {
-        globalSearchState.activeIndex = nextIndex;
-      }
+      if (!Number.isNaN(nextIndex)) globalSearchState.activeIndex = nextIndex;
       if (nextType && nextType !== globalSearchState.activeType) {
         globalSearchState.activeType = nextType;
         syncSidebarToSearchType(nextType);
       }
-      renderGlobalSearchResults(globalSearchState.query);
+      // Highlight without rebuilding DOM (rebuild caused click to fire on detached node)
+      document.querySelectorAll('#globalSearchResults [data-search-type]').forEach((b) => {
+        const bIdx = Number(b.getAttribute('data-search-index'));
+        const isActive = bIdx === nextIndex;
+        b.classList.toggle('bg-brand-500/10',        isActive);
+        b.classList.toggle('dark:bg-brand-500/20',  isActive);
+        b.classList.toggle('ring-1',                isActive);
+        b.classList.toggle('ring-inset',            isActive);
+        b.classList.toggle('ring-brand-500/20',     isActive);
+        const dot = b.querySelector('span.rounded-full');
+        if (dot) {
+          dot.classList.toggle('bg-brand-600',     isActive);
+          dot.classList.toggle('bg-slate-300',    !isActive);
+        }
+      });
     });
   });
 }
@@ -506,6 +520,7 @@ function handleGlobalSearchSelect(type, id) {
     vehicles: 'vehicles',
     bookings: 'bookings',
     customers: 'customers',
+    drivers: 'drivers',
     admins: 'admins',
   };
 
@@ -524,10 +539,11 @@ function handleGlobalSearchSelect(type, id) {
   // Try to open detail in the rendered module by triggering the appropriate control
   window.setTimeout(() => {
     let selectorMap = {
-      vehicles: `[data-edit-id="${id}"]`,
-      bookings: `[data-edit-booking-id="${id}"]`,
+      vehicles:  `[data-edit-id="${id}"]`,
+      bookings:  `[data-edit-booking-id="${id}"]`,
       customers: `[data-open-customer-id="${id}"]`,
-      admins: `[data-permission="${id}"]`,
+      drivers:   `[data-driver-id="${id}"]`,
+      admins:    `[data-permission="${id}"]`,
     };
 
     const sel = selectorMap[type];
@@ -535,7 +551,7 @@ function handleGlobalSearchSelect(type, id) {
     if (el) {
       el.click();
     }
-  }, 120);
+  }, 200);
 
   // Clear dropdown and input
   closeGlobalSearchResults();
@@ -828,6 +844,134 @@ function formatRelativeTime(value) {
   return 'Just now';
 }
 
+function openNotificationPanel() {
+  const existing = document.getElementById('notifPanelPopup');
+  if (existing) { existing.remove(); return; }
+  const btn = document.getElementById('notificationBtn');
+  if (!btn) return;
+
+  const items = [];
+
+  // Recent pending / confirmed bookings
+  const recentBookings = (Array.isArray(appState.data.bookings) ? appState.data.bookings : [])
+    .filter((b) => ['pending', 'confirmed'].includes(String(b.status || '').toLowerCase()))
+    .slice(0, 6);
+  for (const b of recentBookings) {
+    items.push({
+      icon: 'event_note', iconColor: 'text-brand-500 dark:text-brand-400',
+      title: `Booking ${b.id}`,
+      body: `${b.customer} \u00b7 ${b.status}`,
+      time: formatRelativeTime(b.createdAt),
+      module: 'bookings', selector: `[data-edit-booking-id="${b.bookingId || b.id}"]`,
+    });
+  }
+
+  // Pending KYC verifications
+  const pendingVerifs = (Array.isArray(appState.data.customers) ? appState.data.customers : [])
+    .filter((c) => c.isPendingReview).slice(0, 4);
+  for (const c of pendingVerifs) {
+    items.push({
+      icon: 'verified_user', iconColor: 'text-amber-500 dark:text-amber-400',
+      title: `KYC: ${c.name}`,
+      body: 'Profile verification pending review',
+      time: formatRelativeTime(c.verificationSubmittedAt),
+      module: 'customers', selector: `[data-open-customer-id="${c.id}"]`,
+    });
+  }
+
+  // Recent payments
+  const recentPayments = (Array.isArray(appState.data.payments) ? appState.data.payments : []).slice(0, 3);
+  for (const p of recentPayments) {
+    items.push({
+      icon: 'credit_card', iconColor: 'text-emerald-500 dark:text-emerald-400',
+      title: `Payment \u2014 ${p.bookingCode || p.id || ''}`,
+      body: `${p.customerName || ''} \u00b7 NPR ${Number(p.amount || 0).toLocaleString()}`,
+      time: formatRelativeTime(p.paidAt || p.createdAt || ''),
+      module: 'payments', selector: '',
+    });
+  }
+
+  const panel = document.createElement('div');
+  panel.id = 'notifPanelPopup';
+  panel.className = 'fixed z-[200] w-80 rounded-2xl border border-slate-200 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.22)] overflow-hidden dark:border-white/10 dark:bg-[#0d1822]';
+  const rect = btn.getBoundingClientRect();
+  panel.style.top  = `${Math.round(rect.bottom + 8)}px`;
+  panel.style.right = `${Math.max(8, Math.round(window.innerWidth - rect.right))}px`;
+
+  panel.innerHTML = `
+    <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-white/10">
+      <p class="text-sm font-bold text-slate-900 dark:text-white">
+        Notifications
+        ${items.length > 0 ? `<span class="ml-1.5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">${items.length}</span>` : ''}
+      </p>
+      <button id="notifViewAllBtn" class="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400">View all</button>
+    </div>
+    <div class="max-h-[26rem] overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06]">
+      ${items.length === 0
+        ? '<p class="p-4 text-sm text-slate-500 dark:text-slate-400">No pending items right now</p>'
+        : items.map((item, i) =>
+            `<button data-notif-idx="${i}" class="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-white/5">
+              <span class="material-symbols-outlined mt-0.5 shrink-0 text-[20px] ${item.iconColor}">${item.icon}</span>
+              <span class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(item.title)}</p>
+                <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">${escapeHtml(item.body)}</p>
+                <p class="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">${escapeHtml(item.time)}</p>
+              </span>
+              <span class="material-symbols-outlined mt-1 shrink-0 text-[15px] text-slate-400 dark:text-slate-500">chevron_right</span>
+            </button>`
+          ).join('')
+      }
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  panel.querySelectorAll('[data-notif-idx]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const item = items[Number(el.getAttribute('data-notif-idx'))];
+      if (!item) return;
+      panel.remove();
+      document.removeEventListener('pointerdown', outsideClick);
+      appState.activeModule = item.module;
+      setActiveNav(item.module);
+      renderActiveModule();
+      if (item.selector) {
+        window.setTimeout(() => { const t = document.querySelector(item.selector); if (t) t.click(); }, 220);
+      }
+    });
+  });
+
+  panel.querySelector('#notifViewAllBtn')?.addEventListener('click', () => {
+    panel.remove();
+    document.removeEventListener('pointerdown', outsideClick);
+    appState.activeModule = 'notifications';
+    setActiveNav('notifications');
+    renderActiveModule();
+  });
+
+  function outsideClick(e) {
+    if (!panel.contains(e.target) && !btn.contains(e.target)) {
+      panel.remove();
+      document.removeEventListener('pointerdown', outsideClick);
+    }
+  }
+  window.setTimeout(() => document.addEventListener('pointerdown', outsideClick), 60);
+}
+
+function buildBookingNotifications(bookings) {
+  return (Array.isArray(bookings) ? bookings : [])
+    .filter((b) => ['pending', 'confirmed'].includes(String(b.status || '').toLowerCase()))
+    .slice(0, 5)
+    .map((b) => ({
+      id: `BK-NOTIF-${b.id}`,
+      title: `Booking ${b.id} — ${b.customer}`,
+      channel: 'Bookings',
+      priority: String(b.status || '').toLowerCase() === 'pending' ? 'High' : 'Normal',
+      time: formatRelativeTime(b.createdAt),
+      type: 'booking_created',
+      bookingId: b.bookingId || b.id,
+    }));
+}
+
 function buildVerificationNotifications(customers) {
   const queue = sortCustomersForReviewQueue((Array.isArray(customers) ? customers : []).filter(isPendingReviewCustomer));
   const queueCount = queue.length;
@@ -858,16 +1002,17 @@ function buildVerificationNotifications(customers) {
   return [summary, ...detailRows];
 }
 
-function mergeNotifications(baseRows, verificationRows) {
+function mergeNotifications(baseRows, verificationRows, bookingRows) {
   const base = Array.isArray(baseRows) ? baseRows : [];
   const generated = Array.isArray(verificationRows) ? verificationRows : [];
+  const bookings = Array.isArray(bookingRows) ? bookingRows : [];
 
   const filteredBase = base.filter((row) => {
     const type = String(row && row.type ? row.type : '').trim().toLowerCase();
-    return type !== 'verification_queue' && type !== 'verification_submission';
+    return type !== 'verification_queue' && type !== 'verification_submission' && type !== 'booking_created';
   });
 
-  return [...generated, ...filteredBase];
+  return [...generated, ...bookings, ...filteredBase];
 }
 
 function updateVerificationNotificationBadge(pendingCount) {
@@ -912,8 +1057,11 @@ function syncVerificationQueueSignals(customers, { silent = false } = {}) {
   appState.knownVerificationSubmissionKeys = queueKeys;
 
   const generatedNotifications = buildVerificationNotifications(pendingQueue);
-  appState.data.notifications = mergeNotifications(appState.baseNotifications, generatedNotifications);
-  updateVerificationNotificationBadge(pendingCount);
+  const bookingNotifications = buildBookingNotifications(appState.data.bookings);
+  appState.data.notifications = mergeNotifications(appState.baseNotifications, generatedNotifications, bookingNotifications);
+  const pendingBookingCount = (Array.isArray(appState.data.bookings) ? appState.data.bookings : [])
+    .filter((b) => String(b.status || '').toLowerCase() === 'pending').length;
+  updateVerificationNotificationBadge(pendingCount + pendingBookingCount);
 }
 
 function syncCustomerTripCounts() {
