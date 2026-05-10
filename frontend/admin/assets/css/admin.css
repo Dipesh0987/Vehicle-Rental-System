@@ -101,3 +101,53 @@ body {
 [data-theme='dark'] .scroll-thin::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.28);
 }
+
+/* ── Dark mode: selects + options ──────────────────────────────────────── */
+/* color-scheme: dark tells the browser to render native controls (dropdown
+   list, scrollbar inside the popup) using its built-in dark palette.      */
+.dark select,
+[data-theme='dark'] select {
+  color-scheme: dark;
+  background-color: #1a2632 !important;
+  color: #e2eaf0 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark select option,
+[data-theme='dark'] select option {
+  background-color: #1a2632;
+  color: #e2eaf0;
+}
+
+.dark select option:checked,
+[data-theme='dark'] select option:checked {
+  background-color: #243447;
+  color: #ffffff;
+}
+
+/* Inputs and textareas in dark admin forms */
+.dark input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not([type='image']),
+[data-theme='dark'] input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not([type='image']),
+.dark textarea,
+[data-theme='dark'] textarea {
+  color-scheme: dark;
+  background-color: #1a2632 !important;
+  color: #e2eaf0 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark input::placeholder,
+[data-theme='dark'] input::placeholder,
+.dark textarea::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: rgba(180, 200, 215, 0.45) !important;
+}
+
+/* Date/time picker icons — invert so they're visible on dark backgrounds */
+.dark input[type='date']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator,
+.dark input[type='datetime-local']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.85);
+  cursor: pointer;
+}

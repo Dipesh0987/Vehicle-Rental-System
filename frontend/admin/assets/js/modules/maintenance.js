@@ -555,7 +555,7 @@ function formTextarea(label, name, value, required, placeholder) {
 function formSelect(label, name, options, selected) {
   return `<div>
     <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">${label}</label>
-    <select name="${name}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white">
+    <select name="${name}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-[#1a2632] dark:text-white">
       ${options.map((o) => `<option value="${escapeHtml(o)}" ${o === selected ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('')}
     </select>
   </div>`;
