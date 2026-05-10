@@ -57,9 +57,6 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
         <h2 class="${classMap.heading} text-slate-900 dark:text-white">Maintenance &amp; Damage</h2>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <button id="addMaintenanceBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
-          <span class="material-symbols-outlined mr-1 text-[16px] align-middle">add</span> Schedule Service
-        </button>
         <button id="reportDamageBtn" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20">
           <span class="material-symbols-outlined mr-1 text-[16px] align-middle">car_crash</span> Report Damage
         </button>
@@ -139,7 +136,6 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   // ── Events ─────────────────────────────────────────────────
   const openAdd = () => { maintenanceUiState.mode = 'add'; maintenanceUiState.selectedId = ''; rerender(); };
 
-  host.querySelector('#addMaintenanceBtn')?.addEventListener('click', openAdd);
   host.querySelector('#emptyAddBtn')?.addEventListener('click', openAdd);
   host.querySelector('#reportDamageBtn')?.addEventListener('click', () => {
     maintenanceUiState.mode = 'add';
