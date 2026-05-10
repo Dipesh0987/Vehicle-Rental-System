@@ -1,15 +1,23 @@
 /**
- * Payment return page (Khalti redirect target).
- * Reads ?pidx and the friend params from Khalti, calls verify, and shows
- * either a success or failure screen with retry option.
+ * Payment return page (eSewa redirect target).
+ *
+ * eSewa hits two URLs:
+ *   - PAYMENT_SUCCESS_URL?data=<base64-json>      on success or pending
+ *   - PAYMENT_FAILURE_URL?... (no signed payload)  on cancel/failure
+ *
+ * We read whichever query parameters are present, call the edge function's
+ * `verify` action with either {data} (happy path) or {failed, transactionUuid}
+ * (cancel path), and render success / failure / pending UI accordingly.
  */
 (function () {
   "use strict";
 
   var state = {
-    pidx: "",
+    data: "",
+    transactionUuid: "",
     transactionCode: "",
     bookingId: "",
+    failed: false,
     verified: null,
   };
 
@@ -24,17 +32,59 @@
     return "NPR " + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // Best-effort base64 decode so we can show the transaction code in the
+  // loading screen before verification finishes.
+  function tryDecodeData(b64) {
+    if (!b64) return null;
+    try {
+      var normalised = String(b64).replace(/-/g, "+").replace(/_/g, "/");
+      while (normalised.length % 4 !== 0) normalised += "=";
+      var decoded = atob(normalised);
+      return JSON.parse(decoded);
+    } catch (_e) {
+      return null;
+    }
+  }
+
   function readQuery() {
     try {
       var params = new URLSearchParams(window.location.search);
-      state.pidx = String(params.get("pidx") || "").trim();
-      var txnId = String(params.get("transaction_id") || "").trim();
-      var purchase = String(params.get("purchase_order_id") || "").trim();
-      if (purchase) state.transactionCode = purchase;
-      state.providerStatus = String(params.get("status") || "").trim();
-      state.providerMessage = String(params.get("message") || "").trim();
-      state.providerTotal = String(params.get("total_amount") || "").trim();
-      state.providerTxn = txnId;
+      state.data = String(params.get("data") || "").trim();
+
+      // ?status=failed (or status=Cancelled) is how some eSewa flows mark a
+      // failure_url redirect. Combined with ?transaction_uuid we can tell
+      // verify() exactly which payment row to mark failed.
+      var statusParam = String(params.get("status") || "").trim().toLowerCase();
+      var failureParam = String(params.get("failed") || "").trim().toLowerCase();
+      state.failed =
+        statusParam === "failed"
+        || statusParam === "cancelled"
+        || statusParam === "canceled"
+        || failureParam === "true"
+        || failureParam === "1";
+
+      state.transactionUuid =
+        String(params.get("transaction_uuid") || params.get("transactionUuid") || "").trim();
+
+      if (state.data) {
+        var decoded = tryDecodeData(state.data);
+        if (decoded) {
+          if (!state.transactionUuid && decoded.transaction_uuid) {
+            state.transactionUuid = String(decoded.transaction_uuid);
+          }
+          if (decoded.transaction_code) {
+            // eSewa's transaction_code is its own ref id, not our P-XXXX.
+            // We still surface it so the user can quote it to support.
+            state.providerRefId = String(decoded.transaction_code);
+          }
+          state.providerStatus = String(decoded.status || "");
+          state.providerTotal = String(decoded.total_amount || "");
+        }
+      }
+
+      // Our internal P-XXXX code is the same value as transactionUuid
+      // because the edge function reuses it as eSewa's transaction_uuid.
+      state.transactionCode = state.transactionUuid;
     } catch (_e) {
       // ignore
     }
@@ -55,7 +105,7 @@
 
     var booking = (payload && payload.booking) || {};
     setText("paymentReturnTransactionCode", payload.transactionCode || "-");
-    setText("paymentReturnKhaltiTxn", payload.khaltiTransactionId || "-");
+    setText("paymentReturnEsewaTxn", payload.providerTransactionId || "-");
     setText("paymentReturnAmount", formatMoney(payload.amount));
     setText("paymentReturnPaymentType", payload.paymentType || "-");
     setText("paymentReturnBookingCode", booking.bookingCode || "-");
@@ -116,14 +166,14 @@
     hide("paymentReturnSuccess");
     hide("paymentReturnFailure");
     show("paymentReturnPending");
-    var note = (payload && payload.message) || "Khalti is still processing this transaction. We will email a receipt once it confirms.";
+    var note = (payload && payload.message) || "eSewa is still processing this transaction. We will email a receipt once it confirms.";
     setText("paymentReturnPendingNote", note);
   }
 
   async function verify() {
-    if (!state.pidx) {
+    if (!state.data && !state.transactionUuid) {
       showFailure({
-        message: "We could not find a Khalti payment id (pidx) in the URL. Please retry from your bookings.",
+        message: "We could not find an eSewa transaction reference in the URL. Please retry from your bookings.",
       });
       return;
     }
@@ -136,7 +186,20 @@
     showLoading();
 
     try {
-      var result = await window.VehiclePaymentService.verifyPayment(state.pidx);
+      var args = {};
+      if (state.failed) {
+        // failure_url path - no signed data, just mark the row failed.
+        args.failed = true;
+        if (state.transactionUuid) args.transactionUuid = state.transactionUuid;
+      } else if (state.data) {
+        // success_url path - send the base64 payload so the edge function
+        // can verify the eSewa HMAC and double-check via the status API.
+        args.data = state.data;
+      } else {
+        args.transactionUuid = state.transactionUuid;
+      }
+
+      var result = await window.VehiclePaymentService.verifyPayment(args);
       state.verified = result;
 
       if (result && result.status === "completed") {
@@ -158,8 +221,8 @@
 
   function init() {
     readQuery();
-    var pidxLabel = $("paymentReturnPidxLabel");
-    if (pidxLabel) pidxLabel.textContent = state.pidx || "-";
+    var refLabel = $("paymentReturnRefLabel");
+    if (refLabel) refLabel.textContent = state.transactionUuid || state.providerRefId || "-";
     void verify();
   }
 

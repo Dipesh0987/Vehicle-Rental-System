@@ -5,7 +5,7 @@
  * "Customers read own payments" policy + is_admin_user fallback) and joins
  * the latest receipt + booking summary client-side.
  *
- * Mutations are limited to firing the `khalti-payment` Edge Function, which
+ * Mutations are limited to firing the `esewa-payment` Edge Function, which
  * already enforces admin override server-side.
  */
 export function createPaymentsService() {
@@ -30,11 +30,15 @@ export function createPaymentsService() {
   async function listPayments() {
     const client = await getClient();
 
+    // We pull both the new provider_* columns (migration 025) and the legacy
+    // khalti_* columns so the admin UI still works on databases that have not
+    // run 025 yet. The mapper below prefers the new columns when present.
     const result = await client
       .from('payments')
       .select(
         'id,transaction_code,booking_id,customer_user_id,customer_email,customer_name,' +
         'payment_method,payment_type,amount,total_booking_amount,currency,status,failure_reason,' +
+        'provider_reference,provider_transaction_id,' +
         'khalti_pidx,khalti_transaction_id,khalti_payment_url,initiated_at,expires_at,paid_at,' +
         'created_at,updated_at'
       )
@@ -121,14 +125,14 @@ export function createPaymentsService() {
         bookingCode: String(booking.booking_code || ''),
         customerName: String(payment.customer_name || booking.customer_name || ''),
         customerEmail: String(payment.customer_email || booking.customer_email || ''),
-        method: String(payment.payment_method || 'khalti'),
+        method: String(payment.payment_method || 'esewa'),
         paymentType: String(payment.payment_type || 'full'),
         amount: Number(payment.amount || 0),
         currency: String(payment.currency || 'NPR'),
         status: String(payment.status || 'initiated'),
         failureReason: String(payment.failure_reason || ''),
-        khaltiPidx: String(payment.khalti_pidx || ''),
-        khaltiTransactionId: String(payment.khalti_transaction_id || ''),
+        providerReference: String(payment.provider_reference || payment.khalti_pidx || ''),
+        providerTransactionId: String(payment.provider_transaction_id || payment.khalti_transaction_id || ''),
         initiatedAt: String(payment.initiated_at || ''),
         expiresAt: String(payment.expires_at || ''),
         paidAt: String(payment.paid_at || ''),
@@ -199,7 +203,7 @@ export function createPaymentsService() {
     if (!code) throw new Error('Missing transaction code.');
 
     const client = await getClient();
-    const response = await client.functions.invoke('khalti-payment', {
+    const response = await client.functions.invoke('esewa-payment', {
       body: { action: 'resend_receipt', transactionCode: code },
     });
 
@@ -213,7 +217,7 @@ export function createPaymentsService() {
 
   async function expireStale() {
     const client = await getClient();
-    const response = await client.functions.invoke('khalti-payment', {
+    const response = await client.functions.invoke('esewa-payment', {
       body: { action: 'expire_stale' },
     });
     if (response.error) {

@@ -371,7 +371,7 @@
       (text.indexOf("paid_amount") >= 0 || text.indexOf("remaining_amount") >= 0 || text.indexOf("payment_deadline") >= 0)
       && (text.indexOf("column") >= 0 || text.indexOf("could not find") >= 0)
     ) {
-      return "Booking schema is missing payment ledger columns. Run migration 023_khalti_payment_integration.sql.";
+      return "Booking schema is missing payment ledger columns. Run migrations 023_khalti_payment_integration.sql and 025_payments_esewa_provider.sql.";
     }
 
     if (text.indexOf("email") >= 0 && text.indexOf("check") >= 0) {
@@ -993,8 +993,9 @@
       notes: composeBookingNotes(normalized.notes, normalized.userMessage),
     };
 
-    // Columns that only exist after migration 023_khalti_payment_integration.
-    // If the project has not run that migration yet, PostgREST will reject
+    // Columns that only exist after migration 023 (renamed in 025 to be
+    // provider-neutral so eSewa and Khalti can share the same payments table).
+    // If the project has not run those migrations yet, PostgREST will reject
     // the insert with "Could not find the 'paid_amount' column ..." - we
     // strip those keys and retry so legacy deployments still work.
     var ledgerColumns = ["paid_amount", "remaining_amount", "payment_deadline"];

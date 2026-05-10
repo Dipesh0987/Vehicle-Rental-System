@@ -3,7 +3,7 @@ import { filterRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
 const STATUS_OPTIONS = ['', 'completed', 'pending', 'initiated', 'failed', 'expired', 'cancelled', 'refunded'];
-const METHOD_OPTIONS = ['', 'khalti', 'esewa', 'card', 'cash', 'bank_transfer'];
+const METHOD_OPTIONS = ['', 'esewa', 'khalti', 'card', 'cash', 'bank_transfer'];
 
 const paymentUiState = {
   selectedTransactionCode: '',
@@ -24,7 +24,7 @@ export function renderPaymentsModule({ data, query, notify, paymentsService, pay
 
   const filteredBySearch = filterRows(sourceRows, query, [
     'transactionCode', 'bookingCode', 'customerName', 'customerEmail',
-    'method', 'paymentType', 'status', 'khaltiTransactionId', 'receiptCode',
+    'method', 'paymentType', 'status', 'providerTransactionId', 'providerReference', 'receiptCode',
   ]);
   const filteredRows = applyFilters(filteredBySearch, paymentUiState.filters);
   const sortedRows = sortRowsByCreatedDesc(filteredRows);
@@ -187,8 +187,8 @@ function renderPaymentDetailPage(row) {
           ${renderField('Method', String(row.method || '').toUpperCase())}
           ${renderField('Payment type', capitalize(row.paymentType || ''))}
           ${renderField('Currency', row.currency || 'NPR')}
-          ${renderField('Khalti pidx', row.khaltiPidx || '-')}
-          ${renderField('Khalti txn id', row.khaltiTransactionId || '-')}
+          ${renderField('Provider reference', row.providerReference || '-')}
+          ${renderField('Provider txn id', row.providerTransactionId || '-')}
           ${renderField('Initiated at', formatDateTime(row.initiatedAt))}
           ${renderField('Paid at', formatDateTime(row.paidAt))}
           ${renderField('Expires at', formatDateTime(row.expiresAt))}

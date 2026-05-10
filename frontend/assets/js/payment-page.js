@@ -2,7 +2,13 @@
  * Payment selection page.
  * Reads ?booking=<uuid> from the URL, fetches the booking, lets the user
  * choose 60% advance or 100% upfront, shows a countdown to the 15-minute
- * payment_deadline, then redirects to Khalti.
+ * payment_deadline, then submits a signed eSewa form to the gateway.
+ *
+ * eSewa requires a POST submission (not a redirect) so we build a hidden
+ * <form> from the signed fields the edge function returned, then call
+ * .submit() on it. The browser navigates to eSewa with the form payload
+ * intact, the user pays, and eSewa redirects back to PAYMENT_SUCCESS_URL
+ * with `?data=<base64-json>` which payment-return-page.js then verifies.
  */
 (function () {
   "use strict";
@@ -245,8 +251,33 @@
     var btn = $("paymentSubmitBtn");
     if (!btn) return;
     btn.disabled = isSubmitting;
-    btn.textContent = isSubmitting ? "Connecting to Khalti..." : "Pay with Khalti";
+    btn.textContent = isSubmitting ? "Connecting to eSewa..." : "Pay with eSewa";
     btn.classList.toggle("payment-button--loading", isSubmitting);
+  }
+
+  // eSewa requires the gateway to be hit via POST with a signed form payload.
+  // We build a hidden <form>, populate it from the edge function response,
+  // then submit it - the browser navigates away with the POST data attached.
+  function submitEsewaForm(gatewayUrl, formFields) {
+    if (!gatewayUrl || !formFields) {
+      throw new Error("eSewa did not return a gateway URL or form fields.");
+    }
+    var form = document.createElement("form");
+    form.method = "POST";
+    form.action = gatewayUrl;
+    form.acceptCharset = "UTF-8";
+    form.style.display = "none";
+
+    Object.keys(formFields).forEach(function (key) {
+      var input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = formFields[key] == null ? "" : String(formFields[key]);
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
   }
 
   async function loadBooking() {
@@ -298,8 +329,8 @@
         paymentType: state.selectedPaymentType,
       });
 
-      if (!result || !result.paymentUrl) {
-        throw new Error(result && result.message ? result.message : "Khalti did not return a payment URL.");
+      if (!result || !result.gatewayUrl || !result.formFields) {
+        throw new Error(result && result.message ? result.message : "eSewa did not return signed form fields.");
       }
 
       try {
@@ -307,7 +338,7 @@
           window.sessionStorage.setItem("vrs.activePayment", JSON.stringify({
             bookingId: state.bookingId,
             transactionCode: result.transactionCode,
-            pidx: result.pidx,
+            transactionUuid: result.transactionUuid,
             amount: result.amount,
             paymentType: result.paymentType,
             startedAt: Date.now(),
@@ -315,11 +346,11 @@
         }
       } catch (_e) { /* ignore */ }
 
-      setStatus("Redirecting to Khalti...", "success");
-      window.location.assign(String(result.paymentUrl));
+      setStatus("Redirecting to eSewa...", "success");
+      submitEsewaForm(result.gatewayUrl, result.formFields);
     } catch (error) {
       setSubmitting(false);
-      var message = (error && error.message) || "Could not start Khalti payment.";
+      var message = (error && error.message) || "Could not start eSewa payment.";
       setStatus(message, "error");
     }
   }

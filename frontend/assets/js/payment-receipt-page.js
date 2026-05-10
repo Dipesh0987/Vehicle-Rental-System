@@ -78,8 +78,14 @@
 
     setText("receiptCode", state.receipt ? (state.receipt.receipt_code || "-") : "(pending)");
     setText("receiptTransactionCode", state.payment.transaction_code || "-");
-    setText("receiptKhaltiTxn", state.payment.khalti_transaction_id || "-");
-    setText("receiptPaymentMethod", (state.payment.payment_method || "khalti").toUpperCase());
+    // Provider-neutral column added in migration 025; falls back to the
+    // legacy khalti_* columns if the migration has not run yet so older
+    // database snapshots still render a useful receipt.
+    setText("receiptEsewaTxn",
+      state.payment.provider_transaction_id
+      || state.payment.khalti_transaction_id
+      || "-");
+    setText("receiptPaymentMethod", (state.payment.payment_method || "esewa").toUpperCase());
     setText("receiptPaymentType", state.payment.payment_type || "-");
     setText("receiptStatus", (state.payment.status || "-").toUpperCase());
     setText("receiptPaidAt", formatDate(state.payment.paid_at || state.payment.created_at));

@@ -1,5 +1,5 @@
 /**
- * Payment service - thin wrapper around the khalti-payment edge function and
+ * Payment service - thin wrapper around the esewa-payment edge function and
  * direct reads of `payments` / `payment_receipts` for receipt rendering.
  *
  * Exposed as `window.VehiclePaymentService`. Depends on the global
@@ -8,7 +8,7 @@
 (function () {
   "use strict";
 
-  var FUNCTION_NAME = "khalti-payment";
+  var FUNCTION_NAME = "esewa-payment";
 
   function getClient() {
     if (!window.SupabaseClient || typeof window.SupabaseClient.init !== "function") {
@@ -51,8 +51,8 @@
     if (!isNetwork) return "";
     return [
       "Payment service is unreachable.",
-      "Make sure the 'khalti-payment' edge function is deployed",
-      "and that KHALTI_BASE_URL + KHALTI_SECRET_KEY secrets are set.",
+      "Make sure the 'esewa-payment' edge function is deployed",
+      "and that ESEWA_GATEWAY_URL + ESEWA_STATUS_URL + ESEWA_PRODUCT_CODE + ESEWA_SECRET_KEY secrets are set.",
     ].join(" ");
   }
 
@@ -128,12 +128,24 @@
     });
   }
 
-  async function verifyPayment(pidx) {
-    var p = trim(pidx);
-    if (!p) {
-      throw new Error("pidx is required.");
+  /**
+   * Verify a returning eSewa redirect.
+   *
+   * Accepts:
+   *   - { data: "<base64-json from eSewa success_url>" }
+   *   - { transactionUuid: "..." }                         (manual retry)
+   *   - { failed: true, transactionUuid: "..." }            (failure_url hit)
+   */
+  async function verifyPayment(input) {
+    var args = (input && typeof input === "object") ? input : { data: String(input || "") };
+    var body = {};
+    if (args.data) body.data = String(args.data);
+    if (args.transactionUuid) body.transactionUuid = String(args.transactionUuid);
+    if (args.failed) body.failed = true;
+    if (!body.data && !body.transactionUuid) {
+      throw new Error("Provide either 'data' or 'transactionUuid' to verify.");
     }
-    return invokeFunction("verify", { pidx: p });
+    return invokeFunction("verify", body);
   }
 
   async function resendReceipt(transactionCode) {

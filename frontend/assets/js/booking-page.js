@@ -1216,7 +1216,7 @@
 
           // If we have a real booking id and a non-zero total, send the user
           // straight to the payment page so they can complete the 60% / 100%
-          // Khalti flow within the 15-minute window. The payment-return.html
+          // eSewa flow within the 15-minute window. The payment-return.html
           // page will surface the same confirmation modal data on success.
           if (savedBookingId && savedTotal > 0) {
             try {
