@@ -124,6 +124,17 @@ const TEMP_FALLBACK_FROM_EMAIL =
   `Vehicle Rental Receipts ${crypto.randomUUID().slice(0, 8)} <onboarding@resend.dev>`;
 const PAYMENT_RECEIPT_FROM_EMAIL =
   (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim() || TEMP_FALLBACK_FROM_EMAIL;
+// Resend's free tier only delivers to the address that owns the Resend
+// account when no domain is verified. While developing on localhost,
+// setting this var (e.g. RESEND_DEV_REDIRECT_TO=aryal.rajat05@gmail.com)
+// reroutes every receipt email to that single inbox so we can actually
+// see receipts during testing without hitting HTTP 403. The original
+// recipient is preserved in the subject + body banner so it is obvious
+// the email was redirected. Leave the var unset (or empty) once a
+// production domain has been verified at resend.com/domains so customer
+// emails resume going to the real customer address.
+const RESEND_DEV_REDIRECT_TO =
+  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase();
 const PAYMENT_APP_NAME =
   (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "RentAVehicle Nepal";
 const PARTIAL_PAYMENT_PERCENT = clampPercent(
@@ -959,8 +970,38 @@ async function sendReceiptEmail(params: {
     return;
   }
 
-  const html = renderReceiptHtml(params.receiptCode, params.payload);
-  const text = renderReceiptText(params.receiptCode, params.payload);
+  // Dev-redirect: when RESEND_DEV_REDIRECT_TO is set we still address the
+  // mail to that single inbox (Resend free tier won't deliver elsewhere
+  // until a domain is verified). The original recipient is preserved in
+  // the subject and a banner so it stays obvious which booking the email
+  // is for. When the var is empty we behave exactly like before.
+  const originalRecipient = params.to;
+  const isRedirected =
+    RESEND_DEV_REDIRECT_TO.length > 0
+    && RESEND_DEV_REDIRECT_TO !== originalRecipient.toLowerCase();
+  const actualRecipient = isRedirected ? RESEND_DEV_REDIRECT_TO : originalRecipient;
+
+  const subject = isRedirected
+    ? "[DEV - to: " + originalRecipient + "] " + PAYMENT_APP_NAME + " payment receipt " + params.receiptCode
+    : PAYMENT_APP_NAME + " payment receipt " + params.receiptCode;
+
+  let html = renderReceiptHtml(params.receiptCode, params.payload);
+  let text = renderReceiptText(params.receiptCode, params.payload);
+
+  if (isRedirected) {
+    const banner =
+      '<div style="background:#fff7e6;border:1px solid #f5c97d;color:#7a4c0d;padding:12px 16px;border-radius:8px;font-family:Arial,sans-serif;font-size:13px;margin:0 0 16px 0;">'
+      + "<strong>Dev redirect:</strong> this receipt was originally addressed to <strong>"
+      + escapeHtml(originalRecipient)
+      + "</strong>. It was rerouted here because no Resend domain is verified. Set <code>RESEND_DEV_REDIRECT_TO</code> to empty after verifying a domain at resend.com/domains."
+      + "</div>";
+    html = banner + html;
+    text =
+      "[DEV REDIRECT] Originally addressed to: "
+      + originalRecipient
+      + "\nResend free-tier only delivers to the verified Resend account email until a domain is added at resend.com/domains.\n\n"
+      + text;
+  }
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -970,8 +1011,8 @@ async function sendReceiptEmail(params: {
     },
     body: JSON.stringify({
       from: PAYMENT_RECEIPT_FROM_EMAIL,
-      to: [params.to],
-      subject: PAYMENT_APP_NAME + " payment receipt " + params.receiptCode,
+      to: [actualRecipient],
+      subject,
       html,
       text,
     }),
@@ -992,9 +1033,11 @@ async function sendReceiptEmail(params: {
   await supabaseAdmin
     .from("payment_receipts")
     .update({
-      email_status: "sent",
+      email_status: isRedirected ? "sent_dev_redirect" : "sent",
       email_sent_at: nowIso(),
-      email_error: null,
+      email_error: isRedirected
+        ? "Redirected to dev inbox " + actualRecipient + " (intended for " + originalRecipient + ")"
+        : null,
     })
     .eq("id", params.receiptId);
 
@@ -1007,7 +1050,7 @@ async function sendReceiptEmail(params: {
       user_id: userId,
       type: "receipt_sent",
       title: "Payment receipt emailed",
-      body: "Receipt " + params.receiptCode + " was sent to " + params.to + ".",
+      body: "Receipt " + params.receiptCode + " was sent to " + originalRecipient + ".",
       link_url: "/frontend/payment-receipt.html?payment=" + params.receiptCode,
       metadata: { receiptCode: params.receiptCode },
     });
