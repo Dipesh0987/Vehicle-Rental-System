@@ -246,7 +246,7 @@ function renderDetailView(host, rec, data, notify, rerender) {
               `<button data-set-status="${s}" class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                 rec.status === s
                   ? 'border-brand-500 bg-brand-500/10 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300'
-                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'
+                  : 'border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10'
               }">${s}</button>`
             ).join('')}
           </div>
