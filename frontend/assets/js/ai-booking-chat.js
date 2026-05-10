@@ -2,10 +2,17 @@
   "use strict";
 
   /* ─── Constants ─── */
-  var STORAGE_KEY = "vrs:ai-chat-session-v2";
+  /* Legacy single-session key (kept for migration). */
+  var LEGACY_SESSION_KEY = "vrs:ai-chat-session-v2";
+  /* New multi-session store. localStorage so chats survive across reloads
+   * and tabs. The library is shaped { activeId, sessions: { [id]: state } }. */
+  var LIBRARY_KEY = "vrs:ai-chat-library-v1";
+  var MAX_SESSIONS = 30;
+  var TITLE_MAX_LEN = 60;
   var WELCOME =
     "Hi there! I'm your AI Booking Assistant. I can help you with:\n" +
     "\u2022 Trip planning & vehicle recommendations\n" +
+    "\u2022 Multi-stop itinerary quotes (rental + fuel estimate)\n" +
     "\u2022 Upcoming booking dates & details\n" +
     "\u2022 Vehicle information\n" +
     "\u2022 Cancellation policy & refund status\n" +
@@ -17,6 +24,7 @@
     "When is my next booking?",
     "Show my bookings",
     "Plan a trip",
+    "Multi-stop trip",
     "Refund status",
   ];
 
@@ -126,7 +134,7 @@
     '<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>';
 
   /* ─── Trip Wizard Steps ─── */
-  var TRIP_STEPS = [
+  var TRIP_STEPS_SINGLE = [
     {
       key: "people",
       question: "How many passengers will be traveling?",
@@ -175,14 +183,51 @@
     },
   ];
 
-  /* ─── State Management (sessionStorage only) ─── */
-  function freshState() {
+  /* Multi-stop branch: ask for itinerary first, then reuse single-trip steps. */
+  var TRIP_STEPS_MULTI = [
+    {
+      key: "stops",
+      question:
+        "Great — list your stops in order with the days you'll spend at each.\n" +
+        "Examples:\n" +
+        "\u2022 Pokhara 3 days, Chitwan 2 days, Lumbini 1 day\n" +
+        "\u2022 Kathmandu to Pokhara to Chitwan, 5 days",
+      options: [
+        { label: "Pokhara 3d, Chitwan 2d", value: "Pokhara 3 days, Chitwan 2 days" },
+        { label: "Kathmandu \u2192 Pokhara \u2192 Lumbini, 6 days", value: "Kathmandu to Pokhara to Lumbini, 6 days" },
+        { label: "Pokhara \u2192 Mustang, 5 days", value: "Pokhara to Mustang, 5 days" },
+      ],
+      allowTyping: true,
+    },
+  ].concat([
+    TRIP_STEPS_SINGLE[0], // people
+    TRIP_STEPS_SINGLE[1], // fuel
+    TRIP_STEPS_SINGLE[2], // budget
+  ]);
+
+  /* Picks the right wizard branch based on active mode. */
+  function getWizardSteps(mode) {
+    return mode === "multi" ? TRIP_STEPS_MULTI : TRIP_STEPS_SINGLE;
+  }
+
+  /* ─── State & Library Management ─────────────────────────────────────
+   * The chat now persists multiple sessions ("chats") in localStorage so
+   * users can keep their history across page reloads and switch back to
+   * older threads. The active session is tracked by an id and rehydrated
+   * into a single in-memory `state` object. All mutators go through the
+   * library helpers below to keep storage in sync. */
+
+  function freshState(opts) {
+    opts = opts || {};
+    var nowIso = new Date().toISOString();
     return {
-      sessionId: uid("s"),
-      startedAt: new Date().toISOString(),
+      sessionId: opts.id || uid("s"),
+      title: opts.title || "New chat",
+      startedAt: nowIso,
+      updatedAt: nowIso,
       messages: [{
         id: uid("m"), role: "assistant", text: WELCOME,
-        timestamp: new Date().toISOString(), citations: [], actions: [],
+        timestamp: nowIso, citations: [], actions: [],
         showSuggestions: true,
       }],
       searches: [],
@@ -191,12 +236,14 @@
     };
   }
 
-  function loadState() {
-    var p = safeJson(sessionStorage.getItem(STORAGE_KEY), null);
-    if (!p || !Array.isArray(p.messages)) return freshState();
+  function normalizeSessionState(p) {
+    if (!p || !Array.isArray(p.messages)) return null;
+    var nowIso = new Date().toISOString();
     return {
       sessionId: trim(p.sessionId) || uid("s"),
-      startedAt: trim(p.startedAt) || new Date().toISOString(),
+      title: trim(p.title) || "New chat",
+      startedAt: trim(p.startedAt) || nowIso,
+      updatedAt: trim(p.updatedAt) || trim(p.startedAt) || nowIso,
       messages: p.messages.slice(0, MAX_MESSAGES),
       searches: Array.isArray(p.searches) ? p.searches.slice(0, MAX_SEARCHES) : [],
       unreadCount: Math.max(0, Number(p.unreadCount) || 0),
@@ -204,33 +251,136 @@
     };
   }
 
-  function save(state) {
-    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { /* noop */ }
+  /* Load the entire library plus migrate any legacy single-session blob. */
+  function loadLibrary() {
+    var lib = safeJson(localStorage.getItem(LIBRARY_KEY), null);
+    var sessions = {};
+    var order = [];
+    if (lib && lib.sessions && typeof lib.sessions === "object") {
+      Object.keys(lib.sessions).forEach(function (id) {
+        var s = normalizeSessionState(lib.sessions[id]);
+        if (s) {
+          s.sessionId = id;
+          sessions[id] = s;
+          order.push(id);
+        }
+      });
+    }
+
+    /* One-time migration of legacy v2 single-session storage. */
+    if (!order.length) {
+      var legacy = safeJson(sessionStorage.getItem(LEGACY_SESSION_KEY), null) ||
+                   safeJson(localStorage.getItem(LEGACY_SESSION_KEY), null);
+      var migrated = normalizeSessionState(legacy);
+      if (migrated) {
+        if (!migrated.title || migrated.title === "New chat") {
+          migrated.title = deriveSessionTitle(migrated);
+        }
+        sessions[migrated.sessionId] = migrated;
+        order.push(migrated.sessionId);
+      }
+    }
+
+    var activeId = trim(lib && lib.activeId);
+    if (!activeId || !sessions[activeId]) activeId = order[0] || "";
+
+    if (!order.length) {
+      var fresh = freshState();
+      sessions[fresh.sessionId] = fresh;
+      order.push(fresh.sessionId);
+      activeId = fresh.sessionId;
+    }
+
+    return { activeId: activeId, sessions: sessions, order: order };
   }
 
-  function pushMsg(state, msg) {
+  function saveLibrary(library) {
+    try {
+      /* Trim oldest sessions if we're over the cap (keeps storage small). */
+      var ids = Object.keys(library.sessions);
+      if (ids.length > MAX_SESSIONS) {
+        ids
+          .map(function (id) { return library.sessions[id]; })
+          .sort(function (a, b) { return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(); })
+          .slice(0, ids.length - MAX_SESSIONS)
+          .forEach(function (s) { delete library.sessions[s.sessionId]; });
+      }
+      var payload = { activeId: library.activeId, sessions: library.sessions };
+      localStorage.setItem(LIBRARY_KEY, JSON.stringify(payload));
+    } catch (_) { /* storage full, ignored */ }
+  }
+
+  function deriveSessionTitle(state) {
+    /* Use first non-empty user message as the natural title. Fall back to
+     * the first assistant message excerpt, or a date-based stub. */
+    var firstUser = (state.messages || []).find(function (m) {
+      return m && m.role === "user" && trim(m.text);
+    });
+    var seed = firstUser ? trim(firstUser.text) : "";
+    if (!seed) {
+      var firstAi = (state.messages || []).find(function (m) {
+        return m && m.role === "assistant" && trim(m.text) && !m.isTyping;
+      });
+      seed = firstAi ? trim(firstAi.text).split(/\n/)[0] : "";
+    }
+    if (!seed) {
+      try { return "Chat " + new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+      catch (_) { return "New chat"; }
+    }
+    var clean = seed.replace(/\s+/g, " ").trim();
+    if (clean.length > TITLE_MAX_LEN) clean = clean.slice(0, TITLE_MAX_LEN - 1).trim() + "\u2026";
+    return clean;
+  }
+
+  /* Persist the active state slot into the library. */
+  function save(state, library) {
+    if (!state || !library) return;
+    state.updatedAt = new Date().toISOString();
+    /* Auto-title sessions that still carry the default once the user has
+     * actually typed something. This gives history items a meaningful name. */
+    if ((!state.title || state.title === "New chat") && state.messages && state.messages.length) {
+      var derived = deriveSessionTitle(state);
+      if (derived) state.title = derived;
+    }
+    library.sessions[state.sessionId] = state;
+    library.activeId = state.sessionId;
+    saveLibrary(library);
+  }
+
+  function pushMsg(state, msg, library) {
     state.messages.push(msg);
     if (state.messages.length > MAX_MESSAGES) state.messages = state.messages.slice(-MAX_MESSAGES);
-    save(state);
+    save(state, library);
   }
 
-  function replaceTyping(state, msg) {
+  function replaceTyping(state, msg, library) {
     for (var i = state.messages.length - 1; i >= 0; i--) {
       if (state.messages[i] && state.messages[i].isTyping) {
         state.messages.splice(i, 1, msg);
-        save(state);
+        save(state, library);
         return;
       }
     }
-    pushMsg(state, msg);
+    pushMsg(state, msg, library);
   }
 
-  function trackSearch(state, q) {
+  function trackSearch(state, q, library) {
     var t = trim(q); if (!t) return;
     state.searches = [t].concat(state.searches.filter(function (s) {
       return trim(s).toLowerCase() !== t.toLowerCase();
     })).slice(0, MAX_SEARCHES);
-    save(state);
+    save(state, library);
+  }
+
+  /* Sort sessions by updatedAt descending (most recent first) for the
+   * history panel's chronological list. */
+  function listSessions(library) {
+    var ids = Object.keys(library.sessions);
+    return ids
+      .map(function (id) { return library.sessions[id]; })
+      .sort(function (a, b) {
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
   }
 
   /* ─── API ─── */
@@ -349,15 +499,70 @@
       }).join("") + "</div>";
     }
 
-    /* split actions: vehicle cards vs regular buttons */
+    /* split actions: trip quote panel, vehicle cards, regular buttons */
     var actions = Array.isArray(msg.actions) ? msg.actions : [];
+    var tripQuote = null;
     var vehicleCards = [];
     var regularActions = [];
     if (!isTyping) {
       actions.forEach(function (a) {
-        if (a.type === "suggest_vehicle" && a.meta) vehicleCards.push(a);
+        if (a.type === "trip_quote" && a.meta && !tripQuote) tripQuote = a;
+        else if (a.type === "suggest_vehicle" && a.meta) vehicleCards.push(a);
         else regularActions.push(a);
       });
+    }
+
+    /* trip-quote summary card (multi-stop itinerary + fuel band + per-vehicle totals) */
+    var quoteHtml = "";
+    if (tripQuote) {
+      var qm = tripQuote.meta || {};
+      var qStops = Array.isArray(qm.stops) ? qm.stops : [];
+      var qLegs = Array.isArray(qm.legs) ? qm.legs : [];
+      var qQuotes = Array.isArray(qm.quotes) ? qm.quotes : [];
+      var fuelLabel = trim(qm.fuelType) || "petrol";
+      var fuelLow = Math.round(Number(qm.fuelLow) || 0);
+      var fuelHigh = Math.round(Number(qm.fuelHigh) || 0);
+      var totalDays = Math.round(Number(qm.totalDays) || 0);
+      var totalKm = Math.round(Number(qm.totalKm) || 0);
+
+      var stopsHtml = qStops.map(function (s, idx) {
+        return '<li style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dashed ' + t.cardBorder + '">' +
+          '<span><span style="display:inline-block;min-width:18px;font-weight:700;color:' + t.cardPrice + '">' + (idx + 1) + '.</span> ' + esc(s.name || "") + '</span>' +
+          '<span style="color:' + t.cardSub + '">' + esc(String(s.days || 1)) + ' day' + ((s.days || 1) === 1 ? '' : 's') + '</span>' +
+          '</li>';
+      }).join("");
+
+      var legsHtml = qLegs.map(function (leg) {
+        return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:' + t.cardSub + ';padding:2px 0">' +
+          '<span>' + esc(leg.from || "") + ' \u2192 ' + esc(leg.to || "") + '</span>' +
+          '<span>~' + esc(String(leg.km || 0)) + ' km</span>' +
+          '</div>';
+      }).join("");
+
+      var quotesHtml = qQuotes.map(function (q) {
+        var rentalSubtotal = Math.round(Number(q.rentalSubtotal) || 0);
+        var packageLow = Math.round(Number(q.packageLow) || 0);
+        var packageHigh = Math.round(Number(q.packageHigh) || 0);
+        return '<div style="margin-top:6px;padding:8px 10px;border-radius:8px;border:1px solid ' + t.cardBorder + ';background:' + t.cardBg + '">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+          '<div style="font-size:12px;font-weight:700;color:' + t.cardTitle + '">#' + esc(String(q.rank || 1)) + ' ' + esc(q.vehicleLabel || 'Vehicle') + '</div>' +
+          '<div style="font-size:12px;font-weight:700;color:' + t.cardPrice + ';white-space:nowrap">NPR ' + packageLow.toLocaleString() + '\u2013' + packageHigh.toLocaleString() + '</div>' +
+          '</div>' +
+          '<div style="margin-top:2px;font-size:10px;color:' + t.cardSub + '">Rental NPR ' + rentalSubtotal.toLocaleString() + ' + Fuel NPR ' + fuelLow.toLocaleString() + '\u2013' + fuelHigh.toLocaleString() + '</div>' +
+          '</div>';
+      }).join("");
+
+      quoteHtml =
+        '<div style="margin-top:10px;border-radius:12px;border:1px solid ' + t.cardBorder + ';background:linear-gradient(165deg,' + t.cardBg + ',' + t.actionBg + ');padding:10px 12px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.cardPrice + '">Multi-stop Quote</div>' +
+        '<div style="font-size:11px;color:' + t.cardSub + '">' + esc(String(totalDays)) + 'd \u2022 ~' + esc(String(totalKm)) + ' km</div>' +
+        '</div>' +
+        (qStops.length ? '<ul style="list-style:none;margin:8px 0 0;padding:0;font-size:12px;color:' + t.cardTitle + '">' + stopsHtml + '</ul>' : '') +
+        (qLegs.length ? '<div style="margin-top:8px;padding-top:6px;border-top:1px solid ' + t.cardBorder + '">' + legsHtml + '</div>' : '') +
+        '<div style="margin-top:8px;font-size:11px;font-weight:600;color:' + t.cardSub + '">Fuel band (' + esc(fuelLabel) + '): NPR ' + fuelLow.toLocaleString() + '\u2013' + fuelHigh.toLocaleString() + '</div>' +
+        (quotesHtml ? '<div style="margin-top:6px">' + quotesHtml + '</div>' : '') +
+        '</div>';
     }
 
     /* vehicle suggestion cards */
@@ -444,7 +649,7 @@
       '<div style="min-width:0;' + (isUser ? 'max-width:82%' : 'flex:1;min-width:0') + '">' +
       '<div style="' + bubbleStyle + '">' +
       '<div style="font-size:13px;line-height:1.6">' + bodyHtml + "</div>" +
-      citeHtml + cardsHtml + actHtml + suggestHtml + wizardHtml +
+      citeHtml + quoteHtml + cardsHtml + actHtml + suggestHtml + wizardHtml +
       "</div>" +
       (ts && !isTyping ? '<p style="margin-top:4px;font-size:10px;color:' + t.timestamp + ';' + (isUser ? 'text-align:right' : '') + '">' + esc(ts) + "</p>" : "") +
       "</div></div>";
@@ -480,8 +685,11 @@
       '<p style="display:flex;align-items:center;gap:4px;font-size:10px;color:' + t.headerSub + ';margin:0"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 4px rgba(16,185,129,0.6)"></span>Online &middot; Session only</p>' +
       "</div></div>" +
       '<div style="display:flex;align-items:center;gap:2px">' +
-      '<button type="button" data-ai-history-toggle style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Search history">' + ICON_HISTORY + "</button>" +
-      '<button type="button" data-ai-clear style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Clear chat">' + ICON_CLEAR + "</button>" +
+      '<button type="button" data-ai-new-header style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Start a new chat" aria-label="Start a new chat">' +
+      '<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>' +
+      "</button>" +
+      '<button type="button" data-ai-history-toggle style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Chat history">' + ICON_HISTORY + "</button>" +
+      '<button type="button" data-ai-clear style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Reset this chat">' + ICON_CLEAR + "</button>" +
       '<button type="button" data-ai-close style="border-radius:8px;padding:8px;color:' + t.headerBtn + ';background:none;border:none;cursor:pointer" title="Close">' + ICON_CLOSE + "</button>" +
       "</div></header>" +
 
@@ -492,7 +700,7 @@
       /* History panel overlay */
       '<div data-ai-history class="vrs-history-slide is-hidden" style="position:absolute;inset:0;z-index:20;overflow-y:auto;background:' + t.histBg + ';padding:16px">' +
       '<div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">' +
-      '<h4 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.histTitle + '">History & Searches</h4>' +
+      '<h4 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.histTitle + '">Chat History</h4>' +
       '<button type="button" data-ai-history-close style="border-radius:6px;padding:4px 8px;font-size:10px;font-weight:600;color:' + t.histTitle + ';cursor:pointer;border:1px solid ' + t.panelBorder + ';background:' + t.histItemBg + '">Close</button>' +
       "</div>" +
       '<div data-ai-history-body></div>' +
@@ -521,6 +729,7 @@
       form: shell.querySelector("[data-ai-form]"),
       input: shell.querySelector("[data-ai-input]"),
       send: shell.querySelector("[data-ai-send]"),
+      newHeaderBtn: shell.querySelector("[data-ai-new-header]"),
       clearBtn: shell.querySelector("[data-ai-clear]"),
       closeBtn: shell.querySelector("[data-ai-close]"),
       historyToggle: shell.querySelector("[data-ai-history-toggle]"),
@@ -559,12 +768,12 @@
     ui.badge.textContent = c > 99 ? "99+" : String(c);
   }
 
-  function clearUnread(ui, state) { state.unreadCount = 0; save(state); renderBadge(ui, state); }
+  function clearUnread(ui, state, library) { state.unreadCount = 0; save(state, library); renderBadge(ui, state); }
 
-  function bumpUnread(ui, state) {
+  function bumpUnread(ui, state, library) {
     if (isOpen(ui)) return;
     state.unreadCount = (state.unreadCount || 0) + 1;
-    save(state); renderBadge(ui, state);
+    save(state, library); renderBadge(ui, state);
   }
 
   /* ─── Render ─── */
@@ -575,31 +784,69 @@
     });
   }
 
-  function renderHistory(ui, state) {
+  function renderHistory(ui, state, library) {
     var t = T();
-    var searches = state.searches || [];
-    var searchHtml = searches.length
-      ? searches.map(function (s, i) {
-          return '<button type="button" data-ai-search-val="' + esc(s) + '" ' +
-            'style="display:flex;width:100%;align-items:center;gap:8px;border-radius:8px;border:1px solid ' + t.actionBorder + ';background:' + t.histItemBg + ';padding:8px 12px;text-align:left;font-size:12px;color:' + t.histItemText + ';cursor:pointer;margin-bottom:6px">' +
-            '<span style="flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:' + t.citeBg + ';font-size:10px;font-weight:700;color:' + t.citeText + '">' + (i + 1) + "</span>" +
-            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s) + "</span></button>";
-        }).join("")
-      : '<p style="border-radius:8px;border:1px dashed ' + t.panelBorder + ';background:' + t.histItemBg + ';padding:12px;text-align:center;font-size:12px;color:' + t.timestamp + '">No searches yet</p>';
 
-    var chatItems = state.messages.filter(function (m) { return !m.isTyping; }).slice(-15).map(function (m) {
-      var who = m.role === "user" ? "You" : "AI";
-      var whoColor = m.role === "user" ? t.citeText : t.headerBtn;
-      return '<li style="border-radius:8px;background:' + t.histItemBg + ';padding:8px 12px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,0.04)">' +
-        '<p style="font-size:10px;font-weight:700;color:' + whoColor + '">' + who + ' <span style="font-weight:400;color:' + t.timestamp + '">' + esc(relTime(m.timestamp)) + "</span></p>" +
-        '<p style="margin-top:2px;font-size:11px;color:' + t.histItemSub + ';overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + esc(trim(m.text || "-")) + "</p></li>";
+    /* ─── Session list (the main change in v1) ─── */
+    var sessions = library ? listSessions(library) : [];
+    var activeId = library ? library.activeId : "";
+
+    var sessionsHtml = sessions.map(function (s) {
+      var isActive = s.sessionId === activeId;
+      var preview = "";
+      var lastMsg = (s.messages || []).filter(function (m) { return !m.isTyping; }).slice(-1)[0];
+      if (lastMsg) preview = trim(lastMsg.text || "").replace(/\s+/g, " ");
+      var title = trim(s.title) || "New chat";
+      var msgCount = (s.messages || []).filter(function (m) { return !m.isTyping; }).length;
+      var when = relTime(s.updatedAt);
+      /* Outer is a div with role=button (NOT a <button>) because we nest a
+       * real <button> for "delete chat" inside, and nested buttons are
+       * invalid HTML5. Keyboard support is provided via tabindex+keydown. */
+      return '<div role="button" tabindex="0" data-ai-session-id="' + esc(s.sessionId) + '" aria-label="Open chat: ' + esc(title) + '" ' +
+        'style="position:relative;display:block;width:100%;text-align:left;border-radius:10px;border:1px solid ' + (isActive ? t.cardPrice : t.actionBorder) + ';' +
+        'background:' + (isActive ? t.citeBg : t.histItemBg) + ';padding:10px 30px 10px 12px;cursor:pointer;margin-bottom:6px;transition:transform .12s,border-color .12s">' +
+        '<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:' + (isActive ? t.citeText : t.histItemText) + '">' +
+        (isActive ? '<span style="flex-shrink:0;width:6px;height:6px;border-radius:50%;background:' + t.cardPrice + ';box-shadow:0 0 0 2px ' + t.cardPrice + '33"></span>' : '') +
+        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(title) + '</span>' +
+        '</div>' +
+        (preview ? '<p style="margin:3px 0 0;font-size:10px;color:' + t.histItemSub + ';line-height:1.4;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden">' + esc(preview) + '</p>' : '') +
+        '<p style="margin:4px 0 0;font-size:9px;color:' + t.timestamp + ';font-weight:600;letter-spacing:0.04em">' + esc(when) + ' \u2022 ' + esc(String(msgCount)) + ' message' + (msgCount === 1 ? '' : 's') + '</p>' +
+        '<button type="button" data-ai-session-delete="' + esc(s.sessionId) + '" aria-label="Delete chat" title="Delete chat" ' +
+        'style="position:absolute;top:6px;right:6px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:none;background:transparent;color:' + t.timestamp + ';cursor:pointer">' +
+        '<svg viewBox="0 0 16 16" style="width:12px;height:12px" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h10M6 5V3.5A0.5 0.5 0 0 1 6.5 3h3a0.5 0.5 0 0 1 0.5 0.5V5M5 5v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V5"/></svg>' +
+        '</button>' +
+        '</div>';
     }).join("");
 
+    if (!sessions.length) {
+      sessionsHtml = '<p style="border-radius:8px;border:1px dashed ' + t.panelBorder + ';background:' + t.histItemBg + ';padding:12px;text-align:center;font-size:12px;color:' + t.timestamp + '">No chats yet \u2014 start a new one!</p>';
+    }
+
+    var newChatBtn = '<button type="button" data-ai-new-session ' +
+      'style="display:flex;width:100%;align-items:center;justify-content:center;gap:6px;border-radius:10px;border:1px dashed ' + t.cardPrice + ';background:' + t.citeBg + ';padding:9px 12px;font-size:12px;font-weight:700;color:' + t.citeText + ';cursor:pointer;margin-bottom:10px">' +
+      '<svg viewBox="0 0 16 16" style="width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>' +
+      'Start a new chat' +
+      '</button>';
+
+    /* ─── Recent searches ─── */
+    var searches = state.searches || [];
+    var searchHtml = searches.length
+      ? searches.slice(0, 8).map(function (s, i) {
+          return '<button type="button" data-ai-search-val="' + esc(s) + '" ' +
+            'style="display:flex;width:100%;align-items:center;gap:8px;border-radius:8px;border:1px solid ' + t.actionBorder + ';background:' + t.histItemBg + ';padding:7px 10px;text-align:left;font-size:12px;color:' + t.histItemText + ';cursor:pointer;margin-bottom:5px">' +
+            '<span style="flex-shrink:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:' + t.citeBg + ';font-size:9px;font-weight:700;color:' + t.citeText + '">' + (i + 1) + "</span>" +
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s) + "</span></button>";
+        }).join("")
+      : '<p style="border-radius:8px;border:1px dashed ' + t.panelBorder + ';background:' + t.histItemBg + ';padding:10px;text-align:center;font-size:11px;color:' + t.timestamp + '">No searches yet</p>';
+
     ui.historyBody.innerHTML =
-      '<section style="margin-bottom:16px"><h5 style="margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Recent Searches</h5>' +
-      '<div>' + searchHtml + "</div></section>" +
-      '<section><h5 style="margin-bottom:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Conversation</h5>' +
-      '<ul style="list-style:none;padding:0;margin:0">' + chatItems + "</ul></section>";
+      '<section style="margin-bottom:14px">' +
+      '<h5 style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Your Chats</h5>' +
+      newChatBtn +
+      sessionsHtml +
+      "</section>" +
+      '<section><h5 style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Recent Searches</h5>' +
+      '<div>' + searchHtml + "</div></section>";
   }
 
   /* ─── Input Lock ─── */
@@ -617,30 +864,34 @@
   }
 
   /* ─── Trip Wizard ─── */
-  function startTripWizard(ui, state) {
-    state.tripWizard = { step: 0, answers: {} };
-    save(state);
-    showWizardStep(ui, state);
+  function startTripWizard(ui, state, library, mode) {
+    state.tripWizard = { mode: mode === "multi" ? "multi" : "single", step: 0, answers: {} };
+    save(state, library);
+    showWizardStep(ui, state, library);
   }
 
-  function showWizardStep(ui, state) {
+  function showWizardStep(ui, state, library) {
     var wiz = state.tripWizard;
-    if (!wiz || wiz.step >= TRIP_STEPS.length) return;
-    var step = TRIP_STEPS[wiz.step];
+    if (!wiz) return;
+    var steps = getWizardSteps(wiz.mode);
+    if (wiz.step >= steps.length) return;
+    var step = steps[wiz.step];
     pushMsg(state, {
       id: uid("m"), role: "assistant", text: step.question,
       timestamp: new Date().toISOString(), citations: [], actions: [],
       wizardOptions: step.options,
       wizardAllowTyping: step.allowTyping,
-    });
-    save(state);
+    }, library);
+    save(state, library);
     renderThread(ui, state);
   }
 
-  function advanceWizard(ui, state, answer) {
+  function advanceWizard(ui, state, library, answer) {
     var wiz = state.tripWizard;
-    if (!wiz || wiz.step >= TRIP_STEPS.length) return;
-    var step = TRIP_STEPS[wiz.step];
+    if (!wiz) return;
+    var steps = getWizardSteps(wiz.mode);
+    if (wiz.step >= steps.length) return;
+    var step = steps[wiz.step];
 
     /* Remove wizard options from the last AI message to avoid re-clicking */
     for (var i = state.messages.length - 1; i >= 0; i--) {
@@ -654,31 +905,41 @@
     pushMsg(state, {
       id: uid("m"), role: "user", text: answer,
       timestamp: new Date().toISOString(), citations: [], actions: [],
-    });
+    }, library);
 
     wiz.answers[step.key] = answer;
     wiz.step++;
-    save(state);
+    save(state, library);
     renderThread(ui, state);
 
-    if (wiz.step >= TRIP_STEPS.length) {
+    if (wiz.step >= steps.length) {
       /* All steps done — build query and call AI */
-      var query = buildWizardQuery(wiz.answers);
+      var query = buildWizardQuery(wiz.answers, wiz.mode);
       state.tripWizard = null;
-      save(state);
-      handleSubmit(ui, state, query);
+      save(state, library);
+      handleSubmit(ui, state, library, query);
     } else {
-      showWizardStep(ui, state);
+      showWizardStep(ui, state, library);
     }
   }
 
-  function buildWizardQuery(answers) {
-    var parts = ["I want to plan a trip"];
-    if (answers.people) parts.push("for " + answers.people);
-    if (answers.fuel) parts.push("prefer " + answers.fuel + " vehicle");
-    if (answers.budget) parts.push(answers.budget);
-    if (answers.destination) parts.push("destination type " + answers.destination);
-    return parts.join(", ");
+  function buildWizardQuery(answers, mode) {
+    /* Multi-stop: lead with the itinerary so the backend's stop parser fires
+     * (handleMultiLegQuote requires 2+ stops to engage). */
+    if (mode === "multi" && answers.stops) {
+      var parts = ["Plan a multi-stop trip: " + answers.stops];
+      if (answers.people) parts.push("for " + answers.people);
+      if (answers.fuel) parts.push("prefer " + answers.fuel + " vehicle");
+      if (answers.budget) parts.push(answers.budget);
+      return parts.join(", ");
+    }
+
+    var parts2 = ["I want to plan a trip"];
+    if (answers.people) parts2.push("for " + answers.people);
+    if (answers.fuel) parts2.push("prefer " + answers.fuel + " vehicle");
+    if (answers.budget) parts2.push(answers.budget);
+    if (answers.destination) parts2.push("destination type " + answers.destination);
+    return parts2.join(", ");
   }
 
   /* ─── Fallback ─── */
@@ -692,16 +953,16 @@
   }
 
   /* ─── Submit ─── */
-  async function handleSubmit(ui, state, query) {
-    trackSearch(state, query);
+  async function handleSubmit(ui, state, library, query) {
+    trackSearch(state, query, library);
     pushMsg(state, {
       id: uid("m"), role: "user", text: query,
       timestamp: new Date().toISOString(), citations: [], actions: [],
-    });
+    }, library);
     pushMsg(state, {
       id: uid("m"), role: "assistant", text: "",
       timestamp: new Date().toISOString(), citations: [], actions: [], isTyping: true,
-    });
+    }, library);
     renderThread(ui, state);
     lockInput(ui);
 
@@ -714,16 +975,66 @@
         timestamp: new Date().toISOString(),
         citations: normCitations(data && data.citations),
         actions: normActions(data && data.actions),
-      });
-      bumpUnread(ui, state);
+      }, library);
+      bumpUnread(ui, state, library);
     } catch (err) {
-      replaceTyping(state, fallbackMsg(trim(err && err.message)));
-      bumpUnread(ui, state);
+      replaceTyping(state, fallbackMsg(trim(err && err.message)), library);
+      bumpUnread(ui, state, library);
     }
 
     unlockInput(ui);
     renderThread(ui, state);
-    renderHistory(ui, state);
+    renderHistory(ui, state, library);
+  }
+
+  /* ─── Session switching helpers ─────────────────────────────────────
+   * These helpers operate on the closure-captured state via `ref` so any
+   * listener attached to the panel always reads/writes the *currently
+   * active* session (not the one captured at attach time). */
+  function activateSession(ref, ui, sessionId) {
+    if (!ref.library.sessions[sessionId]) return;
+    /* Persist the current state before switching so we don't lose updates. */
+    save(ref.state, ref.library);
+    ref.library.activeId = sessionId;
+    ref.state = ref.library.sessions[sessionId];
+    saveLibrary(ref.library);
+    renderThread(ui, ref.state);
+    renderBadge(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
+  }
+
+  function newSession(ref, ui) {
+    var fresh = freshState();
+    ref.library.sessions[fresh.sessionId] = fresh;
+    ref.library.activeId = fresh.sessionId;
+    ref.state = fresh;
+    saveLibrary(ref.library);
+    renderThread(ui, ref.state);
+    renderBadge(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
+  }
+
+  function deleteSession(ref, ui, sessionId) {
+    if (!ref.library.sessions[sessionId]) return;
+    delete ref.library.sessions[sessionId];
+    /* If we deleted the active session, switch to the next most recent or
+     * create a fresh one when the library is empty. */
+    if (ref.library.activeId === sessionId) {
+      var remaining = listSessions(ref.library);
+      if (remaining.length) {
+        ref.library.activeId = remaining[0].sessionId;
+        ref.state = remaining[0];
+      } else {
+        var fresh = freshState();
+        ref.library.sessions[fresh.sessionId] = fresh;
+        ref.library.activeId = fresh.sessionId;
+        ref.state = fresh;
+      }
+    }
+    saveLibrary(ref.library);
+    renderThread(ui, ref.state);
+    renderBadge(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
   }
 
   /* ─── Init ─── */
@@ -731,24 +1042,44 @@
     if (!document.body || document.body.classList.contains("vrs-admin-page")) return;
     injectStyles();
     var ui = buildUi();
-    var state = loadState();
 
-    renderThread(ui, state);
-    renderHistory(ui, state);
-    renderBadge(ui, state);
+    /* `ref` is shared across every listener so that handlers always operate
+     * on the *currently active* state/library, even after the user switches
+     * to a different session via the history panel. */
+    var library = loadLibrary();
+    var state = library.sessions[library.activeId];
+    var ref = { state: state, library: library };
+
+    renderThread(ui, ref.state);
+    renderHistory(ui, ref.state, ref.library);
+    renderBadge(ui, ref.state);
 
     /* FAB toggle */
     ui.fab.addEventListener("click", function () {
       if (isOpen(ui)) { closePanel(ui); }
-      else { openPanel(ui); clearUnread(ui, state); }
+      else { openPanel(ui); clearUnread(ui, ref.state, ref.library); }
     });
 
     ui.closeBtn.addEventListener("click", function () { closePanel(ui); });
 
-    /* Clear chat */
+    /* Header "+" — open a new session straight away (does NOT delete the
+     * current one; it stays in history). */
+    if (ui.newHeaderBtn) {
+      ui.newHeaderBtn.addEventListener("click", function () {
+        newSession(ref, ui);
+      });
+    }
+
+    /* Clear chat — replaces the active session's content with a fresh welcome
+     * (without removing the session from history). */
     ui.clearBtn.addEventListener("click", function () {
-      state = freshState(); save(state);
-      renderThread(ui, state); renderHistory(ui, state); renderBadge(ui, state);
+      var fresh = freshState({ id: ref.state.sessionId });
+      ref.library.sessions[fresh.sessionId] = fresh;
+      ref.state = fresh;
+      saveLibrary(ref.library);
+      renderThread(ui, ref.state);
+      renderHistory(ui, ref.state, ref.library);
+      renderBadge(ui, ref.state);
     });
 
     /* History panel */
@@ -759,9 +1090,9 @@
     ui.thread.addEventListener("click", function (e) {
       /* Wizard option pick */
       var wizBtn = e.target && e.target.closest("button[data-wizard-pick]");
-      if (wizBtn && state.tripWizard) {
+      if (wizBtn && ref.state.tripWizard) {
         var wizVal = wizBtn.getAttribute("data-wizard-pick");
-        advanceWizard(ui, state, wizVal);
+        advanceWizard(ui, ref.state, ref.library, wizVal);
         return;
       }
 
@@ -777,30 +1108,62 @@
         var val = trim(suggest.getAttribute("data-ai-suggest"));
         if (val) {
           /* Remove suggestion chips from welcome message */
-          if (state.messages.length && state.messages[0].showSuggestions) {
-            state.messages[0].showSuggestions = false; save(state);
+          if (ref.state.messages.length && ref.state.messages[0].showSuggestions) {
+            ref.state.messages[0].showSuggestions = false; save(ref.state, ref.library);
           }
-          /* Intercept "Plan a trip" to start guided wizard */
-          if (val.toLowerCase() === "plan a trip") {
-            pushMsg(state, {
+          var lvSuggest = val.toLowerCase();
+          /* Intercept "Plan a trip" / "Multi-stop trip" to start the wizard.
+           * (Also catches plural/spacing variants for safety.) */
+          if (/^plan\s+a?\s*trip$/.test(lvSuggest) || /^multi[\s-]?stop\s*trips?$/.test(lvSuggest)) {
+            pushMsg(ref.state, {
               id: uid("m"), role: "user", text: val,
               timestamp: new Date().toISOString(), citations: [], actions: [],
-            });
-            renderThread(ui, state);
-            startTripWizard(ui, state);
+            }, ref.library);
+            renderThread(ui, ref.state);
+            startTripWizard(ui, ref.state, ref.library, lvSuggest === "plan a trip" ? "single" : "multi");
             return;
           }
-          handleSubmit(ui, state, val);
+          handleSubmit(ui, ref.state, ref.library, val);
         }
       }
     });
 
-    /* Search history clicks */
+    /* History-panel clicks: session switch / delete / search re-fill */
     ui.historyBody.addEventListener("click", function (e) {
+      /* Delete button — must be checked BEFORE the session-row check because
+       * it sits inside one. */
+      var deleteBtn = e.target && e.target.closest("button[data-ai-session-delete]");
+      if (deleteBtn) {
+        var delId = deleteBtn.getAttribute("data-ai-session-delete");
+        if (delId) deleteSession(ref, ui, delId);
+        e.stopPropagation();
+        return;
+      }
+
+      var sessRow = e.target && e.target.closest("[data-ai-session-id]");
+      if (sessRow) {
+        var sid = sessRow.getAttribute("data-ai-session-id");
+        if (sid && sid !== ref.library.activeId) activateSession(ref, ui, sid);
+        return;
+      }
+
+      var newBtn = e.target && e.target.closest("button[data-ai-new-session]");
+      if (newBtn) { newSession(ref, ui); return; }
+
       var btn = e.target && e.target.closest("button[data-ai-search-val]");
       if (!btn) return;
       var val = trim(btn.getAttribute("data-ai-search-val"));
       if (val) { ui.input.value = val; ui.input.focus(); ui.historyPanel.classList.add("is-hidden"); }
+    });
+
+    /* Keyboard support for the role=button session rows (Enter/Space). */
+    ui.historyBody.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var sessRow = e.target && e.target.closest && e.target.closest("[data-ai-session-id][role='button']");
+      if (!sessRow) return;
+      e.preventDefault();
+      var sid = sessRow.getAttribute("data-ai-session-id");
+      if (sid && sid !== ref.library.activeId) activateSession(ref, ui, sid);
     });
 
     /* Form submit */
@@ -811,29 +1174,45 @@
       ui.input.value = "";
 
       /* If wizard is active, feed typed answer into wizard */
-      if (state.tripWizard) {
-        advanceWizard(ui, state, q);
+      if (ref.state.tripWizard) {
+        advanceWizard(ui, ref.state, ref.library, q);
         return;
       }
 
       /* Remove suggestion chips from welcome message */
-      if (state.messages.length && state.messages[0].showSuggestions) {
-        state.messages[0].showSuggestions = false; save(state);
+      if (ref.state.messages.length && ref.state.messages[0].showSuggestions) {
+        ref.state.messages[0].showSuggestions = false; save(ref.state, ref.library);
       }
 
-      /* Intercept trip-planning keywords to start wizard */
+      /* Intercept trip-planning keywords to start the wizard. Multi-stop
+       * keywords ("multi-stop", "multiple stops", "few places", "round trip")
+       * jump straight into the multi-stop branch; bare "plan a trip" goes to
+       * the single branch. We accept both singular ("multiple stop") and
+       * plural ("multiple stops") since users phrase it both ways. */
       var lq = q.toLowerCase();
-      if (/^plan\s*(a\s*)?trip$/i.test(lq) || /^(i\s+want\s+to\s+)?plan\s*(a\s*)?trip/i.test(lq) && lq.length < 30) {
-        pushMsg(state, {
+      var isMultiStop = /(multi[\s-]?stops?|multiple\s+(stops?|places?|destinations?|cities|locations?)|many\s+(stops?|places?)|few\s+(stops?|places?)|several\s+(stops?|places?|cities)|package\s+price|package\s+(quote|deal)|estimate.*package|itinerary|round[\s-]?trip|tour\s+(around|of)|hop\s+(between|across))/i.test(lq);
+      /* Detect single-trip intent. We removed the length cap because users
+       * typing longer phrases like "i want to plan a trip" should still hit
+       * the wizard. Multi-stop check above takes priority for itinerary words. */
+      var hasTripWord = /\b(trip|travel|journey|vacation|holiday|tour|road\s*trip)\b/.test(lq);
+      var hasPlanIntent = /(plan|book|arrange|organize|recommend|suggest|find\s+(me\s+)?a)\s+(a\s+)?(trip|travel|journey|vacation|holiday|tour|vehicle|car)/.test(lq) ||
+        /(want|need|looking)\s+(to|for)\s+(plan|book|go|travel|rent)/.test(lq);
+      var isSingleTrip = !isMultiStop && (
+        /^plan\s*(a\s*)?trip$/i.test(lq) ||
+        (hasTripWord && hasPlanIntent) ||
+        /^(i\s+want\s+to\s+)?plan\s*(a\s*)?trip/i.test(lq)
+      );
+      if (isMultiStop || isSingleTrip) {
+        pushMsg(ref.state, {
           id: uid("m"), role: "user", text: q,
           timestamp: new Date().toISOString(), citations: [], actions: [],
-        });
-        renderThread(ui, state);
-        startTripWizard(ui, state);
+        }, ref.library);
+        renderThread(ui, ref.state);
+        startTripWizard(ui, ref.state, ref.library, isMultiStop ? "multi" : "single");
         return;
       }
 
-      handleSubmit(ui, state, q);
+      handleSubmit(ui, ref.state, ref.library, q);
     });
 
     /* Escape to close */
@@ -866,8 +1245,8 @@
       ui.input.style.color = t.inputText;
       var hist = ui.historyPanel;
       if (hist) hist.style.background = t.histBg;
-      renderThread(ui, state);
-      renderHistory(ui, state);
+      renderThread(ui, ref.state);
+      renderHistory(ui, ref.state, ref.library);
     }
     try {
       var mo = new MutationObserver(function (muts) {

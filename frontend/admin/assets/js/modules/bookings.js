@@ -698,10 +698,15 @@ function renderBookingRow(row) {
       </select>
     </td>
     <td data-col="payment" class="py-3 pr-3">
-      <select data-booking-payment-select data-current-payment="${paymentDone ? 'yes' : 'no'}" class="${paymentSelectClass(paymentDone, false)}">
-        <option value="yes" ${paymentDone ? 'selected' : ''}>Yes</option>
-        <option value="no" ${!paymentDone ? 'selected' : ''}>No</option>
-      </select>
+      <div class="flex flex-col gap-1">
+        <span class="${bookingPaymentPillClass(row.paymentStatus)}">${escapeHtml(row.paymentStatusLabel || (paymentDone ? 'Paid' : 'Unpaid'))}</span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">Paid ${escapeHtml(formatNpr(row.paidAmount || 0))}</span>
+        <span class="text-[11px] text-amber-600 dark:text-amber-300">Due ${escapeHtml(formatNpr(row.remainingAmount || 0))}</span>
+        <select data-booking-payment-select data-current-payment="${paymentDone ? 'yes' : 'no'}" class="${paymentSelectClass(paymentDone, false)}">
+          <option value="yes" ${paymentDone ? 'selected' : ''}>Yes</option>
+          <option value="no" ${!paymentDone ? 'selected' : ''}>No</option>
+        </select>
+      </div>
     </td>
     <td data-col="total" class="py-3 pr-3 font-semibold">${escapeHtml(formatNpr(row.total || 0))}</td>
     <td data-col="actions" class="py-3 pr-3">
@@ -893,6 +898,16 @@ function statusSelectClass(status, isDisabled) {
   if (normalized === 'Cancelled') return `${base} border-rose-200 bg-rose-100 text-rose-800 dark:border-rose-400/30 dark:bg-rose-500/20 dark:text-rose-200${disabled}`;
   if (normalized === 'Completed') return `${base} border-slate-300 bg-slate-200 text-slate-800 dark:border-slate-400/30 dark:bg-slate-500/25 dark:text-slate-200${disabled}`;
   return `${base} border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200${disabled}`;
+}
+
+function bookingPaymentPillClass(status) {
+  const base = 'inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]';
+  const key = String(status || '').toLowerCase();
+  if (key === 'paid') return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
+  if (key === 'partial') return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
+  if (key === 'failed' || key === 'expired') return `${base} bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300`;
+  if (key === 'refunded') return `${base} bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300`;
+  return `${base} bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200`;
 }
 
 function paymentSelectClass(paymentDone, isDisabled) {
