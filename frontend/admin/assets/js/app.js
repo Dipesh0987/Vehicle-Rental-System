@@ -108,6 +108,7 @@ async function bootstrap() {
   updateVerificationNotificationBadge(0);
   initTheme();
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch, handleGlobalSearchKeydown);
+  document.getElementById('notificationBtn')?.addEventListener('click', openNotificationPanel);
   document.addEventListener('pointerdown', handleGlobalSearchOutsideClick);
   renderActiveModule();
   setActiveNav(appState.activeModule);
@@ -117,6 +118,7 @@ async function bootstrap() {
   await hydrateCustomersFromDatabase({ silent: true });
   await hydratePaymentsFromDatabase({ silent: true });
   await hydrateDriversFromDatabase({ silent: true });
+  await hydrateMainteinanceFromDatabase({ silent: true });
   renderActiveModule();
 
   setupCatalogSync();
@@ -130,6 +132,45 @@ async function bootstrap() {
     }
   } catch (error) {
     pushToast(`Vehicle DB sync failed: ${error.message}`, 'error');
+  }
+}
+
+async function hydrateMainteinanceFromDatabase({ silent = false } = {}) {
+  try {
+    if (!window.SupabaseClient || !window.SupabaseClient.isConfigured()) return;
+    const client = await window.SupabaseClient.init();
+    const { data: rows, error } = await client
+      .from('maintenance_records')
+      .select('*')
+      .order('schedule_date', { ascending: false })
+      .limit(300);
+    if (error) throw error;
+    if (!rows || !rows.length) return;
+    appState.data.maintenance = rows.map((r) => ({
+      dbId:            r.id,
+      id:              r.maintenance_id,
+      vehicle:         r.vehicle_name,
+      vehicleId:       r.vehicle_id || '',
+      schedule:        r.schedule_date,
+      serviceType:     r.service_type,
+      damage:          r.description,
+      status:          r.status,
+      costEstimate:    r.cost_estimate ? Number(r.cost_estimate) : 0,
+      technician:      r.technician || '',
+      reportedBy:      r.reported_by || '',
+      completedAt:     r.completed_at || '',
+      notes:           r.notes || '',
+      customerName:    r.customer_name || '',
+      customerEmail:   r.customer_email || '',
+      customerUserId:  r.customer_user_id || '',
+      linkedBookingId: r.linked_booking_id || '',
+      bookingRef:      r.booking_ref || '',
+    }));
+    if (!silent) pushToast('Maintenance records loaded', 'success');
+    renderActiveModule();
+  } catch (err) {
+    if (!silent) pushToast(`Maintenance load failed: ${err.message}`, 'warn');
+    console.warn('[maintenance] hydrate failed:', err.message);
   }
 }
 
@@ -155,6 +196,7 @@ function renderActiveModule() {
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
+      navigate: handleNavigate,
       rerender: renderActiveModule,
     });
 
@@ -350,35 +392,58 @@ function renderGlobalSearchResults(query) {
   globalSearchState.activeType = groups[0]?.key || '';
   syncSidebarToSearchType(globalSearchState.activeType);
 
+  // Detect live dark mode — inline styles bypass pre-built Tailwind CSS limitations
+  const isDark = document.documentElement.classList.contains('dark') || document.body.getAttribute('data-theme') === 'dark';
+  const clr = {
+    bg:          isDark ? '#0e1a25'                    : '#ffffff',
+    border:      isDark ? 'rgba(255,255,255,0.10)'     : '#e2e8f0',
+    divider:     isDark ? 'rgba(255,255,255,0.08)'     : '#e2e8f0',
+    groupTitle:  isDark ? '#94a3b8'                    : '#64748b',
+    label:       isDark ? '#f1f5f9'                    : '#0f172a',
+    meta:        isDark ? '#94a3b8'                    : '#64748b',
+    badgeBg:     isDark ? 'rgba(255,255,255,0.07)'     : '#f8fafc',
+    badgeBorder: isDark ? 'rgba(255,255,255,0.12)'     : '#e2e8f0',
+    activeBg:    isDark ? 'rgba(31,118,104,0.22)'      : 'rgba(31,118,104,0.08)',
+    hoverBg:     isDark ? 'rgba(255,255,255,0.05)'     : '#f1f5f9',
+    dotActive:   '#1f7668',
+    dotDefault:  isDark ? '#475569'                    : '#cbd5e1',
+  };
+
+  const panelStyle = `position:absolute;left:0;top:100%;z-index:40;margin-top:0.5rem;width:min(760px,calc(100vw - 2rem));overflow:hidden;border-radius:0.75rem;border:1px solid ${clr.border};background:${clr.bg};box-shadow:0 4px 24px rgba(0,0,0,0.15);`;
+
   if (!groups.length) {
     closeGlobalSearchResults();
     const parent = hostInput.closest('label') || hostInput.parentElement;
     if (!parent) return;
     const emptyState = document.createElement('div');
     emptyState.id = 'globalSearchResults';
-    emptyState.className = 'absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-black/20';
+    emptyState.setAttribute('style', panelStyle);
     emptyState.innerHTML = `
-      <div class="p-4 text-sm text-slate-600 dark:text-slate-300">
-        <p class="font-semibold text-slate-900 dark:text-white">No matches found</p>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Try a different keyword or search another record type.</p>
+      <div style="padding:1rem;">
+        <p style="font-size:0.875rem;font-weight:700;color:${clr.label};">No matches found</p>
+        <p style="margin-top:0.25rem;font-size:0.75rem;color:${clr.meta};">Try a different keyword or search another record type.</p>
       </div>
     `;
     parent.appendChild(emptyState);
     return;
   }
 
-  const html = [`<div id="globalSearchResults" class="absolute left-0 top-full z-40 mt-2 w-[min(760px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-white/10 dark:bg-black/20">`];
-  for (const g of groups) {
-    html.push(`<div class="border-b border-slate-200 p-3 last:border-b-0 dark:border-white/10">`);
-    html.push(`<div class="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">${escapeHtml(g.title)}</div>`);
+  const html = [`<div id="globalSearchResults" style="${panelStyle}">`];
+  for (let gi = 0; gi < groups.length; gi++) {
+    const g = groups[gi];
+    const isLast = gi === groups.length - 1;
+    html.push(`<div style="padding:0.75rem;${isLast ? '' : `border-bottom:1px solid ${clr.divider};`}">`);
+    html.push(`<div style="margin-bottom:0.5rem;font-size:0.6875rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:${clr.groupTitle};">${escapeHtml(g.title)}</div>`);
     for (const item of g.items) {
       const flatIndex = globalSearchState.items.findIndex((entry) => entry.type === g.key && entry.id === item.id);
       const isActive = flatIndex === globalSearchState.activeIndex;
-      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" aria-label="Open ${escapeHtml(item.label)} in ${escapeHtml(searchTypeLabels[g.key] || g.title)}" class="group flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition ${isActive ? 'bg-brand-500/10 ring-1 ring-inset ring-brand-500/20 dark:bg-brand-500/20' : 'hover:bg-slate-100 dark:hover:bg-white/5'}">`);
-      html.push(`<span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${isActive ? 'bg-brand-600 shadow-[0_0_0_4px_rgba(31,118,104,0.12)]' : 'bg-slate-300 group-hover:bg-brand-400'}"></span>`);
-      html.push(`<span class="min-w-0 flex-1">`);
-      html.push(`<div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(item.label)}</div>`);
-      html.push(`<div class="mt-0.5 flex items-center gap-2 text-xs text-slate-500"><span>${escapeHtml(item.meta)}</span><span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
+      const btnBg = isActive ? clr.activeBg : 'transparent';
+      const btnBorder = isActive ? `1px solid rgba(31,118,104,0.25)` : '1px solid transparent';
+      html.push(`<button data-search-type="${g.key}" data-search-id="${escapeHtml(item.id)}" data-search-index="${flatIndex}" aria-label="Open ${escapeHtml(item.label)} in ${escapeHtml(searchTypeLabels[g.key] || g.title)}" style="display:flex;width:100%;align-items:flex-start;gap:0.75rem;border-radius:0.5rem;padding:0.5rem;text-align:left;background:${btnBg};border:${btnBorder};cursor:pointer;transition:background 150ms;" onmouseover="this.style.background='${isActive ? clr.activeBg : clr.hoverBg}'" onmouseout="this.style.background='${btnBg}'">`);
+      html.push(`<span style="margin-top:0.25rem;height:0.625rem;width:0.625rem;flex-shrink:0;border-radius:9999px;background:${isActive ? clr.dotActive : clr.dotDefault};${isActive ? 'box-shadow:0 0 0 4px rgba(31,118,104,0.14);' : ''}"></span>`);
+      html.push(`<span style="min-width:0;flex:1;">`);
+      html.push(`<div style="font-size:0.875rem;font-weight:600;color:${clr.label};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.label)}</div>`);
+      html.push(`<div style="margin-top:0.25rem;display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:${clr.meta};"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.meta)}</span><span style="flex-shrink:0;border-radius:9999px;border:1px solid ${clr.badgeBorder};background:${clr.badgeBg};padding:0.1rem 0.5rem;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:${clr.meta};">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
       html.push(`</span>`);
       html.push(`</button>`);
     }
@@ -407,14 +472,28 @@ function renderGlobalSearchResults(query) {
     btn.addEventListener('mouseenter', () => {
       const nextIndex = Number(btn.getAttribute('data-search-index'));
       const nextType = btn.getAttribute('data-search-type') || '';
-      if (!Number.isNaN(nextIndex) && nextIndex !== globalSearchState.activeIndex) {
-        globalSearchState.activeIndex = nextIndex;
-      }
+      if (!Number.isNaN(nextIndex)) globalSearchState.activeIndex = nextIndex;
       if (nextType && nextType !== globalSearchState.activeType) {
         globalSearchState.activeType = nextType;
         syncSidebarToSearchType(nextType);
       }
-      renderGlobalSearchResults(globalSearchState.query);
+      // Highlight using inline styles (buttons use inline styles, not Tailwind classes)
+      const curDark = document.documentElement.classList.contains('dark') || document.body.getAttribute('data-theme') === 'dark';
+      const activeBg  = curDark ? 'rgba(31,118,104,0.22)' : 'rgba(31,118,104,0.08)';
+      const inactiveBg = 'transparent';
+      const dotActive  = '#1f7668';
+      const dotDefault = curDark ? '#475569' : '#cbd5e1';
+      document.querySelectorAll('#globalSearchResults [data-search-type]').forEach((b) => {
+        const bIdx = Number(b.getAttribute('data-search-index'));
+        const isActive = bIdx === nextIndex;
+        b.style.background = isActive ? activeBg : inactiveBg;
+        b.style.border = isActive ? '1px solid rgba(31,118,104,0.25)' : '1px solid transparent';
+        const dot = b.querySelector('span[style*="border-radius:9999px"]');
+        if (dot) {
+          dot.style.background = isActive ? dotActive : dotDefault;
+          dot.style.boxShadow  = isActive ? '0 0 0 4px rgba(31,118,104,0.14)' : 'none';
+        }
+      });
     });
   });
 }
@@ -466,6 +545,7 @@ function handleGlobalSearchSelect(type, id) {
     vehicles: 'vehicles',
     bookings: 'bookings',
     customers: 'customers',
+    drivers: 'drivers',
     admins: 'admins',
   };
 
@@ -484,10 +564,11 @@ function handleGlobalSearchSelect(type, id) {
   // Try to open detail in the rendered module by triggering the appropriate control
   window.setTimeout(() => {
     let selectorMap = {
-      vehicles: `[data-edit-id="${id}"]`,
-      bookings: `[data-edit-booking-id="${id}"]`,
+      vehicles:  `[data-edit-id="${id}"]`,
+      bookings:  `[data-edit-booking-id="${id}"]`,
       customers: `[data-open-customer-id="${id}"]`,
-      admins: `[data-permission="${id}"]`,
+      drivers:   `[data-driver-id="${id}"]`,
+      admins:    `[data-permission="${id}"]`,
     };
 
     const sel = selectorMap[type];
@@ -495,7 +576,7 @@ function handleGlobalSearchSelect(type, id) {
     if (el) {
       el.click();
     }
-  }, 120);
+  }, 200);
 
   // Clear dropdown and input
   closeGlobalSearchResults();
@@ -788,6 +869,133 @@ function formatRelativeTime(value) {
   return 'Just now';
 }
 
+function openNotificationPanel() {
+  const existing = document.getElementById('notifPanelPopup');
+  if (existing) { existing.remove(); return; }
+  const btn = document.getElementById('notificationBtn');
+  if (!btn) return;
+
+  const items = [];
+
+  // Recent pending / confirmed bookings
+  const recentBookings = (Array.isArray(appState.data.bookings) ? appState.data.bookings : [])
+    .filter((b) => ['pending', 'confirmed'].includes(String(b.status || '').toLowerCase()))
+    .slice(0, 6);
+  for (const b of recentBookings) {
+    items.push({
+      icon: 'event_note', iconHex: '#1f7668',
+      title: `Booking ${b.id}`,
+      body: `${b.customer} \u00b7 ${b.status}`,
+      time: formatRelativeTime(b.createdAt),
+      module: 'bookings', selector: `[data-edit-booking-id="${b.bookingId || b.id}"]`,
+    });
+  }
+
+  // Pending KYC verifications
+  const pendingVerifs = (Array.isArray(appState.data.customers) ? appState.data.customers : [])
+    .filter((c) => c.isPendingReview).slice(0, 4);
+  for (const c of pendingVerifs) {
+    items.push({
+      icon: 'verified_user', iconHex: '#f59e0b',
+      title: `KYC: ${c.name}`,
+      body: 'Profile verification pending review',
+      time: formatRelativeTime(c.verificationSubmittedAt),
+      module: 'customers', selector: `[data-open-customer-id="${c.id}"]`,
+    });
+  }
+
+  // Recent payments
+  const recentPayments = (Array.isArray(appState.data.payments) ? appState.data.payments : []).slice(0, 3);
+  for (const p of recentPayments) {
+    items.push({
+      icon: 'credit_card', iconHex: '#10b981',
+      title: `Payment \u2014 ${p.bookingCode || p.id || ''}`,
+      body: `${p.customerName || ''} \u00b7 NPR ${Number(p.amount || 0).toLocaleString()}`,
+      time: formatRelativeTime(p.paidAt || p.createdAt || ''),
+      module: 'payments', selector: '',
+    });
+  }
+
+  const panel = document.createElement('div');
+  panel.id = 'notifPanelPopup';
+  const rect = btn.getBoundingClientRect();
+  const panelW = Math.min(400, window.innerWidth - 16);
+  panel.style.cssText = `position:fixed;top:${Math.round(rect.bottom + 8)}px;right:${Math.max(8, Math.round(window.innerWidth - rect.right))}px;z-index:200;width:${panelW}px;border-radius:1rem;box-shadow:0 8px 32px rgba(0,0,0,0.22);overflow:hidden;`;
+
+  panel.innerHTML = `
+    <div class="notif-header">
+      <span class="notif-heading">
+        Notifications
+        ${items.length > 0 ? `<span class="notif-badge">${items.length}</span>` : ''}
+      </span>
+      <button id="notifViewAllBtn" class="notif-view-all">View all</button>
+    </div>
+    <div class="notif-list">
+      ${items.length === 0
+        ? '<p class="notif-empty">No pending items right now</p>'
+        : items.map((item, i) =>
+            `<button data-notif-idx="${i}" class="notif-item">
+              <span class="material-symbols-outlined notif-icon" style="color:${item.iconHex}">${item.icon}</span>
+              <span class="notif-item-body">
+                <p class="notif-title">${escapeHtml(item.title)}</p>
+                <p class="notif-body">${escapeHtml(item.body)}</p>
+                <p class="notif-time">${escapeHtml(item.time)}</p>
+              </span>
+              <span class="material-symbols-outlined notif-chevron">chevron_right</span>
+            </button>`
+          ).join('')
+      }
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  panel.querySelectorAll('[data-notif-idx]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const item = items[Number(el.getAttribute('data-notif-idx'))];
+      if (!item) return;
+      panel.remove();
+      document.removeEventListener('pointerdown', outsideClick);
+      appState.activeModule = item.module;
+      setActiveNav(item.module);
+      renderActiveModule();
+      if (item.selector) {
+        window.setTimeout(() => { const t = document.querySelector(item.selector); if (t) t.click(); }, 220);
+      }
+    });
+  });
+
+  panel.querySelector('#notifViewAllBtn')?.addEventListener('click', () => {
+    panel.remove();
+    document.removeEventListener('pointerdown', outsideClick);
+    appState.activeModule = 'notifications';
+    setActiveNav('notifications');
+    renderActiveModule();
+  });
+
+  function outsideClick(e) {
+    if (!panel.contains(e.target) && !btn.contains(e.target)) {
+      panel.remove();
+      document.removeEventListener('pointerdown', outsideClick);
+    }
+  }
+  window.setTimeout(() => document.addEventListener('pointerdown', outsideClick), 60);
+}
+
+function buildBookingNotifications(bookings) {
+  return (Array.isArray(bookings) ? bookings : [])
+    .filter((b) => ['pending', 'confirmed'].includes(String(b.status || '').toLowerCase()))
+    .slice(0, 5)
+    .map((b) => ({
+      id: `BK-NOTIF-${b.id}`,
+      title: `Booking ${b.id} — ${b.customer}`,
+      channel: 'Bookings',
+      priority: String(b.status || '').toLowerCase() === 'pending' ? 'High' : 'Normal',
+      time: formatRelativeTime(b.createdAt),
+      type: 'booking_created',
+      bookingId: b.bookingId || b.id,
+    }));
+}
+
 function buildVerificationNotifications(customers) {
   const queue = sortCustomersForReviewQueue((Array.isArray(customers) ? customers : []).filter(isPendingReviewCustomer));
   const queueCount = queue.length;
@@ -818,16 +1026,17 @@ function buildVerificationNotifications(customers) {
   return [summary, ...detailRows];
 }
 
-function mergeNotifications(baseRows, verificationRows) {
+function mergeNotifications(baseRows, verificationRows, bookingRows) {
   const base = Array.isArray(baseRows) ? baseRows : [];
   const generated = Array.isArray(verificationRows) ? verificationRows : [];
+  const bookings = Array.isArray(bookingRows) ? bookingRows : [];
 
   const filteredBase = base.filter((row) => {
     const type = String(row && row.type ? row.type : '').trim().toLowerCase();
-    return type !== 'verification_queue' && type !== 'verification_submission';
+    return type !== 'verification_queue' && type !== 'verification_submission' && type !== 'booking_created';
   });
 
-  return [...generated, ...filteredBase];
+  return [...generated, ...bookings, ...filteredBase];
 }
 
 function updateVerificationNotificationBadge(pendingCount) {
@@ -872,8 +1081,11 @@ function syncVerificationQueueSignals(customers, { silent = false } = {}) {
   appState.knownVerificationSubmissionKeys = queueKeys;
 
   const generatedNotifications = buildVerificationNotifications(pendingQueue);
-  appState.data.notifications = mergeNotifications(appState.baseNotifications, generatedNotifications);
-  updateVerificationNotificationBadge(pendingCount);
+  const bookingNotifications = buildBookingNotifications(appState.data.bookings);
+  appState.data.notifications = mergeNotifications(appState.baseNotifications, generatedNotifications, bookingNotifications);
+  const pendingBookingCount = (Array.isArray(appState.data.bookings) ? appState.data.bookings : [])
+    .filter((b) => String(b.status || '').toLowerCase() === 'pending').length;
+  updateVerificationNotificationBadge(pendingCount + pendingBookingCount);
 }
 
 function syncCustomerTripCounts() {

@@ -2,14 +2,14 @@ import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { openModal, renderEmptyState } from '../ui.js';
 
-const STATUS_OPTIONS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'];
+const STATUS_OPTIONS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Billed'];
 const SERVICE_TYPES  = ['Damage', 'Scheduled Service', 'Inspection', 'Repair'];
 
 const maintenanceUiState = {
   selectedId: '',
   statusFilter: 'All',
   page: 1,
-  mode: 'list', // list | detail | add | edit
+  mode: 'list', // list | detail | add | edit | billing
 };
 
 export function renderMaintenanceModule({ data, query, notify, rerender }) {
@@ -26,6 +26,15 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
     }
     maintenanceUiState.mode = 'list';
     maintenanceUiState.selectedId = '';
+  }
+
+  if (maintenanceUiState.mode === 'billing' && maintenanceUiState.selectedId) {
+    const record = sourceRows.find((r) => r.id === maintenanceUiState.selectedId);
+    if (record) {
+      renderBillingForm(host, record, data, notify, rerender);
+      return host;
+    }
+    maintenanceUiState.mode = 'detail';
   }
 
   if (maintenanceUiState.mode === 'add' || maintenanceUiState.mode === 'edit') {
@@ -48,7 +57,8 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   const scheduled   = sourceRows.filter((r) => r.status === 'Scheduled').length;
   const inProgress  = sourceRows.filter((r) => r.status === 'In Progress').length;
   const completed   = sourceRows.filter((r) => r.status === 'Completed').length;
-  const damageOpen  = sourceRows.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled').length;
+  const billed      = sourceRows.filter((r) => r.status === 'Billed').length;
+  const damageOpen  = sourceRows.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled' && r.status !== 'Billed').length;
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -57,9 +67,6 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
         <h2 class="${classMap.heading} text-slate-900 dark:text-white">Maintenance &amp; Damage</h2>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <button id="addMaintenanceBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
-          <span class="material-symbols-outlined mr-1 text-[16px] align-middle">add</span> Schedule Service
-        </button>
         <button id="reportDamageBtn" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20">
           <span class="material-symbols-outlined mr-1 text-[16px] align-middle">car_crash</span> Report Damage
         </button>
@@ -67,10 +74,11 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
     </header>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       ${summaryCard('Scheduled', scheduled, 'amber')}
       ${summaryCard('In Progress', inProgress, 'blue')}
       ${summaryCard('Completed', completed, 'emerald')}
+      ${summaryCard('Billed', billed, 'violet')}
       ${summaryCard('Damage Open', damageOpen, 'rose')}
     </div>
 
@@ -139,7 +147,6 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   // ── Events ─────────────────────────────────────────────────
   const openAdd = () => { maintenanceUiState.mode = 'add'; maintenanceUiState.selectedId = ''; rerender(); };
 
-  host.querySelector('#addMaintenanceBtn')?.addEventListener('click', openAdd);
   host.querySelector('#emptyAddBtn')?.addEventListener('click', openAdd);
   host.querySelector('#reportDamageBtn')?.addEventListener('click', () => {
     maintenanceUiState.mode = 'add';
@@ -207,7 +214,12 @@ function renderDetailView(host, rec, data, notify, rerender) {
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Maintenance Detail</p>
         <h2 class="${classMap.heading} text-slate-900 dark:text-white">${escapeHtml(rec.id)} — ${escapeHtml(rec.vehicle)}</h2>
       </div>
-      <div class="ml-auto flex gap-2">
+      <div class="ml-auto flex flex-wrap gap-2">
+        ${rec.serviceType === 'Damage' && rec.status === 'Completed'
+          ? `<button id="billCustomerBtn" class="rounded-xl border border-amber-400 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20">
+               <span class="material-symbols-outlined mr-1 text-[16px] align-middle">receipt_long</span> Bill Customer
+             </button>`
+          : ''}
         <button id="detailEditBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
           <span class="material-symbols-outlined mr-1 text-[16px] align-middle">edit</span> Edit
         </button>
@@ -225,6 +237,8 @@ function renderDetailView(host, rec, data, notify, rerender) {
         ${detailField('Vehicle', rec.vehicle)}
         ${detailField('Vehicle Number', rec.vehicleId || '-')}
         ${detailField('Service Type', rec.serviceType || '-')}
+        ${rec.customerName ? detailField('Damaged By', rec.customerName + (rec.customerEmail ? ' (' + rec.customerEmail + ')' : '')) : ''}
+        ${rec.bookingRef   ? detailField('Linked Booking', rec.bookingRef) : ''}
         ${detailField('Damage / Service', rec.damage)}
         ${detailField('Scheduled Date', rec.schedule)}
         ${rec.completedAt ? detailField('Completed On', rec.completedAt) : ''}
@@ -242,13 +256,16 @@ function renderDetailView(host, rec, data, notify, rerender) {
         <div class="space-y-2">
           <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Update Status</p>
           <div class="flex flex-wrap gap-2">
-            ${['Scheduled','In Progress','Completed','Cancelled'].map((s) =>
+            ${['Scheduled','In Progress','Completed','Cancelled'].filter(() => rec.status !== 'Billed').map((s) =>
               `<button data-set-status="${s}" class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                 rec.status === s
                   ? 'border-brand-500 bg-brand-500/10 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10'
               }">${s}</button>`
             ).join('')}
+            ${rec.status === 'Billed'
+              ? `<span class="rounded-lg border border-violet-400 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 dark:border-violet-400/40 dark:bg-violet-500/10 dark:text-violet-300">Billed — charge issued</span>`
+              : ''}
           </div>
         </div>
 
@@ -262,12 +279,30 @@ function renderDetailView(host, rec, data, notify, rerender) {
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Notes</h3>
         <p class="text-sm text-slate-700 dark:text-slate-200">${escapeHtml(rec.notes) || '<span class="italic text-slate-400 dark:text-slate-500">No notes.</span>'}</p>
       </section>
+
+      ${rec.status === 'Billed'
+        ? `<!-- Billing Banner -->
+           <section class="md:col-span-2 rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-400/30 dark:bg-violet-500/10">
+             <div class="flex items-start gap-3">
+               <span class="material-symbols-outlined text-violet-600 dark:text-violet-300 mt-0.5">receipt_long</span>
+               <div>
+                 <p class="text-sm font-bold text-violet-800 dark:text-violet-200">Damage bill issued</p>
+                 <p class="text-xs text-violet-600 dark:text-violet-400 mt-0.5">A payment request has been sent to the customer. Check the Payments module or eSewa for settlement status.</p>
+               </div>
+             </div>
+           </section>`
+        : ''}
     </div>
   `;
 
   host.querySelector('#maintBackBtn')?.addEventListener('click', () => {
     maintenanceUiState.mode = 'list';
     maintenanceUiState.selectedId = '';
+    rerender();
+  });
+
+  host.querySelector('#billCustomerBtn')?.addEventListener('click', () => {
+    maintenanceUiState.mode = 'billing';
     rerender();
   });
 
@@ -314,9 +349,11 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
   const vehicleMap = {};
-  for (const v of vehicles) { vehicleMap[v.name || v.id] = v.id; }
+  for (const v of vehicles) { vehicleMap[v.name || v.vehicle_number || v.id] = v.vehicle_number || v.id; }
   const scheduledMinAttr = isEdit ? '' : `min="${todayStr}"`;
   const completedMinAttr = r.schedule ? `min="${r.schedule}"` : '';
+  // For Damage type (default): hide schedule/completed/technician fields
+  const isDamageDefault = !r.serviceType || r.serviceType === 'Damage';
 
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
@@ -339,13 +376,35 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
         ${formTextarea('Damage / Service Description', 'damage', r.damage, true, 'Describe the issue or service required')}
       </section>
 
+      <!-- Damaged By Customer (Damage service type only) -->
+      <section id="customerPickerSection" class="${classMap.panel} p-4 sm:p-5 space-y-4 md:col-span-2${(r.serviceType && r.serviceType !== 'Damage') ? ' hidden' : ''}">
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">
+          <span class="material-symbols-outlined text-[15px] align-middle mr-1">person_search</span>
+          Damaged By Customer
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Link the customer whose trip caused the damage. Select from recent completed trips — name and email auto-fill. You can also enter details manually.</p>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Recent Completed Trips for this Vehicle</label>
+          <select id="customerPicker" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-[#1a2632] dark:text-white">
+            <option value="">— Select the vehicle above to load recent customers —</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          ${formField('Customer Name', 'customerName', 'text', r.customerName || '', false, 'Auto-filled or enter manually')}
+          ${formField('Customer Email', 'customerEmail', 'email', r.customerEmail || '', false, 'Auto-filled or enter manually')}
+        </div>
+        <input type="hidden" name="customerUserId"   value="${escapeHtml(r.customerUserId   || '')}" />
+        <input type="hidden" name="linkedBookingId"  value="${escapeHtml(r.linkedBookingId  || '')}" />
+        <input type="hidden" name="bookingRef"       value="${escapeHtml(r.bookingRef       || '')}" />
+      </section>
+
       <!-- Schedule & Status -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Schedule &amp; Status</h3>
-        ${formField('Scheduled Date', 'schedule', 'date', r.schedule, true, '', scheduledMinAttr)}
-        ${formSelect('Status', 'status', STATUS_OPTIONS.filter((s) => s !== 'All'), r.status || 'Scheduled')}
-        ${formField('Completed Date', 'completedAt', 'date', r.completedAt, false, '', completedMinAttr)}
-        ${formField('Technician', 'technician', 'text', r.technician, false, 'Technician name')}
+        <div id="scheduleDateWrap"${isDamageDefault ? ' class="hidden"' : ''}>${formField('Scheduled Date', 'schedule', 'date', r.schedule, !isDamageDefault, '', scheduledMinAttr)}</div>
+        ${formSelect('Status', 'status', STATUS_OPTIONS.filter((s) => s !== 'All'), r.status || (isDamageDefault ? 'In Progress' : 'Scheduled'))}
+        <div id="completedDateWrap"${isDamageDefault ? ' class="hidden"' : ''}>${formField('Completed Date', 'completedAt', 'date', r.completedAt, false, '', completedMinAttr)}</div>
+        <div id="technicianWrap"${isDamageDefault ? ' class="hidden"' : ''}>${formField('Technician', 'technician', 'text', r.technician, false, 'Technician name')}</div>
         ${formField('Reported By', 'reportedBy', 'text', r.reportedBy, false, 'Admin / Driver ID')}
         ${formField('Cost Estimate (NPR)', 'costEstimate', 'number', r.costEstimate, false, '0')}
         ${formTextarea('Notes', 'notes', r.notes, false, 'Additional remarks')}
@@ -371,6 +430,50 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     });
   }
 
+  // ── Customer picker ─────────────────────────────────────────
+  const serviceTypeEl    = host.querySelector('[name="serviceType"]');
+  const pickerSection    = host.querySelector('#customerPickerSection');
+  const pickerEl         = host.querySelector('#customerPicker');
+  const custNameEl       = host.querySelector('[name="customerName"]');
+  const custEmailEl      = host.querySelector('[name="customerEmail"]');
+  const custUserIdEl     = host.querySelector('[name="customerUserId"]');
+  const custBookingIdEl  = host.querySelector('[name="linkedBookingId"]');
+  const custBookingRefEl = host.querySelector('[name="bookingRef"]');
+
+  function toggleCustomerSection() {
+    const isDamage = serviceTypeEl?.value === 'Damage';
+    pickerSection?.classList.toggle('hidden', !isDamage);
+    host.querySelector('#scheduleDateWrap')?.classList.toggle('hidden',  isDamage);
+    host.querySelector('#completedDateWrap')?.classList.toggle('hidden', isDamage);
+    host.querySelector('#technicianWrap')?.classList.toggle('hidden',    isDamage);
+    // Auto-fill schedule = today when switching to Damage
+    if (isDamage) {
+      const schedInput = host.querySelector('[name="schedule"]');
+      if (schedInput && !schedInput.value) schedInput.value = new Date().toISOString().slice(0, 10);
+    }
+  }
+  serviceTypeEl?.addEventListener('change', toggleCustomerSection);
+
+  async function triggerCustomerLoad() {
+    const vName = vehicleInput?.value?.trim();
+    if (vName && serviceTypeEl?.value === 'Damage' && pickerEl) {
+      await loadRecentCustomersForVehicle(vName, vehicles, pickerEl);
+    }
+  }
+  vehicleInput?.addEventListener('change', triggerCustomerLoad);
+  vehicleInput?.addEventListener('blur',   triggerCustomerLoad);
+  if (r.vehicle && (r.serviceType === 'Damage' || !r.serviceType)) triggerCustomerLoad();
+
+  pickerEl?.addEventListener('change', () => {
+    const opt = pickerEl.selectedOptions?.[0];
+    if (!opt?.value) return;
+    if (custNameEl)       custNameEl.value       = opt.dataset.name  || '';
+    if (custEmailEl)      custEmailEl.value      = opt.dataset.email || '';
+    if (custUserIdEl)     custUserIdEl.value     = opt.dataset.uid   || '';
+    if (custBookingIdEl)  custBookingIdEl.value  = opt.value;
+    if (custBookingRefEl) custBookingRefEl.value = opt.dataset.code  || '';
+  });
+
   // Wire up schedule date change → update completed date min
   const scheduleInput = host.querySelector('[name="schedule"]');
   const completedInput = host.querySelector('[name="completedAt"]');
@@ -391,23 +494,30 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   host.querySelector('#formBackBtn')?.addEventListener('click', goBack);
   host.querySelector('#formCancelBtn')?.addEventListener('click', goBack);
 
-  host.querySelector('#maintForm')?.addEventListener('submit', (e) => {
+  host.querySelector('#maintForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const val = (name) => (form.querySelector(`[name="${name}"]`)?.value || '').trim();
 
-    const maintId   = val('maintId');
-    const vehicle   = val('vehicle');
-    const damage    = val('damage');
-    const schedule  = val('schedule');
+    const maintId     = val('maintId');
+    const vehicle     = val('vehicle');
+    const damage      = val('damage');
+    const serviceType = val('serviceType');
+    // Damage reports auto-use today as schedule date (field hidden)
+    let schedule = val('schedule');
+    if (!schedule && serviceType === 'Damage') schedule = new Date().toISOString().slice(0, 10);
 
-    if (!maintId || !vehicle || !damage || !schedule) {
+    if (!maintId || !vehicle || !damage) {
       notify('Please fill all required fields (marked *)', 'error');
       return;
     }
+    if (!schedule) {
+      notify('Please enter a scheduled date', 'error');
+      return;
+    }
 
-    // Schedule must not be in the past for new records
-    if (!isEdit && schedule < new Date().toISOString().slice(0, 10)) {
+    // Schedule must not be in the past for new non-Damage records
+    if (!isEdit && serviceType !== 'Damage' && schedule < new Date().toISOString().slice(0, 10)) {
       notify('Scheduled date cannot be in the past', 'error');
       return;
     }
@@ -432,19 +542,61 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     }
 
     const record = {
-      id: maintId,
+      id:              maintId,
+      dbId:            isEdit ? (existing.dbId || '') : '',
       vehicle,
-      vehicleId: val('vehicleId'),
+      vehicleId:       val('vehicleId'),
       schedule,
-      serviceType: val('serviceType'),
+      serviceType:     val('serviceType'),
       damage,
-      status: val('status'),
-      costEstimate: isNaN(costRaw) ? 0 : costRaw,
-      technician: val('technician'),
-      reportedBy: val('reportedBy'),
+      status:          val('status'),
+      costEstimate:    isNaN(costRaw) ? 0 : costRaw,
+      technician:      val('technician'),
+      reportedBy:      val('reportedBy'),
       completedAt,
-      notes: val('notes'),
+      notes:           val('notes'),
+      customerName:    val('customerName'),
+      customerEmail:   val('customerEmail'),
+      customerUserId:  val('customerUserId'),
+      linkedBookingId: val('linkedBookingId'),
+      bookingRef:      val('bookingRef'),
     };
+
+    // Persist to Supabase
+    try {
+      if (window.SupabaseClient?.isConfigured()) {
+        const client = await window.SupabaseClient.init();
+        const dbRow = {
+          maintenance_id:    record.id,
+          vehicle_name:      record.vehicle,
+          vehicle_id:        record.vehicleId || null,
+          schedule_date:     record.schedule,
+          service_type:      record.serviceType,
+          description:       record.damage,
+          status:            record.status,
+          cost_estimate:     record.costEstimate || null,
+          technician:        record.technician   || null,
+          reported_by:       record.reportedBy   || null,
+          completed_at:      record.completedAt  || null,
+          notes:             record.notes        || null,
+          customer_name:     record.customerName    || null,
+          customer_email:    record.customerEmail   || null,
+          customer_user_id:  record.customerUserId  || null,
+          linked_booking_id: record.linkedBookingId || null,
+          booking_ref:       record.bookingRef      || null,
+        };
+        if (isEdit && existing.dbId) {
+          await client.from('maintenance_records').update(dbRow).eq('id', existing.dbId);
+          record.dbId = existing.dbId;
+        } else {
+          const { data: ins } = await client
+            .from('maintenance_records').insert(dbRow).select('id').single();
+          if (ins?.id) record.dbId = ins.id;
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[maintenance] Supabase save failed:', dbErr.message);
+    }
 
     if (isEdit) {
       const idx = data.maintenance.findIndex((r) => r.id === existing.id);
@@ -464,10 +616,11 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
 // ── Helpers ───────────────────────────────────────────────────
 function summaryCard(label, count, color) {
   const colors = {
-    amber:   'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
-    blue:    'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
-    rose:    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300',
+    amber:   'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-300',
+    blue:    'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-300',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-300',
+    rose:    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/20 dark:text-rose-300',
+    violet:  'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/20 dark:text-violet-300',
   };
   return `<article class="rounded-2xl border p-4 ${colors[color] || colors.amber}">
     <p class="text-xs font-bold uppercase tracking-[0.14em] opacity-70">${label}</p>
@@ -490,7 +643,7 @@ function vehicleComboField(vehicles, selectedName, selectedId) {
       <input name="vehicle" list="maintVehicleList" value="${escapeHtml(selectedName || '')}" placeholder="Type to search vehicles..." required
         class="${inputCls}" />
       <datalist id="maintVehicleList">
-        ${vehicles.map((v) => `<option value="${escapeHtml(v.name || v.id)}">${escapeHtml(v.id)}</option>`).join('')}
+        ${vehicles.map((v) => `<option value="${escapeHtml(v.name || v.vehicle_number || v.id)}">${escapeHtml(v.vehicle_number || v.id)}</option>`).join('')}
       </datalist>
     </div>
     <div>
@@ -521,10 +674,52 @@ function formTextarea(label, name, value, required, placeholder) {
 function formSelect(label, name, options, selected) {
   return `<div>
     <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">${label}</label>
-    <select name="${name}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white">
+    <select name="${name}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-[#1a2632] dark:text-white">
       ${options.map((o) => `<option value="${escapeHtml(o)}" ${o === selected ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('')}
     </select>
   </div>`;
+}
+
+async function loadRecentCustomersForVehicle(vehicleName, vehicles, pickerEl) {
+  pickerEl.innerHTML = '<option value="">Loading recent trips\u2026</option>';
+  pickerEl.disabled = true;
+  try {
+    if (!window.SupabaseClient?.isConfigured()) throw new Error('Supabase not configured');
+    const client = await window.SupabaseClient.init();
+    const vehicleObj = vehicles.find((v) => v.name === vehicleName);
+    if (!vehicleObj?.id) {
+      pickerEl.innerHTML = '<option value="">— Vehicle not found in catalog —</option>';
+      pickerEl.disabled = false;
+      return;
+    }
+    const { data: bookings, error } = await client
+      .from('vehicle_bookings')
+      .select('id,booking_code,customer_name,customer_email,customer_user_id,end_date')
+      .eq('vehicle_id', vehicleObj.id)
+      .eq('status', 'completed')
+      .order('end_date', { ascending: false })
+      .limit(15);
+    if (error || !bookings?.length) {
+      pickerEl.innerHTML = '<option value="">— No completed trips found for this vehicle —</option>';
+      pickerEl.disabled = false;
+      return;
+    }
+    pickerEl.innerHTML =
+      '<option value="">— Pick a customer from their completed trip —</option>' +
+      bookings.map((b) =>
+        `<option value="${escapeHtml(b.id)}" ` +
+        `data-name="${escapeHtml(b.customer_name)}" ` +
+        `data-email="${escapeHtml(b.customer_email)}" ` +
+        `data-uid="${escapeHtml(b.customer_user_id || '')}" ` +
+        `data-code="${escapeHtml(b.booking_code)}" ` +
+        `data-end="${escapeHtml(b.end_date)}"` +
+        `>${escapeHtml(b.customer_name)} \u2014 ${escapeHtml(b.booking_code)} (returned ${b.end_date})</option>`
+      ).join('');
+    pickerEl.disabled = false;
+  } catch (err) {
+    pickerEl.innerHTML = `<option value="">— Error: ${escapeHtml(err.message)} —</option>`;
+    pickerEl.disabled = false;
+  }
 }
 
 function escapeHtml(value) {
@@ -541,5 +736,196 @@ function statusClass(status) {
   if (status === 'Completed')  return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
   if (status === 'In Progress') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
   if (status === 'Cancelled')  return `${base} bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-300`;
+  if (status === 'Billed')     return `${base} bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300`;
   return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
+}
+
+// ── Billing Form ──────────────────────────────────────────────
+function renderBillingForm(host, rec, data, notify, rerender) {
+  const estimatedCost = rec.costEstimate ? Number(rec.costEstimate) : 0;
+
+  host.innerHTML = `
+    <header class="flex flex-wrap items-center gap-3">
+      <button id="billingBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      </button>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Finance</p>
+        <h2 class="${classMap.heading} text-slate-900 dark:text-white">Bill Customer — ${escapeHtml(rec.id)}</h2>
+      </div>
+    </header>
+
+    <!-- Info banner -->
+    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-400/30 dark:bg-amber-500/10">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 mt-0.5">info</span>
+        <div class="text-sm">
+          <p class="font-semibold text-amber-800 dark:text-amber-200">Damage claim: ${escapeHtml(rec.vehicle)} &mdash; ${escapeHtml(rec.damage)}</p>
+          <p class="text-amber-700 dark:text-amber-300 mt-0.5">Cost estimate on record: <strong>NPR ${Number(rec.costEstimate || 0).toLocaleString()}</strong>. Adjust below if needed. An eSewa payment link will be emailed to the customer.</p>
+        </div>
+      </div>
+    </div>
+
+    <form id="billingForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" novalidate>
+
+      <!-- Customer Details -->
+      <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Customer Details</h3>
+        ${formField('Customer Name', 'customerName', 'text', rec.customerName || '', true, 'Full name of the customer')}
+        ${formField('Customer Email', 'customerEmail', 'email', rec.customerEmail || '', true, 'customer@example.com')}
+        ${formField('Booking Reference', 'bookingRef', 'text', rec.bookingRef || '', false, 'BK-XXXX (optional)')}
+      </section>
+
+      <!-- Charge Details -->
+      <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Charge Details</h3>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Amount (NPR) <span class="text-rose-500">*</span></label>
+          <input name="amount" type="number" id="billAmount" min="1" step="0.01"
+            value="${escapeHtml(estimatedCost > 0 ? String(estimatedCost) : '')}"
+            placeholder="Enter charge amount"
+            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white" />
+          <p class="mt-1 text-xs text-slate-400">Pre-filled from cost estimate. Admin may adjust.</p>
+        </div>
+        ${formTextarea('Reason / Description', 'reason', rec.damage || '', true, 'Explain the damage charge')}
+        ${formTextarea('Internal Notes', 'notes', '', false, 'Optional internal remarks (not sent to customer)')}
+      </section>
+
+      <!-- Actions -->
+      <div class="md:col-span-2 flex justify-end gap-2">
+        <button type="button" id="billingCancelBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">Cancel</button>
+        <button type="submit" id="billingSubmitBtn" class="rounded-xl bg-amber-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50">
+          <span class="material-symbols-outlined mr-1 text-[16px] align-middle">send</span> Issue Bill &amp; Send Email
+        </button>
+      </div>
+    </form>
+
+    <!-- Result panel (hidden until bill is issued) -->
+    <div id="billingResult" class="hidden"></div>
+  `;
+
+  const goBack = () => {
+    maintenanceUiState.mode = 'detail';
+    rerender();
+  };
+  host.querySelector('#billingBackBtn')?.addEventListener('click', goBack);
+  host.querySelector('#billingCancelBtn')?.addEventListener('click', goBack);
+
+  host.querySelector('#billingForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const val = (name) => (form.querySelector(`[name="${name}"]`)?.value || '').trim();
+
+    const customerName  = val('customerName');
+    const customerEmail = val('customerEmail');
+    const rawAmount     = parseFloat(val('amount'));
+    const reason        = val('reason');
+    const bookingRef    = val('bookingRef');
+    const notes         = val('notes');
+
+    if (!customerName)  { notify('Customer name is required', 'error'); return; }
+    if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      notify('A valid customer email is required', 'error'); return;
+    }
+    if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+      notify('Amount must be a positive number', 'error'); return;
+    }
+    if (!reason) { notify('Reason is required', 'error'); return; }
+
+    const submitBtn = host.querySelector('#billingSubmitBtn');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Issuing…'; }
+
+    try {
+      if (!window.SupabaseClient || !window.SupabaseClient.isConfigured()) {
+        throw new Error('Supabase client is not configured.');
+      }
+      const client = await window.SupabaseClient.init();
+      const { data: sessionData } = await client.auth.getSession();
+      const token = sessionData?.session?.access_token || '';
+      if (!token) throw new Error('Not authenticated. Please sign in again.');
+
+      const supabaseUrl =
+        (window.SupabaseRuntime && window.SupabaseRuntime.config && window.SupabaseRuntime.config.url)
+        || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url)
+        || '';
+
+      const fnUrl = supabaseUrl
+        ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/damage-billing`
+        : '/functions/v1/damage-billing';
+
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action:          'initiate',
+          maintenanceRef:  rec.id,
+          maintenanceId:   rec.dbId || '',
+          customerName,
+          customerEmail,
+          amount:          rawAmount,
+          reason,
+          bookingRef:      bookingRef || '',
+          notes:           notes || '',
+        }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || `Server error ${res.status}`);
+      }
+
+      // Update local state
+      const idx = data.maintenance.findIndex((r) => r.id === rec.id);
+      if (idx >= 0) data.maintenance[idx].status = 'Billed';
+
+      // Show success result panel
+      const resultEl = host.querySelector('#billingResult');
+      host.querySelector('#billingForm').classList.add('hidden');
+      if (resultEl) {
+        resultEl.className = 'rounded-2xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-400/30 dark:bg-emerald-500/10 space-y-3';
+        resultEl.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-300 text-3xl">check_circle</span>
+            <div>
+              <p class="font-bold text-emerald-800 dark:text-emerald-200 text-base">Bill issued successfully</p>
+              <p class="text-emerald-700 dark:text-emerald-300 text-sm">Invoice ${escapeHtml(json.billCode)} has been created and a payment link emailed to ${escapeHtml(customerEmail)}.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Invoice</p>
+              <p class="font-bold text-slate-900 dark:text-white">${escapeHtml(json.billCode)}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Amount</p>
+              <p class="font-bold text-slate-900 dark:text-white">NPR ${Number(json.amount || rawAmount).toLocaleString()}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Customer</p>
+              <p class="font-bold text-slate-900 dark:text-white">${escapeHtml(customerEmail)}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Due (72 hrs)</p>
+              <p class="font-bold text-slate-900 dark:text-white">${escapeHtml(json.dueAt ? new Date(json.dueAt).toLocaleString() : '—')}</p>
+            </div>
+          </div>
+          <button id="billingDoneBtn" class="rounded-xl bg-brand-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600">Back to Record</button>
+        `;
+        resultEl.querySelector('#billingDoneBtn')?.addEventListener('click', () => {
+          maintenanceUiState.mode = 'detail';
+          rerender();
+        });
+      }
+
+      notify(`Bill ${json.billCode} issued. Payment email sent to ${customerEmail}.`, 'success');
+
+    } catch (err) {
+      notify(`Billing failed: ${err.message}`, 'error');
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span class="material-symbols-outlined mr-1 text-[16px] align-middle">send</span> Issue Bill &amp; Send Email'; }
+    }
+  });
 }

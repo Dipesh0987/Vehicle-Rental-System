@@ -300,6 +300,17 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
   const maxDob = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
   const maxDobStr = maxDob.toISOString().slice(0, 10);
 
+  // Auto-generate unique 3-digit Driver ID for new drivers
+  let autoDriverId = d.id || '';
+  if (!isEdit) {
+    const existingIds = new Set((data.drivers || []).map((dr) => dr.id));
+    let attempts = 0;
+    do {
+      autoDriverId = String(Math.floor(100 + Math.random() * 900));
+      attempts++;
+    } while (existingIds.has(autoDriverId) && attempts < 900);
+  }
+
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
       <button id="formBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
@@ -325,7 +336,11 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
       <!-- Licence & Work Details -->
       <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Licence & Work Details</h3>
-        ${formField('Driver ID', 'driverId', 'text', d.id, true, 'e.g. D-55')}
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Driver ID <span class="text-xs font-normal text-slate-400">(auto-assigned, read-only)</span></label>
+          <input name="driverId" type="text" value="${escapeHtml(autoDriverId)}" readonly
+            class="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 cursor-not-allowed outline-none dark:border-white/10 dark:bg-white/10 dark:text-slate-400" />
+        </div>
         ${formField('Licence Number', 'licenceNumber', 'text', d.licenceNumber, true, 'LIC-XXXX-XXXXX')}
         ${formField('Licence Expiry', 'licenceExpiry', 'date', d.licenceExpiry, true)}
         ${formSelect('Licence Status', 'licenceStatus', LICENCE_STATUS_OPTIONS, d.licenceStatus || 'Valid')}
@@ -385,6 +400,13 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
     // Phone: at least 7 digits
     if (!/\d{7,}/.test(phone.replace(/[\s\-+()]/g, ''))) {
       notify('Phone number must contain at least 7 digits', 'error');
+      return;
+    }
+
+    // Email: valid format if provided
+    const email = getValue('email');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      notify('Please enter a valid email address', 'error');
       return;
     }
 
