@@ -17,6 +17,7 @@ import { renderReportsModule } from './modules/reports.js';
 import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
 import { createPaymentsService } from './services/payments.service.js';
+import { createDriverService } from './services/driver.service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -46,10 +47,12 @@ const appState = {
   customerVerificationService: null,
   paymentsService: null,
   paymentStats: null,
+  driverService: null,
 };
 
 const catalogService = createCatalogService({ data: appState.data });
 const paymentsService = createPaymentsService();
+const driverService = createDriverService();
 let catalogUnsubscribe = null;
 let bookingUnsubscribe = null;
 const globalSearchState = {
@@ -95,6 +98,7 @@ async function bootstrap() {
   appState.bookingService = window.VehicleBookingService || null;
   appState.customerVerificationService = createCustomerVerificationService();
   appState.paymentsService = paymentsService;
+  appState.driverService = driverService;
   appState.data.bookings = [];
   appState.data.payments = [];
   appState.baseNotifications = Array.isArray(appState.data.notifications)
@@ -112,6 +116,7 @@ async function bootstrap() {
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });
   await hydratePaymentsFromDatabase({ silent: true });
+  await hydrateDriversFromDatabase({ silent: true });
   renderActiveModule();
 
   setupCatalogSync();
@@ -145,6 +150,8 @@ function renderActiveModule() {
       paymentsService: appState.paymentsService,
       paymentStats: appState.paymentStats,
       canWriteCatalog: appState.canWriteCatalog,
+      driverService: appState.driverService,
+      reloadDriversData: () => hydrateDriversFromDatabase({ silent: true }),
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
@@ -658,6 +665,25 @@ async function hydratePaymentsFromDatabase({ silent = false } = {}) {
     console.warn('Failed to sync payments from database:', error);
     if (!silent) {
       pushToast(`Payments sync failed: ${error.message}`, 'error');
+    }
+  }
+}
+
+async function hydrateDriversFromDatabase({ silent = false } = {}) {
+  if (!appState.driverService) return;
+
+  try {
+    const rows = await appState.driverService.listDrivers();
+    if (Array.isArray(rows) && rows.length) {
+      appState.data.drivers = rows;
+    }
+    if (!silent) {
+      pushToast('Drivers synced from database', 'success');
+    }
+  } catch (error) {
+    console.warn('Failed to sync drivers from database:', error);
+    if (!silent) {
+      pushToast(`Drivers sync failed: ${error.message}`, 'warn');
     }
   }
 }

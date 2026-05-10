@@ -12,7 +12,7 @@ const driverUiState = {
   mode: 'list', // list | detail | add | edit
 };
 
-export function renderDriversModule({ data, query, notify, rerender }) {
+export function renderDriversModule({ data, query, notify, rerender, driverService, reloadDriversData }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -21,7 +21,7 @@ export function renderDriversModule({ data, query, notify, rerender }) {
   if (driverUiState.mode === 'detail' && driverUiState.selectedDriverId) {
     const driver = sourceRows.find((d) => d.id === driverUiState.selectedDriverId);
     if (driver) {
-      renderDetailView(host, driver, data, notify, rerender);
+      renderDetailView(host, driver, data, notify, rerender, driverService);
       return host;
     }
     driverUiState.mode = 'list';
@@ -32,7 +32,7 @@ export function renderDriversModule({ data, query, notify, rerender }) {
     const editDriver = driverUiState.mode === 'edit'
       ? sourceRows.find((d) => d.id === driverUiState.selectedDriverId)
       : null;
-    renderDriverForm(host, editDriver, data, notify, rerender);
+    renderDriverForm(host, editDriver, data, notify, rerender, driverService, reloadDriversData);
     return host;
   }
 
@@ -166,7 +166,15 @@ export function renderDriversModule({ data, query, notify, rerender }) {
       openModal({
         title: 'Delete Driver',
         content: `<p>Are you sure you want to delete <strong>${escapeHtml(driver?.name || driverId)}</strong>?</p><p class="mt-2 text-xs text-slate-500">This action cannot be undone.</p>`,
-        onConfirm: () => {
+        onConfirm: async () => {
+          if (driverService && typeof driverService.deleteDriver === 'function') {
+            try {
+              await driverService.deleteDriver(driverId);
+            } catch (err) {
+              notify(`DB delete failed: ${err.message}`, 'error');
+              return;
+            }
+          }
           data.drivers = data.drivers.filter((d) => d.id !== driverId);
           notify(`Driver ${driverId} deleted`, 'success');
           rerender();
@@ -190,7 +198,7 @@ export function renderDriversModule({ data, query, notify, rerender }) {
 }
 
 // ─── Detail View ─────────────────────────────────────────────
-function renderDetailView(host, driver, data, notify, rerender) {
+function renderDetailView(host, driver, data, notify, rerender, driverService) {
   host.innerHTML = `
     <header class="flex flex-wrap items-center gap-3">
       <button id="driverBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
@@ -264,7 +272,15 @@ function renderDetailView(host, driver, data, notify, rerender) {
     openModal({
       title: 'Delete Driver',
       content: `<p>Are you sure you want to delete <strong>${escapeHtml(driver.name)}</strong>?</p><p class="mt-2 text-xs text-slate-500">This action cannot be undone.</p>`,
-      onConfirm: () => {
+      onConfirm: async () => {
+        if (driverService && typeof driverService.deleteDriver === 'function') {
+          try {
+            await driverService.deleteDriver(driver.id);
+          } catch (err) {
+            notify(`DB delete failed: ${err.message}`, 'error');
+            return;
+          }
+        }
         data.drivers = data.drivers.filter((d) => d.id !== driver.id);
         driverUiState.mode = 'list';
         driverUiState.selectedDriverId = '';
@@ -276,7 +292,7 @@ function renderDetailView(host, driver, data, notify, rerender) {
 }
 
 // ─── Add / Edit Form ─────────────────────────────────────────
-function renderDriverForm(host, existingDriver, data, notify, rerender) {
+function renderDriverForm(host, existingDriver, data, notify, rerender, driverService, reloadDriversData) {
   const isEdit = Boolean(existingDriver);
   const d = existingDriver || {};
 
@@ -343,7 +359,7 @@ function renderDriverForm(host, existingDriver, data, notify, rerender) {
   host.querySelector('#formCancelBtn')?.addEventListener('click', goBack);
 
   // Submit
-  host.querySelector('#driverForm')?.addEventListener('submit', (e) => {
+  host.querySelector('#driverForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const getValue = (name) => (form.querySelector(`[name="${name}"]`)?.value || '').trim();
@@ -387,12 +403,34 @@ function renderDriverForm(host, existingDriver, data, notify, rerender) {
       onboardedAt: isEdit ? (d.onboardedAt || '') : new Date().toISOString().slice(0, 10),
     };
 
+    const submitBtn = host.querySelector('#driverForm button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving…'; }
+
+    if (driverService) {
+      try {
+        if (isEdit) {
+          await driverService.updateDriver(existingDriver.id, driverObj);
+        } else {
+          await driverService.addDriver(driverObj);
+        }
+        if (typeof reloadDriversData === 'function') {
+          await reloadDriversData();
+        }
+      } catch (err) {
+        notify(`DB save failed: ${err.message}`, 'error');
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = isEdit ? 'Save Changes' : 'Add Driver'; }
+        return;
+      }
+    }
+
     if (isEdit) {
       const idx = data.drivers.findIndex((dr) => dr.id === existingDriver.id);
       if (idx >= 0) data.drivers[idx] = driverObj;
       notify(`Driver ${driverObj.name} updated`, 'success');
     } else {
-      data.drivers.unshift(driverObj);
+      if (!data.drivers.some((dr) => dr.id === driverObj.id)) {
+        data.drivers.unshift(driverObj);
+      }
       notify(`Driver ${driverObj.name} onboarded`, 'success');
     }
 
