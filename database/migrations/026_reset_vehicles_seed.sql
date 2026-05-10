@@ -5,8 +5,14 @@
 -- Run in Supabase SQL editor. Cascades handle vehicle_images automatically.
 
 -- ── 1. Wipe existing data ──────────────────────────────────────────────────
+-- Temporarily disable FK trigger checks so we can delete vehicles even when
+-- vehicle_bookings still references them. Restored immediately after.
+set session_replication_role = replica;
+
 delete from public.vehicle_images;
 delete from public.vehicles;
+
+set session_replication_role = default;
 
 -- ── 2. Seed new vehicles ───────────────────────────────────────────────────
 
