@@ -25,7 +25,9 @@ ALTER TABLE public.notifications
   CHECK (type IN (
     'payment_initiated', 'payment_success', 'payment_failed',
     'payment_expired', 'receipt_sent', 'booking_confirmed',
-    'booking_status_changed', 'payment_due', 'admin_payment_alert', 'general',
+    'booking_status_changed', 'payment_due', 'admin_payment_alert',
+    'booking_created', 'verification_approved', 'verification_rejected',
+    'general',
     'damage_bill_issued', 'damage_bill_overdue', 'damage_bill_paid'
   ));
 
