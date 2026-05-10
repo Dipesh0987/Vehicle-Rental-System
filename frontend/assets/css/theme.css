@@ -1963,7 +1963,7 @@ body.vrs-page .vrs-bell-dropdown {
   right: 0;
   top: calc(100% + 14px);
   z-index: 140;
-  width: 720px;
+  width: 480px;
   max-width: 96vw;
   background: #ffffff;
   border: 1px solid rgba(22, 57, 60, 0.18);
