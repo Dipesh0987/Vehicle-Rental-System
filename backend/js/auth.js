@@ -1137,7 +1137,7 @@
       numeric = 0;
     }
 
-    return "$" + numeric.toFixed(2);
+    return "NPR " + Math.round(numeric).toLocaleString();
   }
 
   function escapeHtml(value) {

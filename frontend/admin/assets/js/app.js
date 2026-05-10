@@ -17,6 +17,7 @@ import { renderReportsModule } from './modules/reports.js';
 import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
 import { createPaymentsService } from './services/payments.service.js';
+import { createDriverService } from './services/driver.service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -46,10 +47,12 @@ const appState = {
   customerVerificationService: null,
   paymentsService: null,
   paymentStats: null,
+  driverService: null,
 };
 
 const catalogService = createCatalogService({ data: appState.data });
 const paymentsService = createPaymentsService();
+const driverService = createDriverService();
 let catalogUnsubscribe = null;
 let bookingUnsubscribe = null;
 const globalSearchState = {
@@ -63,6 +66,7 @@ const searchTypeToNavId = {
   vehicles: 'vehicles',
   bookings: 'bookings',
   customers: 'customers',
+  drivers: 'drivers',
   admins: 'admins',
 };
 
@@ -70,6 +74,7 @@ const searchTypeLabels = {
   vehicles: 'Vehicles module',
   bookings: 'Bookings module',
   customers: 'Customers module',
+  drivers: 'Drivers module',
   admins: 'Admin roles module',
 };
 
@@ -93,6 +98,7 @@ async function bootstrap() {
   appState.bookingService = window.VehicleBookingService || null;
   appState.customerVerificationService = createCustomerVerificationService();
   appState.paymentsService = paymentsService;
+  appState.driverService = driverService;
   appState.data.bookings = [];
   appState.data.payments = [];
   appState.baseNotifications = Array.isArray(appState.data.notifications)
@@ -110,6 +116,7 @@ async function bootstrap() {
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });
   await hydratePaymentsFromDatabase({ silent: true });
+  await hydrateDriversFromDatabase({ silent: true });
   renderActiveModule();
 
   setupCatalogSync();
@@ -143,6 +150,8 @@ function renderActiveModule() {
       paymentsService: appState.paymentsService,
       paymentStats: appState.paymentStats,
       canWriteCatalog: appState.canWriteCatalog,
+      driverService: appState.driverService,
+      reloadDriversData: () => hydrateDriversFromDatabase({ silent: true }),
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
@@ -201,6 +210,7 @@ function handleQuickAction(id) {
   const actionToModule = {
     newBooking: 'bookings',
     addVehicle: 'vehicles',
+    addDriver: 'drivers',
     markMaintenance: 'maintenance',
   };
 
@@ -273,6 +283,7 @@ function renderGlobalSearchResults(query) {
     vehicles: [],
     bookings: [],
     customers: [],
+    drivers: [],
     admins: [],
   };
 
@@ -303,6 +314,15 @@ function renderGlobalSearchResults(query) {
     }
   }
 
+  // Search drivers
+  if (Array.isArray(appState.data.drivers)) {
+    for (const d of appState.data.drivers) {
+      const hay = `${d.id} ${d.name || ''} ${d.phone || ''} ${d.licenceNumber || ''} ${d.availability || ''}`.toLowerCase();
+      if (hay.indexOf(q) >= 0) results.drivers.push({ id: d.id, label: d.name || d.id, meta: `${d.availability || ''} · ${d.licenceStatus || ''}` });
+      if (results.drivers.length >= 6) break;
+    }
+  }
+
   // Search admins
   if (Array.isArray(appState.data.adminUsers)) {
     for (const a of appState.data.adminUsers) {
@@ -317,6 +337,7 @@ function renderGlobalSearchResults(query) {
   if (results.vehicles.length) groups.push({ title: 'Vehicles', key: 'vehicles', items: results.vehicles });
   if (results.bookings.length) groups.push({ title: 'Bookings', key: 'bookings', items: results.bookings });
   if (results.customers.length) groups.push({ title: 'Customers', key: 'customers', items: results.customers });
+  if (results.drivers.length) groups.push({ title: 'Drivers', key: 'drivers', items: results.drivers });
   if (results.admins.length) groups.push({ title: 'Admins', key: 'admins', items: results.admins });
 
   globalSearchState.items = groups.flatMap((group) =>
@@ -644,6 +665,25 @@ async function hydratePaymentsFromDatabase({ silent = false } = {}) {
     console.warn('Failed to sync payments from database:', error);
     if (!silent) {
       pushToast(`Payments sync failed: ${error.message}`, 'error');
+    }
+  }
+}
+
+async function hydrateDriversFromDatabase({ silent = false } = {}) {
+  if (!appState.driverService) return;
+
+  try {
+    const rows = await appState.driverService.listDrivers();
+    if (Array.isArray(rows) && rows.length) {
+      appState.data.drivers = rows;
+    }
+    if (!silent) {
+      pushToast('Drivers synced from database', 'success');
+    }
+  } catch (error) {
+    console.warn('Failed to sync drivers from database:', error);
+    if (!silent) {
+      pushToast(`Drivers sync failed: ${error.message}`, 'warn');
     }
   }
 }
