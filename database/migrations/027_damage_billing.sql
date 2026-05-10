@@ -7,6 +7,28 @@
 --   5. Escalation function  (72-hour unpaid → Overdue + admin notification)
 -- Run in Supabase SQL editor after 026_reset_vehicles_seed.sql.
 
+-- ── 0. Widen notifications.type constraint ─────────────────────────────────
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conname = 'notifications_type_check'
+       AND conrelid = 'public.notifications'::regclass
+  ) THEN
+    ALTER TABLE public.notifications DROP CONSTRAINT notifications_type_check;
+  END IF;
+END;
+$$;
+
+ALTER TABLE public.notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK (type IN (
+    'payment_initiated', 'payment_success', 'payment_failed',
+    'payment_expired', 'receipt_sent', 'booking_confirmed',
+    'booking_status_changed', 'payment_due', 'admin_payment_alert', 'general',
+    'damage_bill_issued', 'damage_bill_overdue', 'damage_bill_paid'
+  ));
+
 -- ── 1. Extend status check on maintenance_records ────────────────────────
 ALTER TABLE public.maintenance_records
   DROP CONSTRAINT IF EXISTS maintenance_records_status_check;

@@ -519,14 +519,31 @@ async function handleInitiate(payload: JsonRecord, request: Request): Promise<Re
     type:      "damage_bill_issued",
     title:     `Damage bill issued — ${billCode}`,
     body:      `${customerName} billed ${moneyText(amount)} for claim ${maintenanceRef}. Payment due within 72 hours.`,
-    metadata: {
-      billCode,
-      maintenanceRef,
-      customerName,
-      customerEmail,
-      amount,
-    },
+    metadata:  { billCode, maintenanceRef, customerName, customerEmail, amount },
+  }).then(({ error }: { error: { message: string } | null }) => {
+    if (error) console.error("[damage-billing] admin notification:", error.message);
   });
+
+  // Customer in-app notification (look up user by email, non-fatal)
+  try {
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers();
+    const customerUser = users?.users?.find(
+      (u: { id: string; email?: string }) => u.email?.toLowerCase() === customerEmail.toLowerCase(),
+    );
+    if (customerUser?.id) {
+      await supabaseAdmin.from("notifications").insert({
+        user_id:  customerUser.id,
+        is_admin: false,
+        type:     "damage_bill_issued",
+        title:    `Damage charge raised — ${billCode}`,
+        body:     `A damage charge of ${moneyText(amount)} has been raised against your account for claim ${maintenanceRef}. Please pay by ${new Date(bill.due_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric" })} to avoid escalation.`,
+        link_url: paymentUrl,
+        metadata: { billCode, maintenanceRef, amount, dueAt: bill.due_at },
+      });
+    }
+  } catch (notifErr) {
+    console.error("[damage-billing] customer notification:", notifErr);
+  }
 
   // Send billing email (non-fatal if it fails)
   try {

@@ -2339,3 +2339,102 @@ html[data-theme="dark"] body.vrs-page .vrs-bookings-receipt-cta {
   border-color: rgba(255, 255, 255, 0.18);
   color: #d6e4e6;
 }
+
+/* ========================================================================
+   GLOBAL DARK MODE — FORM CONTROLS (inputs, selects, textareas)
+   Overrides the gradient applied by the generic bg-white rule so actual
+   interactive controls always get a solid readable dark background.
+   ======================================================================== */
+
+html[data-theme="dark"] .vrs-theme-scope input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
+html[data-theme="dark"] .vrs-theme-scope select,
+html[data-theme="dark"] .vrs-theme-scope textarea {
+  background: rgba(12, 20, 27, 0.88) !important;
+  border-color: rgba(138, 170, 182, 0.32) !important;
+  color: #dce8ed !important;
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .vrs-theme-scope input::placeholder,
+html[data-theme="dark"] .vrs-theme-scope textarea::placeholder {
+  color: rgba(152, 180, 194, 0.48) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope select option {
+  background: #111a22 !important;
+  color: #dce8ed !important;
+}
+
+/* Auth page: login wrapper divs that have bg-white wrapping transparent inputs */
+html[data-theme="dark"] body.vrs-page .vrs-auth-panel div[class*="bg-white"] {
+  background: rgba(12, 20, 27, 0.82) !important;
+  border-color: rgba(138, 170, 182, 0.28) !important;
+}
+
+/* Auth shell outer card (has a light linear-gradient not caught by generic rules) */
+html[data-theme="dark"] body.vrs-page .vrs-auth-shell {
+  background: linear-gradient(150deg, rgba(14, 22, 29, 0.93), rgba(10, 16, 22, 0.9)) !important;
+  border-color: rgba(138, 170, 182, 0.22) !important;
+}
+
+/* Google sign-in button in auth panels */
+html[data-theme="dark"] body.vrs-page .vrs-auth-panel button[class*="bg-white"] {
+  background: rgba(14, 22, 30, 0.86) !important;
+  border-color: rgba(138, 170, 182, 0.28) !important;
+  color: #d4e3e9 !important;
+}
+
+/* Auth story stat boxes */
+html[data-theme="dark"] body.vrs-page .vrs-auth-story div[class*="bg-white"] {
+  background: rgba(18, 28, 36, 0.72) !important;
+  border-color: rgba(138, 170, 182, 0.22) !important;
+}
+
+/* ========================================================================
+   PROFILE VERIFICATION PAGE — missing text / card colours in dark mode
+   ======================================================================== */
+
+html[data-theme="dark"] .profile-verify-card [class*="text-[#"],
+html[data-theme="dark"] .profile-verify-aside [class*="text-[#"],
+html[data-theme="dark"] .profile-verify-doc-card [class*="text-[#"] {
+  color: #cfe0e6 !important;
+}
+
+html[data-theme="dark"] .profile-verify-aside li {
+  background: rgba(14, 22, 30, 0.68) !important;
+  border-color: rgba(138, 170, 182, 0.2) !important;
+  color: #b8cdd5 !important;
+}
+
+html[data-theme="dark"] .profile-verify-doc-card #verifyDocumentPreviewShell {
+  background: rgba(12, 20, 28, 0.76) !important;
+  border-color: rgba(138, 170, 182, 0.22) !important;
+}
+
+html[data-theme="dark"] .profile-verify-options button[class*="bg-white"],
+html[data-theme="dark"] .profile-verify-options a[class*="bg-white"] {
+  background: rgba(14, 22, 30, 0.9) !important;
+  color: #cfe0e6 !important;
+}
+
+/* ========================================================================
+   DAMAGE PAYMENT PAGES (customer-facing, dark mode)
+   ======================================================================== */
+
+html[data-theme="dark"] body .rounded-2xl[class*="bg-white"],
+html[data-theme="dark"] body .rounded-2xl[class*="bg-rose-50"],
+html[data-theme="dark"] body .rounded-2xl[class*="bg-emerald-50"],
+html[data-theme="dark"] body .rounded-2xl[class*="bg-amber-50"] {
+  border-color: rgba(138, 170, 182, 0.22) !important;
+}
+
+/* ========================================================================
+   BOOKING PAGE — date/time inputs strict chrome calendar icon contrast
+   ======================================================================== */
+
+html[data-theme="dark"] .vrs-theme-scope input[type="date"]::-webkit-calendar-picker-indicator,
+html[data-theme="dark"] .vrs-theme-scope input[type="time"]::-webkit-calendar-picker-indicator,
+html[data-theme="dark"] .vrs-theme-scope input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.85);
+  cursor: pointer;
+}
