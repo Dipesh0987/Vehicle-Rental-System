@@ -1220,6 +1220,14 @@
       statusTone = "cancellation_review";
     }
 
+    var totalAmountValue = Number(quote.totalAmount || booking.totalAmount || 0);
+    var paidAmountValue = Number(booking.paidAmount || 0);
+    var remainingAmountValue = booking.remainingAmount != null
+      ? Number(booking.remainingAmount)
+      : Math.max(0, totalAmountValue - paidAmountValue);
+    var paymentStatusKey = String(booking.paymentStatus || "").toLowerCase()
+      || (booking.paymentDone ? "paid" : "unpaid");
+
     return {
       id: bookingId || reference,
       reference: reference,
@@ -1234,7 +1242,7 @@
       status: statusLabel,
       statusKey: statusMeta.key,
       statusTone: statusTone,
-      amount: formatBookingMoney(quote.totalAmount || booking.totalAmount),
+      amount: formatBookingMoney(totalAmountValue),
       baseAmount: formatBookingMoney(quote.baseAmount || booking.baseAmount),
       serviceFee: formatBookingMoney(quote.serviceFee || booking.serviceFee),
       tax: formatBookingMoney(quote.taxAmount || booking.taxAmount),
@@ -1249,7 +1257,22 @@
       customerUserId: String(booking.customerUserId || "").trim(),
       userMessage: displayUserMessage,
       userMessageLabel: hasCancellationRequest ? "Cancellation Reason" : "Message",
+      totalAmountValue: totalAmountValue,
+      paidAmountValue: paidAmountValue,
+      remainingAmountValue: remainingAmountValue,
+      paidAmountText: formatBookingMoney(paidAmountValue),
+      remainingAmountText: formatBookingMoney(remainingAmountValue),
+      paymentStatusKey: paymentStatusKey,
+      paymentStatusLabel: prettyPaymentStatusLabel(paymentStatusKey),
+      paymentDeadline: String(booking.paymentDeadline || ""),
     };
+  }
+
+  function prettyPaymentStatusLabel(statusKey) {
+    var key = String(statusKey || "").toLowerCase();
+    if (!key) return "Unpaid";
+    if (key === "partial") return "Partially Paid";
+    return key.charAt(0).toUpperCase() + key.slice(1);
   }
 
   async function loadCurrentUserBookings() {
@@ -1391,13 +1414,14 @@
     var money = document.createElement("div");
     money.className = "vrs-bookings-money mt-3 rounded-2xl p-3 text-[12px]";
     money.innerHTML =
-      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"vrs-bookings-money-label\">Total Paid</span><strong class=\"vrs-bookings-money-total text-[16px]\">" + escapeHtml(booking.amount) + "</strong></div>" +
+      "<div class=\"mb-2 flex items-center justify-between\"><span class=\"vrs-bookings-money-label\">Booking Total</span><strong class=\"vrs-bookings-money-total text-[16px]\">" + escapeHtml(booking.amount) + "</strong></div>" +
       "<div class=\"vrs-bookings-money-lines space-y-1\">" +
       "<p class=\"flex justify-between\"><span>Base Amount</span><span>" + escapeHtml(booking.baseAmount) + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Service Fee</span><span>" + escapeHtml(booking.serviceFee) + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Tax</span><span>" + escapeHtml(booking.tax) + "</span></p>" +
       "<p class=\"flex justify-between\"><span>Discount</span><span>" + escapeHtml(booking.discount) + "</span></p>" +
-      "</div>";
+      "</div>" +
+      buildPaymentLedgerHtml(booking);
 
     var extra = document.createElement("div");
     extra.className = "vrs-bookings-extra mt-3 grid grid-cols-1 gap-2 text-[12px] sm:grid-cols-2";
@@ -1409,23 +1433,135 @@
       "<p class=\"vrs-bookings-extra-item rounded-xl px-3 py-2 sm:col-span-2\"><span class=\"vrs-bookings-field-label block\">Last Updated</span>" + escapeHtml(booking.lastUpdated) + "</p>";
 
     var actions = document.createElement("div");
-    actions.className = "mt-4 flex items-center justify-end";
+    actions.className = "mt-4 flex flex-wrap items-center justify-end gap-2";
 
-    var cancelBookingButton = document.createElement("button");
-    cancelBookingButton.type = "button";
-    cancelBookingButton.className = "rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-[12px] font-semibold text-rose-700 transition hover:-translate-y-[1px] hover:bg-rose-100";
-    cancelBookingButton.textContent = "Cancel Booking";
-    cancelBookingButton.addEventListener("click", function () {
-      void showCancelBookingRequestPopup(booking);
-    });
+    var canCancel = booking.statusKey !== "cancelled" && booking.statusKey !== "completed";
+    var hasRemaining = Number(booking.remainingAmountValue || 0) > 0.005;
+    var paymentLocked = booking.statusKey === "cancelled";
+    var receiptCode = lookupLatestReceiptCode(booking.id);
 
-    actions.appendChild(cancelBookingButton);
+    if (hasRemaining && !paymentLocked) {
+      var payBtn = document.createElement("button");
+      payBtn.type = "button";
+      payBtn.className = "vrs-bookings-pay-cta";
+      payBtn.innerHTML =
+        '<span class="material-symbols-outlined text-[16px]">credit_card</span>' +
+        '<span>Pay Remaining ' + escapeHtml(booking.remainingAmountText || "") + '</span>';
+      payBtn.addEventListener("click", function () {
+        var bookingId = String(booking.id || "");
+        if (!bookingId) {
+          return;
+        }
+        try {
+          if (window.sessionStorage) {
+            window.sessionStorage.setItem(
+              "vrs.recentBooking",
+              JSON.stringify({
+                bookingId: bookingId,
+                bookingCode: booking.reference,
+                vehicleName: booking.vehicle,
+                totalAmount: booking.totalAmountValue,
+                startDate: booking.pickupDate,
+                endDate: booking.dropoffDate,
+                customerName: booking.customerName,
+                paymentDeadline: booking.paymentDeadline,
+              })
+            );
+          }
+        } catch (_e) { /* ignore */ }
+        window.location.assign("payment.html?booking=" + encodeURIComponent(bookingId));
+      });
+      actions.appendChild(payBtn);
+    }
+
+    if (receiptCode) {
+      var receiptBtn = document.createElement("a");
+      receiptBtn.href = "payment-receipt.html?payment=" + encodeURIComponent(receiptCode);
+      receiptBtn.className = "vrs-bookings-receipt-cta";
+      receiptBtn.innerHTML =
+        '<span class="material-symbols-outlined text-[16px]">receipt_long</span>' +
+        '<span>View Receipt</span>';
+      actions.appendChild(receiptBtn);
+    }
+
+    if (canCancel) {
+      var cancelBookingButton = document.createElement("button");
+      cancelBookingButton.type = "button";
+      cancelBookingButton.className = "rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-[12px] font-semibold text-rose-700 transition hover:-translate-y-[1px] hover:bg-rose-100";
+      cancelBookingButton.textContent = "Cancel Booking";
+      cancelBookingButton.addEventListener("click", function () {
+        void showCancelBookingRequestPopup(booking);
+      });
+      actions.appendChild(cancelBookingButton);
+    }
 
     detail.appendChild(top);
     detail.appendChild(timeline);
     detail.appendChild(money);
     detail.appendChild(extra);
     detail.appendChild(actions);
+  }
+
+  function buildPaymentLedgerHtml(booking) {
+    var statusKey = String(booking.paymentStatusKey || "unpaid").toLowerCase();
+    var pillClass = "vrs-payment-status-pill vrs-payment-status-pill--" + statusKey;
+    var paid = String(booking.paidAmountText || formatBookingMoney(booking.paidAmountValue));
+    var remaining = String(booking.remainingAmountText || formatBookingMoney(booking.remainingAmountValue));
+    var label = escapeHtml(booking.paymentStatusLabel || "Unpaid");
+
+    return [
+      '<div class="vrs-bookings-payment-summary mt-3">',
+      '  <span class="vrs-payment-cell"><span class="vrs-payment-cell-label">Status</span>',
+      '    <span class="' + pillClass + '">' + label + '</span>',
+      '  </span>',
+      '  <span class="vrs-payment-cell is-paid"><span class="vrs-payment-cell-label">Paid</span><strong>' + escapeHtml(paid) + '</strong></span>',
+      '  <span class="vrs-payment-cell is-remaining"><span class="vrs-payment-cell-label">Remaining</span><strong>' + escapeHtml(remaining) + '</strong></span>',
+      '</div>',
+    ].join("");
+  }
+
+  // Cache of completed payments keyed by booking_id, populated by
+  // renderBookingsWorkspace before it renders the detail view.
+  var bookingsPaymentLookup = {};
+
+  function setBookingsPaymentLookup(map) {
+    bookingsPaymentLookup = map || {};
+  }
+
+  function lookupLatestReceiptCode(bookingId) {
+    var key = String(bookingId || "").trim();
+    if (!key) return "";
+    var entry = bookingsPaymentLookup[key];
+    return entry && entry.transactionCode ? String(entry.transactionCode) : "";
+  }
+
+  async function loadLatestCompletedPaymentsByBooking() {
+    if (!window.VehiclePaymentService || typeof window.VehiclePaymentService.listUserPayments !== "function") {
+      return {};
+    }
+
+    try {
+      var response = await window.VehiclePaymentService.listUserPayments();
+      var rows = (response && Array.isArray(response.payments)) ? response.payments : [];
+      var byBooking = {};
+      rows.forEach(function (row) {
+        if (!row || row.status !== "completed") return;
+        var bookingId = String(row.booking_id || "").trim();
+        if (!bookingId) return;
+
+        // Keep the most recent (rows are pre-sorted desc by created_at).
+        if (!byBooking[bookingId]) {
+          byBooking[bookingId] = {
+            transactionCode: String(row.transaction_code || ""),
+            paymentId: String(row.id || ""),
+            paidAt: String(row.paid_at || ""),
+          };
+        }
+      });
+      return byBooking;
+    } catch (_e) {
+      return {};
+    }
   }
 
   async function renderBookingsWorkspace(modalRoot) {
@@ -1479,6 +1615,10 @@
       renderBookingsWorkspaceMessage(detail, "Please try again in a moment.");
       return;
     }
+
+    // Hydrate the booking_id -> latest completed payment lookup so the
+    // detail view can render the View Receipt button.
+    setBookingsPaymentLookup(await loadLatestCompletedPaymentsByBooking());
 
     if (total) {
       total.textContent = String(bookings.length);
@@ -1812,6 +1952,11 @@
       bookingsLinks.forEach(function (link) {
         link.classList.remove("hidden");
       });
+
+      // Mount the notifications bell once the user container is visible.
+      if (window.VehicleNotificationsBell && typeof window.VehicleNotificationsBell.mount === "function") {
+        try { window.VehicleNotificationsBell.mount(); } catch (_e) { /* ignore */ }
+      }
     } else {
       document.body.classList.add("auth-guest");
       if (guest) {
@@ -1834,6 +1979,10 @@
 
       if (profileTrigger) {
         profileTrigger.setAttribute("aria-expanded", "false");
+      }
+
+      if (window.VehicleNotificationsBell && typeof window.VehicleNotificationsBell.unmount === "function") {
+        try { window.VehicleNotificationsBell.unmount(); } catch (_e) { /* ignore */ }
       }
     }
 

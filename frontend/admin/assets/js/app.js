@@ -16,6 +16,7 @@ import { renderNotificationsModule } from './modules/notifications.js';
 import { renderReportsModule } from './modules/reports.js';
 import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
+import { createPaymentsService } from './services/payments.service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -43,9 +44,12 @@ const appState = {
   catalogService: null,
   bookingService: null,
   customerVerificationService: null,
+  paymentsService: null,
+  paymentStats: null,
 };
 
 const catalogService = createCatalogService({ data: appState.data });
+const paymentsService = createPaymentsService();
 let catalogUnsubscribe = null;
 let bookingUnsubscribe = null;
 const globalSearchState = {
@@ -88,7 +92,9 @@ async function bootstrap() {
   appState.catalogService = window.VehicleCatalogService || null;
   appState.bookingService = window.VehicleBookingService || null;
   appState.customerVerificationService = createCustomerVerificationService();
+  appState.paymentsService = paymentsService;
   appState.data.bookings = [];
+  appState.data.payments = [];
   appState.baseNotifications = Array.isArray(appState.data.notifications)
     ? appState.data.notifications.slice()
     : [];
@@ -103,6 +109,7 @@ async function bootstrap() {
   await hydrateVehiclesFromCatalog({ silent: true });
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });
+  await hydratePaymentsFromDatabase({ silent: true });
   renderActiveModule();
 
   setupCatalogSync();
@@ -133,9 +140,12 @@ function renderActiveModule() {
       catalogService,
       bookingService: appState.bookingService,
       customerVerificationService: appState.customerVerificationService,
+      paymentsService: appState.paymentsService,
+      paymentStats: appState.paymentStats,
       canWriteCatalog: appState.canWriteCatalog,
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
+      reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
       rerender: renderActiveModule,
     });
 
@@ -530,7 +540,8 @@ function setupBookingSync() {
 
   bookingUnsubscribe = appState.bookingService.subscribeToBookingChanges(async () => {
     await hydrateBookingsFromDatabase({ silent: true });
-    if (appState.activeModule === 'bookings' || appState.activeModule === 'customers' || appState.activeModule === 'overview') {
+    await hydratePaymentsFromDatabase({ silent: true });
+    if (appState.activeModule === 'bookings' || appState.activeModule === 'customers' || appState.activeModule === 'overview' || appState.activeModule === 'payments') {
       renderActiveModule();
     }
   });
@@ -570,6 +581,16 @@ async function hydrateCustomersFromDatabase({ silent = false } = {}) {
 
 function mapBookingToAdminRow(booking) {
   const paymentDone = Boolean(booking && (booking.paymentDone === true || booking.payment_done === true));
+  const totalAmount = Number.isFinite(Number(booking && booking.quote && booking.quote.totalAmount))
+    ? Number(booking.quote.totalAmount)
+    : 0;
+  const paidAmount = Number.isFinite(Number(booking && booking.paidAmount))
+    ? Number(booking.paidAmount)
+    : 0;
+  const remainingAmount = booking && booking.remainingAmount != null && Number.isFinite(Number(booking.remainingAmount))
+    ? Number(booking.remainingAmount)
+    : Math.max(0, totalAmount - paidAmount);
+  const paymentStatus = String(booking && booking.paymentStatus ? booking.paymentStatus : (paymentDone ? 'paid' : 'unpaid')).toLowerCase();
 
   return {
     id: String(booking && booking.bookingCode ? booking.bookingCode : booking && booking.id ? booking.id : ''),
@@ -590,11 +611,41 @@ function mapBookingToAdminRow(booking) {
     status: formatLabel(booking && booking.statusLabel ? booking.statusLabel : booking && booking.status ? booking.status : 'Confirmed'),
     paymentDone,
     paymentLabel: paymentDone ? 'Yes' : 'No',
-    total: Number.isFinite(Number(booking && booking.quote && booking.quote.totalAmount))
-      ? Number(booking.quote.totalAmount)
-      : 0,
+    paymentStatus,
+    paymentStatusLabel: prettyPaymentStatusLabel(paymentStatus),
+    paidAmount,
+    remainingAmount,
+    total: totalAmount,
     createdAt: String(booking && booking.createdAt ? booking.createdAt : ''),
   };
+}
+
+function prettyPaymentStatusLabel(statusKey) {
+  const key = String(statusKey || '').toLowerCase();
+  if (!key) return 'Unpaid';
+  if (key === 'partial') return 'Partially Paid';
+  return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+async function hydratePaymentsFromDatabase({ silent = false } = {}) {
+  if (!appState.paymentsService) return;
+
+  try {
+    const result = await appState.paymentsService.loadAdminPayments();
+    appState.data.payments = Array.isArray(result && result.rows) ? result.rows : [];
+    appState.paymentStats = (result && result.stats) || null;
+
+    if (!silent) {
+      pushToast('Payments synced from database', 'success');
+    }
+  } catch (error) {
+    appState.data.payments = [];
+    appState.paymentStats = null;
+    console.warn('Failed to sync payments from database:', error);
+    if (!silent) {
+      pushToast(`Payments sync failed: ${error.message}`, 'error');
+    }
+  }
 }
 
 function mapCustomerProfileToAdminRow(profile) {
