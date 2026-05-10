@@ -79,21 +79,79 @@ export function createCatalogService({ data }) {
 
       const client = await getClient();
 
+      // The admin create-form sends camelCase keys (pricePerDay, fuelType,
+      // primaryImageUrl) while the edit-form sends snake_case keys.
+      // Accept both shapes here so a missing key never silently becomes
+      // NaN / null and trips the NOT NULL constraint on price_per_day or
+      // fuel_type. `??` keeps explicit zero / empty-string values intact.
+      const pickFirstDefined = (...values) => {
+        for (let i = 0; i < values.length; i += 1) {
+          if (values[i] !== undefined && values[i] !== null && values[i] !== '') {
+            return values[i];
+          }
+        }
+        return undefined;
+      };
+
+      const rawPrice = pickFirstDefined(
+        vehicleInput.price_per_day,
+        vehicleInput.pricePerDay,
+        vehicleInput.daily
+      );
+      const rawFuelType = pickFirstDefined(vehicleInput.fuel_type, vehicleInput.fuelType);
+      const rawImage = pickFirstDefined(
+        vehicleInput.primary_image_url,
+        vehicleInput.primaryImageUrl,
+        vehicleInput.image
+      );
+      const rawStatus = String(vehicleInput.status || 'available').toLowerCase();
+      // The DB check constraint is lower-case ('available' | 'maintenance' |
+      // 'inactive'). The admin form sends 'Available' from the <select>, so
+      // normalise here.
+      const normalizedStatus = ['available', 'maintenance', 'inactive'].includes(rawStatus)
+        ? rawStatus
+        : 'available';
+
+      const priceNumber = Number(rawPrice);
+      const seatsNumber = Number(vehicleInput.seats);
+      const ratingNumber = Number(pickFirstDefined(vehicleInput.rating, 4.6));
+
+      // Fail fast with a readable error instead of letting the DB reject
+      // NaN / null and surface a cryptic "violates not-null constraint" toast.
+      if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
+        throw new Error('Daily price (price_per_day) is required and must be greater than zero.');
+      }
+      if (!rawFuelType) {
+        throw new Error('Fuel type is required (Petrol, Diesel, or Electric).');
+      }
+      if (!Number.isFinite(seatsNumber) || seatsNumber < 1) {
+        throw new Error('Seats is required and must be at least 1.');
+      }
+      if (!vehicleInput.name || !String(vehicleInput.name).trim()) {
+        throw new Error('Vehicle name is required.');
+      }
+      if (!vehicleInput.type && !vehicleInput.category) {
+        throw new Error('Vehicle type / category is required.');
+      }
+
       const normalized = {
-        name: vehicleInput.name,
-        type: vehicleInput.type,
-        seats: Number(vehicleInput.seats),
-        price_per_day: Number(vehicleInput.price_per_day),
-        fuel_type: vehicleInput.fuel_type,
-        status: String(vehicleInput.status || '').toLowerCase(),
-        primary_image_url: vehicleInput.primary_image_url,
-        category: vehicleInput.category,
-        transmission: vehicleInput.transmission,
-        rating: Number(vehicleInput.rating),
-        location: vehicleInput.location,
-        available: Boolean(vehicleInput.available),
-        is_active: Boolean(vehicleInput.is_active),
-        brand: vehicleInput.brand,
+        name: String(vehicleInput.name).trim(),
+        type: vehicleInput.type || vehicleInput.category,
+        seats: seatsNumber,
+        price_per_day: priceNumber,
+        fuel_type: rawFuelType,
+        status: normalizedStatus,
+        primary_image_url: rawImage,
+        category: vehicleInput.category || vehicleInput.type,
+        transmission: vehicleInput.transmission || 'Automatic',
+        rating: Number.isFinite(ratingNumber) ? ratingNumber : 4.6,
+        location: vehicleInput.location || '',
+        // Admin create form does not send these flags, so default to true so
+        // newly added vehicles immediately appear in the public catalog
+        // instead of being silently created as hidden / inactive.
+        available: vehicleInput.available !== undefined ? Boolean(vehicleInput.available) : true,
+        is_active: vehicleInput.is_active !== undefined ? Boolean(vehicleInput.is_active) : true,
+        brand: vehicleInput.brand || 'General',
       };
 
       if (id) {
