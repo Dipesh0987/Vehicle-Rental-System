@@ -223,7 +223,7 @@ function renderDetailView(host, rec, data, notify, rerender) {
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Record Details</h3>
         ${detailField('Maintenance ID', rec.id)}
         ${detailField('Vehicle', rec.vehicle)}
-        ${detailField('Vehicle ID', rec.vehicleId || '-')}
+        ${detailField('Vehicle Number', rec.vehicleId || '-')}
         ${detailField('Service Type', rec.serviceType || '-')}
         ${detailField('Damage / Service', rec.damage)}
         ${detailField('Scheduled Date', rec.schedule)}
@@ -361,7 +361,7 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     </form>
   `;
 
-  // Wire up vehicle name → auto-fill vehicle ID
+  // Wire up vehicle name → auto-fill vehicle number
   const vehicleInput = host.querySelector('[name="vehicle"]');
   const vehicleIdInput = host.querySelector('[name="vehicleId"]');
   if (vehicleInput && vehicleIdInput) {
@@ -494,7 +494,7 @@ function vehicleComboField(vehicles, selectedName, selectedId) {
       </datalist>
     </div>
     <div>
-      <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Vehicle ID <span class="text-xs font-normal text-slate-400">(auto-filled)</span></label>
+      <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Vehicle Number <span class="text-xs font-normal text-slate-400">(auto-filled)</span></label>
       <input name="vehicleId" value="${escapeHtml(selectedId || '')}" placeholder="Auto-filled on selection"
         class="${inputCls}" />
     </div>
