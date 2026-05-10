@@ -98,6 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_damage_bills_maint_record_id
 -- ── 4. RLS ────────────────────────────────────────────────────────────────
 ALTER TABLE public.damage_bills ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can manage damage bills" ON public.damage_bills;
 CREATE POLICY "Authenticated users can manage damage bills"
   ON public.damage_bills
   FOR ALL
