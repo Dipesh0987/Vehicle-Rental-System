@@ -1963,19 +1963,20 @@ body.vrs-page .vrs-bell-section + .vrs-bell-section {
   padding-top: 0.75rem;
 }
 
+/* YouTube-style notification rows: transparent background by default,
+   unread state is conveyed entirely by the leading 8px green pip.
+   No row tint, no left border accent. Hover gives a single soft tint
+   regardless of read/unread. */
 body.vrs-page .vrs-bell-item.is-unread {
-  /* Subtle tint replaces the old leading dot column so unread state is
-     visible without eating ~24px of horizontal space inside the dropdown. */
-  background: rgba(31, 91, 87, 0.045);
+  background: transparent;
 }
 
 body.vrs-page .vrs-bell-item.is-unread:hover {
-  background: rgba(31, 91, 87, 0.085);
+  background: #f4faf7;
 }
 
-/* Title - allow up to 2 lines so longer titles like
-   "Booking status changed to confirmed (#BK-3091)" stay fully visible
-   on the wider 520px dropdown. Past 2 lines we ellipsise. */
+/* Title - 2 lines max so multi-clause titles stay fully visible on the
+   720px dropdown without ever dominating the row. */
 body.vrs-page .vrs-bell-item-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1986,11 +1987,9 @@ body.vrs-page .vrs-bell-item-title {
   word-break: break-word;
 }
 
-/* Body - clamp to 3 lines so the full payment-amount + booking-code
-   sentence ("We received NPR 10.85 for your booking. Transaction
-   P-1004. Remaining balance: NPR 7.23.") is visible at a glance.
-   Anything longer is ellipsised - the full body still lives inside
-   the bookings panel / receipt page. */
+/* Body - 3 lines so the typical payment notification (amount + booking
+   code + remaining balance) shows in full. The bell is a glance-able
+   surface; anything longer lives in the bookings panel / receipt page. */
 body.vrs-page .vrs-bell-item-body {
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -2001,16 +2000,30 @@ body.vrs-page .vrs-bell-item-body {
   word-break: break-word;
 }
 
+/* Dark mode parity */
 html[data-theme="dark"] body.vrs-page .vrs-bell-item.is-unread {
-  background: rgba(46, 105, 101, 0.22);
+  background: transparent;
 }
 
+html[data-theme="dark"] body.vrs-page .vrs-bell-item:hover,
 html[data-theme="dark"] body.vrs-page .vrs-bell-item.is-unread:hover {
-  background: rgba(46, 105, 101, 0.32);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 html[data-theme="dark"] body.vrs-page .vrs-bell-section + .vrs-bell-section {
   border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bell-section-label {
+  color: #f1f5f3;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bell-item-title {
+  color: #f1f5f3;
+}
+
+html[data-theme="dark"] body.vrs-page .vrs-bell-item-body {
+  color: #aebfba;
 }
 
 body.vrs-page .vrs-bell-list::-webkit-scrollbar {
