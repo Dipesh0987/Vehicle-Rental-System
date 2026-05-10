@@ -2,14 +2,14 @@ import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { openModal, renderEmptyState } from '../ui.js';
 
-const STATUS_OPTIONS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled'];
+const STATUS_OPTIONS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Billed'];
 const SERVICE_TYPES  = ['Damage', 'Scheduled Service', 'Inspection', 'Repair'];
 
 const maintenanceUiState = {
   selectedId: '',
   statusFilter: 'All',
   page: 1,
-  mode: 'list', // list | detail | add | edit
+  mode: 'list', // list | detail | add | edit | billing
 };
 
 export function renderMaintenanceModule({ data, query, notify, rerender }) {
@@ -26,6 +26,15 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
     }
     maintenanceUiState.mode = 'list';
     maintenanceUiState.selectedId = '';
+  }
+
+  if (maintenanceUiState.mode === 'billing' && maintenanceUiState.selectedId) {
+    const record = sourceRows.find((r) => r.id === maintenanceUiState.selectedId);
+    if (record) {
+      renderBillingForm(host, record, data, notify, rerender);
+      return host;
+    }
+    maintenanceUiState.mode = 'detail';
   }
 
   if (maintenanceUiState.mode === 'add' || maintenanceUiState.mode === 'edit') {
@@ -48,7 +57,8 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   const scheduled   = sourceRows.filter((r) => r.status === 'Scheduled').length;
   const inProgress  = sourceRows.filter((r) => r.status === 'In Progress').length;
   const completed   = sourceRows.filter((r) => r.status === 'Completed').length;
-  const damageOpen  = sourceRows.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled').length;
+  const billed      = sourceRows.filter((r) => r.status === 'Billed').length;
+  const damageOpen  = sourceRows.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled' && r.status !== 'Billed').length;
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -64,10 +74,11 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
     </header>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       ${summaryCard('Scheduled', scheduled, 'amber')}
       ${summaryCard('In Progress', inProgress, 'blue')}
       ${summaryCard('Completed', completed, 'emerald')}
+      ${summaryCard('Billed', billed, 'violet')}
       ${summaryCard('Damage Open', damageOpen, 'rose')}
     </div>
 
@@ -203,7 +214,12 @@ function renderDetailView(host, rec, data, notify, rerender) {
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Maintenance Detail</p>
         <h2 class="${classMap.heading} text-slate-900 dark:text-white">${escapeHtml(rec.id)} — ${escapeHtml(rec.vehicle)}</h2>
       </div>
-      <div class="ml-auto flex gap-2">
+      <div class="ml-auto flex flex-wrap gap-2">
+        ${rec.serviceType === 'Damage' && rec.status === 'Completed'
+          ? `<button id="billCustomerBtn" class="rounded-xl border border-amber-400 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20">
+               <span class="material-symbols-outlined mr-1 text-[16px] align-middle">receipt_long</span> Bill Customer
+             </button>`
+          : ''}
         <button id="detailEditBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
           <span class="material-symbols-outlined mr-1 text-[16px] align-middle">edit</span> Edit
         </button>
@@ -238,13 +254,16 @@ function renderDetailView(host, rec, data, notify, rerender) {
         <div class="space-y-2">
           <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Update Status</p>
           <div class="flex flex-wrap gap-2">
-            ${['Scheduled','In Progress','Completed','Cancelled'].map((s) =>
+            ${['Scheduled','In Progress','Completed','Cancelled'].filter(() => rec.status !== 'Billed').map((s) =>
               `<button data-set-status="${s}" class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                 rec.status === s
                   ? 'border-brand-500 bg-brand-500/10 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10'
               }">${s}</button>`
             ).join('')}
+            ${rec.status === 'Billed'
+              ? `<span class="rounded-lg border border-violet-400 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 dark:border-violet-400/40 dark:bg-violet-500/10 dark:text-violet-300">Billed — charge issued</span>`
+              : ''}
           </div>
         </div>
 
@@ -258,12 +277,30 @@ function renderDetailView(host, rec, data, notify, rerender) {
         <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Notes</h3>
         <p class="text-sm text-slate-700 dark:text-slate-200">${escapeHtml(rec.notes) || '<span class="italic text-slate-400 dark:text-slate-500">No notes.</span>'}</p>
       </section>
+
+      ${rec.status === 'Billed'
+        ? `<!-- Billing Banner -->
+           <section class="md:col-span-2 rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-400/30 dark:bg-violet-500/10">
+             <div class="flex items-start gap-3">
+               <span class="material-symbols-outlined text-violet-600 dark:text-violet-300 mt-0.5">receipt_long</span>
+               <div>
+                 <p class="text-sm font-bold text-violet-800 dark:text-violet-200">Damage bill issued</p>
+                 <p class="text-xs text-violet-600 dark:text-violet-400 mt-0.5">A payment request has been sent to the customer. Check the Payments module or eSewa for settlement status.</p>
+               </div>
+             </div>
+           </section>`
+        : ''}
     </div>
   `;
 
   host.querySelector('#maintBackBtn')?.addEventListener('click', () => {
     maintenanceUiState.mode = 'list';
     maintenanceUiState.selectedId = '';
+    rerender();
+  });
+
+  host.querySelector('#billCustomerBtn')?.addEventListener('click', () => {
+    maintenanceUiState.mode = 'billing';
     rerender();
   });
 
@@ -464,6 +501,7 @@ function summaryCard(label, count, color) {
     blue:    'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-300',
     emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-300',
     rose:    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/20 dark:text-rose-300',
+    violet:  'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/20 dark:text-violet-300',
   };
   return `<article class="rounded-2xl border p-4 ${colors[color] || colors.amber}">
     <p class="text-xs font-bold uppercase tracking-[0.14em] opacity-70">${label}</p>
@@ -537,5 +575,196 @@ function statusClass(status) {
   if (status === 'Completed')  return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300`;
   if (status === 'In Progress') return `${base} bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300`;
   if (status === 'Cancelled')  return `${base} bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-300`;
+  if (status === 'Billed')     return `${base} bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300`;
   return `${base} bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300`;
+}
+
+// ── Billing Form ──────────────────────────────────────────────
+function renderBillingForm(host, rec, data, notify, rerender) {
+  const estimatedCost = rec.costEstimate ? Number(rec.costEstimate) : 0;
+
+  host.innerHTML = `
+    <header class="flex flex-wrap items-center gap-3">
+      <button id="billingBackBtn" class="rounded-lg border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      </button>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Finance</p>
+        <h2 class="${classMap.heading} text-slate-900 dark:text-white">Bill Customer — ${escapeHtml(rec.id)}</h2>
+      </div>
+    </header>
+
+    <!-- Info banner -->
+    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-400/30 dark:bg-amber-500/10">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 mt-0.5">info</span>
+        <div class="text-sm">
+          <p class="font-semibold text-amber-800 dark:text-amber-200">Damage claim: ${escapeHtml(rec.vehicle)} &mdash; ${escapeHtml(rec.damage)}</p>
+          <p class="text-amber-700 dark:text-amber-300 mt-0.5">Cost estimate on record: <strong>NPR ${Number(rec.costEstimate || 0).toLocaleString()}</strong>. Adjust below if needed. An eSewa payment link will be emailed to the customer.</p>
+        </div>
+      </div>
+    </div>
+
+    <form id="billingForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" novalidate>
+
+      <!-- Customer Details -->
+      <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Customer Details</h3>
+        ${formField('Customer Name', 'customerName', 'text', '', true, 'Full name of the customer')}
+        ${formField('Customer Email', 'customerEmail', 'email', '', true, 'customer@example.com')}
+        ${formField('Booking Reference', 'bookingRef', 'text', '', false, 'BK-XXXX (optional)')}
+      </section>
+
+      <!-- Charge Details -->
+      <section class="${classMap.panel} p-4 sm:p-5 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">Charge Details</h3>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Amount (NPR) <span class="text-rose-500">*</span></label>
+          <input name="amount" type="number" id="billAmount" min="1" step="0.01"
+            value="${escapeHtml(estimatedCost > 0 ? String(estimatedCost) : '')}"
+            placeholder="Enter charge amount"
+            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-white/10 dark:bg-white/5 dark:text-white" />
+          <p class="mt-1 text-xs text-slate-400">Pre-filled from cost estimate. Admin may adjust.</p>
+        </div>
+        ${formTextarea('Reason / Description', 'reason', rec.damage || '', true, 'Explain the damage charge')}
+        ${formTextarea('Internal Notes', 'notes', '', false, 'Optional internal remarks (not sent to customer)')}
+      </section>
+
+      <!-- Actions -->
+      <div class="md:col-span-2 flex justify-end gap-2">
+        <button type="button" id="billingCancelBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">Cancel</button>
+        <button type="submit" id="billingSubmitBtn" class="rounded-xl bg-amber-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50">
+          <span class="material-symbols-outlined mr-1 text-[16px] align-middle">send</span> Issue Bill &amp; Send Email
+        </button>
+      </div>
+    </form>
+
+    <!-- Result panel (hidden until bill is issued) -->
+    <div id="billingResult" class="hidden"></div>
+  `;
+
+  const goBack = () => {
+    maintenanceUiState.mode = 'detail';
+    rerender();
+  };
+  host.querySelector('#billingBackBtn')?.addEventListener('click', goBack);
+  host.querySelector('#billingCancelBtn')?.addEventListener('click', goBack);
+
+  host.querySelector('#billingForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const val = (name) => (form.querySelector(`[name="${name}"]`)?.value || '').trim();
+
+    const customerName  = val('customerName');
+    const customerEmail = val('customerEmail');
+    const rawAmount     = parseFloat(val('amount'));
+    const reason        = val('reason');
+    const bookingRef    = val('bookingRef');
+    const notes         = val('notes');
+
+    if (!customerName)  { notify('Customer name is required', 'error'); return; }
+    if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      notify('A valid customer email is required', 'error'); return;
+    }
+    if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+      notify('Amount must be a positive number', 'error'); return;
+    }
+    if (!reason) { notify('Reason is required', 'error'); return; }
+
+    const submitBtn = host.querySelector('#billingSubmitBtn');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Issuing…'; }
+
+    try {
+      if (!window.SupabaseClient || !window.SupabaseClient.isConfigured()) {
+        throw new Error('Supabase client is not configured.');
+      }
+      const client = await window.SupabaseClient.init();
+      const { data: sessionData } = await client.auth.getSession();
+      const token = sessionData?.session?.access_token || '';
+      if (!token) throw new Error('Not authenticated. Please sign in again.');
+
+      const supabaseUrl =
+        (window.SupabaseRuntime && window.SupabaseRuntime.config && window.SupabaseRuntime.config.url)
+        || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url)
+        || '';
+
+      const fnUrl = supabaseUrl
+        ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/damage-billing`
+        : '/functions/v1/damage-billing';
+
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action:          'initiate',
+          maintenanceRef:  rec.id,
+          maintenanceId:   rec.dbId || '',
+          customerName,
+          customerEmail,
+          amount:          rawAmount,
+          reason,
+          bookingRef:      bookingRef || '',
+          notes:           notes || '',
+        }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || `Server error ${res.status}`);
+      }
+
+      // Update local state
+      const idx = data.maintenance.findIndex((r) => r.id === rec.id);
+      if (idx >= 0) data.maintenance[idx].status = 'Billed';
+
+      // Show success result panel
+      const resultEl = host.querySelector('#billingResult');
+      host.querySelector('#billingForm').classList.add('hidden');
+      if (resultEl) {
+        resultEl.className = 'rounded-2xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-400/30 dark:bg-emerald-500/10 space-y-3';
+        resultEl.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-300 text-3xl">check_circle</span>
+            <div>
+              <p class="font-bold text-emerald-800 dark:text-emerald-200 text-base">Bill issued successfully</p>
+              <p class="text-emerald-700 dark:text-emerald-300 text-sm">Invoice ${escapeHtml(json.billCode)} has been created and a payment link emailed to ${escapeHtml(customerEmail)}.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Invoice</p>
+              <p class="font-bold text-slate-900 dark:text-white">${escapeHtml(json.billCode)}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Amount</p>
+              <p class="font-bold text-slate-900 dark:text-white">NPR ${Number(json.amount || rawAmount).toLocaleString()}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Customer</p>
+              <p class="font-bold text-slate-900 dark:text-white">${escapeHtml(customerEmail)}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="text-xs text-slate-500 dark:text-slate-400">Due (72 hrs)</p>
+              <p class="font-bold text-slate-900 dark:text-white">${escapeHtml(json.dueAt ? new Date(json.dueAt).toLocaleString() : '—')}</p>
+            </div>
+          </div>
+          <button id="billingDoneBtn" class="rounded-xl bg-brand-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600">Back to Record</button>
+        `;
+        resultEl.querySelector('#billingDoneBtn')?.addEventListener('click', () => {
+          maintenanceUiState.mode = 'detail';
+          rerender();
+        });
+      }
+
+      notify(`Bill ${json.billCode} issued. Payment email sent to ${customerEmail}.`, 'success');
+
+    } catch (err) {
+      notify(`Billing failed: ${err.message}`, 'error');
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span class="material-symbols-outlined mr-1 text-[16px] align-middle">send</span> Issue Bill &amp; Send Email'; }
+    }
+  });
 }
