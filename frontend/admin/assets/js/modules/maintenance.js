@@ -314,7 +314,7 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
   const vehicleMap = {};
-  for (const v of vehicles) { vehicleMap[v.name || v.id] = v.id; }
+  for (const v of vehicles) { vehicleMap[v.name || v.vehicle_number || v.id] = v.vehicle_number || v.id; }
   const scheduledMinAttr = isEdit ? '' : `min="${todayStr}"`;
   const completedMinAttr = r.schedule ? `min="${r.schedule}"` : '';
 
@@ -464,10 +464,10 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
 // ── Helpers ───────────────────────────────────────────────────
 function summaryCard(label, count, color) {
   const colors = {
-    amber:   'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
-    blue:    'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
-    rose:    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300',
+    amber:   'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-300',
+    blue:    'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-300',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-300',
+    rose:    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/20 dark:text-rose-300',
   };
   return `<article class="rounded-2xl border p-4 ${colors[color] || colors.amber}">
     <p class="text-xs font-bold uppercase tracking-[0.14em] opacity-70">${label}</p>
@@ -490,7 +490,7 @@ function vehicleComboField(vehicles, selectedName, selectedId) {
       <input name="vehicle" list="maintVehicleList" value="${escapeHtml(selectedName || '')}" placeholder="Type to search vehicles..." required
         class="${inputCls}" />
       <datalist id="maintVehicleList">
-        ${vehicles.map((v) => `<option value="${escapeHtml(v.name || v.id)}">${escapeHtml(v.id)}</option>`).join('')}
+        ${vehicles.map((v) => `<option value="${escapeHtml(v.name || v.vehicle_number || v.id)}">${escapeHtml(v.vehicle_number || v.id)}</option>`).join('')}
       </datalist>
     </div>
     <div>
