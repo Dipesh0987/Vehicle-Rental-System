@@ -17,6 +17,7 @@ export function createCatalogService({ data }) {
     available: row.available,
     is_active: row.is_active,
     brand: row.brand,
+    vehicle_number: row.vehicle_number || '',
     price_per_day: Number(row.price_per_day || 0),
     daily: Number(row.price_per_day || 0),
     weekly: 0,
@@ -46,13 +47,13 @@ export function createCatalogService({ data }) {
     const client = await getClient();
     const { data: rows, error } = await client
       .from(TABLE_NAME)
-      .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url')
+      .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number')
       .order('updated_at', { ascending: false });
 
     if (error) {
       const fallback = await client
         .from(TABLE_NAME)
-        .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url')
+        .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number')
         .order('id', { ascending: true });
 
       if (fallback.error) {
