@@ -388,6 +388,13 @@ function renderDriverForm(host, existingDriver, data, notify, rerender, driverSe
       return;
     }
 
+    // Email: valid format if provided
+    const email = getValue('email');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      notify('Please enter a valid email address', 'error');
+      return;
+    }
+
     // Date of birth: must be at least 18 years old
     if (dob) {
       const dobDate = new Date(dob);
