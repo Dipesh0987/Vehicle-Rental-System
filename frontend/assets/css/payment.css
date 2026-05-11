@@ -444,19 +444,91 @@
   justify-content: flex-end;
 }
 
+/* ====== Print / Save-as-PDF ====== */
 @media print {
-  body * {
-    visibility: hidden !important;
-  }
-  .payment-receipt-shell, .payment-receipt-shell * {
-    visibility: visible !important;
-  }
-  .payment-receipt-shell {
-    margin: 0;
-    box-shadow: none;
-    border: none;
-  }
-  .payment-receipt-actions, .vrs-theme-scope, header, footer, .payment-skip-print {
+  /* Hide everything that isn't the receipt.
+     NOTE: <main> also carries .vrs-theme-scope so do NOT target that class
+     generically — it would nuke the receipt container itself. */
+  body > *:not(main),
+  header, footer, nav,
+  .payment-skip-print,
+  .payment-receipt-actions,
+  #paymentReceiptStatus,
+  #paymentReceiptLoading {
     display: none !important;
+  }
+
+  /* Reset page and body so the receipt starts at the top-left corner */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Receipt card fills the printable area cleanly */
+  .payment-receipt-shell {
+    position: relative !important;
+    margin: 0 auto !important;
+    padding: 1.2rem 1.4rem 1.6rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    page-break-inside: avoid;
+  }
+
+  /* Force gradient header to render in print */
+  .payment-receipt-header {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    border-radius: 12px !important;
+  }
+
+  /* Totals section keeps its tinted background */
+  .payment-receipt-totals {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Two-column grid stays inline for a wider printout */
+  .payment-receipt-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Rows: slightly tighter for print */
+  .payment-receipt-row {
+    font-size: 12px;
+    padding: 0.35rem 0;
+  }
+
+  .payment-receipt-totals-row {
+    font-size: 12px;
+  }
+
+  .payment-receipt-totals-row.is-grand {
+    font-size: 14px;
+  }
+
+  /* Hide the footer "thank you" email note? No, keep it for receipts.
+     But hide the email-status line since it's not useful on paper. */
+  #receiptEmailStatus {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 18mm 14mm;
   }
 }

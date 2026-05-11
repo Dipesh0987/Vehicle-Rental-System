@@ -227,6 +227,7 @@
     <script src="assets/js/notifications.service.js"></script>
     <script src="assets/js/notifications-bell.js"></script>
     <script src="assets/js/ai-booking-chat.js"></script>
+    <script src="assets/js/home-upcoming-booking.js"></script>
     <script src="assets/js/db.bootstrap.js"></script>
     <script src="../backend/js/auth.js"></script>
     <script>
@@ -248,6 +249,10 @@
 
       if (window.HomeHeroBooking && typeof window.HomeHeroBooking.init === "function") {
         window.HomeHeroBooking.init();
+      }
+
+      if (window.HomeUpcomingBooking && typeof window.HomeUpcomingBooking.init === "function") {
+        window.HomeUpcomingBooking.init();
       }
     </script>
   </body>
