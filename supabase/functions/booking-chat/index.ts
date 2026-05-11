@@ -41,7 +41,14 @@ type VehicleRow = {
 };
 
 type ActionItem = {
-  type: "view_booking" | "open_vehicle" | "confirmation_cta" | "contact_support" | "suggest_vehicle" | "book_vehicle";
+  type:
+    | "view_booking"
+    | "open_vehicle"
+    | "confirmation_cta"
+    | "contact_support"
+    | "suggest_vehicle"
+    | "book_vehicle"
+    | "trip_quote";
   label: string;
   bookingId?: string;
   vehicleId?: string;
@@ -243,6 +250,8 @@ function bookingTouchesWindow(booking: BookingRow, window: { start: Date; end: D
 }
 
 function classifyIntent(query: string):
+  | "greeting"
+  | "policy"
   | "modify"
   | "upcoming"
   | "vehicle"
@@ -253,25 +262,43 @@ function classifyIntent(query: string):
   | "price"
   | "trip"
   | "unknown" {
-  const lower = query.toLowerCase();
+  const lower = query.toLowerCase().trim();
+
+  /* Bare greetings — route to friendly general handler. */
+  if (/^(hi|hii+|hey+|hello+|namaste|namaskar|good\s*(morning|afternoon|evening|day)|yo|sup)[\s!.?]*$/i.test(lower)) {
+    return "greeting";
+  }
 
   if (/(modify|change|resched|update|edit)\b/.test(lower)) {
     return "modify";
   }
 
-  if (/(trip|travel|journey|road\s*trip|plan.*trip|vacation|holiday|tour|group.*ride|family.*ride|\d+\s*(people|person|passenger|pax|member|friend|seat)|need.*car.*for|suggest.*vehicle|recommend.*car|which.*car.*for|best.*car|suitable.*vehicle)/.test(lower)) {
+  if (/(trip|travel|journey|road\s*trip|plan.*trip|vacation|holiday|tour|group.*ride|family.*ride|\d+\s*(people|person|passenger|pax|member|friend|seat)|need.*car.*for|suggest.*vehicle|recommend.*car|which.*car.*for|best.*car|suitable.*vehicle|itinerary|multi[\s-]?stops?|multiple\s+(stops?|places?|destinations?|cities|locations?)|many\s+(stops?|places?)|few\s+(stops?|places?)|several\s+(stops?|places?|cities)|round[\s-]?trip|tour\s+(around|of)|estimate.*(price|cost|package|quote)|package.*(price|deal|quote)|total.*cost.*for|how much.*(trip|tour|travel))/.test(lower)) {
     return "trip";
+  }
+
+  /* Multi-stop "<city> to <city> [to <city>] N days" phrasing — even without
+   * the word "trip" or any quantity word, route through trip planning. */
+  if (/[a-z]+\s+to\s+[a-z]+(?:\s+to\s+[a-z]+)+/.test(lower) && /\d+\s*(day|night|week)/.test(lower)) {
+    return "trip";
+  }
+
+  /* Generic policy / service questions that don't reference the user's own
+   * booking. These should always go through Gemini with a service-aware
+   * system prompt rather than hitting booking-specific rule answers. */
+  if (/(do you|are you|what.*(documents?|requirements?|process|policy|terms|hours|payment\s+method|insurance|damage|fuel\s+policy|driver|driving\s+license|deposit|age\s+limit|delivery|pickup\s+location|drop\s*off|return|extend|late\s+return|child\s+seat|gps|wifi|extra)|how\s+(do|does|can|long).*(rent|book|pay|deliver|return|process|verify|extend|sign|register)|where\s+(is|are|do)|tell me about|what is|explain|airport\s+(pickup|drop)|home\s+delivery|self\s+drive|chauffeur)/.test(lower)) {
+    return "policy";
   }
 
   if (/(upcoming|next booking|tomorrow|today|weekend|when.*(date|booking|pickup)|this week|next week|next month)\b/.test(lower)) {
     return "upcoming";
   }
 
-  if (/(vehicle|car|which one|model|what.*rented|what.*booked)\b/.test(lower)) {
+  if (/(my\s+vehicle|my\s+car|which one|what.*rented|what.*booked|what.*vehicle.*(i|me)|the\s+vehicle\s+(i|me))/.test(lower)) {
     return "vehicle";
   }
 
-  if (/(cancel|cancellation policy|can i cancel|policy)\b/.test(lower)) {
+  if (/(cancel|cancellation)\b/.test(lower)) {
     return "cancellation";
   }
 
@@ -287,7 +314,7 @@ function classifyIntent(query: string):
     return "list";
   }
 
-  if (/(price|cost|how much|total|amount|payment|paid)\b/.test(lower)) {
+  if (/(my\s+(price|cost|total|amount|payment))/.test(lower)) {
     return "price";
   }
 
@@ -295,12 +322,160 @@ function classifyIntent(query: string):
 }
 
 /* ─── Trip Context Parsing ─── */
+type TripStop = {
+  name: string;
+  days: number;
+};
+
 type TripContext = {
   people: number;
   budget: number;
   destinationType: string;
   duration: number;
+  fuelPref: string;
+  stops: TripStop[];
 };
+
+/* Approximate one-way road distances between common Nepali destinations (in km).
+ * Used purely for rough fuel/package estimation when the user lists multi-stop
+ * itineraries. Falls back to a sensible default for unknown city pairs. */
+const NEPAL_DISTANCE_KM: Record<string, Record<string, number>> = {
+  kathmandu: {
+    pokhara: 200,
+    chitwan: 150,
+    lumbini: 280,
+    nagarkot: 32,
+    dhulikhel: 30,
+    bhaktapur: 13,
+    lalitpur: 6,
+    patan: 6,
+    nuwakot: 75,
+    bandipur: 145,
+    gorkha: 140,
+    janakpur: 230,
+    mustang: 380,
+    jomsom: 380,
+    manang: 250,
+    "namche bazaar": 230,
+    everest: 230,
+    bardiya: 540,
+    ilam: 600,
+    biratnagar: 540,
+    butwal: 260,
+    palpa: 290,
+    tansen: 290,
+  },
+  pokhara: {
+    chitwan: 160,
+    lumbini: 190,
+    bandipur: 70,
+    mustang: 180,
+    jomsom: 180,
+    manang: 220,
+    bhairahawa: 200,
+    butwal: 190,
+    palpa: 90,
+    tansen: 90,
+    gorkha: 100,
+  },
+  chitwan: {
+    lumbini: 150,
+    butwal: 90,
+    bhairahawa: 100,
+    janakpur: 250,
+  },
+  lumbini: {
+    butwal: 25,
+    bhairahawa: 22,
+    palpa: 80,
+    tansen: 80,
+  },
+};
+
+const DEFAULT_INTERCITY_KM = 180;
+const FUEL_RATE_BY_TYPE: Record<string, number> = {
+  petrol: 14, // NPR per km approx for typical sedan
+  diesel: 12,
+  electric: 5,
+};
+
+function distanceBetween(cityA: string, cityB: string): number {
+  const a = normalizeText(cityA).toLowerCase();
+  const b = normalizeText(cityB).toLowerCase();
+  if (!a || !b || a === b) return 0;
+
+  const direct = NEPAL_DISTANCE_KM[a]?.[b];
+  if (Number.isFinite(direct) && direct! > 0) return direct!;
+
+  const reverse = NEPAL_DISTANCE_KM[b]?.[a];
+  if (Number.isFinite(reverse) && reverse! > 0) return reverse!;
+
+  return DEFAULT_INTERCITY_KM;
+}
+
+/* Parse multi-stop itinerary expressions such as
+ *   "Pokhara 3 days, Chitwan 2 days, Lumbini 1 day"
+ *   "Kathmandu to Pokhara to Chitwan, 5 days"
+ * Returns an ordered list of stops with day counts (defaults to 1 per stop). */
+function parseTripStops(query: string): TripStop[] {
+  const text = normalizeText(query);
+  if (!text) return [];
+
+  const lower = text.toLowerCase();
+  const stops: TripStop[] = [];
+  const seen = new Set<string>();
+
+  /* Pattern A: "<city> <N> day(s)" repeated */
+  const pairRegex = /([a-z][a-z\s]+?)\s*(\d+)\s*(?:day|night)s?/g;
+  let m: RegExpExecArray | null;
+  while ((m = pairRegex.exec(lower)) !== null) {
+    const rawName = normalizeText(m[1]).replace(/^(?:to|then|and|via|->|→|,|-)\s*/i, "");
+    const cleanName = rawName.replace(/\b(?:my|the|a|an|trip|stop|place|then|and|via|to)\b/g, "").trim();
+    const finalName = (cleanName || rawName).replace(/\s+/g, " ").trim();
+    if (!finalName) continue;
+    const days = Math.max(1, parseInt(m[2], 10) || 1);
+    const key = finalName.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    stops.push({ name: finalName, days });
+  }
+
+  if (stops.length >= 2) return stops;
+
+  /* Pattern B: "Kathmandu to Pokhara to Chitwan" with global day count elsewhere */
+  const arrowRegex = /\b([a-z][a-z\s]{1,30}?)\s*(?:to|->|→|then|via|,)\s+/g;
+  const candidates: string[] = [];
+  let lastIndex = 0;
+  let am: RegExpExecArray | null;
+  while ((am = arrowRegex.exec(lower)) !== null) {
+    candidates.push(am[1].trim());
+    lastIndex = arrowRegex.lastIndex;
+  }
+  if (candidates.length) {
+    const tail = lower.slice(lastIndex).split(/[\.,;!?]/)[0].trim();
+    const tailWord = tail.split(/\s+/)[0];
+    if (tailWord && /^[a-z]+$/.test(tailWord)) candidates.push(tailWord);
+  }
+
+  if (candidates.length >= 2) {
+    const totalDaysMatch = lower.match(/(\d+)\s*(day|night|week)s?/);
+    let totalDays = 0;
+    if (totalDaysMatch) {
+      const num = parseInt(totalDaysMatch[1], 10);
+      totalDays = totalDaysMatch[2].startsWith("week") ? num * 7 : num;
+    }
+    const perStop = totalDays > 0 ? Math.max(1, Math.floor(totalDays / candidates.length)) : 1;
+    candidates.forEach((c) => {
+      const finalName = c.replace(/\s+/g, " ").trim();
+      const key = finalName.toLowerCase();
+      if (!finalName || seen.has(key)) return;
+      seen.add(key);
+      stops.push({ name: finalName, days: perStop });
+    });
+  }
+
+  return stops;
+}
 
 function parseTripContext(query: string): TripContext {
   const lower = query.toLowerCase();
@@ -308,6 +483,7 @@ function parseTripContext(query: string): TripContext {
   let budget = 0;
   let destinationType = "";
   let duration = 0;
+  let fuelPref = "";
 
   // People count
   const pMatch = lower.match(/(\d+)\s*(people|person|passenger|pax|member|friend|seat|of us)/);
@@ -337,51 +513,103 @@ function parseTripContext(query: string): TripContext {
     duration = dMatch[2].startsWith("week") ? num * 7 : num;
   }
 
-  return { people, budget, destinationType, duration };
+  // Fuel preference
+  if (/\b(electric|ev|battery)\b/.test(lower)) fuelPref = "electric";
+  else if (/\bdiesel\b/.test(lower)) fuelPref = "diesel";
+  else if (/\bpetrol|gasoline|gas\b/.test(lower)) fuelPref = "petrol";
+
+  const stops = parseTripStops(query);
+  if (stops.length >= 2) {
+    const totalStopDays = stops.reduce((sum, s) => sum + s.days, 0);
+    if (totalStopDays > duration) duration = totalStopDays;
+  }
+
+  return { people, budget, destinationType, duration, fuelPref, stops };
 }
 
 function missingTripInfo(ctx: TripContext): string[] {
   const missing: string[] = [];
   if (!ctx.people) missing.push("passengers");
   if (!ctx.budget) missing.push("budget");
-  if (!ctx.destinationType) missing.push("destination");
+  if (!ctx.destinationType && ctx.stops.length < 2) missing.push("destination");
   return missing;
 }
 
-async function fetchAvailableVehicles(minSeats: number, maxBudget: number, destType: string): Promise<VehicleRow[]> {
+function vehiclePrice(v: VehicleRow): number {
+  return Number(v.price_per_day || v.daily_rate || 0);
+}
+
+function vehicleAvailable(v: VehicleRow): boolean {
+  const r = v as Record<string, unknown>;
+  if (r.available === false || r.is_available === false) return false;
+  const status = normalizeText(v.status).toLowerCase();
+  if (status && status !== "available" && status !== "active") return false;
+  return true;
+}
+
+function vehicleCategory(v: VehicleRow): string {
+  return (normalizeText(v.category) || normalizeText((v as Record<string, unknown>).type as string)).toLowerCase();
+}
+
+/* Fetch available vehicles using a defensive strategy that doesn't fail when
+ * specific columns (price_per_day vs daily_rate, available vs is_available)
+ * happen to be NULL on some rows. We pull a generous batch then rank/filter
+ * in JS so partial schema variants still produce useful suggestions. */
+async function fetchAvailableVehicles(minSeats: number, maxBudget: number, destType: string, fuelPref: string): Promise<VehicleRow[]> {
   const columns = "id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,available,is_available,status,rating,location";
-  let query = supabaseAdmin
+  const result = await supabaseAdmin
     .from("vehicles")
     .select(columns)
-    .or("available.eq.true,is_available.eq.true")
     .order("rating", { ascending: false })
-    .limit(20);
+    .limit(60);
 
-  if (minSeats > 0) query = query.gte("seats", minSeats);
-  if (maxBudget > 0) query = query.lte("price_per_day", maxBudget);
-
-  const result = await query;
   if (result.error) {
     console.error("vehicle fetch error", result.error.message);
     return [];
   }
 
-  let vehicles = (result.data || []) as VehicleRow[];
+  let vehicles = ((result.data as VehicleRow[] | null) || []).filter(vehicleAvailable);
 
-  // Prefer SUVs/trucks for mountains, sedans for city
-  function vCat(v: VehicleRow): string {
-    return (normalizeText(v.category) || normalizeText((v as Record<string, unknown>).type as string)).toLowerCase();
+  /* Soft seat filter — keep vehicles with no declared seat count. */
+  if (minSeats > 0) {
+    vehicles = vehicles.filter((v) => {
+      const s = Number(v.seats || 0);
+      return s === 0 || s >= minSeats;
+    });
   }
+
+  /* Soft budget filter — only enforce when at least 3 vehicles still match.
+   * Otherwise we relax the cap and surface the cheapest options. */
+  if (maxBudget > 0) {
+    const within = vehicles.filter((v) => {
+      const p = vehiclePrice(v);
+      return p === 0 || p <= maxBudget;
+    });
+    vehicles = within.length >= 3 ? within : vehicles.slice().sort((a, b) => vehiclePrice(a) - vehiclePrice(b));
+  }
+
+  /* Fuel preference: hard-prefer match, but keep others as fallback ranking. */
+  if (fuelPref) {
+    vehicles.sort((a, b) => {
+      const af = normalizeText(a.fuel_type).toLowerCase();
+      const bf = normalizeText(b.fuel_type).toLowerCase();
+      const aMatch = af === fuelPref ? 0 : 1;
+      const bMatch = bf === fuelPref ? 0 : 1;
+      return aMatch - bMatch;
+    });
+  }
+
+  /* Destination-type bias. */
   if (destType === "mountain") {
     vehicles.sort((a, b) => {
-      const scoreA = (vCat(a) === "suv" || vCat(a) === "truck") ? 0 : 1;
-      const scoreB = (vCat(b) === "suv" || vCat(b) === "truck") ? 0 : 1;
+      const scoreA = (vehicleCategory(a) === "suv" || vehicleCategory(a) === "truck") ? 0 : 1;
+      const scoreB = (vehicleCategory(b) === "suv" || vehicleCategory(b) === "truck") ? 0 : 1;
       return scoreA - scoreB;
     });
   } else if (destType === "city") {
     vehicles.sort((a, b) => {
-      const scoreA = (vCat(a) === "sedan" || vCat(a) === "electric") ? 0 : 1;
-      const scoreB = (vCat(b) === "sedan" || vCat(b) === "electric") ? 0 : 1;
+      const scoreA = (vehicleCategory(a) === "sedan" || vehicleCategory(a) === "electric" || vehicleCategory(a) === "hatchback") ? 0 : 1;
+      const scoreB = (vehicleCategory(b) === "sedan" || vehicleCategory(b) === "electric" || vehicleCategory(b) === "hatchback") ? 0 : 1;
       return scoreA - scoreB;
     });
   }
@@ -401,16 +629,16 @@ async function handleTripPlanning(input: {
   // Ask clarifying questions if 2+ key details are missing and this looks like an initial vague request
   if (missing.length >= 2 && GEMINI_API_KEY) {
     const clarifyPrompt = [
-      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
-      "The user wants to plan a trip but hasn't provided enough details.",
-      "Missing info: " + missing.join(", ") + ".",
-      "Ask 2-3 SHORT, friendly clarifying questions to help recommend the best vehicle.",
-      "Questions should cover: number of passengers, daily budget (in NPR), and destination type (city/mountain/highway).",
-      "Keep it to 2-3 sentences max. Be warm.",
+      "You are RentAVehicle Nepal's friendly AI Booking Assistant.",
+      "The user wants to plan a trip but the request is vague. Acknowledge their intent first, then ask 2-3 short clarifying questions to help recommend the best vehicle.",
+      "Missing info to gather: " + missing.join(", ") + ".",
+      "Cover (in friendly language): number of passengers, daily budget (NPR), and where they want to go OR the type of destination (city/mountain/highway/multi-stop).",
+      "Mention that we can plan a multi-stop itinerary if they want to visit several places.",
+      "Keep it to 2-3 short sentences. Use warm, conversational tone. End with a question.",
       "",
       "User message: " + input.query,
     ].join("\n");
-    const clarifyAnswer = await callGemini(clarifyPrompt, 200);
+    const clarifyAnswer = await callGemini(clarifyPrompt, 220);
     if (clarifyAnswer) {
       return {
         answer: clarifyAnswer,
@@ -418,32 +646,72 @@ async function handleTripPlanning(input: {
         citations: [],
       };
     }
+    /* Gemini unavailable: still offer a helpful clarification rather than a
+     * dead-end "no vehicles" message. */
+    return {
+      answer: "I'd love to help plan your trip! Could you tell me a bit more — how many passengers, your daily budget (NPR), and where you'd like to go? If you have multiple stops in mind, just say something like \"Pokhara 3 days, Chitwan 2 days\" and I'll quote the whole itinerary for you.",
+      actions: [],
+      citations: [],
+    };
   }
 
   // Fetch vehicles
-  const vehicles = await fetchAvailableVehicles(ctx.people || 1, ctx.budget, ctx.destinationType);
+  const vehicles = await fetchAvailableVehicles(ctx.people || 1, ctx.budget, ctx.destinationType, ctx.fuelPref);
 
   if (!vehicles.length) {
-    const noVehicleAnswer = ctx.people
-      ? `I couldn't find available vehicles with ${ctx.people}+ seats${ctx.budget ? " under NPR " + ctx.budget : ""} right now. Try adjusting your requirements or contact our support team.`
-      : "I couldn't find available vehicles matching your needs right now. Please contact our support team.";
+    /* No matches under the user's constraints — instead of dead-ending,
+     * loosen the filters once and try again so we always surface something.
+     * If even the loose fetch is empty (very rare), we hand off to the
+     * dynamic general handler for a conversational reply. */
+    const fallback = await fetchAvailableVehicles(1, 0, "", "");
+    if (fallback.length) {
+      const top = fallback.slice(0, 3);
+      const summary = top.map((v) => {
+        const name = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim() || "Vehicle";
+        const seats = v.seats || 5;
+        const price = vehiclePrice(v);
+        return `${name} (${seats} seats, NPR ${Math.round(price).toLocaleString()}/day)`;
+      }).join("; ");
+      const constraintNote = ctx.people
+        ? `with ${ctx.people}+ seats${ctx.budget ? " under NPR " + ctx.budget : ""}`
+        : "matching all your filters";
+      return {
+        answer: `I couldn't find vehicles ${constraintNote} right now, but here are some options that are close: ${summary}. Want me to relax the budget or seat count?`,
+        actions: top.map((v, i) => ({
+          type: "suggest_vehicle" as const,
+          label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+          vehicleId: v.id,
+          meta: {
+            seats: v.seats || 5,
+            price: vehiclePrice(v),
+            fuel: normalizeText(v.fuel_type) || "Petrol",
+            transmission: normalizeText(v.transmission) || "Automatic",
+            image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+            category: vehicleCategory(v) || "sedan",
+            rating: v.rating || 0,
+            location: normalizeText(v.location) || "",
+            reason: "",
+            rank: i + 1,
+          },
+        })),
+        citations: [],
+      };
+    }
+    /* DB really has nothing usable — at least respond conversationally. */
     return {
-      answer: noVehicleAnswer,
+      answer: "I'm having trouble finding live vehicle data at the moment. While I get that sorted, you can browse our full fleet on the Vehicles page or I can connect you to support.",
       actions: [defaultSupportAction()],
       citations: [],
     };
   }
 
-  function vPrice(v: VehicleRow): number { return Number(v.price_per_day || v.daily_rate || 0); }
-  function vType(v: VehicleRow): string { return normalizeText(v.category) || normalizeText((v as Record<string, unknown>).type as string) || "sedan"; }
-
   const top = vehicles.slice(0, 3);
   const vehicleSummary = top.map((v, i) => {
     const name = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
     const seats = v.seats || 5;
-    const price = vPrice(v);
+    const price = vehiclePrice(v);
     const fuel = normalizeText(v.fuel_type) || "Petrol";
-    const cat = vType(v);
+    const cat = vehicleCategory(v) || "sedan";
     return `#${i + 1} ${name} | ${cat} | ${seats} seats | NPR ${Math.round(price).toLocaleString()}/day | ${fuel}`;
   }).join("\n");
 
@@ -501,17 +769,185 @@ async function handleTripPlanning(input: {
     vehicleId: v.id,
     meta: {
       seats: v.seats || 5,
-      price: vPrice(v),
+      price: vehiclePrice(v),
       fuel: normalizeText(v.fuel_type) || "Petrol",
       transmission: normalizeText(v.transmission) || "Automatic",
       image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
-      category: vType(v),
+      category: vehicleCategory(v) || "sedan",
       rating: v.rating || 0,
       location: normalizeText(v.location) || "",
       reason: reasons[i] || "",
       rank: i + 1,
     },
   }));
+  actions.push(defaultSupportAction());
+
+  return { answer, actions, citations: [] };
+}
+
+/* ─── Multi-leg trip quote ───
+ * Builds a per-stop itinerary, estimated total kilometers, fuel cost band,
+ * and an end-to-end package price using the cheapest 3 suitable vehicles. */
+async function handleMultiLegQuote(input: {
+  query: string;
+  ctx: TripContext;
+  timezone: string;
+  now: Date;
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const ctx = input.ctx;
+  const stops = ctx.stops;
+
+  if (stops.length < 2) {
+    /* Falls back to standard trip planning when stops aren't multi. */
+    return handleTripPlanning(input);
+  }
+
+  /* Compute per-leg distances (round trip ends back at the start so the
+   * traveller can return to base — common for rental contracts). */
+  let totalKm = 0;
+  const legs: Array<{ from: string; to: string; km: number }> = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const from = stops[i].name;
+    const to = stops[i + 1].name;
+    const km = distanceBetween(from, to);
+    totalKm += km;
+    legs.push({ from, to, km });
+  }
+  /* Return leg back to start city. */
+  const start = stops[0].name;
+  const lastStop = stops[stops.length - 1].name;
+  const returnKm = distanceBetween(lastStop, start);
+  totalKm += returnKm;
+  legs.push({ from: lastStop, to: start, km: returnKm });
+
+  const totalDays = stops.reduce((sum, s) => sum + s.days, 0) || 1;
+  const fuelKey = ctx.fuelPref || "petrol";
+  const fuelRate = FUEL_RATE_BY_TYPE[fuelKey] ?? FUEL_RATE_BY_TYPE.petrol;
+  const fuelCostLow = Math.round(totalKm * fuelRate * 0.9);
+  const fuelCostHigh = Math.round(totalKm * fuelRate * 1.15);
+
+  let vehicles = await fetchAvailableVehicles(ctx.people || 1, ctx.budget, ctx.destinationType, ctx.fuelPref);
+  /* If strict filters returned nothing, loosen them so the user still gets
+   * an itinerary with realistic vehicle options instead of a dead-end. */
+  if (!vehicles.length) {
+    vehicles = await fetchAvailableVehicles(1, 0, "", "");
+  }
+  const top = vehicles.slice(0, 3);
+
+  /* Per-vehicle package estimates: rental + fuel band. */
+  const quoteRows = top.map((v) => {
+    const dailyRate = vehiclePrice(v);
+    const rentalSubtotal = Math.round(dailyRate * totalDays);
+    const packageLow = rentalSubtotal + fuelCostLow;
+    const packageHigh = rentalSubtotal + fuelCostHigh;
+    return {
+      vehicle: v,
+      dailyRate,
+      rentalSubtotal,
+      packageLow,
+      packageHigh,
+    };
+  });
+
+  const itineraryLines = stops
+    .map((s, i) => `${i + 1}. ${s.name} \u2014 ${s.days} day${s.days === 1 ? "" : "s"}`)
+    .join("\n");
+
+  const legsLines = legs
+    .map((l) => `\u2022 ${l.from} \u2192 ${l.to}: ~${l.km} km`)
+    .join("\n");
+
+  const headerLines: string[] = [];
+  headerLines.push(`Multi-stop trip plan (${totalDays} days, ~${totalKm} km round trip):`);
+  headerLines.push("");
+  headerLines.push("Itinerary:");
+  headerLines.push(itineraryLines);
+  headerLines.push("");
+  headerLines.push("Legs:");
+  headerLines.push(legsLines);
+  headerLines.push("");
+  headerLines.push(`Estimated fuel band (${fuelKey}): NPR ${fuelCostLow.toLocaleString()} \u2013 ${fuelCostHigh.toLocaleString()}.`);
+
+  if (quoteRows.length) {
+    headerLines.push("");
+    headerLines.push("Package estimates (vehicle rental + fuel):");
+    quoteRows.forEach((row, i) => {
+      const name = (normalizeText(row.vehicle.brand) + " " + normalizeText(row.vehicle.name)).trim() || "Vehicle";
+      headerLines.push(
+        `#${i + 1} ${name} \u2014 NPR ${row.rentalSubtotal.toLocaleString()} rental + NPR ${fuelCostLow.toLocaleString()}\u2013${fuelCostHigh.toLocaleString()} fuel = NPR ${row.packageLow.toLocaleString()}\u2013${row.packageHigh.toLocaleString()} total`
+      );
+    });
+  } else {
+    headerLines.push("");
+    headerLines.push("I couldn't find a perfectly matching vehicle for this itinerary right now. Please contact our support team for a custom quote.");
+  }
+
+  let answer = headerLines.join("\n");
+
+  /* Optional Gemini polish layer for friendlier prose under the numbers. */
+  if (GEMINI_API_KEY && quoteRows.length) {
+    const polishPrompt = [
+      "You are a friendly trip planner for RentAVehicle Nepal.",
+      "Write 2 short sentences ONLY (no markdown, no lists) summarising this multi-stop trip and inviting the user to pick a vehicle below.",
+      "Keep the warm tone. Do not invent prices or distances.",
+      "",
+      "Itinerary summary:",
+      itineraryLines,
+      "Total: " + totalDays + " days, ~" + totalKm + " km, fuel NPR " + fuelCostLow + "-" + fuelCostHigh,
+    ].join("\n");
+    const polished = await callGemini(polishPrompt, 200);
+    if (polished) {
+      answer = polished + "\n\n" + answer;
+    }
+  }
+
+  /* trip_quote action surfaces all numbers in a styled card on the frontend. */
+  const actions: ActionItem[] = [
+    {
+      type: "trip_quote" as const,
+      label: "Trip quote",
+      meta: {
+        totalDays,
+        totalKm,
+        fuelType: fuelKey,
+        fuelLow: fuelCostLow,
+        fuelHigh: fuelCostHigh,
+        stops: stops.map((s) => ({ name: s.name, days: s.days })),
+        legs,
+        quotes: quoteRows.map((row, i) => ({
+          rank: i + 1,
+          vehicleId: row.vehicle.id,
+          vehicleLabel: ((normalizeText(row.vehicle.brand) + " " + normalizeText(row.vehicle.name)).trim()) || "Vehicle",
+          dailyRate: row.dailyRate,
+          rentalSubtotal: row.rentalSubtotal,
+          packageLow: row.packageLow,
+          packageHigh: row.packageHigh,
+        })),
+      },
+    },
+  ];
+
+  /* Append vehicle cards so the user can immediately tap "Book this". */
+  top.forEach((v, i) => {
+    actions.push({
+      type: "suggest_vehicle" as const,
+      label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+      vehicleId: v.id,
+      meta: {
+        seats: v.seats || 5,
+        price: vehiclePrice(v),
+        fuel: normalizeText(v.fuel_type) || "Petrol",
+        transmission: normalizeText(v.transmission) || "Automatic",
+        image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+        category: vehicleCategory(v) || "sedan",
+        rating: v.rating || 0,
+        location: normalizeText(v.location) || "",
+        reason: `~NPR ${quoteRows[i]?.packageLow.toLocaleString() || 0}\u2013${quoteRows[i]?.packageHigh.toLocaleString() || 0} total for this itinerary`,
+        rank: i + 1,
+      },
+    });
+  });
+
   actions.push(defaultSupportAction());
 
   return { answer, actions, citations: [] };
@@ -896,29 +1332,63 @@ async function handleGeneralQuery(input: {
   vehicleMap: Record<string, VehicleRow>;
   timezone: string;
   now: Date;
+  intent?: string;
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
   const bookingSummary = summarizeBookings(input.bookings, input.vehicleMap);
   const latestBooking = input.bookings[0] || null;
+  const intent = input.intent || "unknown";
 
-  const prompt = [
-    "You are a friendly, professional AI booking assistant for RentAVehicle Nepal — a vehicle rental service.",
+  /* A richer system prompt grounded in the actual rental policy + service
+   * surface. The model is told what the platform supports so it can answer
+   * general questions ("how does pickup work?", "do you provide child
+   * seats?", etc.) without inventing data. */
+  const systemSection = [
+    "You are RentAVehicle Nepal's friendly, professional AI Booking Assistant.",
+    "Your audience: customers using a self-service vehicle rental platform in Nepal.",
+    "",
+    "WHAT THE PLATFORM SUPPORTS (use this for general questions):",
+    "- Browse and book a wide fleet (sedan, SUV, hatchback, electric, luxury, van, truck).",
+    "- Pickup is from the central rental office in Kathmandu by default; home/airport delivery may be arranged via support.",
+    "- Booking lifecycle: create -> admin approves -> customer pays -> picks up vehicle -> returns vehicle -> booking completes.",
+    "- Standard self-drive rental requires: a valid driving license, a government-issued ID, and a completed profile verification (KYC) on the website.",
+    "- Cancellation/refund go through admin review from the booking modification page; refunds for paid bookings are handled by the support team.",
+    "- Invoices are auto-generated for paid bookings and downloadable from the booking detail view.",
+    "- Multi-stop trip planning is available — the assistant can quote a per-stop itinerary including rental + fuel cost band.",
+    "- Common destinations: Kathmandu, Pokhara, Chitwan, Lumbini, Mustang, Manang, Bandipur, Bardiya, Ilam.",
+    "",
     "RULES:",
-    "- Be warm, concise, and helpful (2-4 sentences max).",
-    "- If the user greets you (hi, hello, hey, etc.), greet them back and briefly mention you can help with booking dates, vehicle info, cancellation, refunds, invoices, or general rental questions.",
-    "- If the user asks about their bookings, ONLY use the real booking data provided below. NEVER invent or fabricate booking data.",
-    "- If the user asks something you cannot answer from the data, say so honestly and offer to connect to support.",
-    "- You CANNOT modify, cancel, or create bookings. If asked, tell the user to use the booking modification page.",
+    "- Be warm, concise, and helpful (2-4 sentences typically; longer only when explicitly asked).",
+    "- If the user greets you, greet them back and briefly mention top capabilities: trip planning, multi-stop quotes, booking dates, vehicle info, cancellation, refunds, invoices.",
+    "- For general policy/service questions, answer using the platform context above. NEVER invent specific prices or guarantees the platform can't deliver.",
+    "- If the user asks about THEIR booking, ONLY use the booking data below. NEVER invent or fabricate booking data.",
+    "- If something requires admin/support action, say so and offer the support contact.",
+    "- You CANNOT modify, cancel, or create bookings directly. Direct the user to the booking modification page or support.",
     "- Always mention the booking code (e.g. BK-XXXX) when referencing a specific booking.",
+    "- Use NPR for prices.",
     "- Current date/time: " + input.now.toISOString() + " (" + input.timezone + ")",
+    "- Detected intent for context: " + intent,
     "",
     "USER'S BOOKING DATA (from vehicle_bookings table):",
     bookingSummary,
     "",
     "User message: " + input.query,
-  ].join("\n");
+  ];
 
-  const result = await callGemini(prompt, 400);
-  const answer = result || "Hello! I'm your booking assistant. I can help with upcoming dates, vehicle details, cancellation policy, refund status, or invoices. What would you like to know?";
+  const prompt = systemSection.join("\n");
+  const result = await callGemini(prompt, 450);
+
+  /* Sensible fallback when Gemini is unavailable. Distinguishes greetings
+   * from general/policy questions for a less robotic feel. */
+  let answer = result;
+  if (!answer) {
+    if (intent === "greeting") {
+      answer = "Hello! I'm your AI Booking Assistant. I can help with trip planning, multi-stop trip quotes, your upcoming bookings, vehicle details, cancellation, refunds, and invoices. What would you like to do?";
+    } else if (intent === "policy") {
+      answer = "Most rental questions (pickup process, required documents, payments, delivery, fuel policy) can be answered by support quickly. I can also look up your bookings or plan a trip if you'd like.";
+    } else {
+      answer = "I'm not 100% sure how to answer that just yet. I can help with trip planning, your bookings, cancellations, refunds, and invoices — or connect you to support.";
+    }
+  }
 
   const actions: ActionItem[] = [];
   const citations: Citation[] = [];
@@ -991,10 +1461,14 @@ Deno.serve(async (request: Request): Promise<Response> => {
 
     const intent = classifyIntent(query);
 
-    // Handle trip planning separately (doesn't need bookings)
+    // Handle trip planning separately (doesn't need bookings).
+    // If 2+ stops are detected we go through the multi-leg quote handler that
+    // also outputs a per-stop fuel + package estimate alongside vehicle cards.
     if (intent === "trip") {
       const ctx = parseTripContext(query);
-      const tripResult = await handleTripPlanning({ query, ctx, timezone, now: safeNow });
+      const tripResult = ctx.stops.length >= 2
+        ? await handleMultiLegQuote({ query, ctx, timezone, now: safeNow })
+        : await handleTripPlanning({ query, ctx, timezone, now: safeNow });
       return jsonResponse(200, {
         success: true,
         answer: tripResult.answer,
@@ -1003,6 +1477,29 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
+      });
+    }
+
+    /* Greetings, generic policy/service questions, and unknowns go straight
+     * through the dynamic Gemini-backed general handler so the assistant
+     * actually responds rather than falling back to a canned booking line. */
+    if (intent === "greeting" || intent === "policy" || intent === "unknown") {
+      const generalResult = await handleGeneralQuery({
+        query,
+        bookings,
+        vehicleMap,
+        timezone,
+        now: safeNow,
+        intent,
+      });
+      return jsonResponse(200, {
+        success: true,
+        answer: generalResult.answer,
+        actions: generalResult.actions as unknown as JsonValue,
+        citations: generalResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: intent,
       });
     }
 
@@ -1019,7 +1516,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     let finalCitations = ruleAnswer.citations;
 
     if (ruleAnswer.unresolved && GEMINI_API_KEY) {
-      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow });
+      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow, intent });
       finalAnswer = geminiResult.answer;
       finalActions = geminiResult.actions;
       finalCitations = geminiResult.citations;
