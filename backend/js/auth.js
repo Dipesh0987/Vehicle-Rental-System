@@ -1137,7 +1137,7 @@
       numeric = 0;
     }
 
-    return "$" + numeric.toFixed(2);
+    return "NPR " + numeric.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function escapeHtml(value) {
