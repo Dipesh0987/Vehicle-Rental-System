@@ -1722,7 +1722,7 @@
 
     var overlay = document.createElement("div");
     overlay.setAttribute("data-bookings-modal-overlay", "true");
-    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(7,22,24,0.52)] opacity-0 transition duration-200";
+    overlay.className = "hidden pointer-events-none fixed inset-0 z-[250] items-center justify-center bg-[rgba(7,22,24,0.52)] opacity-0 transition duration-200";
 
     var card = document.createElement("section");
     card.setAttribute("role", "dialog");
@@ -1793,8 +1793,8 @@
 
     void renderBookingsWorkspace(overlay);
 
-    overlay.classList.remove("opacity-0", "pointer-events-none");
-    overlay.classList.add("opacity-100", "pointer-events-auto");
+    overlay.classList.remove("hidden", "opacity-0", "pointer-events-none");
+    overlay.classList.add("flex", "opacity-100", "pointer-events-auto");
     document.body.classList.add("overflow-hidden");
   }
 
@@ -1804,8 +1804,8 @@
       return;
     }
 
-    overlay.classList.remove("opacity-100", "pointer-events-auto");
-    overlay.classList.add("opacity-0", "pointer-events-none");
+    overlay.classList.remove("flex", "opacity-100", "pointer-events-auto");
+    overlay.classList.add("hidden", "opacity-0", "pointer-events-none");
     document.body.classList.remove("overflow-hidden");
   }
 
