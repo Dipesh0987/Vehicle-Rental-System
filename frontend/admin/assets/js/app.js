@@ -18,6 +18,7 @@ import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
 import { createPaymentsService } from './services/payments.service.js';
 import { createDriverService } from './services/driver.service.js';
+import { subscribeToMaintenanceChanges } from './services/activity-feed.service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -55,6 +56,7 @@ const paymentsService = createPaymentsService();
 const driverService = createDriverService();
 let catalogUnsubscribe = null;
 let bookingUnsubscribe = null;
+let maintenanceUnsubscribe = null;
 const globalSearchState = {
   items: [],
   activeIndex: -1,
@@ -123,6 +125,7 @@ async function bootstrap() {
 
   setupCatalogSync();
   setupBookingSync();
+  setupMaintenanceSync();
 
   try {
     const vehicles = await catalogService.loadVehicles();
@@ -626,6 +629,16 @@ function setupCatalogSync() {
   catalogUnsubscribe = appState.catalogService.subscribeToVehicleCatalogChanges(async () => {
     await hydrateVehiclesFromCatalog({ silent: true });
     if (appState.activeModule === 'vehicles' || appState.activeModule === 'overview') {
+      renderActiveModule();
+    }
+  });
+}
+
+async function setupMaintenanceSync() {
+  if (maintenanceUnsubscribe) { maintenanceUnsubscribe(); maintenanceUnsubscribe = null; }
+  maintenanceUnsubscribe = await subscribeToMaintenanceChanges(async () => {
+    await hydrateMaintenanceFromDatabase({ silent: true });
+    if (appState.activeModule === 'overview' || appState.activeModule === 'maintenance') {
       renderActiveModule();
     }
   });

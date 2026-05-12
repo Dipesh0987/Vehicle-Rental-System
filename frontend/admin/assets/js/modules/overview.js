@@ -1,7 +1,30 @@
 import { classMap } from '../config.js';
 import { renderBarChart, renderLineChart, renderPieChart } from '../charts.js';
+import { buildActivityFeed, ACTIVITY_TYPES, formatRelativeTime } from '../services/activity-feed.service.js';
 
-export function renderOverviewModule({ data }) {
+// Module-level timer so we cancel it on the next render cycle
+let _activityTimer = null;
+
+function renderActivityItem(ev) {
+  const cfg = ACTIVITY_TYPES[ev.type] || {
+    icon: 'notifications', iconHex: '#64748b',
+    badgeCls: 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400',
+  };
+  const safeDetail = String(ev.detail || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `
+    <li data-activity-module="${ev.module || ''}"
+        class="group flex cursor-pointer items-start gap-3 rounded-xl px-2.5 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+      <span class="material-symbols-outlined mt-0.5 flex-shrink-0 text-[20px]" style="color:${cfg.iconHex}">${cfg.icon}</span>
+      <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span class="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cfg.badgeCls}">${ev.type}</span>
+        <span class="truncate text-[13px] text-slate-700 dark:text-slate-300">${safeDetail}</span>
+      </span>
+      <span data-ts="${ev.ts || ''}" class="flex-shrink-0 whitespace-nowrap text-[11px] font-semibold tabular-nums text-slate-400 dark:text-slate-500">${ev.time}</span>
+    </li>`;
+}
+
+export function renderOverviewModule({ data, navigate, rerender }) {
+  if (_activityTimer) { clearInterval(_activityTimer); _activityTimer = null; }
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -66,29 +89,54 @@ export function renderOverviewModule({ data }) {
         <div class="h-[280px]"><canvas id="utilizationBarChart"></canvas></div>
       </section>
 
-      <section class="${classMap.panel} xl:col-span-6 p-4 sm:p-5">
+      <section class="${classMap.panel} xl:col-span-6 p-4 sm:p-5 flex flex-col">
         <div class="mb-3 flex items-center justify-between">
-          <h3 class="text-base font-extrabold">Recent Activity</h3>
-          <button class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-200">View log</button>
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2 w-2">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+            </span>
+            <h3 class="text-base font-extrabold">Live Activity</h3>
+          </div>
+          <button id="viewActivityLogBtn"
+            class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10">
+            View log
+          </button>
         </div>
-        <ul class="space-y-2">
-          ${data.activities
-            .map(
-              (activity) => `<li class="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
-                <div class="flex items-start justify-between gap-2">
-                  <div>
-                    <p class="text-sm font-bold">${activity.type}</p>
-                    <p class="text-sm text-slate-600 dark:text-slate-300">${activity.detail}</p>
-                  </div>
-                  <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">${activity.time}</span>
-                </div>
-              </li>`
-            )
-            .join('')}
-        </ul>
+        ${(() => {
+          const feed = buildActivityFeed(data, 8);
+          if (!feed.length) return `
+            <div class="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-slate-400 dark:text-slate-500">
+              <span class="material-symbols-outlined text-[32px] opacity-40">history</span>
+              <p class="text-sm font-semibold">No recent activity</p>
+            </div>`;
+          return `<ul id="activityFeedList" class="-mx-1 space-y-0.5">${feed.map(renderActivityItem).join('')}</ul>`;
+        })()}
       </section>
     </div>
   `;
+
+  // ── "View log" navigates to notifications / audit log ───────────────
+  host.querySelector('#viewActivityLogBtn')?.addEventListener('click', () => {
+    navigate?.('notifications');
+  });
+
+  // ── Clicking an activity row navigates to its module ─────────────────
+  host.querySelector('#activityFeedList')?.addEventListener('click', (e) => {
+    const li = e.target.closest('[data-activity-module]');
+    const mod = li?.getAttribute('data-activity-module');
+    if (mod) navigate?.(mod);
+  });
+
+  // ── Refresh relative timestamps every 30 s (self-cancels on unmount) ─
+  _activityTimer = setInterval(() => {
+    const list = document.getElementById('activityFeedList');
+    if (!list) { clearInterval(_activityTimer); _activityTimer = null; return; }
+    list.querySelectorAll('[data-ts]').forEach((el) => {
+      const updated = formatRelativeTime(el.getAttribute('data-ts'));
+      if (el.textContent !== updated) el.textContent = updated;
+    });
+  }, 30_000);
 
   queueMicrotask(() => {
     renderLineChart(
