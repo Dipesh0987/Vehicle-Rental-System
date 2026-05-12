@@ -2468,10 +2468,10 @@ html[data-theme="dark"] .vrs-theme-scope input[type="datetime-local"]::-webkit-c
 
 /* ── pill tabs ── */
 .tr-pill--active {
-  background: #3D8F7E;
+  background: #E5894E;
   color: #ffffff;
-  border: 1px solid #3D8F7E;
-  box-shadow: 0 4px 12px rgba(61, 143, 126, 0.3);
+  border: 1px solid #E5894E;
+  box-shadow: 0 4px 12px rgba(229, 137, 78, 0.32);
 }
 
 .tr-pill--inactive {
@@ -2519,7 +2519,7 @@ html[data-theme="dark"] .vrs-theme-scope input[type="datetime-local"]::-webkit-c
 
 /* ── CTA buttons ── */
 .tr-btn-details {
-  background: #3D8F7E;
+  background: #E5894E;
   color: #ffffff;
 }
 
