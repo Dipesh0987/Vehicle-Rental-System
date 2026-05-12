@@ -2475,14 +2475,14 @@ html[data-theme="dark"] .vrs-theme-scope input[type="datetime-local"]::-webkit-c
 }
 
 .tr-pill--inactive {
-  background: #ffffff;
-  color: #3E4448;
-  border: 1px solid #d0d5d1;
+  background: #C9D4D0;
+  color: #2D3337;
+  border: 1px solid transparent;
 }
 
 .tr-pill--inactive:hover {
-  border-color: #3D8F7E;
-  color: #3D8F7E;
+  background: #B7C4BF;
+  color: #1a2a2f;
 }
 
 /* ── card ── */
