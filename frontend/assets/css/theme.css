@@ -163,6 +163,18 @@ html[data-theme="dark"] .vrs-theme-scope .elite-glass {
   background: linear-gradient(155deg, var(--vrs-surface), var(--vrs-surface-soft)) !important;
 }
 
+.home-hero-shell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2A7E72 0%, #E58C4E 60%, #2A7E72 100%);
+  z-index: 100;
+  opacity: 0.85;
+}
+
 .vrs-theme-scope .home-side-panel {
   background-color: #2A7E72 !important;
   overflow: hidden;
