@@ -2524,8 +2524,12 @@ html[data-theme="dark"] .vrs-theme-scope input[type="datetime-local"]::-webkit-c
 }
 
 .tr-btn-book {
-  background: #2D3337;
+  background: #B5BBC0;
   color: #ffffff;
+}
+
+.tr-btn-book:hover {
+  background: #9CA3AB;
 }
 
 /* ========== DARK MODE ========== */
