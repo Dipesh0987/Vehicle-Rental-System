@@ -18,6 +18,7 @@ import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
 import { createPaymentsService } from './services/payments.service.js';
 import { createDriverService } from './services/driver.service.js';
+import { subscribeToChanges as subscribeMaintenanceChanges, mapDbRow as mapMaintenanceDbRow } from './services/maintenance.service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -55,6 +56,7 @@ const paymentsService = createPaymentsService();
 const driverService = createDriverService();
 let catalogUnsubscribe = null;
 let bookingUnsubscribe = null;
+let maintenanceUnsubscribe = null;
 const globalSearchState = {
   items: [],
   activeIndex: -1,
@@ -123,6 +125,7 @@ async function bootstrap() {
 
   setupCatalogSync();
   setupBookingSync();
+  setupMaintenanceSync();
 
   try {
     const vehicles = await catalogService.loadVehicles();
@@ -647,6 +650,42 @@ function setupBookingSync() {
       renderActiveModule();
     }
   });
+}
+
+async function setupMaintenanceSync() {
+  if (maintenanceUnsubscribe) {
+    maintenanceUnsubscribe();
+    maintenanceUnsubscribe = null;
+  }
+
+  try {
+    maintenanceUnsubscribe = await subscribeMaintenanceChanges((eventType, newRow, oldRow) => {
+      const rows = appState.data.maintenance || [];
+
+      if (eventType === 'INSERT' && newRow) {
+        // Avoid duplicates
+        if (!rows.some((r) => r.dbId === newRow.dbId)) {
+          rows.unshift(newRow);
+        }
+      } else if (eventType === 'UPDATE' && newRow) {
+        const idx = rows.findIndex((r) => r.dbId === newRow.dbId);
+        if (idx >= 0) {
+          rows[idx] = { ...rows[idx], ...newRow };
+        } else {
+          rows.unshift(newRow);
+        }
+      } else if (eventType === 'DELETE' && oldRow) {
+        appState.data.maintenance = rows.filter((r) => r.dbId !== oldRow.dbId);
+      }
+
+      // Re-render if on a module that shows maintenance data
+      if (appState.activeModule === 'maintenance' || appState.activeModule === 'overview') {
+        renderActiveModule();
+      }
+    });
+  } catch (err) {
+    console.warn('[maintenance] realtime setup failed:', err.message);
+  }
 }
 
 async function hydrateCustomersFromDatabase({ silent = false } = {}) {
