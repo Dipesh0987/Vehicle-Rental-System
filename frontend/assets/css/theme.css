@@ -2446,3 +2446,171 @@ html[data-theme="dark"] .vrs-theme-scope input[type="datetime-local"]::-webkit-c
   filter: invert(1) brightness(0.85);
   cursor: pointer;
 }
+
+/* ========================================================================
+   TOP RATED RENTED CARS – light & dark mode
+   ======================================================================== */
+
+/* ── section background ── */
+#homeTopRatedSection {
+  --tr-skel: #eaedee;
+}
+
+/* ── heading ── */
+.tr-heading {
+  color: #1a2a2f;
+}
+
+/* ── subtitle ── */
+.tr-subtitle {
+  color: #7a8589;
+}
+
+/* ── pill tabs ── */
+.tr-pill--active {
+  background: #3D8F7E;
+  color: #ffffff;
+  border: 1px solid #3D8F7E;
+  box-shadow: 0 4px 12px rgba(61, 143, 126, 0.3);
+}
+
+.tr-pill--inactive {
+  background: #ffffff;
+  color: #3E4448;
+  border: 1px solid #d0d5d1;
+}
+
+.tr-pill--inactive:hover {
+  border-color: #3D8F7E;
+  color: #3D8F7E;
+}
+
+/* ── card ── */
+.tr-card {
+  background: #ffffff;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+
+.tr-card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* ── fuel badge ── */
+.tr-fuel {
+  background: #ffffff;
+  color: #4a545b;
+  border: 1px solid #d0d5d1;
+}
+
+/* ── card name ── */
+.tr-card-name {
+  color: #1a2a2f;
+}
+
+/* ── specs row ── */
+.tr-specs {
+  color: #6C7074;
+}
+
+/* ── price ── */
+.tr-price {
+  color: #1a2a2f;
+}
+
+/* ── CTA buttons ── */
+.tr-btn-details {
+  background: #3D8F7E;
+  color: #ffffff;
+}
+
+.tr-btn-book {
+  background: #2D3337;
+  color: #ffffff;
+}
+
+/* ========== DARK MODE ========== */
+
+html[data-theme="dark"] #homeTopRatedSection {
+  --tr-skel: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-heading {
+  color: #e6eef2 !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-subtitle {
+  color: #9fb2ba !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-pill--active {
+  background: linear-gradient(135deg, #4aa399, #3D8F7E) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(74, 163, 153, 0.35) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-pill--active .tr-pill-icon {
+  color: #fff !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-pill--inactive {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(152, 176, 187, 0.24) !important;
+  color: #c0d2d8 !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-pill--inactive:hover {
+  border-color: #4aa399 !important;
+  color: #8fdacc !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-pill--inactive .tr-pill-icon {
+  opacity: 0.8;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-card {
+  background: rgba(26, 38, 46, 0.92) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-card:hover {
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4) !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-fuel {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(152, 176, 187, 0.24) !important;
+  color: #c0d2d8 !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-card-name {
+  color: #e6eef2 !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-specs {
+  color: #9fb2ba !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-price {
+  color: #e6eef2 !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-btn-details {
+  background: linear-gradient(135deg, #4aa399, #3D8F7E) !important;
+  color: #fff !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-btn-book {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(152, 176, 187, 0.28);
+  color: #d5e3e9 !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-btn-book:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .vrs-theme-scope .tr-card img {
+  filter: brightness(0.92) contrast(1.04);
+}
