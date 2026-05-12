@@ -18,6 +18,19 @@ const maintenanceUiState = {
   mode: 'list', // list | detail | add | edit | billing
 };
 
+/**
+ * Returns live workshop summary counts from the current data.
+ * Can be called by the overview module to display workshop stats.
+ */
+export function getWorkshopSummaryCounts(data) {
+  const rows = Array.isArray(data?.maintenance) ? data.maintenance : [];
+  return {
+    upcoming:         rows.filter((r) => r.status === 'Scheduled').length,
+    inWorkshop:       rows.filter((r) => r.status === 'In Progress').length,
+    damageClaimsOpen: rows.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled' && r.status !== 'Billed').length,
+  };
+}
+
 export function renderMaintenanceModule({ data, query, notify, rerender }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
