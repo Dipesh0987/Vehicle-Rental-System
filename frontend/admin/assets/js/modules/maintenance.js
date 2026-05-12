@@ -122,6 +122,16 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
       })}
     </div>
 
+    <!-- Active card filter banner -->
+    ${maintenanceUiState.workshopCardGroup
+      ? `<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+           <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+           Showing: <strong>${workshopCardLabel(maintenanceUiState.workshopCardGroup)}</strong>
+           <span class="text-slate-400 dark:text-slate-500">(${filtered.length} record${filtered.length !== 1 ? 's' : ''})</span>
+           <button id="clearCardFilter" class="ml-auto rounded-lg border border-slate-200 px-2 py-1 text-[11px] text-slate-500 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/10">Clear</button>
+         </div>`
+      : ''}
+
     <!-- Status Filter -->
     <div class="flex flex-wrap items-center gap-2">
       ${STATUS_OPTIONS.map((opt) =>
@@ -135,10 +145,12 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
 
     ${paged.rows.length === 0
       ? renderEmptyState({
-          title: 'No records found',
-          message: maintenanceUiState.statusFilter !== 'All' ? 'Try a different status filter.' : 'No maintenance records yet.',
-          actionLabel: 'Schedule Service',
-          actionId: 'emptyAddBtn',
+          title: maintenanceUiState.workshopCardGroup ? `No ${workshopCardLabel(maintenanceUiState.workshopCardGroup).toLowerCase()} records` : 'No records found',
+          message: maintenanceUiState.workshopCardGroup
+            ? 'All items in this category have been resolved or none exist yet.'
+            : (maintenanceUiState.statusFilter !== 'All' ? 'Try a different status filter.' : 'No maintenance records yet.'),
+          actionLabel: maintenanceUiState.workshopCardGroup ? 'Show All Records' : 'Schedule Service',
+          actionId: maintenanceUiState.workshopCardGroup ? 'clearCardFilterEmpty' : 'emptyAddBtn',
         })
       : `<section class="${classMap.panel} p-4 sm:p-5">
         <div class="overflow-x-auto">
@@ -188,6 +200,16 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   const openAdd = () => { maintenanceUiState.mode = 'add'; maintenanceUiState.selectedId = ''; rerender(); };
 
   host.querySelector('#emptyAddBtn')?.addEventListener('click', openAdd);
+
+  // Clear card filter buttons (banner + empty state)
+  const clearCardFilter = () => {
+    maintenanceUiState.workshopCardGroup = '';
+    maintenanceUiState.page = 1;
+    rerender();
+  };
+  host.querySelector('#clearCardFilter')?.addEventListener('click', clearCardFilter);
+  host.querySelector('#clearCardFilterEmpty')?.addEventListener('click', clearCardFilter);
+
   host.querySelector('#reportDamageBtn')?.addEventListener('click', () => {
     maintenanceUiState.mode = 'add';
     maintenanceUiState.selectedId = '';
@@ -708,6 +730,13 @@ function workshopCard({ id, label, count, icon, color, subtitle, active }) {
     </div>
     ${active ? '<div class="absolute bottom-0 left-1/2 -translate-x-1/2 h-[3px] w-10 rounded-full bg-current opacity-50"></div>' : ''}
   </article>`;
+}
+
+function workshopCardLabel(groupId) {
+  if (groupId === CARD_UPCOMING)    return 'Upcoming Services';
+  if (groupId === CARD_IN_WORKSHOP) return 'In Workshop';
+  if (groupId === CARD_DAMAGE_OPEN) return 'Damage Claims Open';
+  return 'All';
 }
 
 function detailField(label, value) {
