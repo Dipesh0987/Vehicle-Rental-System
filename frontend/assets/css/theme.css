@@ -163,8 +163,12 @@ html[data-theme="dark"] .vrs-theme-scope .elite-glass {
   background: linear-gradient(155deg, var(--vrs-surface), var(--vrs-surface-soft)) !important;
 }
 
+.vrs-theme-scope .home-side-panel {
+  background-color: #2A7E72 !important;
+}
+
 html[data-theme="dark"] .vrs-theme-scope .home-side-panel {
-  background-color: rgba(44, 118, 110, 0.62) !important;
+  background-color: rgba(30, 95, 86, 0.88) !important;
 }
 
 html[data-theme="dark"] .vrs-theme-scope .home-nav,
