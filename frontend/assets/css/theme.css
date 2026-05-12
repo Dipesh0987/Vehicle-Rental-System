@@ -163,51 +163,8 @@ html[data-theme="dark"] .vrs-theme-scope .elite-glass {
   background: linear-gradient(155deg, var(--vrs-surface), var(--vrs-surface-soft)) !important;
 }
 
-.home-hero-shell::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #2A7E72 0%, #E58C4E 60%, #2A7E72 100%);
-  z-index: 100;
-  opacity: 0.85;
-}
-
-.vrs-theme-scope .home-side-panel {
-  background-color: #2A7E72 !important;
-  overflow: hidden;
-}
-
-.vrs-theme-scope .home-side-panel::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.10) 0%,
-    transparent 55%,
-    rgba(0, 0, 0, 0.10) 100%
-  );
-  pointer-events: none;
-}
-
-.vrs-theme-scope .home-side-panel::after {
-  content: '';
-  position: absolute;
-  bottom: -90px;
-  right: -90px;
-  width: 340px;
-  height: 340px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 0 0 56px rgba(255, 255, 255, 0.05);
-  pointer-events: none;
-}
-
 html[data-theme="dark"] .vrs-theme-scope .home-side-panel {
-  background-color: rgba(30, 95, 86, 0.88) !important;
+  background-color: rgba(44, 118, 110, 0.62) !important;
 }
 
 html[data-theme="dark"] .vrs-theme-scope .home-nav,

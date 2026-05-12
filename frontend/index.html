@@ -117,31 +117,19 @@
 
           <div class="relative mt-4 h-[calc(100vh-112px)] lg:mt-5">
             <div class="relative z-20 w-full opacity-0 animate-floatIn lg:w-[60%]">
-              <div class="rounded-2xl border border-[rgba(12,35,38,0.06)] bg-[#F5F6F4] p-7 opacity-0 translate-y-5 shadow-[0_8px_28px_rgba(12,35,38,0.08)] transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_22px_42px_rgba(12,35,38,0.13)] animate-fadeUp lg:p-8">
-                <div class="mb-4 inline-flex items-center gap-2 rounded-full bg-[#2A7E72]/10 px-3 py-1.5 text-[11.5px] font-bold uppercase tracking-[0.14em] text-[#2A7E72]">
-                  <span class="h-2 w-2 rounded-full bg-[#2A7E72] animate-pulseDot"></span>
-                  Available Now
-                </div>
-                <h1 class="max-w-[640px] text-[44px] font-extrabold leading-[1.06] tracking-[-0.03em] text-ink lg:text-[68px]">
-                  Fast And Easy Way To<br>
-                  <span class="text-[#2A7E72]">Rent A Car</span>
+              <div class="rounded-md bg-[#F5F6F4] p-7 opacity-0 translate-y-5 transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_18px_34px_rgba(12,35,38,0.1)] animate-fadeUp lg:p-8">
+                <h1 class="max-w-[760px] text-[48px] font-bold leading-[1.1] tracking-[-0.02em] text-ink lg:text-[66px]">
+                  Fast and Easy Way to Rent a Vehicle
                 </h1>
-                <div class="mt-3 h-[3px] w-14 rounded-full bg-gradient-to-r from-[#2A7E72] to-[#E58C4E] opacity-90 animate-fadeUp [animation-delay:60ms]"></div>
-                <p class="mt-4 max-w-[540px] text-[15px] font-medium leading-[1.65] text-[#3E4448] opacity-0 translate-y-5 animate-fadeUp lg:text-[15.5px] [animation-delay:90ms]">
+                <p class="mt-4 max-w-[790px] text-[15px] leading-[1.55] text-[#3E4448] opacity-0 translate-y-5 animate-fadeUp lg:text-[16px] [animation-delay:90ms]">
                   Choose from a trusted vehicle collection, compare prices instantly, and book in minutes.
-                  Transparent rates, flexible pickup options, and dependable support for every trip.
+                  Get transparent rates, flexible pickup options, and dependable support for every trip.
                 </p>
-                <div class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[#3E4448] opacity-0 animate-fadeUp [animation-delay:120ms]">
-                  <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-[#2A7E72]">check_circle</span>Free Cancellation</span>
-                  <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-[#2A7E72]">support_agent</span>24/7 Support</span>
-                  <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-[#2A7E72]">bolt</span>Instant Booking</span>
-                  <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-[#2A7E72]">verified</span>5,000+ Trips</span>
-                </div>
               </div>
 
-              <form id="homeHeroBookingForm" class="mt-5 grid grid-cols-1 gap-x-2 gap-y-3 rounded-2xl bg-[#F5F6F4]/80 p-4 opacity-0 translate-y-5 animate-fadeUp shadow-[0_4px_18px_rgba(12,35,38,0.07)] backdrop-blur-[2px] lg:grid-cols-2 lg:gap-x-3 [animation-delay:180ms]">
+              <form id="homeHeroBookingForm" class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 opacity-0 translate-y-5 animate-fadeUp lg:grid-cols-2 lg:gap-x-2 [animation-delay:180ms]">
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
-                  <span class="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#2A7E72]"><span class="material-symbols-outlined text-[15px]">directions_car</span>Vehicle Type</span>
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Select Your Vehicle Type</span>
                   <select
                     id="homeVehicleType"
                     name="vehicleType"
@@ -153,7 +141,7 @@
                 </label>
 
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
-                  <span class="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#2A7E72]"><span class="material-symbols-outlined text-[15px]">location_on</span>Pick-Up Location</span>
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Where to Pick-Up</span>
                   <input
                     id="homePickupLocation"
                     name="pickupLocation"
@@ -173,7 +161,7 @@
                 </label>
 
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
-                  <span class="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#2A7E72]"><span class="material-symbols-outlined text-[15px]">calendar_month</span>Pick-Up Date & Time</span>
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Pick Up/Time</span>
                   <input
                     id="homePickupDateTime"
                     name="pickupDateTime"
@@ -184,7 +172,7 @@
                 </label>
 
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
-                  <span class="flex items-center gap-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#2A7E72]"><span class="material-symbols-outlined text-[15px]">event_available</span>Drop-Off Date & Time</span>
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Drop-off/Time</span>
                   <input
                     id="homeDropoffDateTime"
                     name="dropoffDateTime"
@@ -199,19 +187,17 @@
                 <button
                   id="homeHeroBookingSubmit"
                   type="submit"
-                  class="mt-2 inline-flex h-[48px] w-[80%] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-accent to-[#d87e3e] text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(229,140,78,0.30)] transition duration-200 hover:-translate-y-[2px] hover:shadow-[0_14px_28px_rgba(229,140,78,0.40)] hover:brightness-105 lg:col-span-1 lg:h-[48px] lg:w-[78%]"
+                  class="mt-2 inline-flex h-[44px] w-[80%] items-center justify-center rounded-full bg-accent text-[18px] font-medium text-white transition duration-200 hover:-translate-y-[2px] hover:brightness-105 hover:shadow-[0_12px_24px_rgba(229,140,78,0.34)] lg:col-span-1 lg:h-[44px] lg:w-[78%] lg:text-[15px]"
                 >
                   Browse Vehicles
-                  <span class="material-symbols-outlined text-[18px] leading-none">arrow_forward</span>
                 </button>
               </form>
             </div>
 
             <img
-              src="https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1400&q=90"
-              alt="Premium rental car"
-              loading="eager"
-              class="absolute bottom-0 right-[-4%] z-0 hidden w-[54%] max-w-[860px] opacity-0 mix-blend-multiply [filter:contrast(1.06)_saturate(1.08)_drop-shadow(0_28px_52px_rgba(9,24,26,0.32))] transition duration-[380ms] hover:scale-[1.02] lg:block animate-carEntry"
+              src="assets/images/car-transparent.png"
+              alt="Black jeep vehicle"
+              class="absolute bottom-0 right-[-3%] z-0 hidden w-[50%] max-w-[780px] opacity-0 [filter:contrast(1.08)_saturate(0.98)_drop-shadow(0_20px_40px_rgba(9,24,26,0.24))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
             />
           </div>
 
@@ -222,9 +208,9 @@
               <a href="#" class="rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Contact</a>
             </div>
             <img
-              src="https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=800&q=80"
-              alt="Premium rental car"
-              class="w-full mix-blend-multiply [filter:contrast(1.06)_saturate(1.08)]"
+              src="assets/images/car-transparent.png"
+              alt="Black jeep vehicle"
+              class="w-full mix-blend-multiply [filter:contrast(1.08)_saturate(0.98)]"
             />
           </div>
         </div>
