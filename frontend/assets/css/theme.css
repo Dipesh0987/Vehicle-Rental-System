@@ -165,6 +165,33 @@ html[data-theme="dark"] .vrs-theme-scope .elite-glass {
 
 .vrs-theme-scope .home-side-panel {
   background-color: #2A7E72 !important;
+  overflow: hidden;
+}
+
+.vrs-theme-scope .home-side-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.10) 100%
+  );
+  pointer-events: none;
+}
+
+.vrs-theme-scope .home-side-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -90px;
+  right: -90px;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 56px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
 }
 
 html[data-theme="dark"] .vrs-theme-scope .home-side-panel {
