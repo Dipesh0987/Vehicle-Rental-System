@@ -1,9 +1,23 @@
-import { classMap } from '../config.js';
-import { renderBarChart, renderLineChart } from '../charts.js';
+import { classMap, SEGMENT_COLORS, SEGMENT_COLOR_LIST } from '../config.js';
+import { renderBarChart, renderLineChart, renderSegmentUtilizationChart } from '../charts.js';
+import { computeSegmentUtilization, getStaticUtilization } from '../services/utilization.service.js';
+
+function toISODate(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+function defaultRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  return { start, end };
+}
 
 export function renderReportsModule({ data, notify }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
+
+  const range = defaultRange();
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -11,7 +25,13 @@ export function renderReportsModule({ data, notify }) {
         <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Business Intelligence</p>
         <h2 class="${classMap.heading}">Advanced Reporting & Analytics</h2>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">From</label>
+        <input id="reportDateStart" type="date" value="${toISODate(range.start)}"
+          class="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-sm font-semibold dark:border-white/10 dark:bg-white/5 dark:text-slate-200" />
+        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">To</label>
+        <input id="reportDateEnd" type="date" value="${toISODate(range.end)}"
+          class="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-sm font-semibold dark:border-white/10 dark:bg-white/5 dark:text-slate-200" />
         <button id="exportCsvBtn" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Export CSV</button>
         <button id="exportPdfBtn" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Export PDF</button>
       </div>
@@ -31,8 +51,11 @@ export function renderReportsModule({ data, notify }) {
         <div class="h-[290px]"><canvas id="reportsRevenueChart"></canvas></div>
       </section>
       <section class="${classMap.panel} xl:col-span-5 p-4 sm:p-5">
-        <h3 id="reportSecondaryTitle" class="mb-3 text-base font-extrabold">Vehicle Utilization</h3>
-        <div class="h-[290px]"><canvas id="reportsUtilizationChart"></canvas></div>
+        <div class="mb-3 flex items-center justify-between">
+          <h3 id="reportSecondaryTitle" class="text-base font-extrabold">Utilization by Segment</h3>
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">0-100 %</span>
+        </div>
+        <div class="h-[290px]"><canvas id="reportsSegmentUtilChart"></canvas></div>
       </section>
     </div>
 
@@ -58,7 +81,28 @@ export function renderReportsModule({ data, notify }) {
     </section>
   `;
 
-  queueMicrotask(() => {
+  // ---- Chart rendering helpers ----
+
+  function getUtilData(startDate, endDate) {
+    const bookings = Array.isArray(data.bookings) ? data.bookings : [];
+    const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
+
+    if (bookings.length && vehicles.length) {
+      return computeSegmentUtilization({ bookings, vehicles, startDate, endDate });
+    }
+    return getStaticUtilization(data);
+  }
+
+  function getSegmentColors(utilRows) {
+    return utilRows.map((r) => SEGMENT_COLORS[r.label] || '#94a3b8');
+  }
+
+  function renderCharts() {
+    const startInput = host.querySelector('#reportDateStart');
+    const endInput   = host.querySelector('#reportDateEnd');
+    const startDate  = startInput ? new Date(startInput.value + 'T00:00:00') : range.start;
+    const endDate    = endInput   ? new Date(endInput.value   + 'T23:59:59') : range.end;
+
     renderLineChart(
       'reportsRevenueChart',
       data.revenueTrend.map((item) => item.label),
@@ -67,13 +111,22 @@ export function renderReportsModule({ data, notify }) {
       '#f08f5f'
     );
 
-    renderBarChart(
-      'reportsUtilizationChart',
-      data.utilization.map((item) => item.label),
-      data.utilization.map((item) => item.value)
+    const utilRows = getUtilData(startDate, endDate);
+    renderSegmentUtilizationChart(
+      'reportsSegmentUtilChart',
+      utilRows.map((r) => r.label),
+      utilRows.map((r) => r.value),
+      getSegmentColors(utilRows)
     );
-  });
+  }
 
+  queueMicrotask(renderCharts);
+
+  // ---- Date filter change ----
+  host.querySelector('#reportDateStart')?.addEventListener('change', renderCharts);
+  host.querySelector('#reportDateEnd')?.addEventListener('change', renderCharts);
+
+  // ---- Export buttons ----
   host.querySelector('#exportCsvBtn')?.addEventListener('click', () => {
     notify('CSV report generated', 'success');
   });
@@ -82,6 +135,7 @@ export function renderReportsModule({ data, notify }) {
     notify('PDF report generated', 'success');
   });
 
+  // ---- Tab switching ----
   host.querySelectorAll('[data-report-tab]').forEach((button) => {
     button.addEventListener('click', () => {
       const tab = button.getAttribute('data-report-tab');
@@ -103,7 +157,7 @@ export function renderReportsModule({ data, notify }) {
         secondaryTitle.textContent = 'Retention Segment Split';
       } else {
         primaryTitle.textContent = 'Revenue Analysis';
-        secondaryTitle.textContent = 'Vehicle Utilization';
+        secondaryTitle.textContent = 'Utilization by Segment';
       }
     });
   });
