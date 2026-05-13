@@ -1,5 +1,5 @@
-import { classMap } from '../config.js';
-import { renderBarChart, renderLineChart, renderPieChart } from '../charts.js';
+import { classMap, SEGMENT_COLORS } from '../config.js';
+import { renderBarChart, renderLineChart, renderPieChart, renderSegmentUtilizationChart } from '../charts.js';
 import { getWorkshopSummaryCounts } from './maintenance.js';
 
 export function renderOverviewModule({ data, navigate }) {
@@ -125,10 +125,12 @@ export function renderOverviewModule({ data, navigate }) {
       data.fleetCategory.map((item) => item.count)
     );
 
-    renderBarChart(
+    const utilColors = data.utilization.map((item) => SEGMENT_COLORS[item.label] || '#94a3b8');
+    renderSegmentUtilizationChart(
       'utilizationBarChart',
       data.utilization.map((item) => item.label),
-      data.utilization.map((item) => item.value)
+      data.utilization.map((item) => item.value),
+      utilColors
     );
   });
 
