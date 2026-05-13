@@ -812,6 +812,16 @@
     grid-template-columns: 1fr 1fr !important;
   }
 
+  /* Amount highlight — force readable colour for print */
+  #receiptAmount {
+    color: #7a4c1f !important;
+  }
+
+  /* Footer text */
+  .payment-receipt-shell > p:last-of-type {
+    color: #728d8c !important;
+  }
+
   /* Hide the footer "thank you" email note? No, keep it for receipts.
      But hide the email-status line since it's not useful on paper. */
   #receiptEmailStatus {

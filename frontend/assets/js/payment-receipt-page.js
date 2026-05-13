@@ -120,13 +120,13 @@
     if (emailStatusEl) {
       if (state.receipt && state.receipt.email_status === "sent") {
         emailStatusEl.textContent = "Sent " + formatDate(state.receipt.email_sent_at) + " to " + state.receipt.email_to;
-        emailStatusEl.className = "text-[12px] font-semibold text-emerald-600";
+        emailStatusEl.className = "text-[12px] font-semibold text-emerald-300";
       } else if (state.receipt && state.receipt.email_status === "failed") {
         emailStatusEl.textContent = "Email failed: " + (state.receipt.email_error || "unknown error");
-        emailStatusEl.className = "text-[12px] font-semibold text-rose-600";
+        emailStatusEl.className = "text-[12px] font-semibold text-rose-300";
       } else {
         emailStatusEl.textContent = "Email queued";
-        emailStatusEl.className = "text-[12px] font-semibold text-slate-500";
+        emailStatusEl.className = "text-[12px] font-semibold text-white/65";
       }
     }
 
