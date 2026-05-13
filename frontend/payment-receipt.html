@@ -30,9 +30,9 @@
     <main class="vrs-theme-scope mx-auto w-[95%] pb-14">
       <div id="paymentReceiptStatus" class="hidden mx-auto max-w-[760px] rounded-2xl border px-3 py-2 text-[13px] font-semibold mb-3"></div>
 
-      <div id="paymentReceiptLoading" class="payment-skip-print payment-receipt-shell text-center text-[#3d5f61]">
-        <span class="material-symbols-outlined animate-spin text-[40px] text-[#1f5b57]">progress_activity</span>
-        <h2 class="mt-3 text-[22px] font-extrabold text-[#14373b]">Loading receipt...</h2>
+      <div id="paymentReceiptLoading" class="payment-skip-print payment-receipt-shell text-center text-[#3d5f61] dark:text-slate-300">
+        <span class="material-symbols-outlined animate-spin text-[40px] text-[#1f5b57] dark:text-emerald-400">progress_activity</span>
+        <h2 class="mt-3 text-[22px] font-extrabold text-[#14373b] dark:text-slate-100">Loading receipt...</h2>
         <p class="mt-1 text-[13.5px]">Pulling transaction <span id="paymentReceiptHeaderCode" class="font-mono">-</span></p>
       </div>
 
@@ -79,7 +79,7 @@
           <section>
             <p class="payment-card-label">Amount</p>
             <div class="mt-2">
-              <div class="payment-receipt-row"><span>This payment</span><strong id="receiptAmount" class="text-[#7a4c1f]">NPR 0.00</strong></div>
+              <div class="payment-receipt-row"><span>This payment</span><strong id="receiptAmount" class="text-[#7a4c1f] dark:text-amber-300">NPR 0.00</strong></div>
               <div class="payment-receipt-row"><span>Booking total</span><strong id="receiptTotalAmount">NPR 0.00</strong></div>
               <div class="payment-receipt-row"><span>Paid so far</span><strong id="receiptPaidAmount">NPR 0.00</strong></div>
               <div class="payment-receipt-row"><span>Remaining</span><strong id="receiptRemainingAmount">NPR 0.00</strong></div>
