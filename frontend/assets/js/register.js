@@ -3,6 +3,11 @@
 
     var form = document.getElementById("registerForm");
     var messageEl = document.getElementById("message");
+    var verificationHelpEl = document.getElementById("verificationHelp");
+    var verificationHelpTextEl = document.getElementById("verificationHelpText");
+    var resendConfirmationBtn = document.getElementById("resendConfirmationBtn");
+    var verificationEmailCopyBtn = document.getElementById("verificationEmailCopyBtn");
+    var lastRegisteredEmail = "";
 
     if (!form || !messageEl) {
         return;
@@ -59,6 +64,31 @@
         button.classList.remove("opacity-80", "cursor-not-allowed");
     }
 
+    function hideVerificationHelp() {
+        if (verificationHelpEl) {
+            verificationHelpEl.classList.add("hidden");
+        }
+        if (verificationHelpTextEl) {
+            verificationHelpTextEl.textContent = "";
+        }
+    }
+
+    function showVerificationHelp(message, email) {
+        lastRegisteredEmail = String(email || lastRegisteredEmail || "").trim();
+        if (verificationHelpTextEl) {
+            verificationHelpTextEl.textContent = message;
+        }
+        if (verificationHelpEl) {
+            verificationHelpEl.classList.remove("hidden");
+        }
+        if (resendConfirmationBtn) {
+            resendConfirmationBtn.disabled = !lastRegisteredEmail;
+        }
+        if (verificationEmailCopyBtn) {
+            verificationEmailCopyBtn.disabled = !lastRegisteredEmail;
+        }
+    }
+
     async function handleConfirmationEmailFailure(auth, email, password, fullName) {
         // If sign-in works, signup likely created the user even though the email dispatch failed.
         try {
@@ -104,6 +134,8 @@
             setMessage("error", "Auth runtime not available. Please refresh the page.");
             return;
         }
+
+        hideVerificationHelp();
 
         var fullName = getFieldValue("name");
         var email = getFieldValue("email");
@@ -158,7 +190,11 @@
                     await auth.signIn({ email: email, password: password });
                     session = await auth.getSession();
                 } catch (signInErr) {
-                    setMessage("error", "An account with this email may already exist. Please sign in or use a different email.");
+                    setMessage("error", "Account created, but email verification is still pending. Check your inbox (and spam) for the confirmation email.");
+                    showVerificationHelp(
+                        "If you do not see the confirmation email within a minute, use the buttons below to resend it or copy the email address.",
+                        email
+                    );
                     return;
                 }
             }
@@ -188,16 +224,21 @@
                 try {
                     await auth.signIn({ email: email, password: password });
                     try { await auth.upsertProfile(fullName); } catch (_pe) {}
-                    setMessage("success", "Account created! Redirecting to dashboard...");
+                    setMessage("success", "Account created, but verification email delivery failed. Please use the resend button below or sign in after you verify.");
+                    showVerificationHelp(
+                        "The account exists, but Supabase could not deliver the confirmation email. Try resending it from here.",
+                        email
+                    );
                     window.setTimeout(function () {
                         window.location.href = "index.html";
                     }, 1200);
                     return;
                 } catch (_signInErr) {
-                    setMessage("error", "Account created but email verification failed. Please try signing in on the login page.");
-                    window.setTimeout(function () {
-                        window.location.href = "login.html?registered=1&email=" + encodeURIComponent(email);
-                    }, 2500);
+                    setMessage("error", "Account created but email verification failed. Use resend below, then check your inbox.");
+                    showVerificationHelp(
+                        "We could not confirm delivery. Resend the confirmation email now, then check your inbox.",
+                        email
+                    );
                     return;
                 }
             }
@@ -214,7 +255,66 @@
         }
     }
 
+    async function handleResendConfirmation() {
+        var auth = window.VehicleAuthService;
+        if (!auth || typeof auth.resendConfirmationEmail !== "function") {
+            setMessage("error", "Resend is unavailable right now.");
+            return;
+        }
+
+        if (!lastRegisteredEmail) {
+            setMessage("error", "Register your email first to resend the confirmation.");
+            return;
+        }
+
+        if (resendConfirmationBtn) {
+            resendConfirmationBtn.disabled = true;
+            resendConfirmationBtn.textContent = "Sending...";
+        }
+
+        try {
+            await auth.resendConfirmationEmail(lastRegisteredEmail, "index.html");
+            setMessage("success", "Confirmation email resent. Check your inbox and spam folder.");
+            showVerificationHelp(
+                "The confirmation email was resent. If you still do not see it, wait a minute and try again.",
+                lastRegisteredEmail
+            );
+        } catch (error) {
+            setMessage("error", auth.toPublicError ? auth.toPublicError(error, "Could not resend confirmation email.") : "Could not resend confirmation email.");
+        } finally {
+            if (resendConfirmationBtn) {
+                resendConfirmationBtn.disabled = false;
+                resendConfirmationBtn.textContent = "Resend confirmation email";
+            }
+        }
+    }
+
+    function handleCopyEmail() {
+        if (!lastRegisteredEmail) {
+            return;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(lastRegisteredEmail).then(function () {
+                setMessage("success", "Email copied to clipboard.");
+            }).catch(function () {
+                setMessage("error", "Could not copy the email address.");
+            });
+            return;
+        }
+
+        setMessage("error", "Clipboard is not available in this browser.");
+    }
+
     form.addEventListener("submit", handleSubmit);
+
+    if (resendConfirmationBtn) {
+        resendConfirmationBtn.addEventListener("click", handleResendConfirmation);
+    }
+
+    if (verificationEmailCopyBtn) {
+        verificationEmailCopyBtn.addEventListener("click", handleCopyEmail);
+    }
 
     var googleBtn = document.getElementById("googleSignUp");
     if (googleBtn) {

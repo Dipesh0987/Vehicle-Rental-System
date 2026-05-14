@@ -123,15 +123,7 @@ const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
 const PAYMENT_RECEIPT_FROM_EMAIL =
   (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim()
   || "Rent A Vehicle Nepal <onboarding@resend.dev>";
-// Resend's free tier only delivers to the address that owns the Resend
-// account when no domain is verified. While developing on localhost,
-// setting this var (e.g. RESEND_DEV_REDIRECT_TO=aryal.rajat05@gmail.com)
-// reroutes every receipt email to that single inbox so we can actually
-// see receipts during testing without hitting HTTP 403. The original
-// recipient is preserved in the subject + body banner so it is obvious
-// the email was redirected. Leave the var unset (or empty) once a
-// production domain has been verified at resend.com/domains so customer
-// emails resume going to the real customer address.
+
 const RESEND_DEV_REDIRECT_TO =
   (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
   || (PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev") ? "aryal.rajat05@gmail.com" : "");

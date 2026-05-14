@@ -196,6 +196,15 @@
 
         <!-- Step 1: Enter email -->
         <div id="frStep1">
+          <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-panel text-white flex items-center justify-center text-sm font-bold">1</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">2</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">3</div>
+            </div>
+          </div>
           <div class="inline-flex items-center gap-2 rounded-full border border-[rgba(44,118,110,0.2)] bg-[rgba(44,118,110,0.08)] px-3 py-1">
             <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2f6862]">Password Reset</span>
           </div>
@@ -203,6 +212,7 @@
           <p class="mt-2 text-[14px] leading-relaxed text-[#2a4c50]">
             Enter the email address you registered with. We'll send a 6-digit code to reset your password.
           </p>
+          <div id="frStep2Info" class="hidden mt-3 rounded-xl border border-[rgba(44,118,110,0.16)] bg-[rgba(44,118,110,0.08)] px-3 py-2 text-[13px] text-[#245b57]"></div>
           <form id="frEmailForm" class="mt-5 space-y-4" novalidate>
             <label class="block" for="frEmail">
               <span class="mb-2 block text-[13px] font-semibold text-[#2b4144]">Email address</span>
@@ -220,13 +230,22 @@
             <button
               type="submit"
               id="frEmailBtn"
-              class="w-full rounded-full bg-panel px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105"
+              class="w-full rounded-full bg-panel px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >Send reset code</button>
           </form>
         </div>
 
         <!-- Step 2: Enter OTP + new password -->
         <div id="frStep2" class="hidden">
+          <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">1</div>
+              <div class="w-8 h-1 bg-panel"></div>
+              <div class="w-8 h-8 rounded-full bg-panel text-white flex items-center justify-center text-sm font-bold">2</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">3</div>
+            </div>
+          </div>
           <div class="inline-flex items-center gap-2 rounded-full border border-[rgba(44,118,110,0.2)] bg-[rgba(44,118,110,0.08)] px-3 py-1">
             <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2f6862]">Enter Code</span>
           </div>
@@ -268,24 +287,34 @@
               <button
                 type="button"
                 id="frBackBtn"
-                class="flex-1 rounded-full border border-[rgba(23,57,60,0.2)] bg-white px-4 py-3 text-[14px] font-semibold text-[#244649] transition hover:bg-[#f2f7f5]"
+                class="flex-1 rounded-full border border-[rgba(23,57,60,0.2)] bg-white px-4 py-3 text-[14px] font-semibold text-[#244649] transition hover:bg-[#f2f7f5] disabled:opacity-50 disabled:cursor-not-allowed"
               >Back</button>
               <button
                 type="submit"
                 id="frOtpBtn"
-                class="flex-[2] rounded-full bg-panel px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105"
+                class="flex-[2] rounded-full bg-panel px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >Reset password</button>
             </div>
-            <button type="button" id="frResendBtn" class="w-full text-center text-[13px] font-semibold text-panel hover:underline">Resend code</button>
+            <button type="button" id="frResendBtn" class="w-full text-center text-[13px] font-semibold text-panel hover:underline disabled:opacity-50 disabled:cursor-not-allowed">Resend code</button>
           </form>
         </div>
 
         <!-- Step 3: Success -->
         <div id="frStep3" class="hidden text-center">
+          <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">1</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">2</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">✓</div>
+            </div>
+          </div>
           <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(44,118,110,0.12)]">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2c766e" stroke-width="2.5" class="h-8 w-8"><path d="M20 6 9 17l-5-5"/></svg>
           </div>
           <h2 class="mt-4 text-[24px] font-bold text-[#0f3438]">Password updated!</h2>
+          <p id="frSuccessMessage" class="mt-2 text-[14px] text-[#245b57]"></p>
           <p class="mt-2 text-[14px] text-[#2a4c50]">Your password has been reset successfully. You can now sign in with your new password.</p>
           <button
             id="frDoneBtn"

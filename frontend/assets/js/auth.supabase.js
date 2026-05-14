@@ -856,6 +856,23 @@
     return result.data;
   }
 
+  async function resendConfirmationEmail(email, redirectPath) {
+    var client = await getClient();
+    var result = await client.auth.resend({
+      email: trim(email),
+      type: "signup",
+      options: {
+        emailRedirectTo: getEmailRedirectUrl(redirectPath || "index.html"),
+      },
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    return result.data;
+  }
+
   async function uploadProfileImage(file) {
     if (!file) {
       throw new Error("No image selected.");
@@ -1226,6 +1243,7 @@
     signOut: signOut,
     signInWithGoogle: signInWithGoogle,
     sendPasswordReset: sendPasswordReset,
+    resendConfirmationEmail: resendConfirmationEmail,
     upsertProfile: upsertProfile,
     submitVerification: submitVerification,
     validatePassword: validatePassword,

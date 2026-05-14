@@ -30,12 +30,12 @@ const PASSWORD_RESET_APP_NAME =
 // delivers to the verified account email until a domain is added at
 // resend.com/domains). Set RESEND_DEV_REDIRECT_TO explicitly when needed;
 // leave empty once a domain is verified so OTPs reach real users.
-const RESEND_DEV_REDIRECT_TO =
-  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase();
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const RESEND_DEV_REDIRECT_TO =
   (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
-  || (PASSWORD_RESET_FROM_EMAIL.includes("@resend.dev") ? "aryal.rajat05@gmail.com" : "");
+  || "";
+const PASSWORD_RESET_DEBUG =
+  String(Deno.env.get("PASSWORD_RESET_DEBUG") ?? "").trim().toLowerCase() === "1";
 
 const CODE_TTL_MINUTES = parseIntegerEnv("PASSWORD_RESET_CODE_TTL_MINUTES", 10, 5, 30);
 const MAX_VERIFY_ATTEMPTS = parseIntegerEnv("PASSWORD_RESET_MAX_VERIFY_ATTEMPTS", 5, 3, 10);
@@ -171,14 +171,33 @@ function obfuscateEmail(email: string): string {
   return `${visibleLocal}***@${domainPart}`;
 }
 
+function isEmailDeliveryConfigured(): boolean {
+  return Boolean(RESEND_API_KEY && PASSWORD_RESET_FROM_EMAIL);
+}
+
+function emailDeliveryConfigError(): string {
+  if (!RESEND_API_KEY) {
+    return "Password reset email delivery is not configured. Set RESEND_API_KEY in the password-reset-code function secrets, then redeploy the function.";
+  }
+
+  if (PASSWORD_RESET_FROM_EMAIL.includes("@resend.dev") && !RESEND_DEV_REDIRECT_TO) {
+    return "Password reset email delivery is using a resend.dev sender, but RESEND_DEV_REDIRECT_TO is not set. Either set RESEND_DEV_REDIRECT_TO to a verified inbox for testing or configure a verified custom sender/domain and remove the resend.dev sender.";
+  }
+
+  return "";
+}
+
+function missingEmailConfigMessage(): string {
+  return emailDeliveryConfigError() || "Password reset email delivery is not configured. Set RESEND_API_KEY and PASSWORD_RESET_FROM_EMAIL in the password-reset-code function secrets, then redeploy the function.";
+}
+
 async function sendResetCodeEmail(params: {
   to: string;
   code: string;
 }): Promise<void> {
-  if (!RESEND_API_KEY) {
-    throw new Error(
-      "Email provider is not configured. Set RESEND_API_KEY in Edge Function secrets.",
-    );
+  const configError = emailDeliveryConfigError();
+  if (configError) {
+    throw new Error(configError);
   }
 
   const originalTo = params.to;
@@ -219,20 +238,16 @@ async function sendResetCodeEmail(params: {
     isRedirected ? `\n[DEV] Originally addressed to: ${originalTo}` : "",
   ].filter(Boolean).join("\n");
 
-  // Dev-redirect: Resend free tier only delivers to the verified account
-  // email. Redirect to RESEND_DEV_REDIRECT_TO during development.
-  const isRedirected =
-    RESEND_DEV_REDIRECT_TO.length > 0 &&
-    RESEND_DEV_REDIRECT_TO !== to.toLowerCase();
-  const actualRecipient = isRedirected ? RESEND_DEV_REDIRECT_TO : to;
-
-  const subjectLine = isRedirected
-    ? `[DEV - to: ${to}] ${PASSWORD_RESET_APP_NAME} password reset code`
-    : `${PASSWORD_RESET_APP_NAME} password reset code`;
-
   const finalHtml = isRedirected
-    ? `<div style="background:#fff7e6;border:1px solid #f5c97d;color:#7a4c0d;padding:12px 16px;border-radius:8px;font-size:13px;margin:0 0 16px 0;"><strong>Dev redirect:</strong> originally for <strong>${to}</strong></div>` + html
+    ? `<div style="background:#fff7e6;border:1px solid #f5c97d;color:#7a4c0d;padding:12px 16px;border-radius:8px;font-size:13px;margin:0 0 16px 0;"><strong>Dev redirect:</strong> originally for <strong>${originalTo}</strong></div>` + html
     : html;
+
+  console.info("Sending password reset email", {
+    originalTo,
+    actualTo,
+    from: PASSWORD_RESET_FROM_EMAIL,
+    redirected: isRedirected,
+  });
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -242,8 +257,8 @@ async function sendResetCodeEmail(params: {
     },
     body: JSON.stringify({
       from: PASSWORD_RESET_FROM_EMAIL,
-      to: [actualRecipient],
-      subject: subjectLine,
+      to: [actualTo],
+      subject,
       html: finalHtml,
       text,
     }),
@@ -256,20 +271,53 @@ async function sendResetCodeEmail(params: {
 }
 
 async function lookupUserByEmail(email: string): Promise<PasswordResetLookupRow | null> {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
+    return null;
+  }
+
   const { data, error } = await supabaseAdmin.rpc("password_reset_lookup_user", {
-    p_email: email,
+    p_email: normalizedEmail,
   });
 
   if (error) {
     throw new Error(`User lookup failed: ${error.message}`);
   }
 
-  const rows = Array.isArray(data) ? (data as PasswordResetLookupRow[]) : [];
-  if (!rows.length || !rows[0].user_id) {
+  const rows = Array.isArray(data) ? data : [];
+  const userData = rows.find((row) => normalizeEmail((row as PasswordResetLookupRow).email) === normalizedEmail) as PasswordResetLookupRow | undefined;
+
+  if (!userData || !userData.user_id || !userData.email) {
+    console.info("Password reset request ignored: email not found or not approved", {
+      email: normalizedEmail,
+    });
     return null;
   }
 
-  return rows[0];
+  const { data: profileData, error: profileError } = await supabaseAdmin
+    .from("user_profiles")
+    .select("verification_status")
+    .eq("id", userData.user_id)
+    .limit(1)
+    .maybeSingle();
+
+  if (profileError) {
+    throw new Error(`User profile lookup failed: ${profileError.message}`);
+  }
+
+  if (String(profileData?.verification_status ?? "").trim().toLowerCase() !== "approved") {
+    console.info("Password reset request ignored: user not approved", {
+      user_id: userData.user_id,
+      email: normalizeEmail(userData.email),
+      verification_status: profileData?.verification_status,
+    });
+    return null;
+  }
+
+  return {
+    user_id: userData.user_id,
+    email: normalizeEmail(userData.email),
+  };
 }
 
 async function enforceRequestRateLimit(email: string): Promise<void> {
@@ -319,6 +367,21 @@ async function issueResetCode(payload: JsonObject, request: Request): Promise<Re
     });
   }
 
+  if (!isEmailDeliveryConfigured()) {
+    return jsonResponse(503, {
+      success: false,
+      message: missingEmailConfigMessage(),
+    });
+  }
+
+  const configError = emailDeliveryConfigError();
+  if (configError) {
+    return jsonResponse(503, {
+      success: false,
+      message: configError,
+    });
+  }
+
   let user: PasswordResetLookupRow | null = null;
 
   try {
@@ -327,14 +390,17 @@ async function issueResetCode(payload: JsonObject, request: Request): Promise<Re
     console.error("Password reset lookup error:", error);
     return jsonResponse(500, {
       success: false,
-      message: "Unable to process password reset right now. Please try again shortly.",
+      message: PASSWORD_RESET_DEBUG
+        ? String(error instanceof Error ? error.message : error)
+        : "Unable to process password reset right now. Please try again shortly.",
     });
   }
 
   if (!user) {
-    return jsonResponse(200, {
-      success: true,
-      message: "If the email is registered, a 6-digit reset code has been sent.",
+    console.info("Password reset request rejected: email not registered/approved", { email });
+    return jsonResponse(404, {
+      success: false,
+      message: "No account found for that email address.",
     });
   }
 
@@ -506,7 +572,6 @@ async function consumeResetCode(payload: JsonObject): Promise<Response> {
     typedOtpRow.user_id,
     {
       password: newPassword,
-      email_confirm: true,
     },
   );
 

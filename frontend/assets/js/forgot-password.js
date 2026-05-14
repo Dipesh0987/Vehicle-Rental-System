@@ -5,7 +5,10 @@
 
   var state = {
     email: "",
+    displayEmail: "",
     busy: false,
+    resendCountdown: 0,
+    expiresInMinutes: 0,
   };
 
   function $(id) { return document.getElementById(id); }
@@ -20,11 +23,42 @@
     else { el.textContent = ""; hide(id); }
   }
 
-  function setBusy(btnId, busy, defaultText) {
-    var btn = $(btnId);
-    if (!btn) return;
-    btn.disabled = busy;
-    btn.textContent = busy ? "Please wait…" : defaultText;
+  function setInfo(id, msg) {
+    var el = $(id);
+    if (!el) return;
+    if (msg) { el.textContent = msg; show(id); }
+    else { el.textContent = ""; hide(id); }
+  }
+
+  function resetTransientMessages() {
+    setError("frEmailError", "");
+    setError("frOtpError", "");
+    setInfo("frStep2Info", "");
+    setInfo("frSuccessMessage", "");
+  }
+
+  function startResendCountdown() {
+    state.resendCountdown = 60; // 60 seconds
+    updateResendButton();
+    var interval = setInterval(function () {
+      state.resendCountdown--;
+      updateResendButton();
+      if (state.resendCountdown <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+  }
+
+  function updateResendButton() {
+    var resendBtn = $("frResendBtn");
+    if (!resendBtn) return;
+    if (state.resendCountdown > 0) {
+      resendBtn.disabled = true;
+      resendBtn.textContent = "Resend in " + state.resendCountdown + "s";
+    } else {
+      resendBtn.disabled = false;
+      resendBtn.textContent = "Resend code";
+    }
   }
 
   function showStep(step) {
@@ -32,14 +66,28 @@
     hide("frStep2");
     hide("frStep3");
     show("frStep" + step);
+    if (step === 1) {
+      state.resendCountdown = 0;
+      updateResendButton();
+      setInfo("frStep2Info", "");
+    }
+
+    if (step === 3) {
+      var successMessage = state.email
+        ? "A new password has been saved for " + state.email + "."
+        : "Your password has been reset successfully.";
+      setInfo("frSuccessMessage", successMessage);
+    }
   }
 
   function openModal() {
     var modal = $("forgotAssistModal");
     if (!modal) return;
     showStep(1);
-    setError("frEmailError", "");
-    setError("frOtpError", "");
+    resetTransientMessages();
+    state.email = "";
+    state.displayEmail = "";
+    state.expiresInMinutes = 0;
     var emailInput = $("frEmail");
     if (emailInput) emailInput.value = "";
     var codeInput = $("frCode");
@@ -80,7 +128,19 @@
     var response = await client.functions.invoke(FUNCTION_NAME, { body: payload });
     if (response.error) {
       var data = response.data || {};
-      throw new Error(data.message || response.error.message || "Request failed.");
+      var bodyMessage = "";
+
+      if (data && typeof data === "object") {
+        bodyMessage = String(data.message || data.error || data.detail || "").trim();
+      } else if (typeof data === "string") {
+        bodyMessage = data.trim();
+      }
+
+      var statusText = response.response && response.response.status
+        ? " (HTTP " + response.response.status + ")"
+        : "";
+
+      throw new Error(bodyMessage || response.error.message + statusText || "Request failed.");
     }
     var data = response.data || {};
     if (data.success === false) {
@@ -100,20 +160,29 @@
       return;
     }
     state.busy = true;
-    setBusy("frEmailBtn", true, "Send reset code");
+    if (typeof setBusy === 'function') setBusy("frEmailBtn", true, "Send reset code");
     try {
-      await invokePasswordReset({ action: "request", email: email });
+      var response = await invokePasswordReset({ action: "request", email: email });
       state.email = email;
+      state.displayEmail = String(response && response.email ? response.email : email).trim().toLowerCase();
+      state.expiresInMinutes = Number(response && response.expiresInMinutes ? response.expiresInMinutes : 0) || 0;
       var sentTo = $("frSentTo");
-      if (sentTo) sentTo.textContent = email;
+      if (sentTo) sentTo.textContent = state.displayEmail;
+      var stepInfo = $("frStep2Info");
+      if (stepInfo) {
+        stepInfo.textContent = state.expiresInMinutes > 0
+          ? "The code expires in " + state.expiresInMinutes + " minutes."
+          : "The code expires soon. Please check your inbox.";
+      }
       showStep(2);
+      startResendCountdown();
       var codeInput = $("frCode");
       if (codeInput) codeInput.focus();
     } catch (err) {
       setError("frEmailError", err.message || "Could not send reset code. Please try again.");
     } finally {
       state.busy = false;
-      setBusy("frEmailBtn", false, "Send reset code");
+      if (typeof setBusy === 'function') setBusy("frEmailBtn", false, "Send reset code");
     }
   }
 
@@ -134,15 +203,18 @@
       return;
     }
     state.busy = true;
-    setBusy("frOtpBtn", true, "Reset password");
+    if (typeof setBusy === 'function') setBusy("frOtpBtn", true, "Reset password");
     try {
       await invokePasswordReset({ action: "confirm", email: state.email, code: code, newPassword: newPassword });
+      setInfo("frSuccessMessage", state.email
+        ? "A new password has been saved for " + (state.displayEmail || state.email) + "."
+        : "Your password has been reset successfully.");
       showStep(3);
     } catch (err) {
       setError("frOtpError", err.message || "Incorrect or expired code. Please try again.");
     } finally {
       state.busy = false;
-      setBusy("frOtpBtn", false, "Reset password");
+      if (typeof setBusy === 'function') setBusy("frOtpBtn", false, "Reset password");
     }
   }
 
@@ -153,16 +225,27 @@
     var resendBtn = $("frResendBtn");
     if (resendBtn) { resendBtn.disabled = true; resendBtn.textContent = "Sending…"; }
     try {
-      await invokePasswordReset({ action: "request", email: state.email });
+      var response = await invokePasswordReset({ action: "request", email: state.email });
       setError("frOtpError", "");
+      state.displayEmail = String(response && response.email ? response.email : state.displayEmail || state.email).trim().toLowerCase();
+      state.expiresInMinutes = Number(response && response.expiresInMinutes ? response.expiresInMinutes : state.expiresInMinutes) || state.expiresInMinutes;
+      var sentTo = $("frSentTo");
+      if (sentTo) sentTo.textContent = state.displayEmail || state.email;
+      var stepInfo = $("frStep2Info");
+      if (stepInfo) {
+        stepInfo.textContent = state.expiresInMinutes > 0
+          ? "A fresh code was sent. It expires in " + state.expiresInMinutes + " minutes."
+          : "A fresh code was sent to your email.";
+      }
       var codeInput = $("frCode");
       if (codeInput) { codeInput.value = ""; codeInput.focus(); }
       var info = document.createElement("p");
       info.className = "text-[13px] text-emerald-700 text-center";
-      info.textContent = "A new code has been sent to " + state.email + ".";
+      info.textContent = "A new code has been sent to " + (state.displayEmail || state.email) + ".";
       var form = $("frOtpForm");
       if (form) form.prepend(info);
       setTimeout(function () { if (info.parentNode) info.parentNode.removeChild(info); }, 4000);
+      startResendCountdown();
     } catch (err) {
       setError("frOtpError", err.message || "Could not resend code.");
     } finally {

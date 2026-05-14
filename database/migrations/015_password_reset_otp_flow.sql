@@ -53,6 +53,7 @@ set search_path = auth, public
 as $$
   select u.id as user_id, lower(u.email)::text as email
   from auth.users u
+  left join public.user_profiles up on up.id = u.id
   where lower(u.email) = lower(trim(coalesce(p_email, '')))
   limit 1;
 $$;
