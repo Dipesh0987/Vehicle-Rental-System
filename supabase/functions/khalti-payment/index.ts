@@ -123,7 +123,8 @@ const PAYMENT_RECEIPT_FROM_EMAIL =
 // your Resend account email during development, or leave empty once a
 // domain is verified so emails go directly to the real user.
 const RESEND_DEV_REDIRECT_TO =
-  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase();
+  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
+  || (PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev") ? "aryal.rajat05@gmail.com" : "");
 const PAYMENT_APP_NAME =
   (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "Rent A Vehicle Nepal";
 const PARTIAL_PAYMENT_PERCENT = clampPercent(

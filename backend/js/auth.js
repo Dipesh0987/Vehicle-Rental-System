@@ -3519,9 +3519,49 @@
     try {
       var params = new URLSearchParams(window.location.search);
       if (params.get("registered") === "1") {
-        var registeredEmail = params.get("email");
-        if (registeredEmail) {
-          setBanner(banner, "Account created for " + registeredEmail + ". Please verify your email and sign in.", "success");
+        var registeredEmail = params.get("email") || "";
+        var storedEmail = "";
+        var storedPw = "";
+        try {
+          storedEmail = sessionStorage.getItem("vrs_registered_email") || "";
+          storedPw = sessionStorage.getItem("vrs_registered_pw") || "";
+          sessionStorage.removeItem("vrs_registered_email");
+          sessionStorage.removeItem("vrs_registered_pw");
+        } catch (_se) {}
+
+        var finalEmail = storedEmail || registeredEmail;
+        if (finalEmail) {
+          setBanner(banner, "Account created for " + finalEmail + ". Please sign in below.", "success");
+
+          // Force-fill after browser autofill finishes (multiple attempts to beat autofill race)
+          var fillFields = function () {
+            var emailInput = document.getElementById("email");
+            if (emailInput && emailInput.value !== finalEmail) {
+              emailInput.value = finalEmail;
+              emailInput.dispatchEvent(new Event("input", { bubbles: true }));
+              emailInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            if (storedPw && passwordInput && passwordInput.value !== storedPw) {
+              passwordInput.value = storedPw;
+              passwordInput.dispatchEvent(new Event("input", { bubbles: true }));
+              passwordInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          };
+
+          // Run immediately
+          fillFields();
+
+          // Run again after browser autofill (50ms, 150ms, 500ms)
+          setTimeout(fillFields, 50);
+          setTimeout(fillFields, 150);
+          setTimeout(function () {
+            fillFields();
+            if (storedPw && submitBtn) {
+              submitBtn.focus();
+            } else if (passwordInput) {
+              passwordInput.focus();
+            }
+          }, 500);
         } else {
           setBanner(banner, "Account created. Please verify your email and sign in.", "success");
         }

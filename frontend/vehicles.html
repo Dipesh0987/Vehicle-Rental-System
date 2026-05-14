@@ -237,7 +237,9 @@
     <script src="assets/js/advanced-search.js"></script>
     <script src="assets/js/mobile-filter-modal.js"></script>
     <script>
-      window.VehicleAuthUI.init("home");
+      if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+        window.VehicleAuthUI.init("home");
+      }
     </script>
   </body>
 </html>
