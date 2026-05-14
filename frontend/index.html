@@ -270,17 +270,20 @@
         </div>
       </section>
       <!-- How it Works Section -->
-      <section class="bg-[#F2F3F1] px-6 py-16 lg:px-8 lg:py-24">
+      <section class="bg-[#F2F3F1] px-6 py-16 lg:px-8 lg:py-32">
         <div class="mx-auto max-w-[1390px]">
           <!-- Section Heading -->
-          <h2 class="text-center text-[36px] font-bold text-ink lg:text-[48px]">How it Works</h2>
+          <div class="mb-4 text-center">
+            <h2 class="text-center text-[36px] font-bold text-ink lg:text-[48px] leading-tight">How it Works</h2>
+            <p class="mt-4 text-center text-[14px] text-[#6C7074] lg:text-[16px] max-w-[600px] mx-auto">Follow these simple steps to book your perfect rental car</p>
+          </div>
           
           <!-- Steps Container - Responsive Layout -->
-          <div class="mt-12 flex flex-col items-center justify-center gap-12 lg:flex-row lg:gap-8">
+          <div class="mt-16 flex flex-col items-center justify-center gap-12 lg:mt-20 lg:flex-row lg:gap-8">
             <!-- Step 1: Choose Location -->
-            <div class="step-card flex w-full flex-col items-center lg:w-auto" data-step="1">
+            <div class="step-card relative flex w-full flex-col items-center lg:w-auto" data-step="1">
               <!-- Step Badge -->
-              <div class="absolute -top-2 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-panel text-white flex items-center justify-center font-bold text-[14px]">1</div>
+              <div class="absolute -top-4 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-panel text-white flex items-center justify-center font-bold text-[14px] shadow-md">1</div>
               
               <div class="icon-container relative h-24 w-24 rounded-[20px] bg-[#E0E3DF] flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="1">
                 <!-- Location Pin Icon -->
@@ -288,8 +291,8 @@
                   <path d="M12 2C7.03 2 3 6.03 3 11c0 5.25 9 11 9 11s9-5.75 9-11c0-4.97-4.03-9-9-9zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                 </svg>
               </div>
-              <h3 class="mt-6 text-[18px] font-semibold text-ink">Choose Location</h3>
-              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[200px]">Select your pickup location from our available branches</p>
+              <h3 class="mt-6 text-[18px] font-semibold text-ink lg:text-[20px]">Choose Location</h3>
+              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[220px] leading-relaxed">Select your pickup location from our available branches</p>
             </div>
 
             <!-- Arrow 1 to 2 - Desktop Only -->
@@ -309,9 +312,9 @@
             </div>
 
             <!-- Step 2: Pick-Up Date -->
-            <div class="step-card flex w-full flex-col items-center lg:w-auto" data-step="2">
+            <div class="step-card relative flex w-full flex-col items-center lg:w-auto" data-step="2">
               <!-- Step Badge -->
-              <div class="absolute -top-2 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[14px]">2</div>
+              <div class="absolute -top-4 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[14px] shadow-md">2</div>
               
               <div class="icon-container relative h-24 w-24 rounded-[20px] bg-accent flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="2">
                 <!-- Calendar Icon -->
@@ -325,8 +328,8 @@
                   <circle cx="16" cy="15" r="1.5" fill="currentColor"></circle>
                 </svg>
               </div>
-              <h3 class="mt-6 text-[18px] font-semibold text-ink">Pick-Up Date</h3>
-              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[200px]">Select your preferred date and time for vehicle pickup</p>
+              <h3 class="mt-6 text-[18px] font-semibold text-ink lg:text-[20px]">Pick-Up Date</h3>
+              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[220px] leading-relaxed">Select your preferred date and time for vehicle pickup</p>
             </div>
 
             <!-- Arrow 2 to 3 - Desktop Only -->
@@ -346,9 +349,9 @@
             </div>
 
             <!-- Step 3: Book Your Car -->
-            <div class="step-card flex w-full flex-col items-center lg:w-auto" data-step="3">
+            <div class="step-card relative flex w-full flex-col items-center lg:w-auto" data-step="3">
               <!-- Step Badge -->
-              <div class="absolute -top-2 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-panel text-white flex items-center justify-center font-bold text-[14px]">3</div>
+              <div class="absolute -top-4 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-panel text-white flex items-center justify-center font-bold text-[14px] shadow-md">3</div>
               
               <div class="icon-container relative h-24 w-24 rounded-[20px] bg-[#E0E3DF] flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="3">
                 <!-- Car Icon -->
@@ -356,8 +359,8 @@
                   <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm11 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM5 11l1.5-4.5h11L19 11H5z"/>
                 </svg>
               </div>
-              <h3 class="mt-6 text-[18px] font-semibold text-ink">Book Your Car</h3>
-              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[200px]">Complete your booking and get instant confirmation</p>
+              <h3 class="mt-6 text-[18px] font-semibold text-ink lg:text-[20px]">Book Your Car</h3>
+              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[220px] leading-relaxed">Complete your booking and get instant confirmation</p>
             </div>
           </div>
         </div>
