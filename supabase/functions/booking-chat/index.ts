@@ -261,16 +261,52 @@ function classifyIntent(query: string):
   | "list"
   | "price"
   | "trip"
+  | "vehicle_search"
+  | "vehicle_compare"
+  | "availability"
+  | "hours"
+  | "fleet"
   | "unknown" {
   const lower = query.toLowerCase().trim();
 
   /* Bare greetings — route to friendly general handler. */
-  if (/^(hi|hii+|hey+|hello+|namaste|namaskar|good\s*(morning|afternoon|evening|day)|yo|sup)[\s!.?]*$/i.test(lower)) {
+  if (/^(hi|hii+|hey+|hello+|namaste|namaskar|good\s*(morning|afternoon|evening|day)|yo|sup|thanks|thank you|bye|goodbye)[\s!.?]*$/i.test(lower)) {
     return "greeting";
   }
 
   if (/(modify|change|resched|update|edit)\b/.test(lower)) {
     return "modify";
+  }
+
+  /* Vehicle comparison: "compare X vs Y", "X or Y which is better" */
+  if (/(compare|vs\.?|versus|\bor\b.*which.*(better|best|cheaper|bigger|more))/i.test(lower) && /(car|vehicle|suv|sedan|van|[A-Z][a-z]{2,})/i.test(query)) {
+    return "vehicle_compare";
+  }
+
+  /* Vehicle search: "show me SUVs", "cars under 3000", "do you have Fortuner" */
+  if (/(show\s+(me\s+)?|list\s+|find\s+|search\s+|get\s+|any\s+|give\s+me\s+)(all\s+)?(suv|sedan|economy|luxury|van|hatchback|electric|car|vehicle|auto)/i.test(lower) ||
+      /(do you have|is there|have you got|got any)\s+/i.test(lower) && /(car|vehicle|suv|sedan|van)/i.test(lower) ||
+      /\b(suv|sedan|economy|luxury|van|hatchback|electric)\s*(car|vehicle)?s?\s*(under|below|within|around|for)\s*\d/i.test(lower) ||
+      /(cheap|budget|affordable|expensive|premium|best|top)\s*(car|vehicle|suv|sedan|van|rental)?s?\b/i.test(lower) ||
+      /\b(show|find|get|list|search|browse)\s+(me\s+)?(cars?|vehicles?)\b/i.test(lower) ||
+      /(cars?|vehicles?)\s*(under|below|within|around|for|less than)\s*(npr|rs\.?)?\s*\d/i.test(lower) ||
+      /\b(automatic|manual|diesel|petrol|electric)\s*(cars?|vehicles?|options?)\b/i.test(lower)) {
+    return "vehicle_search";
+  }
+
+  /* Availability: "is X available", "available this weekend" */
+  if (/(is\s+.+\s+available|available\s+(this|next|on|for|today|tomorrow)|check\s+availability|free\s+(this|next|on|for))/i.test(lower)) {
+    return "availability";
+  }
+
+  /* Working hours: "when do you open", "what are your hours" */
+  if (/(working\s+hours?|open(ing)?\s+(hours?|time)|close\s+time|when\s+(do\s+you|are\s+you)\s+(open|close)|office\s+hours?|business\s+hours?|timing|what\s+time\s+(do|are)|operating\s+hours?)/.test(lower)) {
+    return "hours";
+  }
+
+  /* Fleet info: "how many cars", "what types do you have", "your fleet" */
+  if (/(how\s+many\s+(cars?|vehicles?|autos?)|fleet\s+(size|info|details)|what\s+(types?|kinds?|categories?)\s+(of\s+)?(cars?|vehicles?)\s*(do\s+you|are)|total\s+(cars?|vehicles?)|your\s+fleet)/.test(lower)) {
+    return "fleet";
   }
 
   if (/(trip|travel|journey|road\s*trip|plan.*trip|vacation|holiday|tour|group.*ride|family.*ride|\d+\s*(people|person|passenger|pax|member|friend|seat)|need.*car.*for|suggest.*vehicle|recommend.*car|which.*car.*for|best.*car|suitable.*vehicle|itinerary|multi[\s-]?stops?|multiple\s+(stops?|places?|destinations?|cities|locations?)|many\s+(stops?|places?)|few\s+(stops?|places?)|several\s+(stops?|places?|cities)|round[\s-]?trip|tour\s+(around|of)|estimate.*(price|cost|package|quote)|package.*(price|deal|quote)|total.*cost.*for|how much.*(trip|tour|travel))/.test(lower)) {
