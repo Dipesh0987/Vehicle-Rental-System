@@ -261,16 +261,52 @@ function classifyIntent(query: string):
   | "list"
   | "price"
   | "trip"
+  | "vehicle_search"
+  | "vehicle_compare"
+  | "availability"
+  | "hours"
+  | "fleet"
   | "unknown" {
   const lower = query.toLowerCase().trim();
 
   /* Bare greetings — route to friendly general handler. */
-  if (/^(hi|hii+|hey+|hello+|namaste|namaskar|good\s*(morning|afternoon|evening|day)|yo|sup)[\s!.?]*$/i.test(lower)) {
+  if (/^(hi|hii+|hey+|hello+|namaste|namaskar|good\s*(morning|afternoon|evening|day)|yo|sup|thanks|thank you|bye|goodbye)[\s!.?]*$/i.test(lower)) {
     return "greeting";
   }
 
   if (/(modify|change|resched|update|edit)\b/.test(lower)) {
     return "modify";
+  }
+
+  /* Vehicle comparison: "compare X vs Y", "X or Y which is better" */
+  if (/(compare|vs\.?|versus|\bor\b.*which.*(better|best|cheaper|bigger|more))/i.test(lower) && /(car|vehicle|suv|sedan|van|[A-Z][a-z]{2,})/i.test(query)) {
+    return "vehicle_compare";
+  }
+
+  /* Vehicle search: "show me SUVs", "cars under 3000", "do you have Fortuner" */
+  if (/(show\s+(me\s+)?|list\s+|find\s+|search\s+|get\s+|any\s+|give\s+me\s+)(all\s+)?(suv|sedan|economy|luxury|van|hatchback|electric|car|vehicle|auto)/i.test(lower) ||
+      /(do you have|is there|have you got|got any)\s+/i.test(lower) && /(car|vehicle|suv|sedan|van)/i.test(lower) ||
+      /\b(suv|sedan|economy|luxury|van|hatchback|electric)\s*(car|vehicle)?s?\s*(under|below|within|around|for)\s*\d/i.test(lower) ||
+      /(cheap|budget|affordable|expensive|premium|best|top)\s*(car|vehicle|suv|sedan|van|rental)?s?\b/i.test(lower) ||
+      /\b(show|find|get|list|search|browse)\s+(me\s+)?(cars?|vehicles?)\b/i.test(lower) ||
+      /(cars?|vehicles?)\s*(under|below|within|around|for|less than)\s*(npr|rs\.?)?\s*\d/i.test(lower) ||
+      /\b(automatic|manual|diesel|petrol|electric)\s*(cars?|vehicles?|options?)\b/i.test(lower)) {
+    return "vehicle_search";
+  }
+
+  /* Availability: "is X available", "available this weekend" */
+  if (/(is\s+.+\s+available|available\s+(this|next|on|for|today|tomorrow)|check\s+availability|free\s+(this|next|on|for))/i.test(lower)) {
+    return "availability";
+  }
+
+  /* Working hours: "when do you open", "what are your hours" */
+  if (/(working\s+hours?|open(ing)?\s+(hours?|time)|close\s+time|when\s+(do\s+you|are\s+you)\s+(open|close)|office\s+hours?|business\s+hours?|timing|what\s+time\s+(do|are)|operating\s+hours?)/.test(lower)) {
+    return "hours";
+  }
+
+  /* Fleet info: "how many cars", "what types do you have", "your fleet" */
+  if (/(how\s+many\s+(cars?|vehicles?|autos?)|fleet\s+(size|info|details)|what\s+(types?|kinds?|categories?)\s+(of\s+)?(cars?|vehicles?)\s*(do\s+you|are)|total\s+(cars?|vehicles?)|your\s+fleet)/.test(lower)) {
+    return "fleet";
   }
 
   if (/(trip|travel|journey|road\s*trip|plan.*trip|vacation|holiday|tour|group.*ride|family.*ride|\d+\s*(people|person|passenger|pax|member|friend|seat)|need.*car.*for|suggest.*vehicle|recommend.*car|which.*car.*for|best.*car|suitable.*vehicle|itinerary|multi[\s-]?stops?|multiple\s+(stops?|places?|destinations?|cities|locations?)|many\s+(stops?|places?)|few\s+(stops?|places?)|several\s+(stops?|places?|cities)|round[\s-]?trip|tour\s+(around|of)|estimate.*(price|cost|package|quote)|package.*(price|deal|quote)|total.*cost.*for|how much.*(trip|tour|travel))/.test(lower)) {
@@ -1045,6 +1081,48 @@ function defaultSupportAction(): ActionItem {
   };
 }
 
+/* ─── Smart Follow-up Suggestions ───
+ * Returns contextual quick-reply chip labels based on the current intent
+ * so users always have a clear next step after each response. */
+function getSuggestions(intent: string, hasBookings: boolean): string[] {
+  switch (intent) {
+    case "greeting":
+      return ["Show me SUVs", "Plan a trip", "My bookings", "What documents do I need?"];
+    case "vehicle_search":
+      return ["Compare these vehicles", "Show cheaper options", "Plan a trip", "Check availability"];
+    case "vehicle_compare":
+      return ["Book the best one", "Show more options", "Plan a trip"];
+    case "trip":
+      return ["Show me vehicles", "Get a multi-stop quote", "What's included in the price?"];
+    case "fleet":
+      return ["Show me SUVs", "Show sedans", "Cheapest cars", "Luxury vehicles"];
+    case "hours":
+      return ["How do I book?", "Where is your office?", "Show vehicles"];
+    case "availability":
+      return ["Show similar vehicles", "Plan a trip", "Book this vehicle"];
+    case "policy":
+      return ["Show vehicles", "Plan a trip", "My bookings", "Contact support"];
+    case "upcoming":
+      return hasBookings ? ["Cancel booking", "Modify booking", "Download invoice"] : ["Browse vehicles", "Plan a trip"];
+    case "vehicle":
+      return hasBookings ? ["View booking details", "Check next booking", "Download invoice"] : ["Browse vehicles"];
+    case "cancellation":
+      return ["Refund status", "View my bookings", "Contact support"];
+    case "refund":
+      return ["View my bookings", "Contact support"];
+    case "invoice":
+      return ["View my bookings", "Contact support"];
+    case "list":
+      return ["View latest booking", "Plan a new trip", "Browse vehicles"];
+    case "price":
+      return ["Download invoice", "View booking", "Contact support"];
+    case "modify":
+      return ["View booking", "Cancel booking", "Contact support"];
+    default:
+      return ["Show vehicles", "Plan a trip", "My bookings", "Working hours"];
+  }
+}
+
 function buildRuleAnswer(params: {
   query: string;
   now: Date;
@@ -1239,45 +1317,84 @@ function buildRuleAnswer(params: {
   };
 }
 
-async function callGemini(prompt: string, maxTokens = 300): Promise<string> {
+type ChatHistoryMessage = { role: "user" | "assistant"; text: string };
+
+async function callGemini(
+  prompt: string,
+  maxTokens = 300,
+  history?: ChatHistoryMessage[]
+): Promise<string> {
   if (!GEMINI_API_KEY) {
     return "";
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: maxTokens,
-      },
-    }),
-  });
+  /* Build multi-turn contents array when conversation history is available. */
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
-  if (!response.ok) {
-    try {
-      const txt = await response.text();
-      console.error("gemini error", response.status, txt);
-    } catch (e) {
-      console.error("gemini error status", response.status);
+  if (history && history.length) {
+    for (const msg of history.slice(-10)) {
+      const role = msg.role === "user" ? "user" : "model";
+      const text = normalizeText(msg.text);
+      if (text) {
+        contents.push({ role, parts: [{ text }] });
+      }
     }
-    return "";
   }
 
-  const payload = await response.json();
-  return normalizeText(
-    payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => normalizeText(part?.text)).join(" ")
-  );
+  contents.push({ role: "user", parts: [{ text: prompt }] });
+
+  const requestBody = JSON.stringify({
+    contents,
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: maxTokens,
+    },
+  });
+
+  /* Retry logic — 1 retry with 1.5s delay for transient failures. */
+  const MAX_RETRIES = 1;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+      });
+
+      if (!response.ok) {
+        const status = response.status;
+        /* Don't retry on client errors (400, 401, 403) — only server/rate errors */
+        if (status >= 400 && status < 500 && status !== 429) {
+          try { const txt = await response.text(); console.error("gemini client error", status, txt); } catch (_) {}
+          return "";
+        }
+        if (attempt < MAX_RETRIES) {
+          console.warn(`gemini attempt ${attempt + 1} failed (${status}), retrying...`);
+          await new Promise(r => setTimeout(r, 1500));
+          continue;
+        }
+        try { const txt = await response.text(); console.error("gemini error after retry", status, txt); } catch (_) {}
+        return "";
+      }
+
+      const payload = await response.json();
+      return normalizeText(
+        payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => normalizeText(part?.text)).join(" ")
+      );
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        console.warn(`gemini network error attempt ${attempt + 1}, retrying...`, err);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      console.error("gemini network error after retry", err);
+      return "";
+    }
+  }
+
+  return "";
 }
 
 async function maybeRefineWithGemini(input: {
@@ -1310,6 +1427,355 @@ async function maybeRefineWithGemini(input: {
   return result || input.draftAnswer;
 }
 
+/* ─── Vehicle Search Handler ───
+ * Parses the query for type, brand, name, budget, fuel, transmission
+ * and returns matching vehicles from the database as cards. */
+function parseSearchCriteria(query: string): {
+  type: string; brand: string; name: string;
+  maxBudget: number; fuel: string; transmission: string; minSeats: number;
+} {
+  const lower = query.toLowerCase();
+  let type = "";
+  let brand = "";
+  let name = "";
+  let maxBudget = 0;
+  let fuel = "";
+  let transmission = "";
+  let minSeats = 0;
+
+  // Vehicle type
+  if (/\bsuv\b/.test(lower)) type = "suv";
+  else if (/\bsedan\b/.test(lower)) type = "sedan";
+  else if (/\b(economy|hatchback|compact|cheap)\b/.test(lower)) type = "economy";
+  else if (/\b(luxury|premium)\b/.test(lower)) type = "luxury";
+  else if (/\b(van|minivan|mpv)\b/.test(lower)) type = "van";
+
+  // Budget
+  const budgetMatch = lower.match(/(?:under|below|within|less than|max|upto|up to|around|about)\s*(?:npr|rs\.?)?\s*(\d[\d,]*)/);
+  if (budgetMatch) maxBudget = parseInt(budgetMatch[1].replace(/,/g, ""), 10);
+  const budgetMatch2 = lower.match(/(\d[\d,]*)\s*(?:npr|rs\.?)/);
+  if (!maxBudget && budgetMatch2) maxBudget = parseInt(budgetMatch2[1].replace(/,/g, ""), 10);
+
+  // Fuel
+  if (/\bdiesel\b/.test(lower)) fuel = "diesel";
+  else if (/\b(petrol|gasoline)\b/.test(lower)) fuel = "petrol";
+  else if (/\b(electric|ev)\b/.test(lower)) fuel = "electric";
+
+  // Transmission
+  if (/\bautomatic\b/.test(lower)) transmission = "automatic";
+  else if (/\bmanual\b/.test(lower)) transmission = "manual";
+
+  // Seats
+  const seatMatch = lower.match(/(\d+)\s*(?:seat|seater)/);
+  if (seatMatch) minSeats = parseInt(seatMatch[1], 10);
+
+  // Known brands
+  const brands = ["toyota", "honda", "suzuki", "hyundai", "tata", "kia", "mahindra", "renault", "skoda", "bmw", "mercedes", "audi", "volvo", "jaguar", "ford", "mg"];
+  for (const b of brands) {
+    if (lower.includes(b)) { brand = b; break; }
+  }
+
+  // Specific vehicle names (check original case query for proper names)
+  const knownNames = ["Swift", "Creta", "Seltos", "Fortuner", "Civic", "Corolla", "Verna", "City", "Brezza", "Tiago",
+    "WagonR", "Alto", "Kwid", "Santro", "Celerio", "Ignis", "Brio", "Ciaz", "Elantra", "Dzire", "Amaze", "Yaris",
+    "Rapid", "Tuscon", "Hector", "XUV700", "Scorpio", "EcoSport", "Venue", "5 Series", "E-Class", "A6", "XF", "S90",
+    "Camry", "Superb", "Accord", "GLC", "X5", "Innova", "Ertiga", "Carnival", "Staria", "XL6", "Carens", "Marazzo", "Hexa", "Lodgy"];
+  for (const n of knownNames) {
+    if (lower.includes(n.toLowerCase())) { name = n; break; }
+  }
+
+  return { type, brand, name, maxBudget, fuel, transmission, minSeats };
+}
+
+async function handleVehicleSearch(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const criteria = parseSearchCriteria(input.query);
+
+  let query = supabaseAdmin.from("vehicles").select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,available,is_available,status,rating,location").order("rating", { ascending: false }).limit(30);
+
+  // Apply filters
+  if (criteria.name) {
+    query = query.ilike("name", `%${criteria.name}%`);
+  }
+  if (criteria.brand) {
+    query = query.ilike("brand", `%${criteria.brand}%`);
+  }
+  if (criteria.type) {
+    query = query.ilike("type", `%${criteria.type}%`);
+  }
+  if (criteria.fuel) {
+    query = query.ilike("fuel_type", `%${criteria.fuel}%`);
+  }
+  if (criteria.transmission) {
+    query = query.ilike("transmission", `%${criteria.transmission}%`);
+  }
+
+  const result = await query;
+  if (result.error) {
+    return { answer: "I had trouble searching our fleet. Please try again.", actions: [defaultSupportAction()], citations: [] };
+  }
+
+  let vehicles = ((result.data as VehicleRow[] | null) || []).filter(vehicleAvailable);
+
+  if (criteria.minSeats > 0) {
+    vehicles = vehicles.filter(v => { const s = Number(v.seats || 0); return s === 0 || s >= criteria.minSeats; });
+  }
+  if (criteria.maxBudget > 0) {
+    const within = vehicles.filter(v => { const p = vehiclePrice(v); return p === 0 || p <= criteria.maxBudget; });
+    vehicles = within.length >= 1 ? within : vehicles.sort((a, b) => vehiclePrice(a) - vehiclePrice(b));
+  }
+
+  if (!vehicles.length) {
+    return {
+      answer: "I couldn't find any vehicles matching your criteria. Try broadening your search — for example, ask for \"SUVs\" or \"cars under 5000\".",
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  }
+
+  const top = vehicles.slice(0, 5);
+  const vehicleSummary = top.map((v, i) => {
+    const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+    return `${i + 1}. ${vName} — ${vehicleCategory(v)} | ${v.seats || 5} seats | NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day | ${normalizeText(v.fuel_type) || "Petrol"}`;
+  }).join("\n");
+
+  let answer = `I found ${vehicles.length} vehicle${vehicles.length === 1 ? "" : "s"} matching your search. Here are the top picks:\n${vehicleSummary}`;
+
+  if (GEMINI_API_KEY) {
+    const prompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      "The user searched for vehicles. Write a brief 2-3 sentence summary of the results.",
+      "Be helpful and suggest the best option. Do not use markdown.",
+      "",
+      "Search results:", vehicleSummary,
+      "User query: " + input.query,
+    ].join("\n");
+    const geminiAnswer = await callGemini(prompt, 200, input.history);
+    if (geminiAnswer) answer = geminiAnswer;
+  }
+
+  const actions: ActionItem[] = top.map((v, i) => ({
+    type: "suggest_vehicle" as const,
+    label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+    vehicleId: v.id,
+    meta: {
+      seats: v.seats || 5,
+      price: vehiclePrice(v),
+      fuel: normalizeText(v.fuel_type) || "Petrol",
+      transmission: normalizeText(v.transmission) || "Automatic",
+      image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+      category: vehicleCategory(v) || "sedan",
+      rating: v.rating || 0,
+      location: normalizeText(v.location) || "",
+      reason: "",
+      rank: i + 1,
+    },
+  }));
+
+  return { answer, actions, citations: [] };
+}
+
+/* ─── Vehicle Compare Handler ─── */
+async function handleVehicleCompare(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  // Extract vehicle names from the query
+  const knownNames = ["Swift", "Creta", "Seltos", "Fortuner", "Civic", "Corolla", "Verna", "City", "Brezza", "Tiago",
+    "WagonR", "Alto", "Kwid", "Santro", "Celerio", "Ignis", "Brio", "Ciaz", "Elantra", "Dzire", "Amaze", "Yaris",
+    "Rapid", "Tuscon", "Hector", "XUV700", "Scorpio", "EcoSport", "Venue", "5 Series", "E-Class", "A6", "XF", "S90",
+    "Camry", "Superb", "Accord", "GLC", "X5", "Innova", "Ertiga", "Carnival", "Staria", "XL6", "Carens", "Marazzo", "Hexa", "Lodgy"];
+
+  const lower = input.query.toLowerCase();
+  const matched: string[] = [];
+  for (const n of knownNames) {
+    if (lower.includes(n.toLowerCase()) && !matched.includes(n)) {
+      matched.push(n);
+    }
+  }
+
+  if (matched.length < 2) {
+    // Try to compare types instead
+    return {
+      answer: "I'd love to compare vehicles for you! Please mention 2 or 3 specific vehicle names, like \"compare Creta vs Seltos\" or \"Civic or Corolla which is better?\"",
+      actions: [],
+      citations: [],
+    };
+  }
+
+  // Fetch vehicles by name
+  const results = await supabaseAdmin.from("vehicles")
+    .select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,rating,location")
+    .in("name", matched.slice(0, 3))
+    .limit(3);
+
+  const vehicles = ((results.data as VehicleRow[] | null) || []);
+  if (vehicles.length < 2) {
+    return {
+      answer: "I couldn't find all the vehicles you mentioned in our fleet. Please check the names and try again.",
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  }
+
+  const comparisonTable = vehicles.map(v => {
+    const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+    return `${vName}: ${vehicleCategory(v)} | ${v.seats || 5} seats | NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day | ${normalizeText(v.fuel_type) || "Petrol"} | ${normalizeText(v.transmission) || "Auto"} | Rating: ${v.rating || "N/A"}`;
+  }).join("\n");
+
+  let answer = "";
+  if (GEMINI_API_KEY) {
+    const prompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      "The user wants to compare these vehicles. Write a clear, helpful comparison in 4-5 sentences.",
+      "Mention key differences (price, seats, fuel, category) and give a recommendation.",
+      "Do not use markdown formatting. Be conversational.",
+      "",
+      "Vehicles:", comparisonTable,
+      "User query: " + input.query,
+    ].join("\n");
+    answer = await callGemini(prompt, 350, input.history);
+  }
+  if (!answer) {
+    answer = "Here's a comparison of the vehicles you asked about:\n" + comparisonTable;
+  }
+
+  const actions: ActionItem[] = vehicles.map((v, i) => ({
+    type: "suggest_vehicle" as const,
+    label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+    vehicleId: v.id,
+    meta: {
+      seats: v.seats || 5,
+      price: vehiclePrice(v),
+      fuel: normalizeText(v.fuel_type) || "Petrol",
+      transmission: normalizeText(v.transmission) || "Automatic",
+      image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+      category: vehicleCategory(v) || "sedan",
+      rating: v.rating || 0,
+      location: normalizeText(v.location) || "",
+      reason: "",
+      rank: i + 1,
+    },
+  }));
+
+  return { answer, actions, citations: [] };
+}
+
+/* ─── Fleet Info Handler ─── */
+async function handleFleetInfo(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  /* Fetch all vehicles — don't rely on is_active column existing. */
+  const result = await supabaseAdmin.from("vehicles")
+    .select("id,type,category,status,available,is_available")
+    .limit(200);
+
+  const allVehicles = ((result.data as Array<{ id: string; type: string; category: string; status?: string; available?: boolean; is_available?: boolean }> | null) || []);
+  /* Filter to available ones only */
+  const vehicles = allVehicles.filter(v => {
+    if (v.available === false || v.is_available === false) return false;
+    const status = normalizeText(v.status as string).toLowerCase();
+    if (status && status !== "available" && status !== "active") return false;
+    return true;
+  });
+  const total = vehicles.length;
+
+  const typeCounts: Record<string, number> = {};
+  vehicles.forEach(v => {
+    const cat = normalizeText(v.type || v.category).toLowerCase() || "other";
+    typeCounts[cat] = (typeCounts[cat] || 0) + 1;
+  });
+
+  const breakdown = Object.entries(typeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([type, count]) => `${type.charAt(0).toUpperCase() + type.slice(1)}: ${count}`)
+    .join(", ");
+
+  let answer = `We have ${total} vehicles in our fleet! Here's the breakdown: ${breakdown}. Would you like me to show you vehicles in any specific category?`;
+
+  if (GEMINI_API_KEY) {
+    const prompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      `Our fleet has ${total} vehicles: ${breakdown}.`,
+      "Write a brief, enthusiastic 2-3 sentence response about the fleet.",
+      "Invite the user to explore a category. Do not use markdown.",
+      "User query: " + input.query,
+    ].join("\n");
+    const geminiAnswer = await callGemini(prompt, 200, input.history);
+    if (geminiAnswer) answer = geminiAnswer;
+  }
+
+  return { answer, actions: [], citations: [] };
+}
+
+/* ─── Hours Handler ─── */
+function handleHoursQuery(): { answer: string; actions: ActionItem[]; citations: Citation[] } {
+  return {
+    answer: "Our office is open daily from 7:00 AM to 8:00 PM (Nepal Time). " +
+      "You can book online 24/7 through our website, and pickups/drop-offs are handled during office hours. " +
+      "For urgent after-hours assistance, please contact our support team.",
+    actions: [defaultSupportAction()],
+    citations: [],
+  };
+}
+
+/* ─── Availability Handler ─── */
+async function handleAvailabilityCheck(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const criteria = parseSearchCriteria(input.query);
+
+  if (criteria.name) {
+    const result = await supabaseAdmin.from("vehicles")
+      .select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,status,available,is_available,rating,location")
+      .ilike("name", `%${criteria.name}%`)
+      .limit(3);
+
+    const vehicles = ((result.data as VehicleRow[] | null) || []);
+    if (!vehicles.length) {
+      return {
+        answer: `I couldn't find a vehicle named "${criteria.name}" in our fleet. Would you like me to search for something similar?`,
+        actions: [],
+        citations: [],
+      };
+    }
+
+    const v = vehicles[0];
+    const available = vehicleAvailable(v);
+    const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+    const answer = available
+      ? `Great news! The ${vName} is currently available. It's a ${vehicleCategory(v)} with ${v.seats || 5} seats at NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day. Would you like to book it?`
+      : `Unfortunately, the ${vName} is not available right now. Would you like me to suggest similar vehicles?`;
+
+    const actions: ActionItem[] = available ? [{
+      type: "suggest_vehicle" as const,
+      label: vName,
+      vehicleId: v.id,
+      meta: {
+        seats: v.seats || 5,
+        price: vehiclePrice(v),
+        fuel: normalizeText(v.fuel_type) || "Petrol",
+        transmission: normalizeText(v.transmission) || "Automatic",
+        image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+        category: vehicleCategory(v) || "sedan",
+        rating: v.rating || 0,
+        location: normalizeText(v.location) || "",
+        reason: "Available now",
+        rank: 1,
+      },
+    }] : [];
+
+    return { answer, actions, citations: [] };
+  }
+
+  // Generic availability check
+  return {
+    answer: "I can check availability for specific vehicles. Just tell me the vehicle name — for example, \"Is the Creta available?\" or \"Check availability for Civic\".",
+    actions: [],
+    citations: [],
+  };
+}
+
 function summarizeBookings(bookings: BookingRow[], vehicleMap: Record<string, VehicleRow>): string {
   if (!bookings.length) {
     return "No bookings found for this user.";
@@ -1333,6 +1799,7 @@ async function handleGeneralQuery(input: {
   timezone: string;
   now: Date;
   intent?: string;
+  history?: ChatHistoryMessage[];
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
   const bookingSummary = summarizeBookings(input.bookings, input.vehicleMap);
   const latestBooking = input.bookings[0] || null;
@@ -1346,27 +1813,104 @@ async function handleGeneralQuery(input: {
     "You are RentAVehicle Nepal's friendly, professional AI Booking Assistant.",
     "Your audience: customers using a self-service vehicle rental platform in Nepal.",
     "",
-    "WHAT THE PLATFORM SUPPORTS (use this for general questions):",
-    "- Browse and book a wide fleet (sedan, SUV, hatchback, electric, luxury, van, truck).",
-    "- Pickup is from the central rental office in Kathmandu by default; home/airport delivery may be arranged via support.",
-    "- Booking lifecycle: create -> admin approves -> customer pays -> picks up vehicle -> returns vehicle -> booking completes.",
-    "- Standard self-drive rental requires: a valid driving license, a government-issued ID, and a completed profile verification (KYC) on the website.",
-    "- Cancellation/refund go through admin review from the booking modification page; refunds for paid bookings are handled by the support team.",
-    "- Invoices are auto-generated for paid bookings and downloadable from the booking detail view.",
-    "- Multi-stop trip planning is available — the assistant can quote a per-stop itinerary including rental + fuel cost band.",
-    "- Common destinations: Kathmandu, Pokhara, Chitwan, Lumbini, Mustang, Manang, Bandipur, Bardiya, Ilam.",
+    "=== PLATFORM KNOWLEDGE BASE (use this for general questions) ===",
     "",
-    "RULES:",
+    "FLEET:",
+    "- Vehicle categories: Economy, Sedan, SUV, Luxury, Van/MPV",
+    "- Brands available: Toyota, Honda, Suzuki, Hyundai, Tata, Kia, Mahindra, BMW, Mercedes, Audi, Volvo, Jaguar, Skoda, Renault, Ford, MG",
+    "- All vehicles are well-maintained, regularly serviced, and fully insured",
+    "",
+    "WORKING HOURS:",
+    "- Office hours: 7:00 AM to 8:00 PM daily (Nepal Time), including weekends",
+    "- Online booking: Available 24/7 through the website",
+    "- Vehicle pickup/drop-off: During office hours only",
+    "- After-hours emergency: Contact support team",
+    "",
+    "REQUIRED DOCUMENTS:",
+    "- Valid driving license (Nepali or International)",
+    "- Government-issued photo ID (citizenship card or passport)",
+    "- Completed KYC (profile verification) on the website",
+    "- Age requirement: Minimum 21 years for standard vehicles, 25 for luxury/premium",
+    "",
+    "BOOKING PROCESS:",
+    "- Step 1: Browse fleet and select vehicle",
+    "- Step 2: Choose dates, pickup time, and rental options",
+    "- Step 3: Submit booking request for admin approval",
+    "- Step 4: Once approved, complete payment",
+    "- Step 5: Pick up vehicle from office or receive delivery",
+    "- Step 6: Return vehicle at end of rental period",
+    "",
+    "PRICING & PAYMENT:",
+    "- Prices shown per day in NPR (Nepali Rupees)",
+    "- Payment methods: eSewa, Khalti, bank transfer, cash at office",
+    "- Security deposit: NPR 5,000 for economy, NPR 10,000 for sedan/SUV, NPR 25,000 for luxury",
+    "- Deposit is fully refundable upon safe return of vehicle",
+    "",
+    "RENTAL OPTIONS:",
+    "- Self-drive: Standard option, customer drives",
+    "- With driver: Professional driver available at NPR 2,000/day extra",
+    "- Insurance: Basic (included free), Premium (NPR 500/day — lower deductible), Comprehensive (NPR 1,000/day — zero deductible)",
+    "",
+    "FUEL POLICY:",
+    "- Vehicles are provided with a full tank",
+    "- Return with the same fuel level",
+    "- Refueling charge: NPR 200 service fee + actual fuel cost if not returned full",
+    "",
+    "DELIVERY & PICKUP:",
+    "- Kathmandu Valley: Free delivery/pickup",
+    "- Outside Kathmandu: NPR 15/km delivery charge",
+    "- Airport pickup/drop: Available (NPR 500 flat fee)",
+    "- Home delivery: Available within Kathmandu Valley",
+    "",
+    "LATE RETURN & EXTENSIONS:",
+    "- Late return fee: NPR 500/hour for the first 3 hours, then full day rate applies",
+    "- Extensions: Must be requested at least 6 hours before return time via app or support",
+    "- Extensions subject to vehicle availability",
+    "",
+    "CANCELLATION & REFUND:",
+    "- Free cancellation: Up to 24 hours before pickup time",
+    "- Late cancellation (within 24 hours): 25% cancellation fee",
+    "- No-show: 50% of total rental charged",
+    "- Refund processing: 5-7 business days to original payment method",
+    "- Cancellation requires admin review from the booking modification page",
+    "",
+    "EXTRAS & ADD-ONS:",
+    "- Child seat: NPR 300/day",
+    "- GPS navigation: NPR 200/day",
+    "- WiFi hotspot: NPR 250/day",
+    "- Roof rack/carrier: NPR 400/day",
+    "",
+    "DAMAGE POLICY:",
+    "- Minor scratches/dents: Covered by basic insurance (up to NPR 5,000 deductible)",
+    "- Major damage: Customer liable for deductible amount based on insurance tier",
+    "- Accident: Must report immediately to support and local authorities",
+    "",
+    "POPULAR DESTINATIONS FROM KATHMANDU:",
+    "- Pokhara: ~200 km, 6-7 hrs drive",
+    "- Chitwan: ~150 km, 4-5 hrs drive",
+    "- Lumbini: ~280 km, 7-8 hrs drive",
+    "- Nagarkot: ~32 km, 1.5 hrs drive",
+    "- Bandipur: ~145 km, 4-5 hrs drive",
+    "- Mustang/Jomsom: ~380 km, requires SUV/4WD",
+    "",
+    "SUPPORT:",
+    "- Email: " + SUPPORT_EMAIL,
+    "- Phone: " + SUPPORT_PHONE,
+    "- Live chat: Available during office hours",
+    "",
+    "=== RULES ===",
     "- Be warm, concise, and helpful (2-4 sentences typically; longer only when explicitly asked).",
-    "- If the user greets you, greet them back and briefly mention top capabilities: trip planning, multi-stop quotes, booking dates, vehicle info, cancellation, refunds, invoices.",
-    "- For general policy/service questions, answer using the platform context above. NEVER invent specific prices or guarantees the platform can't deliver.",
-    "- If the user asks about THEIR booking, ONLY use the booking data below. NEVER invent or fabricate booking data.",
+    "- If the user greets you, greet them back warmly and briefly mention top capabilities.",
+    "- For general policy/service questions, answer using the knowledge base above. NEVER invent details not listed.",
+    "- If the user asks about THEIR booking, ONLY use the booking data below. NEVER fabricate booking data.",
     "- If something requires admin/support action, say so and offer the support contact.",
     "- You CANNOT modify, cancel, or create bookings directly. Direct the user to the booking modification page or support.",
     "- Always mention the booking code (e.g. BK-XXXX) when referencing a specific booking.",
-    "- Use NPR for prices.",
+    "- Use NPR for all prices.",
+    "- If the user asks about vehicle availability/search/comparison, tell them you can help and suggest they ask specifically.",
+    "- Maintain conversation context — reference earlier messages when relevant.",
     "- Current date/time: " + input.now.toISOString() + " (" + input.timezone + ")",
-    "- Detected intent for context: " + intent,
+    "- Detected intent: " + intent,
     "",
     "USER'S BOOKING DATA (from vehicle_bookings table):",
     bookingSummary,
@@ -1375,19 +1919,18 @@ async function handleGeneralQuery(input: {
   ];
 
   const prompt = systemSection.join("\n");
-  const result = await callGemini(prompt, 450);
+  const result = await callGemini(prompt, 450, input.history);
 
-  /* Sensible fallback when Gemini is unavailable. Distinguishes greetings
-   * from general/policy questions for a less robotic feel. */
+  /* Rich fallback responses when Gemini is unavailable — each intent gets a
+   * genuinely helpful response so the chatbot never feels dead. */
   let answer = result;
   if (!answer) {
-    if (intent === "greeting") {
-      answer = "Hello! I'm your AI Booking Assistant. I can help with trip planning, multi-stop trip quotes, your upcoming bookings, vehicle details, cancellation, refunds, and invoices. What would you like to do?";
-    } else if (intent === "policy") {
-      answer = "Most rental questions (pickup process, required documents, payments, delivery, fuel policy) can be answered by support quickly. I can also look up your bookings or plan a trip if you'd like.";
-    } else {
-      answer = "I'm not 100% sure how to answer that just yet. I can help with trip planning, your bookings, cancellations, refunds, and invoices — or connect you to support.";
-    }
+    const fallbacks: Record<string, string> = {
+      greeting: "Namaste! 👋 I'm your AI Booking Assistant at RentAVehicle Nepal. I can help you with:\n• 🚗 Searching & comparing vehicles\n• 🗺️ Planning trips with cost estimates\n• 📋 Checking your bookings\n• 💰 Pricing, refunds & invoices\n• 📄 Documents & policies\n\nWhat would you like to do today?",
+      policy: "Here's what you need to know about our rental service:\n\n📄 Required documents: Valid driving license, government ID, and KYC verification on our website.\n🕐 Office hours: 7 AM – 8 PM daily.\n💳 Payment: eSewa, Khalti, bank transfer, or cash.\n🚗 Self-drive or with-driver (NPR 2,000/day extra).\n⛽ Full tank provided — return with same level.\n📦 Extras: Child seat (NPR 300/day), GPS (NPR 200/day), WiFi (NPR 250/day).\n\nNeed more details? Just ask about any specific policy!",
+      unknown: "I'd love to help! Here's what I can do:\n\n• Search vehicles by type, budget, or brand\n• Compare vehicles side by side\n• Plan trips with cost estimates\n• Check your booking status\n• Answer policy questions\n\nTry asking something like \"show me SUVs\" or \"plan a trip to Pokhara\"!",
+    };
+    answer = fallbacks[intent] || fallbacks.unknown;
   }
 
   const actions: ActionItem[] = [];
@@ -1443,6 +1986,13 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const timezone = normalizeText(body.timezone) || "UTC";
     const nowIso = normalizeText(body.nowIso);
 
+    /* Conversation history — last N messages for multi-turn context. */
+    const rawHistory = Array.isArray(body.history) ? body.history as Array<{ role?: string; text?: string }> : [];
+    const history: ChatHistoryMessage[] = rawHistory
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && normalizeText(m.text))
+      .map((m) => ({ role: m.role as "user" | "assistant", text: normalizeText(m.text) }))
+      .slice(-10);
+
     if (!query) {
       return jsonResponse(400, {
         success: false,
@@ -1477,6 +2027,82 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
+        suggestions: getSuggestions("trip", bookings.length > 0) as unknown as JsonValue,
+      });
+    }
+
+    /* Vehicle search: "show me SUVs", "cars under 3000" */
+    if (intent === "vehicle_search") {
+      const searchResult = await handleVehicleSearch({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: searchResult.answer,
+        actions: searchResult.actions as unknown as JsonValue,
+        citations: searchResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+        suggestions: getSuggestions("vehicle_search", bookings.length > 0) as unknown as JsonValue,
+      });
+    }
+
+    /* Vehicle compare: "compare Creta vs Seltos" */
+    if (intent === "vehicle_compare") {
+      const compareResult = await handleVehicleCompare({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: compareResult.answer,
+        actions: compareResult.actions as unknown as JsonValue,
+        citations: compareResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+        suggestions: getSuggestions("vehicle_compare", bookings.length > 0) as unknown as JsonValue,
+      });
+    }
+
+    /* Fleet info: "how many cars do you have" */
+    if (intent === "fleet") {
+      const fleetResult = await handleFleetInfo({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: fleetResult.answer,
+        actions: fleetResult.actions as unknown as JsonValue,
+        citations: fleetResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+        suggestions: getSuggestions("fleet", bookings.length > 0) as unknown as JsonValue,
+      });
+    }
+
+    /* Working hours */
+    if (intent === "hours") {
+      const hoursResult = handleHoursQuery();
+      return jsonResponse(200, {
+        success: true,
+        answer: hoursResult.answer,
+        actions: hoursResult.actions as unknown as JsonValue,
+        citations: hoursResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "policy",
+        suggestions: getSuggestions("hours", bookings.length > 0) as unknown as JsonValue,
+      });
+    }
+
+    /* Availability check: "is Creta available" */
+    if (intent === "availability") {
+      const availResult = await handleAvailabilityCheck({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: availResult.answer,
+        actions: availResult.actions as unknown as JsonValue,
+        citations: availResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+        suggestions: getSuggestions("availability", bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -1491,6 +2117,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         timezone,
         now: safeNow,
         intent,
+        history,
       });
       return jsonResponse(200, {
         success: true,
@@ -1500,6 +2127,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: intent,
+        suggestions: getSuggestions(intent, bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -1516,7 +2144,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     let finalCitations = ruleAnswer.citations;
 
     if (ruleAnswer.unresolved && GEMINI_API_KEY) {
-      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow, intent });
+      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow, intent, history });
       finalAnswer = geminiResult.answer;
       finalActions = geminiResult.actions;
       finalCitations = geminiResult.citations;
@@ -1540,6 +2168,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         phone: SUPPORT_PHONE,
       } as unknown as JsonValue,
       source: "vehicle_bookings",
+      suggestions: getSuggestions(intent, bookings.length > 0) as unknown as JsonValue,
     });
   } catch (error) {
     console.error("booking-chat error", error);

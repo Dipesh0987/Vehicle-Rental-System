@@ -20,7 +20,25 @@
       <section class="home-hero-shell relative h-screen overflow-hidden bg-[#F2F3F1]">
         <div class="pointer-events-none absolute bottom-[-200px] left-[-80px] z-[1] select-none text-[580px] font-extrabold leading-[0.8] tracking-[0.04em] text-[rgba(11,22,28,0.03)]" aria-hidden="true">WAS</div>
 
-        <div class="home-side-panel absolute inset-y-0 right-0 w-[31.5%] bg-panel opacity-75 animate-panelReveal"></div>
+        <div class="home-side-panel absolute inset-y-0 right-0 w-[42%] overflow-hidden bg-panel animate-panelReveal">
+          <!-- Light triangle: upper-left corner only — teal fills lower-right where car sits -->
+          <div class="pointer-events-none absolute inset-0" style="background:rgba(242,243,241,0.98);clip-path:polygon(0 0,62% 0,0 70%)" aria-hidden="true"></div>
+          <div class="pointer-events-none absolute bottom-[22%] right-[12%] h-20 w-20 rounded-full bg-white opacity-[0.05]" aria-hidden="true"></div>
+        </div>
+
+        <!-- Ground shadow: section-level so it aligns with the teal panel -->
+        <div class="pointer-events-none absolute bottom-0 right-0 z-[17] hidden w-[44%] max-w-[700px] lg:block" aria-hidden="true">
+          <div class="mx-auto h-[16px] w-[68%] translate-y-[1px] rounded-[50%] bg-[rgba(4,14,16,0.42)] blur-[20px]"></div>
+        </div>
+        <!-- Car: section-level, positioned over the teal panel (right-0 = full viewport) -->
+        <img
+          src="assets/images/car-transparent.png"
+          alt="Luxury SUV available for rent"
+          width="1600"
+          height="1221"
+          decoding="async"
+          class="absolute bottom-0 right-0 z-[18] hidden w-[44%] max-w-[700px] opacity-0 [filter:drop-shadow(0_12px_28px_rgba(4,18,20,0.26))_drop-shadow(0_3px_8px_rgba(4,18,20,0.16))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
+        />
 
         <div class="relative z-20 mx-auto h-full w-[95%] max-w-[1390px]">
           <header class="vrs-theme-scope relative z-[90] grid grid-cols-[auto,1fr,auto] items-center gap-6 py-4 opacity-0 animate-fadeUp">
@@ -141,7 +159,7 @@
                 </label>
 
                 <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
-                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Where to Pick-Up</span>
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Pick Up Location</span>
                   <input
                     id="homePickupLocation"
                     name="pickupLocation"
@@ -194,11 +212,6 @@
               </form>
             </div>
 
-            <img
-              src="assets/images/car-transparent.png"
-              alt="Black jeep vehicle"
-              class="absolute bottom-0 right-[-3%] z-0 hidden w-[50%] max-w-[780px] opacity-0 [filter:contrast(1.08)_saturate(0.98)_drop-shadow(0_20px_40px_rgba(9,24,26,0.24))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
-            />
           </div>
 
           <div class="px-2 pt-6 lg:hidden">
@@ -209,8 +222,11 @@
             </div>
             <img
               src="assets/images/car-transparent.png"
-              alt="Black jeep vehicle"
-              class="w-full mix-blend-multiply [filter:contrast(1.08)_saturate(0.98)]"
+              alt="Luxury SUV available for rent"
+              width="1600"
+              height="1221"
+              decoding="async"
+              class="w-full mix-blend-multiply"
             />
           </div>
         </div>
