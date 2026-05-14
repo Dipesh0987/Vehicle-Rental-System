@@ -79,7 +79,7 @@ class PriceCalculator {
 
   /**
    * Calculate complete rental price breakdown
-   * @param {object} options - { vehicleRate, pickupDate, dropoffDate, insuranceType, addOns }
+   * @param {object} options - { vehicleRate, pickupDate, dropoffDate, insuranceType, addOns, promoCode, promoDiscount }
    * @returns {object} Price breakdown
    */
   static calculateRentalPrice(options = {}) {
@@ -89,7 +89,8 @@ class PriceCalculator {
       dropoffDate = new Date().toISOString().split('T')[0],
       insuranceType = 'basic',
       addOns = [],
-      couponCode = null
+      promoCode = null,
+      promoDiscount = 0
     } = options;
 
     // Calculate base
@@ -104,12 +105,15 @@ class PriceCalculator {
 
     // Calculate fees and tax
     const serviceFee = this.calculateServiceFee(basePrice);
-    const discount = this.calculateDiscount(basePrice, rentalDays);
-    const taxableAmount = basePrice + serviceFee + insurance + addOnsPrice - discount;
+    const multiDayDiscount = this.calculateDiscount(basePrice, rentalDays);
+    
+    // Total discount = multi-day discount + promo discount
+    const totalDiscount = parseFloat((multiDayDiscount + promoDiscount).toFixed(2));
+    const taxableAmount = basePrice + serviceFee + insurance + addOnsPrice - totalDiscount;
     const tax = this.calculateTax(taxableAmount, 0, 0); // Already included in taxableAmount
 
     // Calculate total
-    const totalPrice = basePrice + serviceFee + tax + insurance + addOnsPrice - discount;
+    const totalPrice = basePrice + serviceFee + tax + insurance + addOnsPrice - totalDiscount;
 
     return {
       rentalDays,
@@ -120,7 +124,10 @@ class PriceCalculator {
       addOnsPrice,
       addOns,
       serviceFee,
-      discount,
+      discount: multiDayDiscount,
+      promoDiscount,
+      totalDiscount,
+      promoCode,
       tax,
       totalPrice: parseFloat(totalPrice.toFixed(2)),
       breakdown: {
@@ -128,7 +135,9 @@ class PriceCalculator {
         insurance,
         addOnsPrice,
         serviceFee,
-        discount,
+        discount: multiDayDiscount,
+        promoDiscount,
+        totalDiscount,
         tax
       }
     };

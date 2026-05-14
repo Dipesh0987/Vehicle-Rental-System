@@ -9,17 +9,30 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `frontend/registration.html` - Registration page aligned to the same premium theme
 - `frontend/vehicles.html` - Professional dummy fleet listing page with multiple brands
 - `frontend/vehicle-details.html` - Individual vehicle profile view (query-based static details)
+- `frontend/booking.html` - Customer booking flow with availability check, confirmation modal, and success feedback
 - `frontend/assets/images/car.jpg` - Vehicle image asset
 - `frontend/assets/images/car-transparent.png` - Transparent vehicle hero asset
 - `frontend/assets/js/supabase.config.js` - Supabase connection config
 - `frontend/assets/js/supabase.client.js` - Supabase JS client runtime loader
 - `frontend/assets/js/auth.supabase.js` - Shared Supabase auth service (sign-up/sign-in/reset/logout)
+- `frontend/assets/js/vehicle-catalog.service.js` - Shared vehicle catalog data service used by public/admin pages
+- `frontend/assets/js/booking.service.js` - Shared booking data service (quote, validation, availability, persistence)
+- `frontend/assets/js/ai-booking-chat.js` - Session-only AI booking chat widget (client-side)
+- `frontend/assets/js/booking-page.js` - Booking page controller with confirmation and success flows
 - `frontend/assets/js/register.js` - Registration form logic with real Supabase sign-up
 - `backend/js/auth.js` - Shared client-side auth/profile UI logic used by frontend pages
 - `frontend/assets/js/vehicle-details.js` - Static vehicle data and UI rendering logic for detail page
 - `database/migrations/001_user_profiles.sql` - SQL migration for persistent user profile data
 - `database/migrations/002_user_profiles_avatar.sql` - SQL migration to add profile image support (`avatar_url`)
 - `database/migrations/003_profile_images_storage.sql` - SQL migration for Supabase Storage bucket and RLS policies for profile images
+- `database/migrations/004_vehicle_catalog_and_images.sql` - SQL migration for vehicle catalog tables, image table, and vehicle image storage policies
+- `database/migrations/005_vehicle_catalog_schema_hotfix.sql` - SQL migration to backfill required vehicle columns/defaults for legacy projects
+- `database/migrations/006_vehicle_bookings_system.sql` - SQL migration for secure booking persistence and overlap prevention
+- `database/migrations/012_user_profile_verification_workflow.sql` - SQL migration for customer KYC fields, verification statuses, and admin approval RPC
+- `database/migrations/015_password_reset_otp_flow.sql` - SQL migration for custom password reset OTP storage and lookup RPC
+- `supabase/functions/booking-chat/index.ts` - Authenticated booking AI endpoint for natural-language booking Q&A
+- `supabase/functions/password-reset-code/index.ts` - Custom forgot-password OTP edge function using Resend email delivery
+- `AI_CHAT_BOOKINGS_GUIDE.md` - Full implementation and deployment guide for AI booking chat
 
 ## Run
 
@@ -48,33 +61,32 @@ Run this SQL in Supabase SQL Editor:
 1. `database/migrations/001_user_profiles.sql`
 2. `database/migrations/002_user_profiles_avatar.sql`
 3. `database/migrations/003_profile_images_storage.sql`
-4. `database/migrations/004_bookings_table.sql`
-5. `database/migrations/005_booking_events_and_modifications.sql`
-6. `database/migrations/006_vehicles_table.sql`
-7. `database/migrations/007_booking_conflict_prevention.sql`
+4. `database/migrations/004_vehicle_catalog_and_images.sql`
+5. `database/migrations/005_vehicle_catalog_schema_hotfix.sql`
+6. `database/migrations/006_vehicle_bookings_system.sql`
+7. `database/migrations/007_booking_code_four_digits.sql`
+8. `database/migrations/008_admin_booking_status_updates.sql`
+9. `database/migrations/009_booking_driver_option.sql`
+10. `database/migrations/010_vehicle_number_support.sql`
+11. `database/migrations/011_booking_currency_npr.sql`
+12. `database/migrations/012_user_profile_verification_workflow.sql`
+13. `database/migrations/013_verification_document_image_url.sql`
+14. `database/migrations/014_admin_profile_access_fallback_and_listing_rpc.sql`
 
-## Booking Conflict Prevention
+This creates `public.user_profiles`, `public.vehicles`, `public.vehicle_images`, and `public.vehicle_bookings`, plus storage policies for both `profile-images` and `vehicle-images` buckets.
 
-The system prevents double booking of vehicles for overlapping dates:
+For compatibility with the current frontend admin runtime, migration `004_vehicle_catalog_and_images.sql` uses permissive public write policies for vehicle catalog objects. Tighten these policies before production.
 
-### Features
-- **Server-side validation**: Database trigger prevents conflicting bookings at the database level
-- **Client-side checking**: JavaScript validates availability before submission
-- **User-friendly errors**: Clear error messages with conflict details using Tailwind CSS
-- **Modification support**: Booking modifications also check for conflicts
+Migration `006_vehicle_bookings_system.sql` adds database-level overlap protection through an exclusion constraint so double-booking is blocked even under concurrent requests.
 
-### How it works
-1. When creating or modifying a booking, the system checks for existing bookings on the same vehicle
-2. Only considers bookings with status: `pending`, `confirmed`, `active` (excludes `cancelled`)
-3. Uses date overlap logic: `NOT (dropoffA < pickupB OR pickupA > dropoffB)`
-4. Shows specific conflict dates to help users choose alternative dates
+Migration `012_user_profile_verification_workflow.sql` adds a production-style customer verification workflow:
 
-### Error Messages
-- **Conflict detected**: Shows which dates are already booked
-- **"Change Dates" button**: Focuses the date picker for easy correction
-- **Success confirmation**: Shows booking reference on successful creation
+1. Customers submit verification details from their profile panel.
+2. Verification status moves to `pending`.
+3. Admin reviews in the Customers module and sets `approved`/`rejected`.
+4. Customers see the live verification badge in their profile.
 
-This creates `public.user_profiles` with RLS policies and configures `storage.profile-images` bucket policies so authenticated users can upload/update only their own avatar path.
+Migration `014_admin_profile_access_fallback_and_listing_rpc.sql` adds an admin-safe profile listing RPC and fallback admin detection for bootstrap admin emails.
 
 ## Profile Image Best Practice
 
@@ -97,38 +109,3 @@ This creates `public.user_profiles` with RLS policies and configures `storage.pr
 2. Passwords are not stored in `public.user_profiles`.
 3. Password hashing is handled securely by Supabase Auth on the server side.
 4. Client-side code only sends passwords over HTTPS to Supabase Auth endpoints.
-
----
-
-## ✅ Double Booking Prevention Feature - COMPLETED
-
-**Implemented in 10 commits** - System now prevents the same vehicle from being booked twice for overlapping dates.
-
-### What Was Built:
-- **Server-side validation**: Database trigger prevents conflicting bookings at the PostgreSQL level
-- **Client-side checking**: JavaScript validates availability before form submission
-- **User-friendly UI**: Clear error messages with Tailwind CSS styling and smooth animations
-- **Modification support**: Booking changes also respect the no-double-booking rule
-- **Comprehensive testing**: Automated test suite validates all functionality
-
-### Key Files Created/Modified:
-- `frontend/assets/js/booking-service.js` - Added createBooking method with conflict detection
-- `frontend/assets/js/booking-error-handler.js` - Error/success message management
-- `frontend/vehicle-details.html` - Enhanced booking form with date/time inputs
-- `frontend/assets/js/vehicle-details.js` - Integrated booking submission logic
-- `database/migrations/007_booking_conflict_prevention.sql` - Database-level constraints
-- `frontend/assets/js/booking-modification-manager.js` - Enhanced modification validation
-- `frontend/assets/js/booking-conflict-test.js` - Complete test suite
-- `frontend/assets/css/tailwind.input.css` - Custom animations for messages
-
-### Branch & Deployment:
-- **Branch**: `feature/double-booking-prevention`
-- **Status**: Pushed to GitHub repository
-- **Ready for**: Code review and integration testing
-
-### Acceptance Criteria Met:
-- ✅ System checks for date conflicts before confirming booking
-- ✅ If conflict exists, user sees clear error message with conflicting dates
-- ✅ User is prompted to select different dates (with "Change Dates" button)
-- ✅ Conflict check happens server-side (database trigger) AND client-side
-- ✅ Uses Tailwind CSS for all UI components

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login | Vehicle Rental System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../assets/css/tailwind.css" />
+    <link rel="stylesheet" href="../assets/css/theme.css" />
+    <script src="../assets/js/theme-manager.js"></script>
+  </head>
+  <body class="vrs-page h-full bg-sand text-ink antialiased">
+    <div class="relative min-h-full overflow-hidden bg-[radial-gradient(circle_at_top_right,#e4eee9_0%,#f5f1e8_48%,#ece7dc_100%)]">
+      <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+        <div class="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle,#f08f5f45,transparent_70%)] blur-[2px] animate-floatOrb"></div>
+        <div class="absolute right-[-40px] top-[18%] h-96 w-96 rounded-full bg-[radial-gradient(circle,#1f766833,transparent_68%)] blur-[2px] [animation-delay:450ms] animate-floatOrb"></div>
+        <div class="absolute bottom-[-80px] left-[22%] h-80 w-80 rounded-full bg-[radial-gradient(circle,#2f5f7b24,transparent_72%)] [animation-delay:800ms] animate-floatOrb"></div>
+      </div>
+
+      <main class="vrs-theme-scope mx-auto flex min-h-screen w-full max-w-[1240px] items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+        <section class="w-full max-w-[520px] rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_68px_rgba(10,25,31,0.16)] backdrop-blur-[8px] animate-stageIn sm:p-6">
+          <a href="../index.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#3f5557] transition hover:text-[#2C766E]">← Back to Home</a>
+
+          <div class="mt-4 rounded-2xl bg-[linear-gradient(120deg,rgba(31,118,104,0.11),rgba(240,143,95,0.12))] px-4 py-3">
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-700">Admin Sign In</p>
+            <h1 class="mt-1 text-[28px] font-extrabold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[32px]">Secure Dashboard Access</h1>
+            <p class="mt-2 text-sm text-slate-700">Sign in with your admin email (or admin username alias) and password to continue.</p>
+          </div>
+
+          <div id="adminLoginBanner" class="hidden mt-4"></div>
+
+          <form id="adminLoginForm" class="mt-4 space-y-4" novalidate>
+            <label class="block" for="adminUsername">
+              <span class="mb-2 block text-sm font-semibold text-slate-800">Admin Email or Username</span>
+              <div class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 transition focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
+                <input
+                  id="adminUsername"
+                  name="adminUsername"
+                  type="text"
+                  autocomplete="username"
+                  class="w-full border-0 bg-transparent text-sm font-semibold text-slate-900 outline-none"
+                  placeholder="admin or admin@vehicle-rental.local"
+                  required
+                />
+              </div>
+            </label>
+
+            <label class="block" for="adminPassword">
+              <span class="mb-2 block text-sm font-semibold text-slate-800">Password</span>
+              <div class="relative rounded-xl border border-slate-300 bg-white px-3 py-2.5 transition focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
+                <input
+                  id="adminPassword"
+                  name="adminPassword"
+                  type="password"
+                  autocomplete="current-password"
+                  class="w-full border-0 bg-transparent pr-11 text-sm font-semibold text-slate-900 outline-none"
+                  placeholder="Enter password"
+                  required
+                />
+
+                <button
+                  id="adminPasswordToggle"
+                  type="button"
+                  aria-label="Show password"
+                  class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100"
+                >
+                  <svg id="adminEyeOpenIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4">
+                    <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg id="adminEyeOffIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="hidden h-4 w-4">
+                    <path d="M2 12s3.8-6 10-6c2.2 0 4 .7 5.5 1.6"></path>
+                    <path d="M22 12s-3.8 6-10 6c-2.2 0-4-.7-5.5-1.6"></path>
+                    <path d="M3 3l18 18"></path>
+                  </svg>
+                </button>
+              </div>
+            </label>
+
+            <label for="adminRememberMe" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <input
+                id="adminRememberMe"
+                name="adminRememberMe"
+                type="checkbox"
+                class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span>Remember this admin session on this device</span>
+            </label>
+
+            <button
+              id="adminLoginSubmit"
+              type="submit"
+              class="w-full rounded-full bg-[linear-gradient(135deg,#1f7668_0%,#2f5f7b_100%)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_16px_28px_rgba(20,73,89,0.28)] disabled:cursor-not-allowed disabled:opacity-65"
+            >
+              <span id="adminLoginSubmitLabel">Sign In to Admin</span>
+            </button>
+          </form>
+
+          <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+            Admin access is granted only to allowlisted admin emails. Configure <strong>adminEmails</strong> in <strong>frontend/assets/js/supabase.config.local.js</strong> for local development.
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../assets/js/supabase.config.local.js"></script>
+    <script src="../assets/js/supabase.config.js"></script>
+    <script src="../assets/js/supabase.client.js"></script>
+    <script src="../assets/js/auth.supabase.js"></script>
+    <script src="assets/js/admin-auth.js"></script>
+    <script type="module" src="assets/js/login.js"></script>
+  </body>
+</html>

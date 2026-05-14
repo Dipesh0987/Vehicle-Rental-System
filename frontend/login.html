@@ -12,86 +12,21 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
-    <script>
-      window.__legacyTailwindConfig = {
-        theme: {
-          extend: {
-            fontFamily: {
-              poppins: ["Poppins", "sans-serif"],
-            },
-            colors: {
-              accent: "#E58C4E",
-              panel: "#2C766E",
-              ink: "#0E2528",
-              muted: "#6C7074",
-              paper: "#F2F3F1",
-            },
-            keyframes: {
-              drift: {
-                "0%, 100%": { transform: "translate3d(0, 0, 0)" },
-                "50%": { transform: "translate3d(0, -8px, 0)" },
-              },
-              loginStageIn: {
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0) scale(1)",
-                },
-              },
-              loginSectionIn: {
-                from: {
-                  opacity: "0",
-                  transform: "translateY(14px)",
-                },
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0)",
-                },
-              },
-              vehicleReveal: {
-                from: {
-                  opacity: "0",
-                  transform: "translateY(16px) scale(0.985)",
-                },
-                to: {
-                  opacity: "1",
-                  transform: "translateY(0) scale(1)",
-                },
-              },
-              vehicleFloat: {
-                "0%, 100%": { transform: "translateY(0)" },
-                "50%": { transform: "translateY(-4px)" },
-              },
-              accentPulse: {
-                "0%, 100%": { opacity: "0.5", transform: "scaleX(1)" },
-                "50%": { opacity: "1", transform: "scaleX(1.08)" },
-              },
-            },
-            animation: {
-              drift: "drift 8s ease-in-out infinite",
-              loginStageIn: "loginStageIn 720ms cubic-bezier(0.19, 1, 0.22, 1) forwards",
-              loginSectionIn: "loginSectionIn 640ms ease forwards",
-              vehicleReveal: "vehicleReveal 760ms cubic-bezier(0.18, 0.88, 0.2, 1) 260ms both",
-              vehicleFloat: "vehicleFloat 6.2s ease-in-out 900ms infinite",
-              accentPulse: "accentPulse 3s ease-in-out infinite",
-            },
-          },
-        },
-      };
-    </script>
+    <link rel="stylesheet" href="assets/css/theme.css" />
+    <script src="assets/js/theme-manager.js"></script>
   </head>
   <body
-    class="min-h-screen overflow-hidden bg-paper font-poppins text-ink"
-    style="background: radial-gradient(circle at 88% 8%, rgba(19, 87, 81, 0.34), transparent 42%), radial-gradient(circle at 10% 88%, rgba(229, 140, 78, 0.24), transparent 36%), linear-gradient(148deg, #f8faf8 0%, #eef3ef 50%, #e7edeb 100%);"
+    class="vrs-page min-h-screen overflow-hidden bg-paper bg-[radial-gradient(circle_at_88%_8%,rgba(19,87,81,0.34),transparent_42%),radial-gradient(circle_at_10%_88%,rgba(229,140,78,0.24),transparent_36%),linear-gradient(148deg,#f8faf8_0%,#eef3ef_50%,#e7edeb_100%)] font-poppins text-ink"
   >
-    <main class="relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8">
+    <main id="loginMain" class="vrs-theme-scope relative mx-auto flex min-h-screen w-[95%] max-w-[1280px] items-center justify-center py-8 transition duration-200">
       <div class="pointer-events-none absolute right-[-100px] top-[-95px] h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle_at_32%_28%,rgba(229,140,78,0.78),rgba(229,140,78,0.12))] opacity-75 blur-[12px] animate-drift" aria-hidden="true"></div>
       <div class="pointer-events-none absolute bottom-[-95px] left-[-85px] h-[210px] w-[210px] rounded-full bg-[radial-gradient(circle_at_32%_30%,rgba(44,118,110,0.62),rgba(44,118,110,0.16))] opacity-75 blur-[12px] [animation-delay:600ms] animate-drift" aria-hidden="true"></div>
       <div class="pointer-events-none absolute right-[-36px] top-[-55px] h-[210px] w-[210px] rounded-full bg-[rgba(44,118,110,0.14)] blur-[5px]" aria-hidden="true"></div>
 
-      <section class="relative w-full max-w-[1040px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-6 opacity-0 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] animate-loginStageIn sm:p-8">
+      <section class="vrs-auth-shell relative w-full max-w-[1040px] overflow-hidden rounded-[30px] border border-white/55 bg-[linear-gradient(150deg,rgba(255,255,255,0.9),rgba(242,247,244,0.72))] p-6 opacity-0 shadow-[0_30px_70px_rgba(7,31,34,0.17)] backdrop-blur-[10px] animate-loginStageIn sm:p-8">
         <div class="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-[linear-gradient(90deg,rgba(229,140,78,0.2),rgba(44,118,110,0.75),rgba(229,140,78,0.2))]"></div>
         <div class="grid gap-8 lg:grid-cols-[1.06fr,0.94fr] lg:items-center">
-          <aside class="space-y-4 opacity-0 animate-loginSectionIn [animation-delay:120ms]">
+          <aside class="vrs-auth-story space-y-4 opacity-0 animate-loginSectionIn [animation-delay:120ms]">
             <a href="index.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#3f5557] transition hover:text-panel">← Back to Home</a>
             <p class="inline-block rounded-full border border-[rgba(44,118,110,0.2)] bg-[#e8f2ef] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-panel">
               Secure Access
@@ -122,27 +57,27 @@
               </div>
             </div>
 
-            <figure class="mt-2 overflow-hidden rounded-[22px] border border-[rgba(23,57,60,0.16)] bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(234,242,239,0.78))] shadow-[0_18px_34px_rgba(12,35,38,0.16)] animate-vehicleReveal">
-              <div class="border-b border-[rgba(23,57,60,0.12)] bg-[radial-gradient(circle_at_80%_26%,rgba(255,255,255,0.94),rgba(255,255,255,0)_48%),linear-gradient(145deg,#eef4f0_0%,#dce8e4_100%)]">
+            <figure class="vrs-auth-showcase mt-2 overflow-hidden rounded-[22px] border border-[rgba(23,57,60,0.16)] bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(234,242,239,0.78))] shadow-[0_18px_34px_rgba(12,35,38,0.16)] animate-vehicleReveal">
+              <div class="vrs-auth-showcase-media border-b border-[rgba(23,57,60,0.12)] bg-[radial-gradient(circle_at_80%_26%,rgba(255,255,255,0.94),rgba(255,255,255,0)_48%),linear-gradient(145deg,#eef4f0_0%,#dce8e4_100%)]">
                 <img
                   src="assets/images/car-transparent.png"
                   alt="Premium rental car"
                   class="block h-[188px] w-full object-contain object-[center_70%] px-2 pb-1 pt-1 [filter:contrast(1.08)_saturate(1.03)_drop-shadow(0_16px_24px_rgba(8,25,27,0.28))] animate-vehicleFloat"
                 />
               </div>
-              <figcaption class="px-4 pb-4 pt-3 text-[13px] text-[#1e3b3e]">
-                <span class="inline-block rounded-full border border-[rgba(44,118,110,0.26)] bg-[rgba(44,118,110,0.12)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#255753]">Premium Vehicle Collection</span>
+              <figcaption class="vrs-auth-showcase-caption px-4 pb-4 pt-3 text-[13px] text-[#1e3b3e]">
+                <span class="vrs-auth-showcase-badge inline-block rounded-full border border-[rgba(44,118,110,0.26)] bg-[rgba(44,118,110,0.12)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#255753]">Premium Vehicle Collection</span>
                 <p class="mt-1 text-[15px] font-semibold leading-[1.35]">Drive in comfort with verified vehicles.</p>
               </figcaption>
             </figure>
           </aside>
 
-          <div class="rounded-[24px] border border-white/70 bg-white/90 p-4 opacity-0 shadow-[0_20px_42px_rgba(10,31,34,0.14)] animate-loginSectionIn [animation-delay:220ms] sm:p-6">
+          <div class="vrs-auth-panel rounded-[24px] border border-white/70 bg-white/90 p-4 opacity-0 shadow-[0_20px_42px_rgba(10,31,34,0.14)] animate-loginSectionIn [animation-delay:220ms] sm:p-6">
             <div class="mb-3 rounded-2xl bg-[linear-gradient(110deg,rgba(15,70,67,0.08),rgba(229,140,78,0.08))] px-4 py-3">
               <p class="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2f6a66]">Account Sign In</p>
               <p class="mt-1 text-[13px] text-[#345154]">Use your registered credentials to continue.</p>
             </div>
-            <div id="loginBanner" class="hidden rounded-xl px-3 py-2 text-[13px]"></div>
+            <div id="loginBanner" class="vrs-auth-banner hidden rounded-xl px-3 py-2 text-[13px]"></div>
 
             <form id="loginForm" class="mt-1 space-y-4" novalidate>
           <label class="block" for="email">
@@ -197,30 +132,9 @@
               <input id="rememberMe" type="checkbox" class="h-4 w-4 rounded border border-[#9ab0ac] text-panel focus:ring-panel/30" checked />
               Remember me
             </label>
-            <button id="forgotPassword" class="font-semibold text-panel hover:underline" type="button" aria-expanded="false" aria-controls="forgotPanel">
+            <button id="forgotPassword" class="font-semibold text-panel hover:underline" type="button" aria-expanded="false" aria-controls="forgotAssistModal" aria-haspopup="dialog">
               Forgot password?
             </button>
-          </div>
-
-          <div id="forgotPanel" class="mt-[-0.25rem] max-h-0 -translate-y-2 overflow-hidden rounded-xl border border-[rgba(44,118,110,0.25)] bg-[rgba(228,240,236,0.65)] p-3 text-[13px] opacity-0 pointer-events-none transition-all duration-300 ease-out" aria-hidden="true">
-            <p class="text-[#234043]">Enter your email and we will send a reset link.</p>
-            <div class="mt-3 flex flex-col gap-2 sm:flex-row">
-              <input
-                id="resetEmail"
-                type="email"
-                autocomplete="email"
-                class="w-full rounded-lg border border-[rgba(23,57,60,0.16)] bg-white px-3 py-2 text-[13px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_3px_rgba(44,118,110,0.12)]"
-                placeholder="you@example.com"
-              />
-              <div class="flex gap-2">
-                <button id="sendResetLink" type="button" class="rounded-lg bg-panel px-3 py-2 font-semibold text-white">
-                  Send Link
-                </button>
-                <button id="cancelReset" type="button" class="rounded-lg border border-[#c8d3cf] px-3 py-2 font-semibold text-[#2a4446]">
-                  Cancel
-                </button>
-              </div>
-            </div>
           </div>
 
               <button
@@ -230,12 +144,21 @@
                 Sign In to Dashboard
               </button>
 
+              <div class="relative my-3 flex items-center gap-3">
+                <span class="h-px flex-1 bg-[rgba(23,57,60,0.12)]"></span>
+                <span class="text-[12px] font-semibold text-[#6b8385]">or</span>
+                <span class="h-px flex-1 bg-[rgba(23,57,60,0.12)]"></span>
+              </div>
+
               <button
                 id="googleSignIn"
                 type="button"
                 class="w-full rounded-full border border-[#cfd9d5] bg-white px-5 py-3 text-[14px] font-semibold text-[#23393b] transition hover:-translate-y-[1px] hover:bg-[#f7f8f7] hover:shadow-[0_10px_20px_rgba(12,35,38,0.08)]"
               >
-                Continue with Google
+                <span class="inline-flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.9 7.35 2.56 10.52l7.97-5.93z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.93C6.51 42.62 14.62 48 24 48z"/></svg>
+                  Continue with Google
+                </span>
               </button>
 
               <p class="text-center text-[13px] text-[#3b5356]">
@@ -248,10 +171,166 @@
       </section>
     </main>
 
+    <!-- ====== Forgot Password OTP Modal ====== -->
+    <div
+      id="forgotAssistModal"
+      class="fixed inset-0 z-[300] hidden items-center justify-center bg-[rgba(5,18,20,0.68)] px-4 py-6 opacity-0 pointer-events-none backdrop-blur-[10px] transition-opacity duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="forgotAssistTitle"
+    >
+      <div
+        id="forgotAssistCard"
+        class="vrs-auth-modal-card relative w-full max-w-[500px] overflow-hidden rounded-[24px] border border-[rgba(16,46,49,0.2)] bg-white p-6 shadow-[0_30px_80px_rgba(2,12,14,0.52)] transition duration-200 ease-out translate-y-3 scale-[0.985] sm:p-7"
+      >
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-[4px] bg-[linear-gradient(90deg,#2c766e,#e58c4e)]"></div>
+        <button
+          id="forgotAssistClose"
+          type="button"
+          aria-label="Close forgot password dialog"
+          class="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(23,57,60,0.2)] bg-white text-[#244649] transition hover:scale-105 hover:bg-[#f2f7f5]"
+        >
+          <span class="text-lg leading-none">&times;</span>
+        </button>
+
+        <!-- Step 1: Enter email -->
+        <div id="frStep1">
+          <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-panel text-white flex items-center justify-center text-sm font-bold">1</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">2</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">3</div>
+            </div>
+          </div>
+          <div class="inline-flex items-center gap-2 rounded-full border border-[rgba(44,118,110,0.2)] bg-[rgba(44,118,110,0.08)] px-3 py-1">
+            <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2f6862]">Password Reset</span>
+          </div>
+          <h2 id="forgotAssistTitle" class="mt-3 text-[24px] font-bold leading-tight text-[#0f3438]">Forgot your password?</h2>
+          <p class="mt-2 text-[14px] leading-relaxed text-[#2a4c50]">
+            Enter the email address you registered with. We'll send a 6-digit code to reset your password.
+          </p>
+          <div id="frStep2Info" class="hidden mt-3 rounded-xl border border-[rgba(44,118,110,0.16)] bg-[rgba(44,118,110,0.08)] px-3 py-2 text-[13px] text-[#245b57]"></div>
+          <form id="frEmailForm" class="mt-5 space-y-4" novalidate>
+            <label class="block" for="frEmail">
+              <span class="mb-2 block text-[13px] font-semibold text-[#2b4144]">Email address</span>
+              <input
+                id="frEmail"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                class="w-full rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2.5 text-[14px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]"
+                placeholder="you@example.com"
+              />
+            </label>
+            <div id="frEmailError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-700"></div>
+            <button
+              type="submit"
+              id="frEmailBtn"
+              class="w-full rounded-full bg-panel px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >Send reset code</button>
+          </form>
+        </div>
+
+        <!-- Step 2: Enter OTP + new password -->
+        <div id="frStep2" class="hidden">
+          <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">1</div>
+              <div class="w-8 h-1 bg-panel"></div>
+              <div class="w-8 h-8 rounded-full bg-panel text-white flex items-center justify-center text-sm font-bold">2</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">3</div>
+            </div>
+          </div>
+          <div class="inline-flex items-center gap-2 rounded-full border border-[rgba(44,118,110,0.2)] bg-[rgba(44,118,110,0.08)] px-3 py-1">
+            <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2f6862]">Enter Code</span>
+          </div>
+          <h2 class="mt-3 text-[24px] font-bold leading-tight text-[#0f3438]">Check your email</h2>
+          <p class="mt-2 text-[14px] leading-relaxed text-[#2a4c50]">
+            We sent a 6-digit code to <strong id="frSentTo" class="text-panel"></strong>. Enter it below along with your new password.
+          </p>
+          <form id="frOtpForm" class="mt-5 space-y-4" novalidate>
+            <label class="block" for="frCode">
+              <span class="mb-2 block text-[13px] font-semibold text-[#2b4144]">6-digit code</span>
+              <input
+                id="frCode"
+                name="code"
+                type="text"
+                inputmode="numeric"
+                pattern="\d{6}"
+                maxlength="6"
+                autocomplete="one-time-code"
+                required
+                class="w-full rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2.5 text-center text-[22px] font-mono font-bold tracking-[0.5em] text-[#0e3a3d] outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]"
+                placeholder="——————"
+              />
+            </label>
+            <label class="block" for="frNewPassword">
+              <span class="mb-2 block text-[13px] font-semibold text-[#2b4144]">New password</span>
+              <input
+                id="frNewPassword"
+                name="newPassword"
+                type="password"
+                minlength="8"
+                autocomplete="new-password"
+                required
+                class="w-full rounded-xl border border-[rgba(23,57,60,0.17)] bg-white px-3 py-2.5 text-[14px] text-ink outline-none transition focus:border-[rgba(44,118,110,0.58)] focus:shadow-[0_0_0_4px_rgba(44,118,110,0.14)]"
+                placeholder="Min 8 chars, 1 special character"
+              />
+            </label>
+            <div id="frOtpError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] text-rose-700"></div>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                id="frBackBtn"
+                class="flex-1 rounded-full border border-[rgba(23,57,60,0.2)] bg-white px-4 py-3 text-[14px] font-semibold text-[#244649] transition hover:bg-[#f2f7f5] disabled:opacity-50 disabled:cursor-not-allowed"
+              >Back</button>
+              <button
+                type="submit"
+                id="frOtpBtn"
+                class="flex-[2] rounded-full bg-panel px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >Reset password</button>
+            </div>
+            <button type="button" id="frResendBtn" class="w-full text-center text-[13px] font-semibold text-panel hover:underline disabled:opacity-50 disabled:cursor-not-allowed">Resend code</button>
+          </form>
+        </div>
+
+        <!-- Step 3: Success -->
+        <div id="frStep3" class="hidden text-center">
+          <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">1</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center text-sm font-bold">2</div>
+              <div class="w-8 h-1 bg-gray-300"></div>
+              <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">✓</div>
+            </div>
+          </div>
+          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(44,118,110,0.12)]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2c766e" stroke-width="2.5" class="h-8 w-8"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <h2 class="mt-4 text-[24px] font-bold text-[#0f3438]">Password updated!</h2>
+          <p id="frSuccessMessage" class="mt-2 text-[14px] text-[#245b57]"></p>
+          <p class="mt-2 text-[14px] text-[#2a4c50]">Your password has been reset successfully. You can now sign in with your new password.</p>
+          <button
+            id="frDoneBtn"
+            type="button"
+            class="mt-6 w-full rounded-full bg-panel px-6 py-3 text-[15px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105"
+          >Sign in now</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/supabase.config.local.js"></script>
     <script src="assets/js/supabase.config.js"></script>
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>
     <script src="../backend/js/auth.js"></script>
+    <script src="assets/js/forgot-password.js"></script>
     <script>
       window.VehicleAuthUI.init("login");
     </script>

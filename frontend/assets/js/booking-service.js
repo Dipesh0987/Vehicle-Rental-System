@@ -211,66 +211,6 @@ class BookingService {
       return { success: false, error: error.message };
     }
   }
-
-  /**
-   * Create a new booking with availability validation
-   */
-  static async createBooking(bookingData) {
-    try {
-      const { vehicleId, pickupDate, dropoffDate, userId } = bookingData;
-
-      // First, validate availability
-      const availabilityCheck = await this.validateAvailability(vehicleId, pickupDate, dropoffDate);
-      
-      if (!availabilityCheck.success) {
-        return {
-          success: false,
-          error: 'Failed to check availability',
-          details: availabilityCheck.error
-        };
-      }
-
-      if (!availabilityCheck.available) {
-        return {
-          success: false,
-          error: 'Vehicle not available for selected dates',
-          conflictDetails: availabilityCheck.conflictingBookings
-        };
-      }
-
-      // Generate booking reference
-      const bookingReference = `VRS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
-
-      // Prepare booking data
-      const bookingPayload = {
-        ...bookingData,
-        booking_reference: bookingReference,
-        status: 'pending', // Start as pending, can be confirmed later
-        user_id: userId
-      };
-
-      // Create the booking
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert([bookingPayload])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Create booking event for audit trail
-      await this.createBookingEvent(data.id, 'created', {
-        vehicle_id: vehicleId,
-        pickup_date: pickupDate,
-        dropoff_date: dropoffDate
-      }, userId);
-
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      return { success: false, error: error.message };
-    }
-  }
 }
 
 export { BookingService };

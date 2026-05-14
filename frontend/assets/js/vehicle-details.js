@@ -1,487 +1,296 @@
 (function () {
   "use strict";
 
-  var VEHICLES = {
-    "camry-hybrid": {
-      id: "camry-hybrid",
-      brand: "Toyota",
-      name: "Camry Hybrid",
-      meta: "Sedan | Automatic | 5 Seats | Hybrid",
-      tagline: "Executive comfort sedan built for efficient city and highway rentals.",
-      heroImage: "assets/images/car-transparent.png",
-      gallery: [
-        "assets/images/car-transparent.png",
-        "assets/images/car.jpg",
-        "assets/images/car-transparent.png"
-      ],
-      badges: ["Fuel Efficient", "Airport Pickup", "Corporate Favorite"],
-      quickSpecs: {
-        "Fuel Type": "Hybrid",
-        Transmission: "Automatic",
-        Mileage: "22 km/l",
-        Seats: "5",
-        Luggage: "2 Large + 1 Cabin",
-        Year: "2023"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Basic toll support tag"
-      ],
-      pricing: {
-        dailyRate: "$82 / day",
-        securityDeposit: "$350 refundable",
-        extraKm: "$0.45 / km",
-        estimatedTotal: "$246 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 1 year old)",
-        "Government photo ID or passport",
-        "Minimum age: 23 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 24 hours before pickup",
-        "Late return fee applies after 30 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Aarav S.", rating: 4.9, text: "Very smooth handover process and excellent fuel economy." },
-        { name: "Nina K.", rating: 4.8, text: "Ideal for business travel, clean and comfortable interior." }
-      ],
-      similar: ["Honda CR-V Touring", "Nissan Altima SV", "BMW 3 Series"]
-    },
-    "crv-touring": {
-      id: "crv-touring",
-      brand: "Honda",
-      name: "CR-V Touring",
-      meta: "SUV | Automatic | 5 Seats | Petrol",
-      tagline: "Balanced family SUV with premium ride quality and storage space.",
-      heroImage: "assets/images/car.jpg",
-      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
-      badges: ["Family SUV", "Weekend Trips", "Top Rated"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "15 km/l",
-        Seats: "5",
-        Luggage: "3 Large + 2 Cabin",
-        Year: "2022"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Premium infotainment package"
-      ],
-      pricing: {
-        dailyRate: "$98 / day",
-        securityDeposit: "$420 refundable",
-        extraKm: "$0.55 / km",
-        estimatedTotal: "$294 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 1 year old)",
-        "Government photo ID or passport",
-        "Minimum age: 24 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 24 hours before pickup",
-        "Late return fee applies after 30 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Rohan D.", rating: 4.9, text: "Spacious and super comfortable for intercity travel." },
-        { name: "Sara M.", rating: 4.7, text: "Great support team and vehicle was in excellent condition." }
-      ],
-      similar: ["Hyundai Tucson N Line", "Audi Q5 Premium", "Jeep Wrangler Sahara"]
-    },
-    "mustang-gt": {
-      id: "mustang-gt",
-      brand: "Ford",
-      name: "Mustang GT",
-      meta: "Sport | Automatic | 4 Seats | Petrol",
-      tagline: "Performance-focused sport coupe for premium driving experiences.",
-      heroImage: "assets/images/car-transparent.png",
-      gallery: ["assets/images/car-transparent.png", "assets/images/car.jpg", "assets/images/car-transparent.png"],
-      badges: ["Performance", "Weekend Special", "Premium Segment"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "9 km/l",
-        Seats: "4",
-        Luggage: "1 Large + 1 Cabin",
-        Year: "2021"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Dedicated performance support line"
-      ],
-      pricing: {
-        dailyRate: "$145 / day",
-        securityDeposit: "$650 refundable",
-        extraKm: "$0.85 / km",
-        estimatedTotal: "$435 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 2 years old)",
-        "Government photo ID or passport",
-        "Minimum age: 27 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 48 hours before pickup",
-        "Late return fee applies after 20 minute grace period",
-        "No smoking policy inside vehicle",
-        "Performance mode misuse penalty may apply"
-      ],
-      reviews: [
-        { name: "Ethan P.", rating: 4.8, text: "Powerful drive and clean interior, perfect weekend rental." },
-        { name: "Kabir V.", rating: 4.7, text: "Pickup process was fast, car was exactly as expected." }
-      ],
-      similar: ["BMW 3 Series", "Mercedes C 300", "Audi Q5 Premium"]
-    },
-    "bmw-3-series": {
-      id: "bmw-3-series",
-      brand: "BMW",
-      name: "3 Series",
-      meta: "Luxury Sedan | Automatic | 5 Seats | Petrol",
-      tagline: "Business-class luxury sedan with sharp handling and premium cabin comfort.",
-      heroImage: "assets/images/car.jpg",
-      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
-      badges: ["Executive", "Airport Friendly", "Luxury Segment"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "13 km/l",
-        Seats: "5",
-        Luggage: "2 Large + 2 Cabin",
-        Year: "2023"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Priority support line"
-      ],
-      pricing: {
-        dailyRate: "$132 / day",
-        securityDeposit: "$600 refundable",
-        extraKm: "$0.72 / km",
-        estimatedTotal: "$396 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 2 years old)",
-        "Government photo ID or passport",
-        "Minimum age: 25 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 24 hours before pickup",
-        "Late return fee applies after 20 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Shreya T.", rating: 4.9, text: "Premium finish and a very smooth long-drive experience." },
-        { name: "Daniel R.", rating: 4.8, text: "Perfect for client meetings and executive city travel." }
-      ],
-      similar: ["Mercedes C 300", "Audi Q5 Premium", "Toyota Camry Hybrid"]
-    },
-    "tucson-n-line": {
-      id: "tucson-n-line",
-      brand: "Hyundai",
-      name: "Tucson N Line",
-      meta: "SUV | Automatic | 5 Seats | Petrol",
-      tagline: "Modern SUV package with sporty styling and practical daily usability.",
-      heroImage: "assets/images/car-transparent.png",
-      gallery: ["assets/images/car-transparent.png", "assets/images/car.jpg", "assets/images/car-transparent.png"],
-      badges: ["Urban SUV", "Comfort Ride", "Sport Design"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "14 km/l",
-        Seats: "5",
-        Luggage: "3 Large + 1 Cabin",
-        Year: "2022"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Wireless charging support"
-      ],
-      pricing: {
-        dailyRate: "$104 / day",
-        securityDeposit: "$460 refundable",
-        extraKm: "$0.58 / km",
-        estimatedTotal: "$312 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 1 year old)",
-        "Government photo ID or passport",
-        "Minimum age: 24 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 24 hours before pickup",
-        "Late return fee applies after 30 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Aniket G.", rating: 4.8, text: "Great SUV for family use and comfortable over rough roads." },
-        { name: "Priya N.", rating: 4.7, text: "Loved the interiors and pickup service was right on time." }
-      ],
-      similar: ["Honda CR-V Touring", "Kia Seltos X-Line", "Jeep Wrangler Sahara"]
-    },
-    "seltos-x-line": {
-      id: "seltos-x-line",
-      brand: "Kia",
-      name: "Seltos X-Line",
-      meta: "Compact SUV | Automatic | 5 Seats | Petrol",
-      tagline: "Compact and connected SUV tailored for city-first rental demand.",
-      heroImage: "assets/images/car.jpg",
-      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
-      badges: ["City Ready", "Connected Tech", "Compact SUV"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "16 km/l",
-        Seats: "5",
-        Luggage: "2 Large + 2 Cabin",
-        Year: "2023"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Smart navigation package"
-      ],
-      pricing: {
-        dailyRate: "$94 / day",
-        securityDeposit: "$430 refundable",
-        extraKm: "$0.52 / km",
-        estimatedTotal: "$282 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 1 year old)",
-        "Government photo ID or passport",
-        "Minimum age: 23 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 24 hours before pickup",
-        "Late return fee applies after 30 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Meera S.", rating: 4.8, text: "Good city mileage and really comfortable for traffic commutes." },
-        { name: "Ritesh J.", rating: 4.6, text: "Neat condition and easy pickup-drop process." }
-      ],
-      similar: ["Hyundai Tucson N Line", "Honda CR-V Touring", "Toyota Camry Hybrid"]
-    },
-    "altima-sv": {
-      id: "altima-sv",
-      brand: "Nissan",
-      name: "Altima SV",
-      meta: "Sedan | Automatic | 5 Seats | Petrol",
-      tagline: "Reliable comfort sedan with balanced performance and highway stability.",
-      heroImage: "assets/images/car-transparent.png",
-      gallery: ["assets/images/car-transparent.png", "assets/images/car.jpg", "assets/images/car-transparent.png"],
-      badges: ["Value Choice", "Highway Friendly", "Comfort Cabin"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "14 km/l",
-        Seats: "5",
-        Luggage: "2 Large + 2 Cabin",
-        Year: "2022"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Standard toll support tag"
-      ],
-      pricing: {
-        dailyRate: "$89 / day",
-        securityDeposit: "$390 refundable",
-        extraKm: "$0.48 / km",
-        estimatedTotal: "$267 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 1 year old)",
-        "Government photo ID or passport",
-        "Minimum age: 23 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 24 hours before pickup",
-        "Late return fee applies after 30 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Kunal H.", rating: 4.7, text: "Smooth sedan and very practical for office commute rentals." },
-        { name: "Elena B.", rating: 4.6, text: "Clean interiors and responsive customer support." }
-      ],
-      similar: ["Toyota Camry Hybrid", "BMW 3 Series", "Mercedes C 300"]
-    },
-    "mercedes-c-300": {
-      id: "mercedes-c-300",
-      brand: "Mercedes-Benz",
-      name: "C 300",
-      meta: "Luxury Sedan | Automatic | 5 Seats | Petrol",
-      tagline: "Premium German sedan experience for high-end and executive bookings.",
-      heroImage: "assets/images/car.jpg",
-      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
-      badges: ["Premium", "Executive Class", "Luxury Ride"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "12 km/l",
-        Seats: "5",
-        Luggage: "2 Large + 2 Cabin",
-        Year: "2023"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Concierge-level support"
-      ],
-      pricing: {
-        dailyRate: "$138 / day",
-        securityDeposit: "$650 refundable",
-        extraKm: "$0.75 / km",
-        estimatedTotal: "$414 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 2 years old)",
-        "Government photo ID or passport",
-        "Minimum age: 26 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 48 hours before pickup",
-        "Late return fee applies after 20 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Ishaan P.", rating: 4.9, text: "Luxury feel throughout and very professional service team." },
-        { name: "Marta L.", rating: 4.8, text: "Excellent condition, exactly what I expect from premium rentals." }
-      ],
-      similar: ["BMW 3 Series", "Audi Q5 Premium", "Ford Mustang GT"]
-    },
-    "audi-q5-premium": {
-      id: "audi-q5-premium",
-      brand: "Audi",
-      name: "Q5 Premium",
-      meta: "Luxury SUV | Automatic | 5 Seats | Petrol",
-      tagline: "Luxury SUV comfort with practical cargo and premium drive quality.",
-      heroImage: "assets/images/car-transparent.png",
-      gallery: ["assets/images/car-transparent.png", "assets/images/car.jpg", "assets/images/car-transparent.png"],
-      badges: ["Luxury SUV", "Family Premium", "Long Drive"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "11 km/l",
-        Seats: "5",
-        Luggage: "3 Large + 2 Cabin",
-        Year: "2022"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Premium cabin package"
-      ],
-      pricing: {
-        dailyRate: "$142 / day",
-        securityDeposit: "$680 refundable",
-        extraKm: "$0.82 / km",
-        estimatedTotal: "$426 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 2 years old)",
-        "Government photo ID or passport",
-        "Minimum age: 26 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 48 hours before pickup",
-        "Late return fee applies after 20 minute grace period",
-        "No smoking policy inside vehicle",
-        "Fuel level must match pickup level on return"
-      ],
-      reviews: [
-        { name: "Haruto N.", rating: 4.9, text: "Top-tier SUV comfort and great stability at highway speed." },
-        { name: "Devika M.", rating: 4.8, text: "Premium service and very smooth pickup/return flow." }
-      ],
-      similar: ["Mercedes C 300", "Honda CR-V Touring", "Jeep Wrangler Sahara"]
-    },
-    "wrangler-sahara": {
-      id: "wrangler-sahara",
-      brand: "Jeep",
-      name: "Wrangler Sahara",
-      meta: "Off-Road SUV | Automatic | 5 Seats | Petrol",
-      tagline: "Adventure-ready SUV for rugged terrains and experience-focused trips.",
-      heroImage: "assets/images/car.jpg",
-      gallery: ["assets/images/car.jpg", "assets/images/car-transparent.png", "assets/images/car.jpg"],
-      badges: ["Off-Road", "Adventure", "Weekend Escape"],
-      quickSpecs: {
-        "Fuel Type": "Petrol",
-        Transmission: "Automatic",
-        Mileage: "10 km/l",
-        Seats: "5",
-        Luggage: "2 Large + 2 Cabin",
-        Year: "2021"
-      },
-      included: [
-        "Comprehensive insurance coverage",
-        "Roadside assistance (24/7)",
-        "Sanitized vehicle handover",
-        "Terrain support checklist"
-      ],
-      pricing: {
-        dailyRate: "$126 / day",
-        securityDeposit: "$550 refundable",
-        extraKm: "$0.7 / km",
-        estimatedTotal: "$378 for 3 days"
-      },
-      requirements: [
-        "Valid driving license (minimum 2 years old)",
-        "Government photo ID or passport",
-        "Minimum age: 25 years",
-        "Credit card for security authorization"
-      ],
-      policies: [
-        "Free cancellation up to 24 hours before pickup",
-        "Late return fee applies after 20 minute grace period",
-        "No smoking policy inside vehicle",
-        "Off-road damage policy applies"
-      ],
-      reviews: [
-        { name: "Arjun F.", rating: 4.8, text: "Perfect for hilly routes and overall a fun drive." },
-        { name: "Lina W.", rating: 4.7, text: "Strong road presence and the support team was very responsive." }
-      ],
-      similar: ["Audi Q5 Premium", "Hyundai Tucson N Line", "Honda CR-V Touring"]
-    }
-  };
+  var DEFAULT_FALLBACK_IMAGE = "assets/images/car-transparent.png";
+  var BOOKING_HANDOFF_STORAGE_KEY = "vrs_booking_handoff";
 
-  function getVehicleFromQuery() {
+  function getCatalogService() {
+    return window.VehicleCatalogService || null;
+  }
+
+  function getVehicleIdFromQuery() {
     var params = new URLSearchParams(window.location.search);
-    var id = params.get("id") || "camry-hybrid";
-    return VEHICLES[id] || VEHICLES["camry-hybrid"];
+    return String(params.get("id") || "").trim();
+  }
+
+  function setDetailsLoaderVisibility(isVisible) {
+    var loader = document.getElementById("vehicleDetailsLoader");
+    if (!loader) {
+      return;
+    }
+
+    if (isVisible) {
+      loader.classList.remove("hidden");
+      loader.setAttribute("aria-hidden", "false");
+      return;
+    }
+
+    loader.classList.add("hidden");
+    loader.setAttribute("aria-hidden", "true");
+  }
+
+  function formatDetailCurrency(value) {
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return "NPR 0.00";
+    }
+    return "NPR " + numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatFeatureLabel(value) {
+    var raw = String(value || "").trim();
+    if (!raw) {
+      return "";
+    }
+
+    var normalized = raw.toLowerCase();
+    if (normalized === "ac") return "Air Conditioning";
+    if (normalized === "gps") return "GPS Navigation";
+    if (normalized === "bluetooth") return "Bluetooth";
+    if (normalized === "reverse-camera") return "Reverse Camera";
+    if (normalized === "child-seat") return "Child Seat Support";
+
+    return raw
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, function (char) {
+        return char.toUpperCase();
+      });
+  }
+
+  function normalizeFeatureHighlights(rawFeatures) {
+    var source = Array.isArray(rawFeatures) ? rawFeatures : [];
+    var seen = Object.create(null);
+    var normalized = [];
+
+    source.forEach(function (item) {
+      var label = formatFeatureLabel(item);
+      if (!label) {
+        return;
+      }
+
+      var key = label.toLowerCase();
+      if (seen[key]) {
+        return;
+      }
+
+      seen[key] = true;
+      normalized.push(label);
+    });
+
+    return normalized;
+  }
+
+  function normalizeGallery(vehicle) {
+    var gallery = Array.isArray(vehicle && vehicle.imageUrls) ? vehicle.imageUrls.filter(Boolean) : [];
+    var heroImage = String(vehicle && vehicle.primaryImageUrl ? vehicle.primaryImageUrl : (gallery[0] || DEFAULT_FALLBACK_IMAGE));
+
+    if (!gallery.length) {
+      gallery = [heroImage];
+    }
+
+    return {
+      heroImage: heroImage,
+      gallery: gallery,
+    };
+  }
+
+  function normalizeVehicleIdentityForDetail(brandValue, nameValue, typeValue) {
+    var brand = String(brandValue || "").trim();
+    var name = String(nameValue || "").trim();
+    var type = String(typeValue || "Vehicle").trim() || "Vehicle";
+    var brandLower = brand.toLowerCase();
+    var nameLower = name.toLowerCase();
+
+    if (!name) {
+      name = "Vehicle";
+    }
+
+    if (brand && brandLower !== "general") {
+      if (nameLower === brandLower || nameLower.indexOf(brandLower + " ") === 0) {
+        return {
+          brand: brand,
+          name: name,
+        };
+      }
+
+      return {
+        brand: brand,
+        name: name,
+      };
+    }
+
+    return {
+      brand: type,
+      name: name,
+    };
+  }
+
+  function mapCatalogVehicleToDetail(vehicle, similarVehicles) {
+    var pricePerDay = Number(vehicle && vehicle.pricePerDay ? vehicle.pricePerDay : 0);
+    var seats = Number(vehicle && vehicle.seats ? vehicle.seats : 5);
+    var fuelType = String(vehicle && vehicle.fuelType ? vehicle.fuelType : "Petrol");
+    var type = String(vehicle && vehicle.type ? vehicle.type : "Vehicle");
+    var rating = Number(vehicle && vehicle.rating ? vehicle.rating : 4.6);
+    var images = normalizeGallery(vehicle || {});
+
+    var identity = normalizeVehicleIdentityForDetail(
+      vehicle && vehicle.brand,
+      vehicle && vehicle.name,
+      type
+    );
+
+    var featureHighlights = normalizeFeatureHighlights(vehicle && vehicle.features);
+    var vehicleNumber = String(vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : "").trim();
+    var badges = [type, fuelType, seats + " Seats"];
+
+    if (vehicleNumber) {
+      badges.push("No. " + vehicleNumber);
+    }
+
+    return {
+      id: String(vehicle && vehicle.id ? vehicle.id : ""),
+      brand: identity.brand,
+      name: identity.name,
+      meta: type + " | Automatic | " + seats + " Seats | " + fuelType,
+      tagline: "Book this " + type.toLowerCase() + " instantly with transparent pricing and verified images.",
+      heroImage: images.heroImage,
+      gallery: images.gallery,
+      featureHighlights: featureHighlights,
+      badges: badges,
+      quickSpecs: {
+        "Vehicle Number": vehicleNumber || "Not Assigned",
+        "Fuel Type": fuelType,
+        Transmission: "Automatic",
+        Mileage: "As per vehicle profile",
+        Seats: String(seats),
+        Luggage: "Standard",
+        Year: "Latest fleet"
+      },
+      included: [
+        "Comprehensive insurance coverage",
+        "Roadside assistance (24/7)",
+        "Sanitized vehicle handover",
+        "Transparent digital booking summary"
+      ],
+      pricing: {
+        dailyRate: formatDetailCurrency(pricePerDay) + " / day",
+        securityDeposit: formatDetailCurrency(500) + " refundable",
+        extraKm: formatDetailCurrency(0.5) + " / km",
+        estimatedTotal: formatDetailCurrency(pricePerDay * 3) + " for 3 days"
+      },
+      requirements: [
+        "Valid driving license (minimum 1 year old)",
+        "Government photo ID or passport",
+        "Minimum age: 23 years",
+        "Credit card for security authorization"
+      ],
+      policies: [
+        "Free cancellation up to 24 hours before pickup",
+        "Late return fee applies after 30 minute grace period",
+        "No smoking policy inside vehicle",
+        "Fuel level must match pickup level on return"
+      ],
+      reviews: [
+        { name: "Fleet Customer", rating: 4.8, text: "Vehicle condition matched photos and pickup was smooth." },
+        { name: "Business Traveler", rating: 4.7, text: "Reliable booking experience with clear pricing." }
+      ],
+      similar: Array.isArray(similarVehicles) ? similarVehicles : []
+    };
+  }
+
+  function buildNotFoundDetail(requestedId) {
+    var label = requestedId ? requestedId : "selected vehicle";
+    return {
+      id: "",
+      brand: "Vehicle",
+      name: "Vehicle Not Found",
+      meta: "No matching vehicle",
+      tagline: "We could not find " + label + ". Browse the latest available fleet instead.",
+      heroImage: DEFAULT_FALLBACK_IMAGE,
+      gallery: [DEFAULT_FALLBACK_IMAGE],
+      featureHighlights: [],
+      badges: ["Catalog", "Live Fleet"],
+      quickSpecs: {
+        Status: "Unavailable",
+        Action: "Browse Fleet",
+      },
+      included: [
+        "Visit the Vehicles page to view all available options."
+      ],
+      pricing: {
+        dailyRate: "NPR 0.00 / day",
+        securityDeposit: "NPR 0.00",
+        extraKm: "NPR 0.00 / km",
+        estimatedTotal: "NPR 0.00"
+      },
+      requirements: ["Select another vehicle from the catalog."],
+      policies: ["Live availability is shown on the Vehicles page."],
+      reviews: [],
+      similar: [
+        { id: "", name: "Browse All Vehicles", type: "Catalog", priceLabel: "Check availability" }
+      ]
+    };
+  }
+
+  async function getVehicleFromQuery() {
+    var requestedId = getVehicleIdFromQuery();
+    var catalog = getCatalogService();
+
+    if (!catalog || typeof catalog.listVehicles !== "function") {
+      return buildNotFoundDetail(requestedId);
+    }
+
+    try {
+      var catalogList = await catalog.listVehicles({ includeInactive: false });
+      var rows = Array.isArray(catalogList) ? catalogList : [];
+
+      if (!rows.length) {
+        return buildNotFoundDetail(requestedId);
+      }
+
+      var selected = null;
+
+      if (requestedId && typeof catalog.getVehicleById === "function") {
+        selected = await catalog.getVehicleById(requestedId, { includeInactive: false });
+      }
+
+      if (!selected && requestedId) {
+        selected = rows.find(function (entry) {
+          return String(entry && entry.id ? entry.id : "") === requestedId;
+        }) || null;
+      }
+
+      if (!selected && !requestedId) {
+        selected = rows[0];
+      }
+
+      if (!selected) {
+        return buildNotFoundDetail(requestedId);
+      }
+
+      var similar = rows
+        .filter(function (entry) {
+          return String(entry && entry.id ? entry.id : "") !== String(selected.id || "");
+        })
+        .slice(0, 3)
+        .map(function (entry) {
+          var entryType = String(entry && entry.type ? entry.type : "Vehicle");
+          var entryPrice = Number(entry && entry.pricePerDay ? entry.pricePerDay : 0);
+          return {
+            id: String(entry && entry.id ? entry.id : ""),
+            name: String(entry && entry.name ? entry.name : "Vehicle"),
+            type: entryType,
+            priceLabel: formatDetailCurrency(entryPrice) + " / day",
+          };
+        });
+
+      return mapCatalogVehicleToDetail(selected, similar);
+    } catch (error) {
+      console.warn("Catalog-backed vehicle details unavailable:", error);
+      return buildNotFoundDetail(requestedId);
+    }
   }
 
   function setText(id, value) {
@@ -508,35 +317,84 @@
   function renderGallery(vehicle) {
     var hero = document.getElementById("vehicleDetailHero");
     var rail = document.getElementById("vehicleThumbnailRail");
+    var prevBtn = document.getElementById("vehicleHeroPrev");
+    var nextBtn = document.getElementById("vehicleHeroNext");
+    var counter = document.getElementById("vehicleHeroCounter");
+
     if (!hero || !rail) {
       return;
     }
 
-    rail.innerHTML = vehicle.gallery.map(function (src, index) {
+    var images = Array.isArray(vehicle.gallery) ? vehicle.gallery.filter(Boolean) : [];
+    if (!images.length) {
+      images = [vehicle.heroImage || DEFAULT_FALLBACK_IMAGE];
+    }
+
+    var activeIndex = 0;
+
+    function updateHero(nextIndex) {
+      activeIndex = ((nextIndex % images.length) + images.length) % images.length;
+
+      hero.classList.add("opacity-70");
+      window.setTimeout(function () {
+        hero.src = images[activeIndex] || images[0];
+        hero.alt = vehicle.name + " view " + (activeIndex + 1);
+        hero.classList.remove("opacity-70");
+      }, 110);
+
+      if (counter) {
+        counter.textContent = (activeIndex + 1) + " / " + images.length;
+      }
+
+      rail.querySelectorAll(".vehicle-thumb").forEach(function (node, idx) {
+        var isActive = idx === activeIndex;
+        node.classList.toggle("border-[#2c766e]", isActive);
+        node.classList.toggle("bg-[#edf6f3]", isActive);
+        node.classList.toggle("border-[#d3dfda]", !isActive);
+        node.classList.toggle("bg-white", !isActive);
+      });
+    }
+
+    rail.innerHTML = images.map(function (src, index) {
       var active = index === 0
         ? "border-[#2c766e] bg-[#edf6f3]"
         : "border-[#d3dfda] bg-white";
 
-      return '<button type="button" data-thumb-index="' + index + '" class="vehicle-thumb rounded-xl border p-1 transition hover:-translate-y-[1px] ' + active + '">' +
-        '<img src="' + src + '" alt="' + vehicle.name + ' view ' + (index + 1) + '" class="h-[76px] w-full rounded-lg object-cover" />' +
+      return '<button type="button" data-thumb-index="' + index + '" style="min-width:136px;" class="vehicle-thumb rounded-xl border p-1 transition hover:-translate-y-[1px] ' + active + '">' +
+        '<img src="' + src + '" alt="' + vehicle.name + ' view ' + (index + 1) + '" class="h-[84px] w-full rounded-lg object-cover" />' +
         '</button>';
     }).join("");
 
     rail.querySelectorAll(".vehicle-thumb").forEach(function (thumb) {
       thumb.addEventListener("click", function () {
         var idx = Number(thumb.getAttribute("data-thumb-index") || "0");
-        var selected = vehicle.gallery[idx] || vehicle.gallery[0];
-        hero.src = selected;
-
-        rail.querySelectorAll(".vehicle-thumb").forEach(function (node) {
-          node.classList.remove("border-[#2c766e]", "bg-[#edf6f3]");
-          node.classList.add("border-[#d3dfda]", "bg-white");
-        });
-
-        thumb.classList.remove("border-[#d3dfda]", "bg-white");
-        thumb.classList.add("border-[#2c766e]", "bg-[#edf6f3]");
+        updateHero(idx);
       });
     });
+
+    var showControls = images.length > 1;
+
+    if (prevBtn) {
+      prevBtn.classList.toggle("hidden", !showControls);
+      prevBtn.classList.add("inline-flex");
+      prevBtn.onclick = function () {
+        updateHero(activeIndex - 1);
+      };
+    }
+
+    if (nextBtn) {
+      nextBtn.classList.toggle("hidden", !showControls);
+      nextBtn.classList.add("inline-flex");
+      nextBtn.onclick = function () {
+        updateHero(activeIndex + 1);
+      };
+    }
+
+    if (counter) {
+      counter.classList.toggle("hidden", !showControls);
+    }
+
+    updateHero(0);
   }
 
   function renderBadges(vehicle) {
@@ -545,8 +403,8 @@
       return;
     }
 
-    target.innerHTML = vehicle.badges.map(function (badge) {
-      return '<span class="rounded-full border border-[#d2dfd9] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#355255]">' + badge + '</span>';
+    target.innerHTML = (vehicle.badges || []).map(function (badge) {
+      return '<span class="rounded-full border border-[#d5ddd8] bg-[#f3f8f5] px-3 py-1.5 text-[11px] font-semibold text-[#2f5a5d]">' + badge + '</span>';
     }).join("");
   }
 
@@ -556,10 +414,11 @@
       return;
     }
 
-    target.innerHTML = Object.keys(vehicle.quickSpecs).map(function (key) {
-      return '<div class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-3 py-2">' +
+    var specs = vehicle.quickSpecs || {};
+    target.innerHTML = Object.keys(specs).map(function (key) {
+      return '<div class="rounded-2xl border border-[#d7e0da] bg-white px-3 py-2 shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' +
         '<p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#597175]">' + key + '</p>' +
-        '<p class="mt-1 text-[14px] font-semibold text-[#244447]">' + vehicle.quickSpecs[key] + '</p>' +
+        '<p class="mt-1 text-[14px] font-semibold text-[#244447]">' + specs[key] + '</p>' +
         '</div>';
     }).join("");
   }
@@ -570,8 +429,25 @@
       return;
     }
 
-    target.innerHTML = vehicle.included.map(function (item) {
-      return '<div class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#2f4d50]">' + item + '</div>';
+    target.innerHTML = (vehicle.included || []).map(function (item) {
+      return '<div class="rounded-2xl border border-[#d7e0da] bg-white px-4 py-3 text-[13px] font-medium text-[#2f4d50] shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' + item + '</div>';
+    }).join("");
+  }
+
+  function renderFeatures(vehicle) {
+    var target = document.getElementById("vehicleFeatures");
+    if (!target) {
+      return;
+    }
+
+    var features = Array.isArray(vehicle.featureHighlights) ? vehicle.featureHighlights : [];
+    if (!features.length) {
+      target.innerHTML = '<p class="rounded-2xl border border-dashed border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#466367]">Feature details will be updated soon.</p>';
+      return;
+    }
+
+    target.innerHTML = features.map(function (feature) {
+      return '<span class="rounded-full border border-[#d2ddd8] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2a5b57]">' + feature + '</span>';
     }).join("");
   }
 
@@ -591,7 +467,7 @@
     target.innerHTML = rows.map(function (row, index) {
       var tone = index === rows.length - 1
         ? "border-[#f2c8ab] bg-[#fff6ef]"
-        : "border-[#d8e3de] bg-[#fbfdfc]";
+        : "border-[#d8e3de] bg-white";
 
       return '<div class="flex items-center justify-between rounded-2xl border px-4 py-3 ' + tone + '">' +
         '<p class="text-[13px] font-medium text-[#385356]">' + row[0] + '</p>' +
@@ -606,32 +482,9 @@
       return;
     }
 
-    target.innerHTML = items.map(function (item) {
-      return '<li class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#2f4d50]">' + item + '</li>';
+    target.innerHTML = (items || []).map(function (item) {
+      return '<li class="rounded-2xl border border-[#d8e3de] bg-white px-4 py-3 text-[13px] font-medium text-[#2f4d50] shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' + item + '</li>';
     }).join("");
-  }
-
-  function renderReviews(vehicle) {
-    var target = document.getElementById("vehicleReviews");
-    if (!target) {
-      return;
-    }
-
-    target.innerHTML = vehicle.reviews.map(function (review) {
-      return '<article class="rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3">' +
-        '<div class="flex items-center justify-between gap-3">' +
-        '<p class="text-[13px] font-semibold text-[#1f4043]">' + review.name + '</p>' +
-        '<p class="rounded-full border border-[#f2c8ab] bg-[#fff6ef] px-2 py-1 text-[11px] font-semibold text-[#985424]">' + review.rating.toFixed(1) + ' / 5</p>' +
-        '</div>' +
-        '<p class="mt-2 text-[13px] text-[#3d5a5d]">' + review.text + '</p>' +
-        '</article>';
-    }).join("");
-  }
-
-  function getVehicleIdByName(name) {
-    return Object.keys(VEHICLES).find(function (id) {
-      return VEHICLES[id].name === name;
-    });
   }
 
   function renderSimilar(vehicle) {
@@ -640,35 +493,53 @@
       return;
     }
 
-    target.innerHTML = vehicle.similar.map(function (name) {
-      var id = getVehicleIdByName(name);
-      var href = id ? "vehicle-details.html?id=" + id : "vehicles.html";
+    var items = Array.isArray(vehicle.similar) && vehicle.similar.length
+      ? vehicle.similar
+      : [{ id: "", name: "Browse All Vehicles", type: "Catalog", priceLabel: "Check availability" }];
 
-      return '<a href="' + href + '" class="flex items-center justify-between rounded-2xl border border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-semibold text-[#29494c] transition hover:-translate-y-[1px]">' +
-        '<span>' + name + '</span><span class="text-[12px] text-[#5a7376]">View Details</span>' +
+    target.innerHTML = items.map(function (item) {
+      var id = String(item && item.id ? item.id : "").trim();
+      var name = String(item && item.name ? item.name : "Vehicle");
+      var type = String(item && item.type ? item.type : "Vehicle");
+      var priceLabel = String(item && item.priceLabel ? item.priceLabel : "View pricing");
+      var href = id ? "vehicle-details.html?id=" + encodeURIComponent(id) : "vehicles.html";
+
+      return '<a href="' + href + '" class="flex items-center justify-between gap-3 rounded-2xl border border-[#d8e3de] bg-white px-4 py-3 transition hover:-translate-y-[1px] hover:shadow-[0_10px_18px_rgba(9,30,34,0.08)]">' +
+        '<span class="min-w-0">' +
+          '<span class="block truncate text-[13px] font-semibold text-[#29494c]">' + name + '</span>' +
+          '<span class="block truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5a7376]">' + type + '</span>' +
+        '</span>' +
+        '<span class="text-[12px] font-semibold text-[#1f5b57]">' + priceLabel + '</span>' +
         '</a>';
     }).join("");
   }
 
-  function getAvailability(vehicle) {
-    return vehicle.availability || [
-      "Today: Available for immediate pickup after 2 hours notice",
-      "Tomorrow: High demand window, reserve early",
-      "Weekend: Limited slots for premium time bands"
-    ];
-  }
+  function renderReviewSnippets(vehicle) {
+    var target = document.getElementById("vehicleReviewSnippets");
+    if (!target) {
+      return;
+    }
 
-  function getOperationalNotes(vehicle) {
-    return vehicle.operationalNotes || [
-      "Vehicle handover checklist is completed digitally at pickup.",
-      "Dedicated support is active throughout the rental duration.",
-      "Incident reporting is handled via 24/7 fleet assistance desk."
-    ];
-  }
+    var reviews = Array.isArray(vehicle.reviews) ? vehicle.reviews.slice(0, 2) : [];
+    if (!reviews.length) {
+      target.innerHTML = '<p class="rounded-2xl border border-dashed border-[#d8e3de] bg-[#fbfdfc] px-4 py-3 text-[13px] font-medium text-[#466367]">No public reviews yet for this listing.</p>';
+      return;
+    }
 
-  function renderAvailability(vehicle) {
-    renderBulletList("vehicleAvailability", getAvailability(vehicle));
-    renderBulletList("vehicleOperationalNotes", getOperationalNotes(vehicle));
+    target.innerHTML = reviews.map(function (review) {
+      var reviewer = String(review && review.name ? review.name : "Renter");
+      var text = String(review && review.text ? review.text : "Great rental experience.");
+      var rating = Number(review && review.rating ? review.rating : 0);
+      var ratingLabel = rating > 0 ? rating.toFixed(1) + " / 5" : "Verified";
+
+      return '<article class="rounded-2xl border border-[#d8e3de] bg-white px-4 py-3 shadow-[0_8px_16px_rgba(9,30,34,0.07)]">' +
+        '<div class="flex items-center justify-between gap-2">' +
+          '<p class="text-[12px] font-semibold text-[#2f4d50]">' + reviewer + '</p>' +
+          '<p class="text-[11px] font-semibold text-[#1f5b57]">' + ratingLabel + '</p>' +
+        '</div>' +
+        '<p class="mt-2 text-[12px] leading-relaxed text-[#4d686b]">' + text + '</p>' +
+        '</article>';
+    }).join("");
   }
 
   function wireRevealAnimations() {
@@ -708,7 +579,7 @@
   }
 
   function formatCurrency(amount) {
-    return "$" + amount.toFixed(2);
+    return "NPR " + amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function wireBookingSidebar(vehicle) {
@@ -719,12 +590,11 @@
 
     var pickupDate = document.getElementById("bookingPickupDate");
     var pickupTime = document.getElementById("bookingPickupTime");
-    var dropoffDate = document.getElementById("bookingDropoffDate");
-    var dropoffTime = document.getElementById("bookingDropoffTime");
+    var durationInput = document.getElementById("bookingDuration");
     var couponInput = document.getElementById("bookingCouponCode");
     var applyBtn = document.getElementById("bookingApplyCoupon");
     var couponStatus = document.getElementById("bookingCouponStatus");
-    var submitBtn = document.getElementById("bookingSubmitBtn");
+    var proceedBtn = document.getElementById("bookingProceedBtn");
 
     var dailyRateEl = document.getElementById("bookingDailyRate");
     var baseEl = document.getElementById("bookingBaseAmount");
@@ -740,30 +610,33 @@
 
     var COUPONS = {
       SAVE10: { type: "percent", value: 0.10, label: "10% off applied" },
-      WEEKEND50: { type: "flat", value: 50, label: "$50 off applied" }
+      WEEKEND50: { type: "flat", value: 50, label: "NPR 50 off applied" }
     };
 
-    function calculateDurationDays() {
-      if (!pickupDate || !pickupDate.value || !dropoffDate || !dropoffDate.value) {
-        return 1;
+    function addDaysToIsoDate(isoDate, days) {
+      var parsed = new Date(String(isoDate || "") + "T00:00:00");
+      if (Number.isNaN(parsed.getTime())) {
+        return "";
       }
 
-      var pickup = new Date(pickupDate.value);
-      var dropoff = new Date(dropoffDate.value);
-      var diffTime = Math.abs(dropoff - pickup);
-      var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      return Math.max(1, diffDays);
+      parsed.setDate(parsed.getDate() + Math.max(0, Number(days || 0)));
+      var yyyy = parsed.getFullYear();
+      var mm = String(parsed.getMonth() + 1).padStart(2, "0");
+      var dd = String(parsed.getDate()).padStart(2, "0");
+      return yyyy + "-" + mm + "-" + dd;
     }
 
-    function updateDropoffDateFromDuration() {
-      // This function is kept for backward compatibility but not used in new UI
-      return;
+    function getDurationDays() {
+      var value = Number(durationInput && durationInput.value ? durationInput.value : "1");
+      if (!Number.isFinite(value) || value < 1) {
+        return 1;
+      }
+      return Math.floor(value);
     }
 
     function compute() {
       var dailyRate = parseDailyRate(vehicle.pricing && vehicle.pricing.dailyRate);
-      var days = calculateDurationDays();
+      var days = getDurationDays();
       var base = dailyRate * days;
       var serviceFee = Math.max(15, base * 0.05);
       var tax = (base + serviceFee) * 0.13;
@@ -801,8 +674,6 @@
         vehicleId: vehicle.id,
         pickupDate: pickupDate ? pickupDate.value : "",
         pickupTime: pickupTime ? pickupTime.value : "",
-        dropoffDate: dropoffDate ? dropoffDate.value : "",
-        dropoffTime: dropoffTime ? dropoffTime.value : "",
         durationDays: days,
         couponCode: state.couponCode,
         baseAmount: base,
@@ -811,77 +682,6 @@
         discountAmount: discount,
         totalAmount: total
       }));
-    }
-
-    async function handleBookingSubmission() {
-      // Clear previous messages
-      BookingErrorHandler.clearErrors();
-
-      // Validate form
-      if (!BookingErrorHandler.validateBookingForm()) {
-        return;
-      }
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        BookingErrorHandler.showGeneralError("Please log in to make a booking");
-        return;
-      }
-
-      // Disable button during submission
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Processing...";
-
-      try {
-        // Get booking data
-        const bookingData = JSON.parse(summary.getAttribute("data-booking-payload") || "{}");
-
-        // Prepare booking payload
-        const payload = {
-          user_id: user.id,
-          vehicle_id: vehicle.id,
-          pickup_date: bookingData.pickupDate,
-          pickup_time: bookingData.pickupTime || "10:00:00",
-          dropoff_date: bookingData.dropoffDate,
-          dropoff_time: bookingData.dropoffTime || "09:30:00",
-          base_price: bookingData.baseAmount,
-          service_fee: bookingData.serviceFee,
-          tax_amount: bookingData.taxAmount,
-          discount_amount: bookingData.discountAmount,
-          total_price: bookingData.totalAmount,
-          pickup_location: "Downtown Vehicle Hub", // Default location
-          dropoff_location: "Downtown Vehicle Hub", // Default location
-          driver_name: user.user_metadata?.full_name || user.email,
-          payment_method: "To be selected",
-          status: "pending"
-        };
-
-        // Create booking
-        const result = await BookingService.createBooking(payload);
-
-        if (result.success) {
-          BookingErrorHandler.showSuccess(`Booking created successfully! Reference: ${result.data.booking_reference}`);
-          // Reset form or redirect to confirmation page
-          setTimeout(() => {
-            // Could redirect to booking confirmation page here
-            console.log("Booking confirmed:", result.data);
-          }, 2000);
-        } else {
-          if (result.error === 'Vehicle not available for selected dates') {
-            BookingErrorHandler.showConflictError(result.conflictDetails);
-          } else {
-            BookingErrorHandler.showGeneralError(result.error);
-          }
-        }
-      } catch (error) {
-        console.error("Booking submission error:", error);
-        BookingErrorHandler.showGeneralError("An unexpected error occurred. Please try again.");
-      } finally {
-        // Re-enable button
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Continue to Secure Checkout";
-      }
     }
 
     function applyCoupon() {
@@ -915,18 +715,14 @@
       compute();
     }
 
-    // Event listeners
+    if (durationInput) {
+      durationInput.addEventListener("input", compute);
+    }
     if (pickupDate) {
       pickupDate.addEventListener("input", compute);
     }
     if (pickupTime) {
       pickupTime.addEventListener("input", compute);
-    }
-    if (dropoffDate) {
-      dropoffDate.addEventListener("input", compute);
-    }
-    if (dropoffTime) {
-      dropoffTime.addEventListener("input", compute);
     }
     if (couponInput) {
       couponInput.addEventListener("keydown", function (event) {
@@ -939,31 +735,111 @@
     if (applyBtn) {
       applyBtn.addEventListener("click", applyCoupon);
     }
-    if (submitBtn) {
-      submitBtn.addEventListener("click", handleBookingSubmission);
+
+    if (proceedBtn) {
+      proceedBtn.addEventListener("click", function () {
+        if (
+          window.VehicleAuthUI &&
+          typeof window.VehicleAuthUI.requireBookingAccess === "function" &&
+          !window.VehicleAuthUI.requireBookingAccess({
+            message: "Please register or sign in before booking a vehicle. Redirecting to registration...",
+            autoRedirect: true,
+            delayMs: 700,
+          })
+        ) {
+          return;
+        }
+
+        var startDate = pickupDate ? String(pickupDate.value || "") : "";
+        var durationDays = getDurationDays();
+        if (!startDate) {
+          if (couponStatus) {
+            couponStatus.textContent = "Choose a pick-up date before checkout.";
+          }
+          return;
+        }
+
+        var endDate = addDaysToIsoDate(startDate, Math.max(0, durationDays - 1));
+        var target = new URL("booking.html", window.location.href);
+        target.searchParams.set("vehicle", String(vehicle.id || ""));
+        target.searchParams.set("start", startDate);
+        target.searchParams.set("duration", String(durationDays));
+        if (endDate) {
+          target.searchParams.set("end", endDate);
+        }
+        if (pickupTime && pickupTime.value) {
+          target.searchParams.set("pickupTime", String(pickupTime.value));
+        }
+        if (state.couponCode) {
+          target.searchParams.set("coupon", state.couponCode);
+        }
+
+        var bookingSummaryPayload = {};
+        var rawSummaryPayload = summary.getAttribute("data-booking-payload");
+        if (rawSummaryPayload) {
+          try {
+            bookingSummaryPayload = JSON.parse(rawSummaryPayload) || {};
+          } catch (_error) {
+            bookingSummaryPayload = {};
+          }
+        }
+
+        try {
+          sessionStorage.setItem(
+            BOOKING_HANDOFF_STORAGE_KEY,
+            JSON.stringify({
+              source: "vehicle-details",
+              createdAt: Date.now(),
+              vehicleId: String(vehicle.id || ""),
+              startDate: startDate,
+              endDate: endDate,
+              pickupTime: pickupTime && pickupTime.value ? String(pickupTime.value) : "",
+              durationDays: durationDays,
+              couponCode: state.couponCode || "",
+              baseAmount: Number(bookingSummaryPayload.baseAmount || 0),
+              serviceFee: Number(bookingSummaryPayload.serviceFee || 0),
+              taxAmount: Number(bookingSummaryPayload.taxAmount || 0),
+              discountAmount: Number(bookingSummaryPayload.discountAmount || 0),
+              totalAmount: Number(bookingSummaryPayload.totalAmount || 0)
+            })
+          );
+        } catch (_error) {
+          // Storage can fail in privacy-restricted contexts; query params still carry core data.
+        }
+
+        window.location.href = target.toString();
+      });
     }
 
     compute();
   }
 
-  function init() {
-    var vehicle = getVehicleFromQuery();
-    renderIdentity(vehicle);
-    renderGallery(vehicle);
-    renderBadges(vehicle);
-    renderQuickSpecs(vehicle);
-    renderIncluded(vehicle);
-    renderPricing(vehicle);
-    renderBulletList("vehicleRequirements", vehicle.requirements);
-    renderBulletList("vehiclePolicies", vehicle.policies);
-    wireBookingSidebar(vehicle);
-    wireRevealAnimations();
+  async function init() {
+    setDetailsLoaderVisibility(true);
+
+    try {
+      var vehicle = await getVehicleFromQuery();
+      renderIdentity(vehicle);
+      renderGallery(vehicle);
+      renderBadges(vehicle);
+      renderQuickSpecs(vehicle);
+      renderFeatures(vehicle);
+      renderIncluded(vehicle);
+      renderPricing(vehicle);
+      renderBulletList("vehicleRequirements", vehicle.requirements);
+      renderBulletList("vehiclePolicies", vehicle.policies);
+      renderSimilar(vehicle);
+      renderReviewSnippets(vehicle);
+      wireBookingSidebar(vehicle);
+      wireRevealAnimations();
+    } catch (error) {
+      console.error("Vehicle details initialization failed:", error);
+    } finally {
+      setDetailsLoaderVisibility(false);
+    }
   }
 
   window.VehicleDetailsPage = {
     init: init
   };
-
-  // Export vehicle data for filter module
-  window.VehicleDetailsData = VEHICLES;
 })();

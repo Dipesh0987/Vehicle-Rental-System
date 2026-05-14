@@ -37,7 +37,7 @@ class BookingModificationManager {
 
       if (!currentUserId) throw new Error('User not authenticated');
 
-      // Step 2: Validate new dates and vehicle availability
+      // Step 2: Validate new dates
       const availResult = await BookingService.validateAvailability(
         newVehicleId || originalBooking.vehicle_id,
         newPickupDate,
@@ -45,19 +45,10 @@ class BookingModificationManager {
         bookingId
       );
 
-      if (!availResult.success) {
+      if (!availResult.success || !availResult.available) {
         return {
           success: false,
-          error: 'Failed to check vehicle availability',
-          details: availResult.error
-        };
-      }
-
-      if (!availResult.available) {
-        return {
-          success: false,
-          error: 'Vehicle not available for selected dates',
-          conflictDetails: availResult.conflictingBookings
+          error: 'Selected dates are not available for this vehicle'
         };
       }
 

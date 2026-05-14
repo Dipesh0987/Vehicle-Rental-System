@@ -8,7 +8,7 @@ The Advanced Vehicle Rental Search System is a professional, feature-rich search
 
 ### Search Capabilities
 - **Top Search Bar**: Pickup/drop-off locations with datetime pickers
-- **Quick Filters**: Preset buttons for budget, family, luxury, and eco-friendly options
+- **Live Filter Rail**: Brand, keyword, location, price, rating, and seating controls
 - **Advanced Filtering**: 12+ filtering categories with real-time results
 - **Sorting Options**: Sort by relevance, price, rating, or newest
 
@@ -21,53 +21,58 @@ The Advanced Vehicle Rental Search System is a professional, feature-rich search
 - Luxury
 - Van
 
-#### 2. Transmission
+#### 2. Brand
+- Dynamically populated from the catalog
+- Matches admin-entered brand metadata
+
+#### 3. Transmission
 - Manual
 - Automatic
 
-#### 3. Fuel Type
+#### 4. Fuel Type
 - Petrol
 - Diesel
 - Electric
 - Hybrid
 
-#### 4. Price Range
+#### 5. Price Range
 - Configurable daily rate filter ($0-$500)
 - Real-time price updates
 
-#### 5. Seating Capacity
+#### 6. Seating Capacity
 - Range from 1-9 seats
 - Real-time filtering
 
-#### 6. User Rating
+#### 7. User Rating
 - 0-5 star filter
 - Shows only rated vehicles
 
-#### 7. Features & Amenities
+#### 8. Features & Amenities
 - Air Conditioning
 - GPS Navigation
 - Bluetooth
 - Reverse Camera
 - Child Seat
 
-#### 8. Insurance Options
+#### 9. Insurance Options
 - Basic Coverage
 - Premium Coverage
 - Comprehensive
 
-#### 9. Driver Options
+#### 10. Driver Options
 - Self-Drive
 - With Driver
 
-#### 10. Mileage Policy
+#### 11. Mileage Policy
 - Unlimited
 - Limited (km/day)
 
-#### 11. Availability
+#### 12. Availability
 - Toggle to show only available vehicles
 
-#### 12. Search Text
+#### 13. Search Text
 - Free-text search across brand, model, type, fuel, transmission, and features
+- Location text search for stored vehicle locations
 
 ### Responsive Design
 - **Desktop**: Permanent sidebar filter panel (80w)
