@@ -631,12 +631,18 @@
       }).join("") + "</div>";
     }
 
-    /* suggestion chips (only on welcome) */
+    /* suggestion chips (welcome message uses static, others use dynamic from API) */
     var suggestHtml = "";
-    if (msg.showSuggestions && !isUser && !isTyping) {
-      suggestHtml = '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + SUGGESTIONS.map(function (s) {
-        return '<button type="button" data-ai-suggest="' + esc(s) + '" style="border-radius:999px;border:1px solid ' + t.chipBorder + ';background:' + t.chipBg + ';padding:5px 12px;font-size:11px;font-weight:500;color:' + t.chipText + ';cursor:pointer">' + esc(s) + "</button>";
-      }).join("") + "</div>";
+    if (!isUser && !isTyping) {
+      if (msg.showSuggestions) {
+        suggestHtml = '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + SUGGESTIONS.map(function (s) {
+          return '<button type="button" data-ai-suggest="' + esc(s) + '" style="border-radius:999px;border:1px solid ' + t.chipBorder + ';background:' + t.chipBg + ';padding:5px 12px;font-size:11px;font-weight:500;color:' + t.chipText + ';cursor:pointer;transition:all .15s">' + esc(s) + "</button>";
+        }).join("") + "</div>";
+      } else if (Array.isArray(msg.suggestions) && msg.suggestions.length) {
+        suggestHtml = '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + msg.suggestions.map(function (s) {
+          return '<button type="button" data-ai-suggest="' + esc(s) + '" style="border-radius:999px;border:1px solid ' + t.chipBorder + ';background:' + t.chipBg + ';padding:5px 12px;font-size:11px;font-weight:500;color:' + t.chipText + ';cursor:pointer;transition:all .15s">' + esc(s) + "</button>";
+        }).join("") + "</div>";
+      }
     }
 
     /* wizard option buttons */
@@ -990,6 +996,7 @@
         timestamp: new Date().toISOString(),
         citations: normCitations(data && data.citations),
         actions: normActions(data && data.actions),
+        suggestions: Array.isArray(data && data.suggestions) ? data.suggestions : [],
       }, library);
       bumpUnread(ui, state, library);
     } catch (err) {

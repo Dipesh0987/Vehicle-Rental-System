@@ -1081,6 +1081,48 @@ function defaultSupportAction(): ActionItem {
   };
 }
 
+/* ─── Smart Follow-up Suggestions ───
+ * Returns contextual quick-reply chip labels based on the current intent
+ * so users always have a clear next step after each response. */
+function getSuggestions(intent: string, hasBookings: boolean): string[] {
+  switch (intent) {
+    case "greeting":
+      return ["Show me SUVs", "Plan a trip", "My bookings", "What documents do I need?"];
+    case "vehicle_search":
+      return ["Compare these vehicles", "Show cheaper options", "Plan a trip", "Check availability"];
+    case "vehicle_compare":
+      return ["Book the best one", "Show more options", "Plan a trip"];
+    case "trip":
+      return ["Show me vehicles", "Get a multi-stop quote", "What's included in the price?"];
+    case "fleet":
+      return ["Show me SUVs", "Show sedans", "Cheapest cars", "Luxury vehicles"];
+    case "hours":
+      return ["How do I book?", "Where is your office?", "Show vehicles"];
+    case "availability":
+      return ["Show similar vehicles", "Plan a trip", "Book this vehicle"];
+    case "policy":
+      return ["Show vehicles", "Plan a trip", "My bookings", "Contact support"];
+    case "upcoming":
+      return hasBookings ? ["Cancel booking", "Modify booking", "Download invoice"] : ["Browse vehicles", "Plan a trip"];
+    case "vehicle":
+      return hasBookings ? ["View booking details", "Check next booking", "Download invoice"] : ["Browse vehicles"];
+    case "cancellation":
+      return ["Refund status", "View my bookings", "Contact support"];
+    case "refund":
+      return ["View my bookings", "Contact support"];
+    case "invoice":
+      return ["View my bookings", "Contact support"];
+    case "list":
+      return ["View latest booking", "Plan a new trip", "Browse vehicles"];
+    case "price":
+      return ["Download invoice", "View booking", "Contact support"];
+    case "modify":
+      return ["View booking", "Cancel booking", "Contact support"];
+    default:
+      return ["Show vehicles", "Plan a trip", "My bookings", "Working hours"];
+  }
+}
+
 function buildRuleAnswer(params: {
   query: string;
   now: Date;
@@ -1960,6 +2002,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
+        suggestions: getSuggestions("trip", bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -1974,6 +2017,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
+        suggestions: getSuggestions("vehicle_search", bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -1988,6 +2032,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
+        suggestions: getSuggestions("vehicle_compare", bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -2002,6 +2047,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
+        suggestions: getSuggestions("fleet", bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -2016,6 +2062,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "policy",
+        suggestions: getSuggestions("hours", bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -2030,6 +2077,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
+        suggestions: getSuggestions("availability", bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -2054,6 +2102,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: intent,
+        suggestions: getSuggestions(intent, bookings.length > 0) as unknown as JsonValue,
       });
     }
 
@@ -2094,6 +2143,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         phone: SUPPORT_PHONE,
       } as unknown as JsonValue,
       source: "vehicle_bookings",
+      suggestions: getSuggestions(intent, bookings.length > 0) as unknown as JsonValue,
     });
   } catch (error) {
     console.error("booking-chat error", error);
