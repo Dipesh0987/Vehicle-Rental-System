@@ -1239,12 +1239,37 @@ function buildRuleAnswer(params: {
   };
 }
 
-async function callGemini(prompt: string, maxTokens = 300): Promise<string> {
+type ChatHistoryMessage = { role: "user" | "assistant"; text: string };
+
+async function callGemini(
+  prompt: string,
+  maxTokens = 300,
+  history?: ChatHistoryMessage[]
+): Promise<string> {
   if (!GEMINI_API_KEY) {
     return "";
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+  /* Build multi-turn contents array when conversation history is available.
+   * This gives Gemini full context of the conversation so it can reference
+   * earlier messages (e.g. "I said 4 people" → remembers the count). */
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+
+  if (history && history.length) {
+    for (const msg of history.slice(-10)) {
+      const role = msg.role === "user" ? "user" : "model";
+      const text = normalizeText(msg.text);
+      if (text) {
+        contents.push({ role, parts: [{ text }] });
+      }
+    }
+  }
+
+  /* The system prompt is always sent as the final user turn so Gemini
+   * treats it as the current instruction with full conversation context. */
+  contents.push({ role: "user", parts: [{ text: prompt }] });
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -1252,11 +1277,7 @@ async function callGemini(prompt: string, maxTokens = 300): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: prompt }],
-        },
-      ],
+      contents,
       generationConfig: {
         temperature: 0.4,
         maxOutputTokens: maxTokens,
@@ -1333,6 +1354,7 @@ async function handleGeneralQuery(input: {
   timezone: string;
   now: Date;
   intent?: string;
+  history?: ChatHistoryMessage[];
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
   const bookingSummary = summarizeBookings(input.bookings, input.vehicleMap);
   const latestBooking = input.bookings[0] || null;
@@ -1375,7 +1397,7 @@ async function handleGeneralQuery(input: {
   ];
 
   const prompt = systemSection.join("\n");
-  const result = await callGemini(prompt, 450);
+  const result = await callGemini(prompt, 450, input.history);
 
   /* Sensible fallback when Gemini is unavailable. Distinguishes greetings
    * from general/policy questions for a less robotic feel. */
@@ -1443,6 +1465,13 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const timezone = normalizeText(body.timezone) || "UTC";
     const nowIso = normalizeText(body.nowIso);
 
+    /* Conversation history — last N messages for multi-turn context. */
+    const rawHistory = Array.isArray(body.history) ? body.history as Array<{ role?: string; text?: string }> : [];
+    const history: ChatHistoryMessage[] = rawHistory
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && normalizeText(m.text))
+      .map((m) => ({ role: m.role as "user" | "assistant", text: normalizeText(m.text) }))
+      .slice(-10);
+
     if (!query) {
       return jsonResponse(400, {
         success: false,
@@ -1491,6 +1520,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         timezone,
         now: safeNow,
         intent,
+        history,
       });
       return jsonResponse(200, {
         success: true,
@@ -1516,7 +1546,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     let finalCitations = ruleAnswer.citations;
 
     if (ruleAnswer.unresolved && GEMINI_API_KEY) {
-      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow, intent });
+      const geminiResult = await handleGeneralQuery({ query, bookings, vehicleMap, timezone, now: safeNow, intent, history });
       finalAnswer = geminiResult.answer;
       finalActions = geminiResult.actions;
       finalCitations = geminiResult.citations;
