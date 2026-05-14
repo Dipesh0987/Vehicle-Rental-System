@@ -390,10 +390,25 @@
     return window.SupabaseClient.init();
   }
 
-  async function askAI(query) {
+  function buildHistoryForAPI(state) {
+    if (!state || !Array.isArray(state.messages)) return [];
+    return state.messages
+      .filter(function (m) { return m && !m.isTyping && (m.role === "user" || m.role === "assistant") && trim(m.text); })
+      .slice(-10)
+      .map(function (m) { return { role: m.role, text: trim(m.text) }; });
+  }
+
+  async function askAI(query, state) {
     var client = await getClient();
+    var history = buildHistoryForAPI(state);
     var res = await client.functions.invoke("booking-chat", {
-      body: { query: query, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", nowIso: new Date().toISOString() },
+      body: {
+        query: query,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        nowIso: new Date().toISOString(),
+        history: history,
+        conversationId: state ? state.sessionId : "",
+      },
     });
     if (res.error) throw new Error(String(res.error.message || "Chat API call failed."));
     return res.data || {};
@@ -967,7 +982,7 @@
     lockInput(ui);
 
     try {
-      var data = await askAI(query);
+      var data = await askAI(query, state);
       var text = trim(data && data.answer);
       if (!text) throw new Error("Empty AI response.");
       replaceTyping(state, {
