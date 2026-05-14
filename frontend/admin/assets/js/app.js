@@ -115,17 +115,18 @@ async function bootstrap() {
   renderActiveModule();
   setActiveNav(appState.activeModule);
 
+  initTheme();
+  bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
+  renderActiveModule();
+  setActiveNav(appState.activeModule);
+
   await hydrateVehiclesFromCatalog({ silent: true });
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });
-  await hydratePaymentsFromDatabase({ silent: true });
-  await hydrateDriversFromDatabase({ silent: true });
-  await hydrateMainteinanceFromDatabase({ silent: true });
   renderActiveModule();
 
   setupCatalogSync();
   setupBookingSync();
-  setupMaintenanceSync();
 
   try {
     const vehicles = await catalogService.loadVehicles();

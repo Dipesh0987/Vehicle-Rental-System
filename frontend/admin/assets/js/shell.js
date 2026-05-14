@@ -176,8 +176,8 @@ export function renderShell() {
 
   <div id="adminMainPanel" class="min-w-0 flex-1">
     <header class="sticky top-0 z-30 border-b border-black/10 bg-white/70 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-black/25">
-      <div class="flex items-center gap-2 sm:gap-3">
-        <button id="sidebarToggleBtn" type="button" aria-label="Close sidebar" class="shrink-0 rounded-lg p-2 text-slate-700 transition hover:bg-slate-900/10 dark:text-slate-100 dark:hover:bg-white/10">
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="sidebarToggleBtn" type="button" aria-label="Close sidebar" class="rounded-lg p-2 text-slate-700 transition hover:bg-slate-900/10 dark:text-slate-100 dark:hover:bg-white/10">
           <span id="sidebarToggleIcon" class="material-symbols-outlined">menu_open</span>
         </button>
 
@@ -198,10 +198,9 @@ export function renderShell() {
             <span class="material-symbols-outlined">contrast</span>
           </button>
 
-          <div id="profileBtn" class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white pl-3 pr-3.5 py-2 dark:border-white/10 dark:bg-white/5">
-            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">${escapeHtml(adminIdentity.initials)}</span>
-            <span class="hidden text-sm font-semibold sm:inline">${escapeHtml(adminIdentity.name)}</span>
-          </div>
+        <div id="profileBtn" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">${escapeHtml(adminIdentity.initials)}</span>
+          <span class="hidden text-sm font-semibold sm:inline">${escapeHtml(adminIdentity.name)}</span>
         </div>
       </div>
     </header>
@@ -353,6 +352,112 @@ export function setActiveNav(id) {
   }
 
   activeButton?.scrollIntoView({ block: 'nearest' });
+}
+
+function initSidebarBehavior() {
+  applyDesktopSidebarState(false);
+  closeMobileSidebar(true);
+
+  window.addEventListener('resize', handleSidebarViewportChange);
+  handleSidebarViewportChange();
+}
+
+function handleSidebarToggle() {
+  if (isDesktopViewport()) {
+    applyDesktopSidebarState(!isDesktopSidebarCollapsed());
+    return;
+  }
+
+  if (isMobileSidebarVisible()) {
+    closeMobileSidebar();
+    return;
+  }
+
+  openMobileSidebar();
+}
+
+function handleSidebarViewportChange() {
+  if (isDesktopViewport()) {
+    closeMobileSidebar(true);
+  }
+
+  updateSidebarToggleVisual(isDesktopSidebarCollapsed(), isMobileSidebarVisible());
+}
+
+function isDesktopViewport() {
+  return window.matchMedia('(min-width: 1024px)').matches;
+}
+
+function readDesktopSidebarCollapsedState() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY) === '1';
+  } catch (_error) {
+    return false;
+  }
+}
+
+function writeDesktopSidebarCollapsedState(collapsed) {
+  try {
+    window.localStorage.setItem(SIDEBAR_COLLAPSE_STORAGE_KEY, collapsed ? '1' : '0');
+  } catch (_error) {
+    // Ignore localStorage write failures.
+  }
+}
+
+function isDesktopSidebarCollapsed() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) {
+    return readDesktopSidebarCollapsedState();
+  }
+
+  return sidebar.classList.contains('lg:w-0');
+}
+
+function applyDesktopSidebarState(collapsed) {
+  const sidebar = document.getElementById('sidebar');
+  const sidebarContent = document.getElementById('sidebarContent');
+
+  if (!sidebar || !sidebarContent) {
+    return;
+  }
+
+  const shouldCollapse = Boolean(collapsed);
+  sidebar.classList.toggle('lg:w-0', shouldCollapse);
+  sidebar.classList.toggle('lg:px-0', shouldCollapse);
+  sidebar.classList.toggle('lg:py-0', shouldCollapse);
+  sidebar.classList.toggle('lg:border-r-0', shouldCollapse);
+  sidebar.classList.toggle('lg:opacity-0', shouldCollapse);
+  sidebar.classList.toggle('lg:pointer-events-none', shouldCollapse);
+
+  sidebarContent.classList.toggle('lg:-translate-x-3', shouldCollapse);
+  sidebarContent.classList.toggle('lg:opacity-0', shouldCollapse);
+  sidebarContent.classList.toggle('lg:pointer-events-none', shouldCollapse);
+
+  sidebar.setAttribute('aria-hidden', shouldCollapse ? 'true' : 'false');
+  writeDesktopSidebarCollapsedState(shouldCollapse);
+  updateSidebarToggleVisual(shouldCollapse, false);
+}
+
+function updateSidebarToggleVisual(isCollapsed, mobileOpen) {
+  const icon = document.getElementById('sidebarToggleIcon');
+  const button = document.getElementById('sidebarToggleBtn');
+  if (!icon || !button) {
+    return;
+  }
+
+  if (isDesktopViewport()) {
+    icon.textContent = isCollapsed ? 'menu' : 'menu_open';
+    button.setAttribute('aria-label', isCollapsed ? 'Open sidebar' : 'Close sidebar');
+    return;
+  }
+
+  icon.textContent = mobileOpen ? 'close' : 'menu';
+  button.setAttribute('aria-label', mobileOpen ? 'Close sidebar' : 'Open sidebar');
+}
+
+function isMobileSidebarVisible() {
+  const sidebar = document.getElementById('mobileSidebar');
+  return Boolean(sidebar && !sidebar.classList.contains('hidden'));
 }
 
 function initSidebarBehavior() {

@@ -72,7 +72,6 @@ Run this SQL in Supabase SQL Editor:
 12. `database/migrations/012_user_profile_verification_workflow.sql`
 13. `database/migrations/013_verification_document_image_url.sql`
 14. `database/migrations/014_admin_profile_access_fallback_and_listing_rpc.sql`
-15. `database/migrations/015_password_reset_otp_flow.sql`
 
 This creates `public.user_profiles`, `public.vehicles`, `public.vehicle_images`, and `public.vehicle_bookings`, plus storage policies for both `profile-images` and `vehicle-images` buckets.
 
@@ -88,35 +87,6 @@ Migration `012_user_profile_verification_workflow.sql` adds a production-style c
 4. Customers see the live verification badge in their profile.
 
 Migration `014_admin_profile_access_fallback_and_listing_rpc.sql` adds an admin-safe profile listing RPC and fallback admin detection for bootstrap admin emails.
-
-Migration `015_password_reset_otp_flow.sql` adds the secure OTP table and the `password_reset_lookup_user(p_email)` RPC used by the custom forgot-password flow.
-
-## Password Reset OTP Setup
-
-1. Apply `database/migrations/015_password_reset_otp_flow.sql` in the Supabase SQL editor.
-2. Set Edge Function secrets for `password-reset-code`:
-	- `SUPABASE_URL`
-	- `SUPABASE_SERVICE_ROLE_KEY`
-	- `RESEND_API_KEY`
-	- `PASSWORD_RESET_FROM_EMAIL`
-	- `PASSWORD_RESET_APP_NAME`
-	- `PASSWORD_RESET_CODE_PEPPER`
-	- `RESEND_DEV_REDIRECT_TO` if you want to redirect dev email deliveries to a test inbox
-3. Deploy the edge function with `supabase functions deploy password-reset-code`.
-4. Keep `frontend/login.html` and `frontend/assets/js/forgot-password.js` pointed at the deployed `password-reset-code` function.
-
-For local setup, use `scripts/set-password-reset-secrets.ps1` to prompt for the required secrets and write them to Supabase through the CLI.
-Use `scripts/check-password-reset-secrets.ps1` before deploy if you want a quick missing-secret check.
-For deployment, use `scripts/deploy-password-reset.ps1` to deploy the function and optionally run a non-destructive health check invoke.
-
-If the browser shows `Edge Function returned a non-2xx status code`, check these first:
-
-1. `RESEND_API_KEY` is set for `password-reset-code`.
-2. `PASSWORD_RESET_FROM_EMAIL` is set to a verified sender/domain.
-3. Migration `015_password_reset_otp_flow.sql` has been applied.
-4. The function has been redeployed after changing secrets.
-5. The masked email shown in the UI matches the account you actually requested.
-6. If `PASSWORD_RESET_FROM_EMAIL` ends with `@resend.dev`, set `RESEND_DEV_REDIRECT_TO` to a verified inbox or switch to a verified custom sender/domain.
 
 ## Profile Image Best Practice
 
