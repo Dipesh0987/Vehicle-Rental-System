@@ -176,30 +176,32 @@ export function renderShell() {
 
   <div id="adminMainPanel" class="min-w-0 flex-1">
     <header class="sticky top-0 z-30 border-b border-black/10 bg-white/70 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-black/25">
-      <div class="flex flex-wrap items-center gap-3">
-        <button id="sidebarToggleBtn" type="button" aria-label="Close sidebar" class="rounded-lg p-2 text-slate-700 transition hover:bg-slate-900/10 dark:text-slate-100 dark:hover:bg-white/10">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="sidebarToggleBtn" type="button" aria-label="Close sidebar" class="shrink-0 rounded-lg p-2 text-slate-700 transition hover:bg-slate-900/10 dark:text-slate-100 dark:hover:bg-white/10">
           <span id="sidebarToggleIcon" class="material-symbols-outlined">menu_open</span>
         </button>
 
-        <label class="relative min-w-[230px] flex-1 max-w-[480px]">
+        <label class="relative min-w-0 flex-1 max-w-[480px]">
           <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
           <input id="globalSearch" placeholder="Search vehicles, bookings, customers, and admins..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
         </label>
 
         <div id="quickActions" class="hidden items-center gap-2 xl:flex">${renderQuickActions()}</div>
 
-        <button id="notificationBtn" class="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
-          <span class="material-symbols-outlined">notifications</span>
-          <span id="notificationBadgeCount" class="absolute -right-1 -top-1 hidden h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">0</span>
-        </button>
+        <div class="flex items-center gap-2 ml-auto">
+          <button id="notificationBtn" class="relative shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+            <span class="material-symbols-outlined">notifications</span>
+            <span id="notificationBadgeCount" class="absolute -right-1 -top-1 hidden h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">0</span>
+          </button>
 
-        <button id="themeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
-          <span class="material-symbols-outlined">contrast</span>
-        </button>
+          <button id="themeToggle" class="shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+            <span class="material-symbols-outlined">contrast</span>
+          </button>
 
-        <div id="profileBtn" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">${escapeHtml(adminIdentity.initials)}</span>
-          <span class="hidden text-sm font-semibold sm:inline">${escapeHtml(adminIdentity.name)}</span>
+          <div id="profileBtn" class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white pl-3 pr-3.5 py-2 dark:border-white/10 dark:bg-white/5">
+            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">${escapeHtml(adminIdentity.initials)}</span>
+            <span class="hidden text-sm font-semibold sm:inline">${escapeHtml(adminIdentity.name)}</span>
+          </div>
         </div>
       </div>
     </header>

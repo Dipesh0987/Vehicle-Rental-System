@@ -1179,13 +1179,33 @@
     var identity = normalizeVehicleIdentity(vehicle && vehicle.brand, vehicle && vehicle.name, false);
     var brand = identity.brand;
     var name = identity.name;
+    var rawType = normalizeString(vehicle && vehicle.type, "sedan").toLowerCase();
+
+    // Ensure features always has sensible defaults when DB doesn't store them
+    var features = Array.isArray(vehicle && vehicle.features) ? vehicle.features.slice() : [];
+    if (!features.length) {
+      // Assign minimum default features based on vehicle type
+      if (rawType === "economy" || rawType === "compact" || rawType === "hatchback" || rawType === "city") {
+        features = ["ac", "bluetooth"];
+      } else if (rawType === "sedan") {
+        features = ["ac", "bluetooth", "gps", "reverse-camera"];
+      } else if (rawType === "suv" || rawType === "jeep") {
+        features = ["ac", "gps", "bluetooth", "reverse-camera", "child-seat"];
+      } else if (rawType === "luxury" || rawType === "premium") {
+        features = ["ac", "gps", "bluetooth", "reverse-camera", "child-seat"];
+      } else if (rawType === "van" || rawType === "minivan") {
+        features = ["ac", "bluetooth", "reverse-camera", "child-seat"];
+      } else {
+        features = ["ac", "bluetooth"];
+      }
+    }
 
     return {
       id: normalizeString(vehicle && vehicle.id, ""),
       brand: brand,
       name: name,
       vehicleNumber: normalizeVehicleNumber(vehicle && vehicle.vehicleNumber),
-      type: normalizeString(vehicle && vehicle.type, "sedan"),
+      type: rawType,
       transmission: toTitleCase(vehicle && vehicle.transmission || "Automatic"),
       fuelType: toTitleCase(vehicle && vehicle.fuelType || "Petrol"),
       seats: Math.max(1, toInteger(vehicle && vehicle.seats, 5)),
@@ -1198,7 +1218,7 @@
         dailyRate: formatNprAmount(pricePerDay) + " / day",
         securityDeposit: formatNprAmount(Math.max(200, Math.round(pricePerDay * 3))) + " refundable",
       },
-      features: Array.isArray(vehicle && vehicle.features) ? vehicle.features.slice() : [],
+      features: features,
       insuranceOptions: Array.isArray(vehicle && vehicle.insuranceOptions)
         ? vehicle.insuranceOptions.slice()
         : ["Basic Coverage"],

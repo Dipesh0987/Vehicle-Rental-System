@@ -32,12 +32,8 @@ begin
 exception when duplicate_object then null;
 end $$;
 
--- Ensure replica identity is FULL so UPDATE/DELETE events carry the old row.
 alter table public.maintenance_records replica identity full;
 
-------------------------------------------------------------------------------
--- 3. Composite index for the summary-card count queries
-------------------------------------------------------------------------------
 create index if not exists idx_maintenance_status_service_type
   on public.maintenance_records (status, service_type);
 

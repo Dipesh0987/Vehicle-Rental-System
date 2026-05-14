@@ -25,6 +25,9 @@ const TEMP_FALLBACK_FROM_EMAIL = `Vehicle Rental System Temp ${crypto.randomUUID
 const PASSWORD_RESET_FROM_EMAIL = (Deno.env.get("PASSWORD_RESET_FROM_EMAIL") ?? "").trim() || TEMP_FALLBACK_FROM_EMAIL;
 const PASSWORD_RESET_APP_NAME = Deno.env.get("PASSWORD_RESET_APP_NAME") ?? "Vehicle Rental System";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const RESEND_DEV_REDIRECT_TO =
+  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
+  || (PASSWORD_RESET_FROM_EMAIL.includes("@resend.dev") ? "aryal.rajat05@gmail.com" : "");
 
 const CODE_TTL_MINUTES = parseIntegerEnv("PASSWORD_RESET_CODE_TTL_MINUTES", 10, 5, 30);
 const MAX_VERIFY_ATTEMPTS = parseIntegerEnv("PASSWORD_RESET_MAX_VERIFY_ATTEMPTS", 5, 3, 10);
@@ -190,6 +193,21 @@ async function sendResetCodeEmail(params: {
     "If you did not request this, you can ignore this email.",
   ].join("\n");
 
+  // Dev-redirect: Resend free tier only delivers to the verified account
+  // email. Redirect to RESEND_DEV_REDIRECT_TO during development.
+  const isRedirected =
+    RESEND_DEV_REDIRECT_TO.length > 0 &&
+    RESEND_DEV_REDIRECT_TO !== to.toLowerCase();
+  const actualRecipient = isRedirected ? RESEND_DEV_REDIRECT_TO : to;
+
+  const subjectLine = isRedirected
+    ? `[DEV - to: ${to}] ${PASSWORD_RESET_APP_NAME} password reset code`
+    : `${PASSWORD_RESET_APP_NAME} password reset code`;
+
+  const finalHtml = isRedirected
+    ? `<div style="background:#fff7e6;border:1px solid #f5c97d;color:#7a4c0d;padding:12px 16px;border-radius:8px;font-size:13px;margin:0 0 16px 0;"><strong>Dev redirect:</strong> originally for <strong>${to}</strong></div>` + html
+    : html;
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -198,9 +216,9 @@ async function sendResetCodeEmail(params: {
     },
     body: JSON.stringify({
       from: PASSWORD_RESET_FROM_EMAIL,
-      to: [to],
-      subject: `${PASSWORD_RESET_APP_NAME} password reset code`,
-      html,
+      to: [actualRecipient],
+      subject: subjectLine,
+      html: finalHtml,
       text,
     }),
   });

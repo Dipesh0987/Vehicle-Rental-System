@@ -134,7 +134,8 @@ const PAYMENT_RECEIPT_FROM_EMAIL =
 // production domain has been verified at resend.com/domains so customer
 // emails resume going to the real customer address.
 const RESEND_DEV_REDIRECT_TO =
-  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase();
+  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
+  || (PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev") ? "aryal.rajat05@gmail.com" : "");
 const PAYMENT_APP_NAME =
   (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "RentAVehicle Nepal";
 const PARTIAL_PAYMENT_PERCENT = clampPercent(

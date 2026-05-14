@@ -378,6 +378,42 @@ body.vrs-page .vrs-bookings-close:hover {
   background: #f4faf7;
 }
 
+/* Homepage hero image alignment */
+.home-hero-car {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: block;
+  width: min(44%, 700px);
+  max-width: 700px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.home-hero-card {
+  width: 100%;
+  max-width: 56rem;
+  margin-right: auto;
+}
+
+.home-hero-card-panel {
+  border: 0;
+  overflow: hidden;
+  background-clip: padding-box;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .home-hero-card {
+    max-width: min(56rem, calc(58vw - 3.5rem));
+  }
+}
+
+@media (max-width: 1023px) {
+  .home-hero-car {
+    display: none;
+  }
+}
 body.vrs-page .vrs-bookings-summary {
   color: #2f5659;
 }
@@ -1948,6 +1984,11 @@ html[data-theme="dark"] .profile-verify-options button {
    arbitrary Tailwind utilities for sizing here.
    ======================================================================== */
 
+/* ----------- Auth-user container: ensure gap between bell + profile ----------- */
+[data-auth-user] {
+  gap: 0.625rem;
+  /* 10px between bell and profile trigger */
+}
 /* ----------- Trigger button + badge ----------- */
 body.vrs-page .vrs-bell-button {
   background: #ffffff;

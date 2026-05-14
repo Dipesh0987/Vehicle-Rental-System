@@ -124,7 +124,8 @@ const PAYMENT_RECEIPT_FROM_EMAIL =
 // email (e.g. aryal.rajat05@gmail.com) during development so receipt
 // emails actually arrive. Leave empty once a domain is verified.
 const RESEND_DEV_REDIRECT_TO =
-  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase();
+  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
+  || (PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev") ? "aryal.rajat05@gmail.com" : "");
 const PAYMENT_APP_NAME =
   (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "RentAVehicle Nepal";
 const PARTIAL_PAYMENT_PERCENT = clampPercent(

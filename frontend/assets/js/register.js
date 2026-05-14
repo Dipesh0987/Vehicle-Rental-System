@@ -138,56 +138,66 @@
         }
 
         try {
-            await auth.signUp({
+            var signUpResult = await auth.signUp({
                 email: email,
                 password: password,
                 fullName: fullName,
-                redirectPath: "login.html",
+                redirectPath: "index.html",
             });
 
-            await auth.upsertProfile(fullName);
+            // Check if signup actually created a session (not a duplicate email fake-success)
+            var session = null;
+            if (typeof auth.getSession === "function") {
+                try { session = await auth.getSession(); } catch (_e) {}
+            }
 
-            if (typeof auth.signOut === "function") {
+            if (!session) {
+                // No session = likely duplicate email (Supabase returns fake success to prevent enumeration)
+                // Try signing in with the provided credentials
                 try {
-                    await auth.signOut();
-                } catch (_signOutError) {
-                    // Continue to login page even if explicit sign-out fails.
+                    await auth.signIn({ email: email, password: password });
+                    session = await auth.getSession();
+                } catch (signInErr) {
+                    setMessage("error", "An account with this email may already exist. Please sign in or use a different email.");
+                    return;
                 }
+            }
+
+            // Profile sync
+            try {
+                await auth.upsertProfile(fullName);
+            } catch (_profileErr) {
+                // Profile sync failure shouldn't block login
             }
 
             setMessage(
                 "success",
-                "Registration successful. We sent a verification link to your email. Redirecting to sign in..."
+                "Account created successfully! Redirecting to dashboard..."
             );
 
             window.setTimeout(function () {
-                window.location.href =
-                    "login.html?registered=1&email=" + encodeURIComponent(email);
-            }, 1600);
+                window.location.href = "index.html";
+            }, 1200);
         } catch (error) {
             var isConfirmationFailure =
                 typeof auth.isConfirmationEmailDeliveryError === "function" &&
                 auth.isConfirmationEmailDeliveryError(error);
 
             if (isConfirmationFailure) {
-                var recovery = await handleConfirmationEmailFailure(
-                    auth,
-                    email,
-                    password,
-                    fullName
-                );
-
-                if (recovery.recovered) {
-                    setMessage("success", recovery.message);
+                // Email delivery failed but account may have been created - try signing in
+                try {
+                    await auth.signIn({ email: email, password: password });
+                    try { await auth.upsertProfile(fullName); } catch (_pe) {}
+                    setMessage("success", "Account created! Redirecting to dashboard...");
                     window.setTimeout(function () {
-                        window.location.href =
-                            "login.html?registered=1&email=" + encodeURIComponent(email);
-                    }, 1600);
+                        window.location.href = "index.html";
+                    }, 1200);
                     return;
-                }
-
-                if (recovery.message) {
-                    setMessage("error", recovery.message);
+                } catch (_signInErr) {
+                    setMessage("error", "Account created but email verification failed. Please try signing in on the login page.");
+                    window.setTimeout(function () {
+                        window.location.href = "login.html?registered=1&email=" + encodeURIComponent(email);
+                    }, 2500);
                     return;
                 }
             }
@@ -205,4 +215,30 @@
     }
 
     form.addEventListener("submit", handleSubmit);
+
+    var googleBtn = document.getElementById("googleSignUp");
+    if (googleBtn) {
+        googleBtn.addEventListener("click", async function () {
+            var auth = window.VehicleAuthService;
+            if (!auth || typeof auth.signInWithGoogle !== "function") {
+                setMessage("error", "Google sign up is currently unavailable.");
+                return;
+            }
+
+            try {
+                googleBtn.disabled = true;
+                googleBtn.classList.add("opacity-80", "cursor-not-allowed");
+                setMessage("success", "Redirecting to Google sign up...");
+                await auth.signInWithGoogle("index.html");
+            } catch (error) {
+                var humanMessage =
+                    typeof auth.toPublicError === "function"
+                        ? auth.toPublicError(error, "Google sign up failed.")
+                        : "Google sign up failed. Please try again.";
+                setMessage("error", humanMessage);
+                googleBtn.disabled = false;
+                googleBtn.classList.remove("opacity-80", "cursor-not-allowed");
+            }
+        });
+    }
 })();

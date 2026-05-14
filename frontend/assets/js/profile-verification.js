@@ -609,6 +609,13 @@
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }
 
+  function toIsoDateString(date) {
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, "0");
+    var day = String(date.getDate()).padStart(2, "0");
+    return year + "-" + month + "-" + day;
+  }
+
   function normalizePayload(raw) {
     var payload = raw || {};
 
@@ -1266,6 +1273,10 @@
 
       var merged = mergeProfile(remoteProfile, localProfile, sessionData);
       fillForm(merged);
+      if (getField("documentExpiryDate")) {
+        getField("documentExpiryDate").min = toIsoDateString(getDateOnlyToday());
+      }
+
       setStatusBadge(merged.verification_status, merged.verification_submitted_at);
 
       setBanner("info", "Fill every required field carefully. Submission is blocked until all strict checks pass.");

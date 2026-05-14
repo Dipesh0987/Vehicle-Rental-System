@@ -7,6 +7,11 @@
 
 const DEFAULT_MAX_PRICE_NPR = 50000;
 
+/** Normalize a string for flexible filter matching (hyphens/underscores → spaces). */
+function normalizeForMatch(str) {
+    return String(str || "").toLowerCase().replace(/[-_]+/g, " ").trim();
+}
+
 class SearchFilterManager {
     constructor() {
         this.storageKey = "searchFilters:v2";
@@ -17,6 +22,8 @@ class SearchFilterManager {
         this.allVehicles = [];
         this.sortOrder = "relevance";
         this.listeners = new Set();
+        // Always start with clean filters on page load
+        this.clearPersistedState();
     }
 
     /**
@@ -186,13 +193,7 @@ class SearchFilterManager {
      * @returns {boolean} True if vehicle matches all filters
      */
     matchesFilters(vehicle) {
-        // Location filter
-        if (
-            this.filters.pickupLocation &&
-            !vehicle.location?.toLowerCase().includes(this.filters.pickupLocation.toLowerCase())
-        ) {
-            return false;
-        }
+        // NOTE: pickupLocation is stored as text only, it does NOT filter vehicles
 
         // UPDATED: Vehicle type filter
         if (this.filters.vehicleTypes.length > 0) {
@@ -248,10 +249,10 @@ class SearchFilterManager {
             return false;
         }
 
-        // Features filter
-        const vehicleFeatures = (vehicle.features || []).map((f) => f.toLowerCase());
+        // Features filter (normalize hyphens/spaces for matching)
+        const vehicleFeatures = (vehicle.features || []).map((f) => normalizeForMatch(f));
         for (const feature of this.filters.features) {
-            if (!vehicleFeatures.includes(feature.toLowerCase())) {
+            if (!vehicleFeatures.some((vf) => vf === normalizeForMatch(feature))) {
                 return false;
             }
         }
@@ -282,21 +283,23 @@ class SearchFilterManager {
             }
         }
 
-        // Insurance types filter
+        // Insurance types filter (partial match: filter "basic" matches vehicle "Basic Coverage")
         if (this.filters.insuranceTypes.length > 0) {
-            const vehicleInsurance = (vehicle.insuranceOptions || []).map((i) => i.toLowerCase());
-            const hasInsurance = this.filters.insuranceTypes.some((type) =>
-                vehicleInsurance.includes(type.toLowerCase())
-            );
+            const vehicleInsurance = (vehicle.insuranceOptions || []).map((i) => normalizeForMatch(i));
+            const hasInsurance = this.filters.insuranceTypes.some((type) => {
+                const normalizedType = normalizeForMatch(type);
+                return vehicleInsurance.some((vi) => vi === normalizedType || vi.startsWith(normalizedType));
+            });
             if (!hasInsurance) return false;
         }
 
-        // Driver options filter
+        // Driver options filter (normalize hyphens/spaces: "self-drive" matches "Self Drive")
         if (this.filters.driverOptions.length > 0) {
-            const vehicleDriverOptions = (vehicle.driverOptions || []).map((d) => d.toLowerCase());
-            const hasDriverOption = this.filters.driverOptions.some((option) =>
-                vehicleDriverOptions.includes(option.toLowerCase())
-            );
+            const vehicleDriverOptions = (vehicle.driverOptions || []).map((d) => normalizeForMatch(d));
+            const hasDriverOption = this.filters.driverOptions.some((option) => {
+                const normalizedOption = normalizeForMatch(option);
+                return vehicleDriverOptions.some((vdo) => vdo === normalizedOption);
+            });
             if (!hasDriverOption) return false;
         }
 
@@ -450,29 +453,19 @@ class SearchFilterManager {
      * Save filter state to localStorage
      */
     saveState() {
-        try {
-            localStorage.setItem(this.storageKey, JSON.stringify(this.filters));
-        } catch (e) {
-            console.warn("Failed to save filter state:", e);
-        }
+        // No longer persist filters — always start fresh on page load
     }
 
     restoreState() {
+        // No longer restore filters — always start fresh on page load
+        this.clearPersistedState();
+    }
+
+    clearPersistedState() {
         try {
-            const saved = localStorage.getItem(this.storageKey) || localStorage.getItem(this.legacyStorageKey);
-            if (saved) {
-                this.filters = { ...this.filters, ...JSON.parse(saved) };
-
-                // Ensure old persisted caps do not hide higher-priced DB vehicles.
-                if (!Number.isFinite(this.filters.maxPrice) || this.filters.maxPrice < DEFAULT_MAX_PRICE_NPR) {
-                    this.filters.maxPrice = DEFAULT_MAX_PRICE_NPR;
-                }
-
-                this.notifyListeners();
-            }
-        } catch (e) {
-            console.warn("Failed to restore filter state:", e);
-        }
+            localStorage.removeItem(this.storageKey);
+            localStorage.removeItem(this.legacyStorageKey);
+        } catch (_e) {}
     }
 
     onFilterChange(callback) {
