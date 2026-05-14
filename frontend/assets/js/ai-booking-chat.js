@@ -492,14 +492,31 @@
     /* body */
     var bodyHtml;
     if (isTyping) {
+      var typingLabel = msg.typingLabel || "Thinking";
       bodyHtml =
-        '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 0">' +
+        '<div style="display:flex;flex-direction:column;gap:4px">' +
+        '<span style="font-size:11px;font-weight:600;color:' + t.timestamp + ';letter-spacing:0.02em">' + esc(typingLabel) + '...</span>' +
+        '<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 0">' +
         '<span class="vrs-chat-dot-1" style="width:7px;height:7px;border-radius:50%;background:' + t.dotColor + ';display:inline-block"></span>' +
         '<span class="vrs-chat-dot-2" style="width:7px;height:7px;border-radius:50%;background:' + t.dotColor + ';display:inline-block"></span>' +
         '<span class="vrs-chat-dot-3" style="width:7px;height:7px;border-radius:50%;background:' + t.dotColor + ';display:inline-block"></span>' +
-        "</span>";
+        "</span></div>";
     } else {
-      bodyHtml = '<div style="white-space:pre-wrap">' + esc(msg.text || "").replace(/\n/g, "<br>") + "</div>";
+      /* Basic markdown rendering for AI messages */
+      var rawText = esc(msg.text || "");
+      if (!isUser) {
+        /* Bold: **text** or __text__ */
+        rawText = rawText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        rawText = rawText.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        /* Italic: *text* or _text_ (single) */
+        rawText = rawText.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        /* Bullet points: lines starting with • or - or * */
+        rawText = rawText.replace(/^([•\-\*])\s+/gm, '<span style="color:' + t.cardPrice + ';font-weight:700;margin-right:4px">•</span>');
+        /* Numbered lists: lines starting with 1. 2. etc */
+        rawText = rawText.replace(/^(\d+)\.\s+/gm, '<span style="color:' + t.cardPrice + ';font-weight:700;margin-right:4px">$1.</span>');
+      }
+      rawText = rawText.replace(/\n/g, "<br>");
+      bodyHtml = '<div style="white-space:pre-wrap">' + rawText + "</div>";
     }
 
     /* citations */
@@ -980,9 +997,23 @@
       id: uid("m"), role: "user", text: query,
       timestamp: new Date().toISOString(), citations: [], actions: [],
     }, library);
+    /* Contextual typing label based on query content */
+    var typingLabel = "Thinking";
+    var lq = query.toLowerCase();
+    if (/\b(suv|sedan|car|vehicle|show|find|search|browse|list)\b/.test(lq)) typingLabel = "Searching vehicles";
+    else if (/\b(compare|vs|versus|better)\b/.test(lq)) typingLabel = "Comparing vehicles";
+    else if (/\b(book|booking|reservation|upcoming|next)\b/.test(lq)) typingLabel = "Looking up your booking";
+    else if (/\b(trip|travel|plan|journey|itinerary)\b/.test(lq)) typingLabel = "Planning your trip";
+    else if (/\b(cancel|refund|invoice|receipt)\b/.test(lq)) typingLabel = "Checking your account";
+    else if (/\b(price|cost|rate|budget|cheap|expensive)\b/.test(lq)) typingLabel = "Checking prices";
+    else if (/\b(available|availability|free)\b/.test(lq)) typingLabel = "Checking availability";
+    else if (/\b(document|license|kyc|require)\b/.test(lq)) typingLabel = "Looking up policies";
+    else if (/\b(hour|time|open|close|office)\b/.test(lq)) typingLabel = "Getting info";
+
     pushMsg(state, {
       id: uid("m"), role: "assistant", text: "",
       timestamp: new Date().toISOString(), citations: [], actions: [], isTyping: true,
+      typingLabel: typingLabel,
     }, library);
     renderThread(ui, state);
     lockInput(ui);
