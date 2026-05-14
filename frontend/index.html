@@ -26,6 +26,20 @@
           <div class="pointer-events-none absolute bottom-[22%] right-[12%] h-20 w-20 rounded-full bg-white opacity-[0.05]" aria-hidden="true"></div>
         </div>
 
+        <!-- Ground shadow: section-level so it aligns with the teal panel -->
+        <div class="pointer-events-none absolute bottom-0 right-0 z-[17] hidden w-[44%] max-w-[700px] lg:block" aria-hidden="true">
+          <div class="mx-auto h-[16px] w-[68%] translate-y-[1px] rounded-[50%] bg-[rgba(4,14,16,0.42)] blur-[20px]"></div>
+        </div>
+        <!-- Car: section-level, positioned over the teal panel (right-0 = full viewport) -->
+        <img
+          src="assets/images/car-transparent.png"
+          alt="Luxury SUV available for rent"
+          width="800"
+          height="565"
+          decoding="async"
+          class="absolute bottom-0 right-0 z-[18] hidden w-[44%] max-w-[700px] opacity-0 [filter:drop-shadow(0_12px_28px_rgba(4,18,20,0.26))_drop-shadow(0_3px_8px_rgba(4,18,20,0.16))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
+        />
+
         <div class="relative z-20 mx-auto h-full w-[95%] max-w-[1390px]">
           <header class="vrs-theme-scope relative z-[90] grid grid-cols-[auto,1fr,auto] items-center gap-6 py-4 opacity-0 animate-fadeUp">
             <div class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
@@ -198,18 +212,6 @@
               </form>
             </div>
 
-            <!-- Ground shadow ellipse — sits on the floor beneath the car wheels -->
-            <div class="pointer-events-none absolute bottom-0 right-[-1%] z-[13] hidden w-[52%] max-w-[760px] lg:block" aria-hidden="true">
-              <div class="mx-auto h-[14px] w-[72%] translate-y-[1px] rounded-[50%] bg-[rgba(4,14,16,0.40)] blur-[18px]"></div>
-            </div>
-            <img
-              src="assets/images/car-transparent.png"
-              alt="Luxury SUV available for rent"
-              width="800"
-              height="565"
-              decoding="async"
-              class="absolute bottom-0 right-[-1%] z-[15] hidden w-[52%] max-w-[760px] opacity-0 [filter:drop-shadow(0_12px_28px_rgba(4,18,20,0.26))_drop-shadow(0_3px_8px_rgba(4,18,20,0.16))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
-            />
           </div>
 
           <div class="px-2 pt-6 lg:hidden">
