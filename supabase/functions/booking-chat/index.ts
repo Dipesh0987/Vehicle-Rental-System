@@ -1665,11 +1665,19 @@ async function handleVehicleCompare(input: {
 async function handleFleetInfo(input: {
   query: string; history?: ChatHistoryMessage[];
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  /* Fetch all vehicles — don't rely on is_active column existing. */
   const result = await supabaseAdmin.from("vehicles")
-    .select("id,type,category")
-    .eq("is_active", true);
+    .select("id,type,category,status,available,is_available")
+    .limit(200);
 
-  const vehicles = ((result.data as Array<{ id: string; type: string; category: string }> | null) || []);
+  const allVehicles = ((result.data as Array<{ id: string; type: string; category: string; status?: string; available?: boolean; is_available?: boolean }> | null) || []);
+  /* Filter to available ones only */
+  const vehicles = allVehicles.filter(v => {
+    if (v.available === false || v.is_available === false) return false;
+    const status = normalizeText(v.status as string).toLowerCase();
+    if (status && status !== "available" && status !== "active") return false;
+    return true;
+  });
   const total = vehicles.length;
 
   const typeCounts: Record<string, number> = {};

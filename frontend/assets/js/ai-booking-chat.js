@@ -984,9 +984,10 @@
   function fallbackMsg(reason) {
     return {
       id: uid("m"), role: "assistant",
-      text: "I couldn't resolve that right now." + (reason ? " " + reason : "") + "\nWould you like me to connect you with support?",
+      text: "Oops! I ran into an issue processing that." + (reason ? " (" + reason + ")" : "") + "\n\nDon't worry — you can try rephrasing your question, or I can connect you with our support team for help.",
       timestamp: new Date().toISOString(), citations: [],
       actions: [{ type: "contact_support", label: "Connect to Support", href: "mailto:support@rentavehiclenepal.com" }],
+      suggestions: ["Try again", "Show vehicles", "Plan a trip", "Contact support"],
     };
   }
 
