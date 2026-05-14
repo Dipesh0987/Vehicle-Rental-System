@@ -23,12 +23,23 @@
   }
 }
 
+/* How it Works section - dashed arrow animation */
+@keyframes dashAnimation {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
 .animate-slide-in {
   animation: slideInFromTop 0.3s ease-out;
 }
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
+}
+
+.animate-dash {
+  animation: dashAnimation 0.5s linear infinite;
 }
 
 /* Booking error message styles */
@@ -39,3 +50,4 @@
 .booking-success-enter {
   animation: fadeIn 0.3s ease-out;
 }
+
