@@ -328,6 +328,62 @@ body {
   color: #475569 !important;
 }
 
+/* ========================================================================
+   WORKSHOP SUMMARY CARDS
+   ======================================================================== */
+
+.workshop-summary-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.workshop-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.workshop-summary-card:active {
+  transform: translateY(0);
+}
+
+/* Pulse animation on the count when a card is active (filtered) */
+.workshop-summary-card[aria-pressed='true'] [data-ws-count] {
+  animation: ws-count-pulse 0.4s ease-out;
+}
+
+@keyframes ws-count-pulse {
+  0%   { transform: scale(1);   opacity: 1; }
+  40%  { transform: scale(1.12); opacity: 0.85; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Loading skeleton state for cards */
+.workshop-summary-card.ws-loading {
+  pointer-events: none;
+}
+.workshop-summary-card.ws-loading .ws-skel {
+  display: inline-block;
+  border-radius: 0.375rem;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.03) 50%, rgba(0,0,0,0.06) 75%);
+  background-size: 200% 100%;
+  animation: ws-shimmer 1.4s ease-in-out infinite;
+}
+.dark .workshop-summary-card.ws-loading .ws-skel,
+[data-theme='dark'] .workshop-summary-card.ws-loading .ws-skel {
+  background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes ws-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Responsive: stack icon above on very small */
+@media (max-width: 400px) {
+  .workshop-summary-card .flex.items-start {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
 /* Date/time picker icons — invert so they're visible on dark backgrounds */
 .dark input[type='date']::-webkit-calendar-picker-indicator,
 [data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator,
