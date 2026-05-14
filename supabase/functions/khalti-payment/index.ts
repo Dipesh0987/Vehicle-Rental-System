@@ -115,18 +115,17 @@ const KHALTI_SECRET_KEY = (Deno.env.get("KHALTI_SECRET_KEY") ?? "").trim();
 const PAYMENT_RETURN_URL = (Deno.env.get("PAYMENT_RETURN_URL") ?? "").trim();
 const PAYMENT_WEBSITE_URL = (Deno.env.get("PAYMENT_WEBSITE_URL") ?? "").trim();
 const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
-const TEMP_FALLBACK_FROM_EMAIL =
-  `Vehicle Rental Receipts ${crypto.randomUUID().slice(0, 8)} <onboarding@resend.dev>`;
 const PAYMENT_RECEIPT_FROM_EMAIL =
-  (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim() || TEMP_FALLBACK_FROM_EMAIL;
+  (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim()
+  || "Rent A Vehicle Nepal <onboarding@resend.dev>";
 // Resend free-tier only delivers to the verified account email until a
-// domain is added at resend.com/domains. Set this to your Resend account
-// email (e.g. aryal.rajat05@gmail.com) during development so receipt
-// emails actually arrive. Leave empty once a domain is verified.
+// domain is added at resend.com/domains. Set RESEND_DEV_REDIRECT_TO to
+// your Resend account email during development, or leave empty once a
+// domain is verified so emails go directly to the real user.
 const RESEND_DEV_REDIRECT_TO =
   (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase();
 const PAYMENT_APP_NAME =
-  (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "RentAVehicle Nepal";
+  (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "Rent A Vehicle Nepal";
 const PARTIAL_PAYMENT_PERCENT = clampPercent(
   Number(Deno.env.get("PARTIAL_PAYMENT_PERCENT") ?? "0.60"),
   0.6,

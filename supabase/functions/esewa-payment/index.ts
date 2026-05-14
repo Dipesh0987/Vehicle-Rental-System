@@ -120,10 +120,9 @@ const PAYMENT_SUCCESS_URL = (Deno.env.get("PAYMENT_SUCCESS_URL") ?? "").trim();
 const PAYMENT_FAILURE_URL = (Deno.env.get("PAYMENT_FAILURE_URL") ?? "").trim() || PAYMENT_SUCCESS_URL;
 const PAYMENT_WEBSITE_URL = (Deno.env.get("PAYMENT_WEBSITE_URL") ?? "").trim();
 const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
-const TEMP_FALLBACK_FROM_EMAIL =
-  `Vehicle Rental Receipts ${crypto.randomUUID().slice(0, 8)} <onboarding@resend.dev>`;
 const PAYMENT_RECEIPT_FROM_EMAIL =
-  (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim() || TEMP_FALLBACK_FROM_EMAIL;
+  (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim()
+  || "Rent A Vehicle Nepal <onboarding@resend.dev>";
 // Resend's free tier only delivers to the address that owns the Resend
 // account when no domain is verified. While developing on localhost,
 // setting this var (e.g. RESEND_DEV_REDIRECT_TO=aryal.rajat05@gmail.com)
@@ -136,7 +135,7 @@ const PAYMENT_RECEIPT_FROM_EMAIL =
 const RESEND_DEV_REDIRECT_TO =
   (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase();
 const PAYMENT_APP_NAME =
-  (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "RentAVehicle Nepal";
+  (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "Rent A Vehicle Nepal";
 const PARTIAL_PAYMENT_PERCENT = clampPercent(
   Number(Deno.env.get("PARTIAL_PAYMENT_PERCENT") ?? "0.60"),
   0.6,
