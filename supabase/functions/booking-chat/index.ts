@@ -1367,6 +1367,347 @@ async function maybeRefineWithGemini(input: {
   return result || input.draftAnswer;
 }
 
+/* ─── Vehicle Search Handler ───
+ * Parses the query for type, brand, name, budget, fuel, transmission
+ * and returns matching vehicles from the database as cards. */
+function parseSearchCriteria(query: string): {
+  type: string; brand: string; name: string;
+  maxBudget: number; fuel: string; transmission: string; minSeats: number;
+} {
+  const lower = query.toLowerCase();
+  let type = "";
+  let brand = "";
+  let name = "";
+  let maxBudget = 0;
+  let fuel = "";
+  let transmission = "";
+  let minSeats = 0;
+
+  // Vehicle type
+  if (/\bsuv\b/.test(lower)) type = "suv";
+  else if (/\bsedan\b/.test(lower)) type = "sedan";
+  else if (/\b(economy|hatchback|compact|cheap)\b/.test(lower)) type = "economy";
+  else if (/\b(luxury|premium)\b/.test(lower)) type = "luxury";
+  else if (/\b(van|minivan|mpv)\b/.test(lower)) type = "van";
+
+  // Budget
+  const budgetMatch = lower.match(/(?:under|below|within|less than|max|upto|up to|around|about)\s*(?:npr|rs\.?)?\s*(\d[\d,]*)/);
+  if (budgetMatch) maxBudget = parseInt(budgetMatch[1].replace(/,/g, ""), 10);
+  const budgetMatch2 = lower.match(/(\d[\d,]*)\s*(?:npr|rs\.?)/);
+  if (!maxBudget && budgetMatch2) maxBudget = parseInt(budgetMatch2[1].replace(/,/g, ""), 10);
+
+  // Fuel
+  if (/\bdiesel\b/.test(lower)) fuel = "diesel";
+  else if (/\b(petrol|gasoline)\b/.test(lower)) fuel = "petrol";
+  else if (/\b(electric|ev)\b/.test(lower)) fuel = "electric";
+
+  // Transmission
+  if (/\bautomatic\b/.test(lower)) transmission = "automatic";
+  else if (/\bmanual\b/.test(lower)) transmission = "manual";
+
+  // Seats
+  const seatMatch = lower.match(/(\d+)\s*(?:seat|seater)/);
+  if (seatMatch) minSeats = parseInt(seatMatch[1], 10);
+
+  // Known brands
+  const brands = ["toyota", "honda", "suzuki", "hyundai", "tata", "kia", "mahindra", "renault", "skoda", "bmw", "mercedes", "audi", "volvo", "jaguar", "ford", "mg"];
+  for (const b of brands) {
+    if (lower.includes(b)) { brand = b; break; }
+  }
+
+  // Specific vehicle names (check original case query for proper names)
+  const knownNames = ["Swift", "Creta", "Seltos", "Fortuner", "Civic", "Corolla", "Verna", "City", "Brezza", "Tiago",
+    "WagonR", "Alto", "Kwid", "Santro", "Celerio", "Ignis", "Brio", "Ciaz", "Elantra", "Dzire", "Amaze", "Yaris",
+    "Rapid", "Tuscon", "Hector", "XUV700", "Scorpio", "EcoSport", "Venue", "5 Series", "E-Class", "A6", "XF", "S90",
+    "Camry", "Superb", "Accord", "GLC", "X5", "Innova", "Ertiga", "Carnival", "Staria", "XL6", "Carens", "Marazzo", "Hexa", "Lodgy"];
+  for (const n of knownNames) {
+    if (lower.includes(n.toLowerCase())) { name = n; break; }
+  }
+
+  return { type, brand, name, maxBudget, fuel, transmission, minSeats };
+}
+
+async function handleVehicleSearch(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const criteria = parseSearchCriteria(input.query);
+
+  let query = supabaseAdmin.from("vehicles").select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,available,is_available,status,rating,location").order("rating", { ascending: false }).limit(30);
+
+  // Apply filters
+  if (criteria.name) {
+    query = query.ilike("name", `%${criteria.name}%`);
+  }
+  if (criteria.brand) {
+    query = query.ilike("brand", `%${criteria.brand}%`);
+  }
+  if (criteria.type) {
+    query = query.ilike("type", `%${criteria.type}%`);
+  }
+  if (criteria.fuel) {
+    query = query.ilike("fuel_type", `%${criteria.fuel}%`);
+  }
+  if (criteria.transmission) {
+    query = query.ilike("transmission", `%${criteria.transmission}%`);
+  }
+
+  const result = await query;
+  if (result.error) {
+    return { answer: "I had trouble searching our fleet. Please try again.", actions: [defaultSupportAction()], citations: [] };
+  }
+
+  let vehicles = ((result.data as VehicleRow[] | null) || []).filter(vehicleAvailable);
+
+  if (criteria.minSeats > 0) {
+    vehicles = vehicles.filter(v => { const s = Number(v.seats || 0); return s === 0 || s >= criteria.minSeats; });
+  }
+  if (criteria.maxBudget > 0) {
+    const within = vehicles.filter(v => { const p = vehiclePrice(v); return p === 0 || p <= criteria.maxBudget; });
+    vehicles = within.length >= 1 ? within : vehicles.sort((a, b) => vehiclePrice(a) - vehiclePrice(b));
+  }
+
+  if (!vehicles.length) {
+    return {
+      answer: "I couldn't find any vehicles matching your criteria. Try broadening your search — for example, ask for \"SUVs\" or \"cars under 5000\".",
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  }
+
+  const top = vehicles.slice(0, 5);
+  const vehicleSummary = top.map((v, i) => {
+    const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+    return `${i + 1}. ${vName} — ${vehicleCategory(v)} | ${v.seats || 5} seats | NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day | ${normalizeText(v.fuel_type) || "Petrol"}`;
+  }).join("\n");
+
+  let answer = `I found ${vehicles.length} vehicle${vehicles.length === 1 ? "" : "s"} matching your search. Here are the top picks:\n${vehicleSummary}`;
+
+  if (GEMINI_API_KEY) {
+    const prompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      "The user searched for vehicles. Write a brief 2-3 sentence summary of the results.",
+      "Be helpful and suggest the best option. Do not use markdown.",
+      "",
+      "Search results:", vehicleSummary,
+      "User query: " + input.query,
+    ].join("\n");
+    const geminiAnswer = await callGemini(prompt, 200, input.history);
+    if (geminiAnswer) answer = geminiAnswer;
+  }
+
+  const actions: ActionItem[] = top.map((v, i) => ({
+    type: "suggest_vehicle" as const,
+    label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+    vehicleId: v.id,
+    meta: {
+      seats: v.seats || 5,
+      price: vehiclePrice(v),
+      fuel: normalizeText(v.fuel_type) || "Petrol",
+      transmission: normalizeText(v.transmission) || "Automatic",
+      image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+      category: vehicleCategory(v) || "sedan",
+      rating: v.rating || 0,
+      location: normalizeText(v.location) || "",
+      reason: "",
+      rank: i + 1,
+    },
+  }));
+
+  return { answer, actions, citations: [] };
+}
+
+/* ─── Vehicle Compare Handler ─── */
+async function handleVehicleCompare(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  // Extract vehicle names from the query
+  const knownNames = ["Swift", "Creta", "Seltos", "Fortuner", "Civic", "Corolla", "Verna", "City", "Brezza", "Tiago",
+    "WagonR", "Alto", "Kwid", "Santro", "Celerio", "Ignis", "Brio", "Ciaz", "Elantra", "Dzire", "Amaze", "Yaris",
+    "Rapid", "Tuscon", "Hector", "XUV700", "Scorpio", "EcoSport", "Venue", "5 Series", "E-Class", "A6", "XF", "S90",
+    "Camry", "Superb", "Accord", "GLC", "X5", "Innova", "Ertiga", "Carnival", "Staria", "XL6", "Carens", "Marazzo", "Hexa", "Lodgy"];
+
+  const lower = input.query.toLowerCase();
+  const matched: string[] = [];
+  for (const n of knownNames) {
+    if (lower.includes(n.toLowerCase()) && !matched.includes(n)) {
+      matched.push(n);
+    }
+  }
+
+  if (matched.length < 2) {
+    // Try to compare types instead
+    return {
+      answer: "I'd love to compare vehicles for you! Please mention 2 or 3 specific vehicle names, like \"compare Creta vs Seltos\" or \"Civic or Corolla which is better?\"",
+      actions: [],
+      citations: [],
+    };
+  }
+
+  // Fetch vehicles by name
+  const results = await supabaseAdmin.from("vehicles")
+    .select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,rating,location")
+    .in("name", matched.slice(0, 3))
+    .limit(3);
+
+  const vehicles = ((results.data as VehicleRow[] | null) || []);
+  if (vehicles.length < 2) {
+    return {
+      answer: "I couldn't find all the vehicles you mentioned in our fleet. Please check the names and try again.",
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  }
+
+  const comparisonTable = vehicles.map(v => {
+    const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+    return `${vName}: ${vehicleCategory(v)} | ${v.seats || 5} seats | NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day | ${normalizeText(v.fuel_type) || "Petrol"} | ${normalizeText(v.transmission) || "Auto"} | Rating: ${v.rating || "N/A"}`;
+  }).join("\n");
+
+  let answer = "";
+  if (GEMINI_API_KEY) {
+    const prompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      "The user wants to compare these vehicles. Write a clear, helpful comparison in 4-5 sentences.",
+      "Mention key differences (price, seats, fuel, category) and give a recommendation.",
+      "Do not use markdown formatting. Be conversational.",
+      "",
+      "Vehicles:", comparisonTable,
+      "User query: " + input.query,
+    ].join("\n");
+    answer = await callGemini(prompt, 350, input.history);
+  }
+  if (!answer) {
+    answer = "Here's a comparison of the vehicles you asked about:\n" + comparisonTable;
+  }
+
+  const actions: ActionItem[] = vehicles.map((v, i) => ({
+    type: "suggest_vehicle" as const,
+    label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+    vehicleId: v.id,
+    meta: {
+      seats: v.seats || 5,
+      price: vehiclePrice(v),
+      fuel: normalizeText(v.fuel_type) || "Petrol",
+      transmission: normalizeText(v.transmission) || "Automatic",
+      image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+      category: vehicleCategory(v) || "sedan",
+      rating: v.rating || 0,
+      location: normalizeText(v.location) || "",
+      reason: "",
+      rank: i + 1,
+    },
+  }));
+
+  return { answer, actions, citations: [] };
+}
+
+/* ─── Fleet Info Handler ─── */
+async function handleFleetInfo(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const result = await supabaseAdmin.from("vehicles")
+    .select("id,type,category")
+    .eq("is_active", true);
+
+  const vehicles = ((result.data as Array<{ id: string; type: string; category: string }> | null) || []);
+  const total = vehicles.length;
+
+  const typeCounts: Record<string, number> = {};
+  vehicles.forEach(v => {
+    const cat = normalizeText(v.type || v.category).toLowerCase() || "other";
+    typeCounts[cat] = (typeCounts[cat] || 0) + 1;
+  });
+
+  const breakdown = Object.entries(typeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([type, count]) => `${type.charAt(0).toUpperCase() + type.slice(1)}: ${count}`)
+    .join(", ");
+
+  let answer = `We have ${total} vehicles in our fleet! Here's the breakdown: ${breakdown}. Would you like me to show you vehicles in any specific category?`;
+
+  if (GEMINI_API_KEY) {
+    const prompt = [
+      "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
+      `Our fleet has ${total} vehicles: ${breakdown}.`,
+      "Write a brief, enthusiastic 2-3 sentence response about the fleet.",
+      "Invite the user to explore a category. Do not use markdown.",
+      "User query: " + input.query,
+    ].join("\n");
+    const geminiAnswer = await callGemini(prompt, 200, input.history);
+    if (geminiAnswer) answer = geminiAnswer;
+  }
+
+  return { answer, actions: [], citations: [] };
+}
+
+/* ─── Hours Handler ─── */
+function handleHoursQuery(): { answer: string; actions: ActionItem[]; citations: Citation[] } {
+  return {
+    answer: "Our office is open daily from 7:00 AM to 8:00 PM (Nepal Time). " +
+      "You can book online 24/7 through our website, and pickups/drop-offs are handled during office hours. " +
+      "For urgent after-hours assistance, please contact our support team.",
+    actions: [defaultSupportAction()],
+    citations: [],
+  };
+}
+
+/* ─── Availability Handler ─── */
+async function handleAvailabilityCheck(input: {
+  query: string; history?: ChatHistoryMessage[];
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const criteria = parseSearchCriteria(input.query);
+
+  if (criteria.name) {
+    const result = await supabaseAdmin.from("vehicles")
+      .select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,status,available,is_available,rating,location")
+      .ilike("name", `%${criteria.name}%`)
+      .limit(3);
+
+    const vehicles = ((result.data as VehicleRow[] | null) || []);
+    if (!vehicles.length) {
+      return {
+        answer: `I couldn't find a vehicle named "${criteria.name}" in our fleet. Would you like me to search for something similar?`,
+        actions: [],
+        citations: [],
+      };
+    }
+
+    const v = vehicles[0];
+    const available = vehicleAvailable(v);
+    const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+    const answer = available
+      ? `Great news! The ${vName} is currently available. It's a ${vehicleCategory(v)} with ${v.seats || 5} seats at NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day. Would you like to book it?`
+      : `Unfortunately, the ${vName} is not available right now. Would you like me to suggest similar vehicles?`;
+
+    const actions: ActionItem[] = available ? [{
+      type: "suggest_vehicle" as const,
+      label: vName,
+      vehicleId: v.id,
+      meta: {
+        seats: v.seats || 5,
+        price: vehiclePrice(v),
+        fuel: normalizeText(v.fuel_type) || "Petrol",
+        transmission: normalizeText(v.transmission) || "Automatic",
+        image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+        category: vehicleCategory(v) || "sedan",
+        rating: v.rating || 0,
+        location: normalizeText(v.location) || "",
+        reason: "Available now",
+        rank: 1,
+      },
+    }] : [];
+
+    return { answer, actions, citations: [] };
+  }
+
+  // Generic availability check
+  return {
+    answer: "I can check availability for specific vehicles. Just tell me the vehicle name — for example, \"Is the Creta available?\" or \"Check availability for Civic\".",
+    actions: [],
+    citations: [],
+  };
+}
+
 function summarizeBookings(bookings: BookingRow[], vehicleMap: Record<string, VehicleRow>): string {
   if (!bookings.length) {
     return "No bookings found for this user.";
@@ -1539,6 +1880,76 @@ Deno.serve(async (request: Request): Promise<Response> => {
         answer: tripResult.answer,
         actions: tripResult.actions as unknown as JsonValue,
         citations: tripResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+      });
+    }
+
+    /* Vehicle search: "show me SUVs", "cars under 3000" */
+    if (intent === "vehicle_search") {
+      const searchResult = await handleVehicleSearch({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: searchResult.answer,
+        actions: searchResult.actions as unknown as JsonValue,
+        citations: searchResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+      });
+    }
+
+    /* Vehicle compare: "compare Creta vs Seltos" */
+    if (intent === "vehicle_compare") {
+      const compareResult = await handleVehicleCompare({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: compareResult.answer,
+        actions: compareResult.actions as unknown as JsonValue,
+        citations: compareResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+      });
+    }
+
+    /* Fleet info: "how many cars do you have" */
+    if (intent === "fleet") {
+      const fleetResult = await handleFleetInfo({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: fleetResult.answer,
+        actions: fleetResult.actions as unknown as JsonValue,
+        citations: fleetResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "vehicles",
+      });
+    }
+
+    /* Working hours */
+    if (intent === "hours") {
+      const hoursResult = handleHoursQuery();
+      return jsonResponse(200, {
+        success: true,
+        answer: hoursResult.answer,
+        actions: hoursResult.actions as unknown as JsonValue,
+        citations: hoursResult.citations as unknown as JsonValue,
+        unresolved: false,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source: "policy",
+      });
+    }
+
+    /* Availability check: "is Creta available" */
+    if (intent === "availability") {
+      const availResult = await handleAvailabilityCheck({ query, history });
+      return jsonResponse(200, {
+        success: true,
+        answer: availResult.answer,
+        actions: availResult.actions as unknown as JsonValue,
+        citations: availResult.citations as unknown as JsonValue,
         unresolved: false,
         support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
         source: "vehicles",
