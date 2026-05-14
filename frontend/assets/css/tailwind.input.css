@@ -93,9 +93,27 @@
   box-shadow: 0 12px 24px rgba(229, 140, 78, 0.2);
 }
 
+.step-card .icon-container:focus-within {
+  outline: 2px solid #E58C4E;
+  outline-offset: 2px;
+}
+
 /* Active step (step 2) glow effect */
 .step-card:nth-child(5) .icon-container {
   animation: pulseGlow 2s infinite;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .step-card,
+  .animate-step-in,
+  .animate-dash {
+    animation: none;
+  }
+
+  .step-card .icon-container {
+    transition: none;
+  }
 }
 
 /* Booking error message styles */
@@ -106,5 +124,6 @@
 .booking-success-enter {
   animation: fadeIn 0.3s ease-out;
 }
+
 
 
