@@ -1330,9 +1330,7 @@ async function callGemini(
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
 
-  /* Build multi-turn contents array when conversation history is available.
-   * This gives Gemini full context of the conversation so it can reference
-   * earlier messages (e.g. "I said 4 people" → remembers the count). */
+  /* Build multi-turn contents array when conversation history is available. */
   const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
   if (history && history.length) {
@@ -1345,38 +1343,58 @@ async function callGemini(
     }
   }
 
-  /* The system prompt is always sent as the final user turn so Gemini
-   * treats it as the current instruction with full conversation context. */
   contents.push({ role: "user", parts: [{ text: prompt }] });
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const requestBody = JSON.stringify({
+    contents,
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: maxTokens,
     },
-    body: JSON.stringify({
-      contents,
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: maxTokens,
-      },
-    }),
   });
 
-  if (!response.ok) {
+  /* Retry logic — 1 retry with 1.5s delay for transient failures. */
+  const MAX_RETRIES = 1;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const txt = await response.text();
-      console.error("gemini error", response.status, txt);
-    } catch (e) {
-      console.error("gemini error status", response.status);
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+      });
+
+      if (!response.ok) {
+        const status = response.status;
+        /* Don't retry on client errors (400, 401, 403) — only server/rate errors */
+        if (status >= 400 && status < 500 && status !== 429) {
+          try { const txt = await response.text(); console.error("gemini client error", status, txt); } catch (_) {}
+          return "";
+        }
+        if (attempt < MAX_RETRIES) {
+          console.warn(`gemini attempt ${attempt + 1} failed (${status}), retrying...`);
+          await new Promise(r => setTimeout(r, 1500));
+          continue;
+        }
+        try { const txt = await response.text(); console.error("gemini error after retry", status, txt); } catch (_) {}
+        return "";
+      }
+
+      const payload = await response.json();
+      return normalizeText(
+        payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => normalizeText(part?.text)).join(" ")
+      );
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        console.warn(`gemini network error attempt ${attempt + 1}, retrying...`, err);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      console.error("gemini network error after retry", err);
+      return "";
     }
-    return "";
   }
 
-  const payload = await response.json();
-  return normalizeText(
-    payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => normalizeText(part?.text)).join(" ")
-  );
+  return "";
 }
 
 async function maybeRefineWithGemini(input: {
@@ -1895,17 +1913,16 @@ async function handleGeneralQuery(input: {
   const prompt = systemSection.join("\n");
   const result = await callGemini(prompt, 450, input.history);
 
-  /* Sensible fallback when Gemini is unavailable. Distinguishes greetings
-   * from general/policy questions for a less robotic feel. */
+  /* Rich fallback responses when Gemini is unavailable — each intent gets a
+   * genuinely helpful response so the chatbot never feels dead. */
   let answer = result;
   if (!answer) {
-    if (intent === "greeting") {
-      answer = "Hello! I'm your AI Booking Assistant. I can help with trip planning, multi-stop trip quotes, your upcoming bookings, vehicle details, cancellation, refunds, and invoices. What would you like to do?";
-    } else if (intent === "policy") {
-      answer = "Most rental questions (pickup process, required documents, payments, delivery, fuel policy) can be answered by support quickly. I can also look up your bookings or plan a trip if you'd like.";
-    } else {
-      answer = "I'm not 100% sure how to answer that just yet. I can help with trip planning, your bookings, cancellations, refunds, and invoices — or connect you to support.";
-    }
+    const fallbacks: Record<string, string> = {
+      greeting: "Namaste! 👋 I'm your AI Booking Assistant at RentAVehicle Nepal. I can help you with:\n• 🚗 Searching & comparing vehicles\n• 🗺️ Planning trips with cost estimates\n• 📋 Checking your bookings\n• 💰 Pricing, refunds & invoices\n• 📄 Documents & policies\n\nWhat would you like to do today?",
+      policy: "Here's what you need to know about our rental service:\n\n📄 Required documents: Valid driving license, government ID, and KYC verification on our website.\n🕐 Office hours: 7 AM – 8 PM daily.\n💳 Payment: eSewa, Khalti, bank transfer, or cash.\n🚗 Self-drive or with-driver (NPR 2,000/day extra).\n⛽ Full tank provided — return with same level.\n📦 Extras: Child seat (NPR 300/day), GPS (NPR 200/day), WiFi (NPR 250/day).\n\nNeed more details? Just ask about any specific policy!",
+      unknown: "I'd love to help! Here's what I can do:\n\n• Search vehicles by type, budget, or brand\n• Compare vehicles side by side\n• Plan trips with cost estimates\n• Check your booking status\n• Answer policy questions\n\nTry asking something like \"show me SUVs\" or \"plan a trip to Pokhara\"!",
+    };
+    answer = fallbacks[intent] || fallbacks.unknown;
   }
 
   const actions: ActionItem[] = [];
