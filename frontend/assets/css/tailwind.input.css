@@ -30,6 +30,27 @@
   }
 }
 
+/* How it Works section - step card entrance animation */
+@keyframes stepSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(229, 140, 78, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(229, 140, 78, 0);
+  }
+}
+
 .animate-slide-in {
   animation: slideInFromTop 0.3s ease-out;
 }
@@ -42,6 +63,41 @@
   animation: dashAnimation 0.5s linear infinite;
 }
 
+.animate-step-in {
+  animation: stepSlideUp 0.6s ease-out;
+}
+
+/* How it Works section step card styles */
+.step-card {
+  position: relative;
+  animation: stepSlideUp 0.6s ease-out;
+}
+
+.step-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.step-card:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+.step-card:nth-child(7) {
+  animation-delay: 0.6s;
+}
+
+.step-card .icon-container {
+  box-shadow: 0 4px 12px rgba(12, 35, 38, 0.12);
+}
+
+.step-card .icon-container:hover {
+  box-shadow: 0 12px 24px rgba(229, 140, 78, 0.2);
+}
+
+/* Active step (step 2) glow effect */
+.step-card:nth-child(5) .icon-container {
+  animation: pulseGlow 2s infinite;
+}
+
 /* Booking error message styles */
 .booking-error-enter {
   animation: slideInFromTop 0.3s ease-out;
@@ -50,4 +106,5 @@
 .booking-success-enter {
   animation: fadeIn 0.3s ease-out;
 }
+
 
