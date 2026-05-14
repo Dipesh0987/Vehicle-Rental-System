@@ -8,7 +8,7 @@ import { renderCustomersModule } from './modules/customers.js';
 import { renderFleetModule } from './modules/fleet.js';
 import { renderDriversModule } from './modules/drivers.js';
 import { renderPaymentsModule } from './modules/payments.js';
-import { renderPricingModule } from './modules/pricing.js';
+import { renderPricingModule, initializePricingModule } from './modules/pricing.js';
 import { renderMaintenanceModule } from './modules/maintenance.js';
 import { renderReviewsModule } from './modules/reviews.js';
 import { renderAdminsModule } from './modules/admins.js';
@@ -123,6 +123,7 @@ async function bootstrap() {
   await hydrateVehiclesFromCatalog({ silent: true });
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });
+  await initializePricingModule();
   renderActiveModule();
 
   setupCatalogSync();
