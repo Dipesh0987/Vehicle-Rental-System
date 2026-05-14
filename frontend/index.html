@@ -275,10 +275,10 @@
           <!-- Section Heading -->
           <h2 class="text-center text-[36px] font-bold text-ink lg:text-[48px]">How it Works</h2>
           
-          <!-- Steps Container -->
-          <div class="mt-12 flex flex-col items-center justify-center gap-8 lg:flex-row lg:gap-6">
+          <!-- Steps Container - Responsive Layout -->
+          <div class="mt-12 flex flex-col items-center justify-center gap-12 lg:flex-row lg:gap-8">
             <!-- Step 1: Choose Location -->
-            <div class="step-card flex flex-col items-center" data-step="1">
+            <div class="step-card flex w-full flex-col items-center lg:w-auto" data-step="1">
               <div class="icon-container relative h-24 w-24 rounded-[20px] bg-[#E0E3DF] flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="1">
                 <!-- Location Pin Icon -->
                 <svg class="h-12 w-12 text-[#6C7074]" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -289,16 +289,24 @@
               <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[200px]">Select your pickup location from our available branches</p>
             </div>
 
-            <!-- Arrow 1 to 2 -->
+            <!-- Arrow 1 to 2 - Desktop Only -->
             <div class="hidden arrow-container relative h-1 w-12 lg:flex items-center justify-center" data-arrow="1-2">
-              <svg class="w-16 h-8" viewBox="0 0 60 30" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="w-16 h-8" viewBox="0 0 60 30" fill="none" stroke="#6C7074" stroke-width="2">
                 <path d="M 5 15 Q 20 5 40 15 T 55 15" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
-                <polygon points="55,15 50,12 52,15 50,18" fill="currentColor"></polygon>
+                <polygon points="55,15 50,12 52,15 50,18" fill="#6C7074"></polygon>
+              </svg>
+            </div>
+
+            <!-- Mobile Arrow 1 to 2 -->
+            <div class="flex lg:hidden items-center justify-center py-2" data-arrow-mobile="1-2">
+              <svg class="w-8 h-12" viewBox="0 0 30 60" fill="none" stroke="#6C7074" stroke-width="2">
+                <path d="M 15 5 Q 10 20 15 40 Q 20 55 15 60" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
+                <polygon points="15,60 12,50 15,52 18,50" fill="#6C7074"></polygon>
               </svg>
             </div>
 
             <!-- Step 2: Pick-Up Date -->
-            <div class="step-card flex flex-col items-center" data-step="2">
+            <div class="step-card flex w-full flex-col items-center lg:w-auto" data-step="2">
               <div class="icon-container relative h-24 w-24 rounded-[20px] bg-accent flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="2">
                 <!-- Calendar Icon -->
                 <svg class="h-12 w-12 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -315,16 +323,24 @@
               <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[200px]">Select your preferred date and time for vehicle pickup</p>
             </div>
 
-            <!-- Arrow 2 to 3 -->
+            <!-- Arrow 2 to 3 - Desktop Only -->
             <div class="hidden arrow-container relative h-1 w-12 lg:flex items-center justify-center" data-arrow="2-3">
-              <svg class="w-16 h-8" viewBox="0 0 60 30" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="w-16 h-8" viewBox="0 0 60 30" fill="none" stroke="#6C7074" stroke-width="2">
                 <path d="M 5 15 Q 20 5 40 15 T 55 15" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
-                <polygon points="55,15 50,12 52,15 50,18" fill="currentColor"></polygon>
+                <polygon points="55,15 50,12 52,15 50,18" fill="#6C7074"></polygon>
+              </svg>
+            </div>
+
+            <!-- Mobile Arrow 2 to 3 -->
+            <div class="flex lg:hidden items-center justify-center py-2" data-arrow-mobile="2-3">
+              <svg class="w-8 h-12" viewBox="0 0 30 60" fill="none" stroke="#6C7074" stroke-width="2">
+                <path d="M 15 5 Q 10 20 15 40 Q 20 55 15 60" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
+                <polygon points="15,60 12,50 15,52 18,50" fill="#6C7074"></polygon>
               </svg>
             </div>
 
             <!-- Step 3: Book Your Car -->
-            <div class="step-card flex flex-col items-center" data-step="3">
+            <div class="step-card flex w-full flex-col items-center lg:w-auto" data-step="3">
               <div class="icon-container relative h-24 w-24 rounded-[20px] bg-[#E0E3DF] flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="3">
                 <!-- Car Icon -->
                 <svg class="h-12 w-12 text-[#6C7074]" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
