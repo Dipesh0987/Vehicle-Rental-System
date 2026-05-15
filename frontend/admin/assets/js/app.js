@@ -12,8 +12,7 @@ import { renderMaintenanceModule } from './modules/maintenance.js';
 import { renderReviewsModule } from './modules/reviews.js';
 import { renderAdminsModule } from './modules/admins.js';
 import { renderNotificationsModule } from './modules/notifications.js';
-import { renderReportsModule } from './modules/reports.js';
-
+import { renderReportsModule } from './modules/reports.js';import { initAdminAssistant } from './assistant.js';
 const modules = {
   overview: renderOverviewModule,
   vehicles: renderVehiclesModule,
@@ -46,6 +45,7 @@ function bootstrap() {
   bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
   renderActiveModule();
   setActiveNav(appState.activeModule);
+  initAdminAssistant(appState, handleNavigate);
 }
 
 function renderActiveModule() {
