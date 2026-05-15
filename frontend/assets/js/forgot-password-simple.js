@@ -79,6 +79,25 @@
     }, 200);
   }
 
+  function getHelpfulErrorMessage(error) {
+    var message = error.message || "Could not send reset link.";
+    
+    // Check for common email configuration errors
+    if (message.includes("Error sending") || message.includes("SMTP") || message.includes("email")) {
+      return "Email service is not configured. Please contact support or try again later.";
+    }
+    
+    if (message.includes("rate limit") || message.includes("too many")) {
+      return "Too many requests. Please wait a few minutes and try again.";
+    }
+    
+    if (message.includes("not found") || message.includes("User not found")) {
+      return "No account found with that email address.";
+    }
+    
+    return message;
+  }
+
   async function handleEmailSubmit(e) {
     e.preventDefault();
     if (state.busy) return;
@@ -98,15 +117,25 @@
     try {
       var client = await window.SupabaseClient.init();
       
+      // Get current origin (handles both localhost and 127.0.0.1)
+      var origin = window.location.origin;
+      var redirectUrl = origin + '/frontend/reset-password.html';
+      
+      console.log('Sending password reset to:', email);
+      console.log('Redirect URL:', redirectUrl);
+      
       // Use Supabase's built-in password reset
-      var { error } = await client.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/frontend/reset-password.html'
+      var { data, error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
       });
 
       if (error) {
+        console.error('Password reset error:', error);
         throw error;
       }
 
+      console.log('Password reset email sent successfully');
+      
       state.email = email;
       var sentTo = $("frSentTo");
       if (sentTo) sentTo.textContent = email;
@@ -115,7 +144,23 @@
       
     } catch (err) {
       console.error("Password reset error:", err);
-      setError("frEmailError", err.message || "Could not send reset link. Please try again.");
+      var helpfulMessage = getHelpfulErrorMessage(err);
+      setError("frEmailError", helpfulMessage);
+      
+      // Show additional help for email configuration errors
+      if (helpfulMessage.includes("Email service")) {
+        setTimeout(function() {
+          var errorEl = $("frEmailError");
+          if (errorEl) {
+            errorEl.innerHTML = helpfulMessage + 
+              '<br><br><small>To fix this:<br>' +
+              '1. Go to Supabase Dashboard<br>' +
+              '2. Authentication → Settings<br>' +
+              '3. Enable email confirmations<br>' +
+              '4. Configure SMTP settings</small>';
+          }
+        }, 100);
+      }
     } finally {
       state.busy = false;
       if (typeof setBusy === 'function') setBusy("frEmailBtn", false, "Send reset link");
@@ -164,3 +209,7 @@
     init();
   }
 })();
+
+<function_calls>
+<invoke name="read_file">
+<parameter name="explanation">Reading the current forgot password simple implementation to add better error handling
