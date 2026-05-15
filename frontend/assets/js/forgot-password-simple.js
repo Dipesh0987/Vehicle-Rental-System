@@ -209,7 +209,3 @@
     init();
   }
 })();
-
-<function_calls>
-<invoke name="read_file">
-<parameter name="explanation">Reading the current forgot password simple implementation to add better error handling
