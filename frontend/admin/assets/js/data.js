@@ -132,8 +132,8 @@ export const dashboardData = {
     { id: 'U-13', name: 'Rita Sen', role: 'Staff', permissions: ['Bookings'] },
   ],
   notifications: [
-    { id: 'N-1', title: 'New booking BK-4984', channel: 'In-app', priority: 'High', time: 'Just now' },
-    { id: 'N-2', title: 'Return overdue BK-4948', channel: 'SMS', priority: 'Critical', time: '8 min ago' },
-    { id: 'N-3', title: 'Cancellation BK-4980', channel: 'Email', priority: 'Medium', time: '16 min ago' },
+    { id: 'N-1', title: 'New booking created', bookingRef: 'BK-4984', channel: 'In-app', priority: 'High', time: 'Just now', unread: true },
+    { id: 'N-2', title: 'Return overdue', bookingRef: 'BK-4948', channel: 'SMS', priority: 'Critical', time: '8 min ago', unread: true },
+    { id: 'N-3', title: 'Booking cancellation', bookingRef: 'BK-4980', channel: 'Email', priority: 'Medium', time: '16 min ago', unread: false },
   ],
 };
