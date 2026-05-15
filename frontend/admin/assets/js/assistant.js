@@ -1,4 +1,5 @@
 const SESSION_KEY = 'adminAssistantSession';
+const PANEL_STATE_KEY = 'adminAssistantPanelState';
 const CITATION_FORMAT = 'Based on admin panel data as of';
 
 const navigationMap = {
@@ -67,6 +68,23 @@ function restoreSession() {
   } catch (error) {
     console.warn('Assistant session restore failed', error);
     return [];
+  }
+}
+
+function persistPanelState(isOpen) {
+  try {
+    window.localStorage.setItem(PANEL_STATE_KEY, isOpen ? 'open' : 'closed');
+  } catch (error) {
+    console.warn('Assistant panel state save failed', error);
+  }
+}
+
+function restorePanelState() {
+  try {
+    return window.localStorage.getItem(PANEL_STATE_KEY) === 'open';
+  } catch (error) {
+    console.warn('Assistant panel state restore failed', error);
+    return false;
   }
 }
 
@@ -337,8 +355,9 @@ export function initAdminAssistant(appState, navigate) {
     isOpen = open;
     panel.classList.toggle('assistant-panel--open', open);
     openButton?.classList.toggle('assistant-launcher--hidden', open);
+    persistPanelState(open);
     if (open) {
-      panel.querySelector('input')?.focus();
+      panel.querySelector('textarea')?.focus();
     }
   }
 
@@ -407,5 +426,5 @@ export function initAdminAssistant(appState, navigate) {
 
   renderHistory(chatHistory, historyHost);
   updateStatus('Ready for your next question');
-  setPanelOpen(false);
+  setPanelOpen(restorePanelState());
 }
