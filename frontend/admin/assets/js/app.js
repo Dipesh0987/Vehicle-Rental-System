@@ -123,21 +123,25 @@ async function bootstrap() {
   await hydrateVehiclesFromCatalog({ silent: true });
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });
+  await hydrateDriversFromDatabase({ silent: true });
   await initializePricingModule();
   renderActiveModule();
 
   setupCatalogSync();
   setupBookingSync();
 
+  // Load vehicles through the local catalog service (shares same data array
+  // and mapper shape as the vehicles module expects).
   try {
     const vehicles = await catalogService.loadVehicles();
     if (Array.isArray(vehicles) && vehicles.length) {
       appState.data.vehicles = vehicles;
-      renderActiveModule();
     }
   } catch (error) {
     pushToast(`Vehicle DB sync failed: ${error.message}`, 'error');
   }
+
+  renderActiveModule();
 }
 
 async function hydrateMainteinanceFromDatabase({ silent = false } = {}) {
@@ -201,6 +205,16 @@ function renderActiveModule() {
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
+      reloadVehiclesData: async () => {
+        await hydrateVehiclesFromCatalog({ silent: true });
+        try {
+          const vehicles = await catalogService.loadVehicles();
+          if (Array.isArray(vehicles) && vehicles.length) {
+            appState.data.vehicles = vehicles;
+          }
+        } catch (_e) { /* fallback to catalog hydration above */ }
+        renderActiveModule();
+      },
       navigate: handleNavigate,
       rerender: renderActiveModule,
     });
