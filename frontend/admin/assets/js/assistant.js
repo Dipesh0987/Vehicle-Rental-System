@@ -362,7 +362,12 @@ export function initAdminAssistant(appState, navigate) {
       const actionWrapper = document.createElement('div');
       actionWrapper.className = 'assistant-response__action';
       actionWrapper.appendChild(actionButton);
-      historyHost.appendChild(actionWrapper);
+      const lastResponse = historyHost.lastElementChild;
+      if (lastResponse) {
+        lastResponse.appendChild(actionWrapper);
+      } else {
+        historyHost.appendChild(actionWrapper);
+      }
       historyHost.scrollTop = historyHost.scrollHeight;
     }
   }
