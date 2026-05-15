@@ -18,7 +18,7 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
       bookingRef: 'BK-4991',
       channel: 'In-app',
       priority: 'Critical',
-      time: 'Just now',
+      createdAt: Date.now(),
       unread: true,
     };
     data.notifications.unshift(newAlert);
@@ -60,7 +60,7 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
                     </div>
                   </div>
                   <div class="flex flex-col items-end gap-2">
-                    <span class="notification-time text-xs font-semibold text-slate-500 dark:text-slate-400">${row.time}</span>
+                    <span class="notification-time text-xs font-semibold text-slate-500 dark:text-slate-400">${formatRelativeTime(row.createdAt)}</span>
                     ${row.unread ? '<button data-mark-read="' + row.id + '" class="notification-action rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-slate-100">Mark read</button>' : ''}
                   </div>
                 </div>
@@ -106,19 +106,21 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
   return host;
 }
 
-function parseRelativeTime(value) {
-  if (!value) return 0;
-  const lower = value.toLowerCase();
-  if (lower.includes('just now')) return 0;
-  const minutesMatch = lower.match(/(\d+)\s*min/);
-  if (minutesMatch) return Number(minutesMatch[1]);
-  const hoursMatch = lower.match(/(\d+)\s*hour/);
-  if (hoursMatch) return Number(hoursMatch[1]) * 60;
-  return 999;
+function formatRelativeTime(createdAt) {
+  if (!createdAt) return 'Some time ago';
+  const diff = Date.now() - createdAt;
+  const minutes = Math.round(diff / 60000);
+  if (minutes <= 0) return 'Just now';
+  if (minutes === 1) return '1 min ago';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours} hr${hours > 1 ? 's' : ''} ago`;
 }
 
 function sortByRecency(a, b) {
-  return parseRelativeTime(a.time) - parseRelativeTime(b.time);
+  const aTime = a.createdAt || 0;
+  const bTime = b.createdAt || 0;
+  return bTime - aTime;
 }
 
 function priorityClass(priority) {
