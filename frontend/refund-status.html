@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund Status - Vehicle Rental System</title>
+  <link rel="stylesheet" href="assets/css/tailwind.css">
+  <style>
+    [role="alert"],
+    [role="status"] {
+      animation: slideInFromTop 0.3s ease-out;
+    }
+
+    .page-container {
+      background: linear-gradient(135deg, #f0fdf4 0%, #f2f3f1 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <header class="bg-white shadow-sm border-b border-slate-200" role="banner">
+    <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="index.html" class="text-2xl font-bold text-accent">VRS</a>
+          <span class="text-sm font-medium text-muted">Refund Status</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="vehicles.html" class="text-sm font-medium text-ink hover:text-accent transition">
+            Back to Bookings
+          </a>
+          <button id="logoutBtn" class="px-4 py-2 text-sm font-medium text-ink hover:text-accent transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="page-container">
+    <div class="max-w-4xl mx-auto">
+      <!-- Page Header -->
+      <section class="mb-8 sm:mb-12">
+        <h1 class="text-[32px] sm:text-[40px] font-bold text-ink mb-3">Refund Status Tracker</h1>
+        <p class="text-[14px] sm:text-[16px] text-muted max-w-[600px]">
+          Track the status of your refund after booking cancellation. We'll keep you updated on every step of the process.
+        </p>
+      </section>
+
+      <!-- Refund Tracking Container -->
+      <div id="refundTrackingContainer" class="mb-12">
+        <div class="bg-white rounded-xl shadow-sm border border-paper p-6 sm:p-8">
+          <div class="animate-pulse space-y-4">
+            <div class="h-8 bg-slate-200 rounded-lg w-1/4"></div>
+            <div class="h-4 bg-slate-200 rounded-lg w-3/4"></div>
+            <div class="h-4 bg-slate-200 rounded-lg w-2/4"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frequently Asked Questions -->
+      <section class="bg-white rounded-xl shadow-sm border border-paper p-6 sm:p-8">
+        <h2 class="text-[24px] font-bold text-ink mb-6">Frequently Asked Questions</h2>
+
+        <div class="space-y-6">
+          <!-- FAQ Item 1 -->
+          <details class="group">
+            <summary class="cursor-pointer flex items-center justify-between py-4 border-b border-paper hover:bg-paper px-4 -mx-4 rounded transition">
+              <span class="font-semibold text-ink group-open:text-accent">How long does refund processing take?</span>
+              <span class="text-muted group-open:rotate-180 transition">▼</span>
+            </summary>
+            <div class="py-4 text-[14px] text-muted leading-relaxed">
+              <p>Refunds typically take 3-5 business days to appear in your original payment method. This depends on your bank or card issuer's processing time. We initiate the refund immediately upon cancellation.</p>
+            </div>
+          </details>
+
+          <!-- FAQ Item 2 -->
+          <details class="group">
+            <summary class="cursor-pointer flex items-center justify-between py-4 border-b border-paper hover:bg-paper px-4 -mx-4 rounded transition">
+              <span class="font-semibold text-ink group-open:text-accent">What if my refund fails?</span>
+              <span class="text-muted group-open:rotate-180 transition">▼</span>
+            </summary>
+            <div class="py-4 text-[14px] text-muted leading-relaxed">
+              <p>If your refund fails, our support team will be notified automatically. We'll contact you within 24 hours to resolve the issue. You can also contact us directly through the support section in the refund status card.</p>
+            </div>
+          </details>
+
+          <!-- FAQ Item 3 -->
+          <details class="group">
+            <summary class="cursor-pointer flex items-center justify-between py-4 border-b border-paper hover:bg-paper px-4 -mx-4 rounded transition">
+              <span class="font-semibold text-ink group-open:text-accent">Can I check my refund status in multiple ways?</span>
+              <span class="text-muted group-open:rotate-180 transition">▼</span>
+            </summary>
+            <div class="py-4 text-[14px] text-muted leading-relaxed">
+              <p>Yes! You can track your refund status on this page, and we'll also send you notifications via email and push notifications. You'll receive an alert as soon as your refund is credited.</p>
+            </div>
+          </details>
+
+          <!-- FAQ Item 4 -->
+          <details class="group">
+            <summary class="cursor-pointer flex items-center justify-between py-4 hover:bg-paper px-4 -mx-4 rounded transition">
+              <span class="font-semibold text-ink group-open:text-accent">What is the cancellation refund policy?</span>
+              <span class="text-muted group-open:rotate-180 transition">▼</span>
+            </summary>
+            <div class="py-4 text-[14px] text-muted leading-relaxed">
+              <p>We offer full refunds for cancellations made up to 24 hours before your pickup date. Cancellations within 24 hours may have a deduction for processing fees. Check your refund details for the exact amount.</p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- Contact Support Section -->
+      <section class="mt-12 bg-gradient-to-r from-accent/10 to-panel/10 rounded-xl border border-accent/20 p-6 sm:p-8">
+        <div class="flex items-start gap-4 sm:gap-6">
+          <div class="flex-shrink-0">
+            <svg class="h-8 w-8 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5-4a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-[18px] font-bold text-ink mb-2">Need Assistance?</h3>
+            <p class="text-[14px] text-muted mb-4">
+              If you have any questions about your refund or need immediate support, our customer service team is here to help.
+            </p>
+            <div class="flex gap-3 flex-wrap">
+              <a href="contact.html?issue=refund" class="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg font-semibold text-[14px] hover:brightness-105 transition">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                Contact Support
+              </a>
+              <a href="tel:+1234567890" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-ink border border-paper rounded-lg font-semibold text-[14px] hover:bg-paper transition">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.92 7.02C17.45 6.18 16.51 5.55 15.46 5.55c-1.05 0-1.99.63-2.46 1.47C11.99 5.18 11.05 4.55 10 4.55 8.95 4.55 8 5.18 7.54 6.02 7.07 6.18 6.51 6.63 6.51 7.26c0 .63.45 1.08 1.02 1.08h.98c-.04.65-.29 1.25-.75 1.74C6.97 10.34 6.24 11.35 6.24 12.64v5.28c0 .84.6 1.54 1.44 1.54.84 0 1.44-.7 1.44-1.54v-2.28h8.04v2.28c0 .84.6 1.54 1.44 1.54.84 0 1.44-.7 1.44-1.54v-5.28c0-1.29-.73-2.3-1.78-2.96-.46-.49-.71-1.09-.75-1.74h.98c.57 0 1.02-.45 1.02-1.08 0-.63-.56-1.08-1.02-1.24z"/>
+                </svg>
+                Call Us
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="assets/js/supabase.client.js"></script>
+  <script src="assets/js/refund-service.js"></script>
+  <script src="assets/js/refund-tracking.js"></script>
+  <script src="assets/js/refund-notification-service.js"></script>
+
+  <script>
+    // Initialize refund tracking when page loads
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Get booking ID from URL parameters
+      const params = new URLSearchParams(window.location.search);
+      const bookingId = params.get('booking') || params.get('id');
+
+      if (!bookingId) {
+        document.getElementById('refundTrackingContainer').innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <svg class="h-12 w-12 text-red-600 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="font-bold text-red-900 mb-1">No Booking Selected</h3>
+            <p class="text-red-700 text-sm">Please go back to your bookings and select a cancelled booking to track its refund.</p>
+            <a href="vehicles.html" class="inline-block mt-4 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold text-sm hover:bg-red-700 transition">
+              View Bookings
+            </a>
+          </div>
+        `;
+        return;
+      }
+
+      // Initialize refund tracking module
+      const refundTracker = new RefundTrackingModule('refundTrackingContainer');
+      await refundTracker.init(bookingId);
+
+      // Initialize notification service
+      await RefundNotificationService.init();
+    });
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      const { error } = await supabase.auth.signOut();
+      if (!error) {
+        window.location.href = 'login.html';
+      }
+    });
+  </script>
+</body>
+</html>
