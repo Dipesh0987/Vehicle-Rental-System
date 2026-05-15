@@ -587,8 +587,8 @@ class AdvancedSearchSystem {
             }
 
             // Render UI components
-            this.uiManager.renderFilterPanel();
             this.applyFiltersAndRender();
+            this.uiManager.renderFilterPanel();
 
             // Setup event listeners
             this.setupEventListeners();
@@ -744,6 +744,10 @@ class AdvancedSearchSystem {
 
             this.vehicles = catalogVehicles;
             this.writeVehicleCache(this.vehicles);
+            
+            // Re-render filter panel to update dynamic brand options
+            this.uiManager.renderFilterPanel();
+            
             this.applyFiltersAndRender();
         } catch (error) {
             console.warn("Failed to refresh vehicles from catalog service:", error);

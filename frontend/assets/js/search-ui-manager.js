@@ -322,6 +322,12 @@ class SearchUIManager {
         const seen = new Set();
         const options = [];
 
+        // Debug: Log vehicle count and first vehicle
+        console.log('[Brand Filter Debug] Total vehicles:', vehicles.length);
+        if (vehicles.length > 0) {
+            console.log('[Brand Filter Debug] First vehicle brand:', vehicles[0]?.brand);
+        }
+
         for (const vehicle of vehicles) {
             const rawBrand = String(vehicle?.brand || "").trim();
             if (!rawBrand) {
@@ -343,7 +349,17 @@ class SearchUIManager {
 
         options.sort((a, b) => a.label.localeCompare(b.label));
 
-        // If no brands found, return empty array instead of fallback
+        console.log('[Brand Filter Debug] Brand options found:', options.length, options.map(o => o.label));
+
+        // If no brands found, show a loading message
+        if (options.length === 0) {
+            return [{
+                value: "loading",
+                label: "Loading brands...",
+                icon: config.icon,
+            }];
+        }
+
         return options;
     }
 
