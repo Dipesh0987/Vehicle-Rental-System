@@ -221,5 +221,497 @@
   animation-delay: 0.4s;
 }
 
+/* ===== Refund Tracking Styles ===== */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.refund-tracking-card {
+  background: linear-gradient(135deg, #F2F3F1 0%, #fafaf9 100%);
+  border-radius: 16px;
+  border: 1px solid #e0e3df;
+  padding: 24px;
+  animation: fadeInUp 0.5s ease-out;
+  box-shadow: 0 4px 12px rgba(14, 37, 40, 0.08);
+}
+
+.refund-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.refund-title-section h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0e2528;
+  margin: 0;
+  margin-bottom: 4px;
+}
+
+.refund-subtitle {
+  font-size: 13px;
+  color: #6c7074;
+  margin: 0;
+}
+
+.refund-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.refund-status-badge[data-status="pending"] {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.refund-status-badge[data-status="processing"] {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.refund-status-badge[data-status="credited"] {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.refund-status-badge[data-status="failed"] {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.refund-details {
+  space-y: 16px;
+}
+
+.refund-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e3df;
+}
+
+.refund-detail-item:last-of-type {
+  border-bottom: none;
+}
+
+.refund-detail-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6c7074;
+}
+
+.refund-detail-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0e2528;
+}
+
+.refund-detail-value.amount {
+  color: #2c766e;
+  font-size: 18px;
+}
+
+/* Timeline Styles */
+.refund-timeline {
+  margin: 24px 0;
+  padding: 20px 0;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline-step {
+  position: relative;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.timeline-step:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -32px;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid #e0e3df;
+}
+
+.timeline-step[data-step-status="completed"] .timeline-marker {
+  background-color: #2c766e;
+  border-color: #2c766e;
+}
+
+.timeline-step[data-step-status="pending"] .timeline-marker {
+  background-color: #f2f3f1;
+  border-color: #b7bbc0;
+}
+
+.timeline-step[data-step-status="failed"] .timeline-marker {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.step-icon {
+  width: 14px;
+  height: 14px;
+  color: white;
+}
+
+.step-icon.spinning {
+  color: #0e2528;
+  animation: spin 1s linear infinite;
+}
+
+.timeline-step[data-step-status="failed"] .step-icon {
+  color: #dc2626;
+}
+
+.timeline-content {
+  flex: 1;
+}
+
+.timeline-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0e2528;
+  margin: 0;
+}
+
+.timeline-date {
+  font-size: 12px;
+  color: #6c7074;
+  margin: 4px 0 0 0;
+}
+
+.timeline-connector {
+  position: absolute;
+  left: -24px;
+  top: 24px;
+  width: 2px;
+  height: 16px;
+  background-color: #e0e3df;
+}
+
+.timeline-step[data-step-status="completed"] ~ .timeline-step .timeline-connector {
+  background-color: #2c766e;
+}
+
+/* Status Description */
+.refund-status-description {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  border-left: 4px solid #2c766e;
+}
+
+.status-text {
+  font-size: 14px;
+  color: #0e2528;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Failure Section */
+.refund-failure-section {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.alert-warning {
+  color: #92400e;
+}
+
+.failure-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.failure-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.failure-header .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.failure-reason {
+  font-size: 13px;
+  margin: 8px 0 4px 0;
+  line-height: 1.4;
+}
+
+.failure-retry {
+  font-size: 12px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* Support Section */
+.refund-support-section {
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.support-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0e2528;
+  margin: 0 0 8px 0;
+}
+
+.support-text {
+  font-size: 13px;
+  color: #4b5563;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.support-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-contact-support {
+  background-color: #2c766e;
+  color: white;
+}
+
+.btn-contact-support:hover {
+  background-color: #1f5660;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(44, 118, 110, 0.3);
+}
+
+.btn-view-ticket {
+  background-color: #e0e3df;
+  color: #0e2528;
+}
+
+.btn-view-ticket:hover {
+  background-color: #d1d7d2;
+  transform: translateY(-1px);
+}
+
+.btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Refresh Indicator */
+.refund-refresh-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e3df;
+  font-size: 12px;
+  color: #6c7074;
+}
+
+.refresh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2c766e;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Toast Notifications */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-left: 4px solid;
+  opacity: 0;
+  transform: translateX(400px);
+  transition: all 0.3s ease;
+  z-index: 9999;
+  max-width: 400px;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-success {
+  border-left-color: #10b981;
+}
+
+.toast-error {
+  border-left-color: #ef4444;
+}
+
+.toast-info {
+  border-left-color: #3b82f6;
+}
+
+.toast-content h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0e2528;
+  margin: 0 0 4px 0;
+}
+
+.toast-content p {
+  font-size: 13px;
+  color: #6c7074;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Error Display */
+.refund-error {
+  text-align: center;
+  padding: 24px;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  color: #991b1b;
+}
+
+.error-icon {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 12px;
+  opacity: 0.8;
+}
+
+.refund-error p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Responsive Styles */
+@media (max-width: 640px) {
+  .refund-tracking-card {
+    padding: 16px;
+  }
+
+  .refund-header {
+    flex-direction: column;
+  }
+
+  .refund-detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .support-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toast {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: none;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .refund-tracking-card,
+  .toast,
+  .timeline-step {
+    animation: none;
+  }
+
+  .refund-tracking-card,
+  .btn,
+  .timeline-marker {
+    transition: none;
+  }
+
+  .refresh-dot,
+  .step-icon.spinning {
+    animation: none;
+  }
+}
 
 
