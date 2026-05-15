@@ -117,9 +117,8 @@
     try {
       var client = await window.SupabaseClient.init();
       
-      // Get current origin (handles both localhost and 127.0.0.1)
-      var origin = window.location.origin;
-      var redirectUrl = origin + '/frontend/reset-password.html';
+      // Use absolute URL for redirect
+      var redirectUrl = 'http://127.0.0.1:5501/frontend/reset-password.html';
       
       console.log('Sending password reset to:', email);
       console.log('Redirect URL:', redirectUrl);
