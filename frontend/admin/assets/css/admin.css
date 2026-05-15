@@ -290,6 +290,17 @@ body {
   white-space: nowrap;
 }
 
+.notification-action {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: transparent;
+  color: #334155;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.notification-action:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
 .notification-card--unread .notification-time {
   color: #0f172a;
 }

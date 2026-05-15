@@ -28,7 +28,7 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
           .map((row) => {
             const unreadClass = row.unread ? 'notification-card--unread' : '';
             return `
-              <article class="notification-card rounded-3xl border p-4 shadow-sm ${unreadClass}">
+              <article data-notification-id="${row.id}" class="notification-card rounded-3xl border p-4 shadow-sm ${unreadClass}">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                   <div class="space-y-2">
                     <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">${row.title}</p>
@@ -38,7 +38,10 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
                       <span class="notification-pill ${priorityClass(row.priority)}">${row.priority}</span>
                     </div>
                   </div>
-                  <span class="notification-time text-xs font-semibold text-slate-500 dark:text-slate-400">${row.time}</span>
+                  <div class="flex flex-col items-end gap-2">
+                    <span class="notification-time text-xs font-semibold text-slate-500 dark:text-slate-400">${row.time}</span>
+                    ${row.unread ? '<button data-mark-read="' + row.id + '" class="notification-action rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 dark:border-white/10 dark:text-slate-100">Mark read</button>' : ''}
+                  </div>
                 </div>
               </article>
             `;
@@ -64,6 +67,19 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
     if (typeof onRefresh === 'function') {
       onRefresh();
     }
+  });
+
+  host.querySelectorAll('[data-mark-read]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-mark-read');
+      const notification = data.notifications.find((item) => item.id === id);
+      if (!notification) return;
+      notification.unread = false;
+      notify(`Marked ${notification.bookingRef} as read`, 'info');
+      if (typeof onRefresh === 'function') {
+        onRefresh();
+      }
+    });
   });
 
   return host;
