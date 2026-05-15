@@ -329,7 +329,7 @@ class SearchUIManager {
             }
 
             const value = rawBrand.toLowerCase();
-            if (value === "general" || seen.has(value)) {
+            if (seen.has(value)) {
                 continue;
             }
 
@@ -343,7 +343,8 @@ class SearchUIManager {
 
         options.sort((a, b) => a.label.localeCompare(b.label));
 
-        return options.length ? options : [{ value: "general", label: "General", icon: config.icon }];
+        // If no brands found, return empty array instead of fallback
+        return options;
     }
 
     /**
