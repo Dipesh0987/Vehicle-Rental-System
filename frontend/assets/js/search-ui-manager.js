@@ -28,8 +28,8 @@ class SearchUIManager {
                 key: "vehicle",
                 title: "Vehicle Specs",
                 description: "Match the vehicle style, powertrain, and cabin layout to your trip.",
-                cards: ["vehicleType", "transmission", "fuelType"],
-                layoutClass: "grid gap-3 lg:grid-cols-3",
+                cards: ["brand", "vehicleType", "transmission", "fuelType"],
+                layoutClass: "grid gap-3 lg:grid-cols-2",
             },
             {
                 key: "experience",
