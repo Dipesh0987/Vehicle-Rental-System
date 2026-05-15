@@ -173,6 +173,26 @@ function bestAnswer(query, data) {
     };
   }
 
+  if (/(how much revenue|total revenue|revenue.*today|revenue.*this week|revenue.*this month)/.test(normalized)) {
+    const totalRevenue = payload.metrics.revenue || payload.revenueTrend.reduce((sum, item) => sum + item.revenue, 0);
+    return {
+      answer: `Current revenue in the dataset is $${totalRevenue.toLocaleString()}. ${citation}`,
+      detail: null,
+      citation,
+      action: 'reports',
+    };
+  }
+
+  if (/(fleet utilization|utilization|utilized|usage rate)/.test(normalized)) {
+    const table = createTableHtml(['Vehicle Type', 'Utilization %'], (payload.utilization || []).map((item) => [item.label, `${item.value}%`]));
+    return {
+      answer: `Fleet utilization by category is available below. ${citation}`,
+      detail: table,
+      citation,
+      action: 'vehicles',
+    };
+  }
+
   if (/(payments.*pending|pending payments|unpaid|payment status)/.test(normalized)) {
     const pending = payload.payments.filter((payment) => payment.status.toLowerCase() !== 'paid');
     const table = createTableHtml(['Invoice', 'Booking', 'Amount', 'Status'], pending.map((payment) => [payment.invoice, payment.booking, `$${payment.amount}`, payment.status]));
