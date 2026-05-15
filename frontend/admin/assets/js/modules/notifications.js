@@ -7,6 +7,27 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
   const sorted = rows.slice().sort(sortByRecency);
   const unreadCount = sorted.filter((item) => item.unread).length;
 
+  if (window.adminNotificationFeedTimer) {
+    clearTimeout(window.adminNotificationFeedTimer);
+  }
+
+  window.adminNotificationFeedTimer = window.setTimeout(() => {
+    const newAlert = {
+      id: `N-${Date.now()}`,
+      title: 'Urgent booking update',
+      bookingRef: 'BK-4991',
+      channel: 'In-app',
+      priority: 'Critical',
+      time: 'Just now',
+      unread: true,
+    };
+    data.notifications.unshift(newAlert);
+    notify('Critical event received: urgent booking update', 'warn');
+    if (typeof onRefresh === 'function') {
+      onRefresh();
+    }
+  }, 15000);
+
   host.className = 'space-y-4';
   host.innerHTML = `
     <header class="flex flex-wrap items-center justify-between gap-3">
