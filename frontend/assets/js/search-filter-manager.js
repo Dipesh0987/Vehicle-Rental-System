@@ -22,6 +22,8 @@ class SearchFilterManager {
         this.allVehicles = [];
         this.sortOrder = "relevance";
         this.listeners = new Set();
+        this.lastAppliedFilter = null; // Track the most recently applied filter
+        this.lastAppliedFilterValue = null; // Track the value of the last applied filter
         // Always start with clean filters on page load
         this.clearPersistedState();
     }
@@ -179,8 +181,16 @@ class SearchFilterManager {
             const index = this.filters[filterName].indexOf(value);
             if (index > -1) {
                 this.filters[filterName].splice(index, 1);
+                // If removing, clear last applied filter tracking
+                if (this.lastAppliedFilter === filterName && this.lastAppliedFilterValue === value) {
+                    this.lastAppliedFilter = null;
+                    this.lastAppliedFilterValue = null;
+                }
             } else {
                 this.filters[filterName].push(value);
+                // Track this as the most recently applied filter
+                this.lastAppliedFilter = filterName;
+                this.lastAppliedFilterValue = value;
             }
             this.applyFilters(this.allVehicles);
             this.notifyListeners();
@@ -370,9 +380,31 @@ class SearchFilterManager {
      * Apply sorting
      */
     applySort() {
+        // First, prioritize vehicles matching the most recently applied filter
+        if (this.lastAppliedFilter && this.lastAppliedFilterValue) {
+            this.filteredVehicles.sort((a, b) => {
+                const aMatches = this.vehicleMatchesLastFilter(a);
+                const bMatches = this.vehicleMatchesLastFilter(b);
+                
+                // Vehicles matching the last filter come first
+                if (aMatches && !bMatches) return -1;
+                if (!aMatches && bMatches) return 1;
+                
+                // If both match or both don't match, continue with regular sorting
+                return 0;
+            });
+        }
+
+        // Then apply the selected sort order
         switch (this.sortOrder) {
             case "price-low":
                 this.filteredVehicles.sort((a, b) => {
+                    // Preserve last filter priority
+                    const aMatchesLast = this.vehicleMatchesLastFilter(a);
+                    const bMatchesLast = this.vehicleMatchesLastFilter(b);
+                    if (aMatchesLast && !bMatchesLast) return -1;
+                    if (!aMatchesLast && bMatchesLast) return 1;
+                    
                     const priceA = this.extractPrice(a.pricing?.dailyRate || "0");
                     const priceB = this.extractPrice(b.pricing?.dailyRate || "0");
                     return priceA - priceB;
@@ -380,18 +412,82 @@ class SearchFilterManager {
                 break;
             case "price-high":
                 this.filteredVehicles.sort((a, b) => {
+                    // Preserve last filter priority
+                    const aMatchesLast = this.vehicleMatchesLastFilter(a);
+                    const bMatchesLast = this.vehicleMatchesLastFilter(b);
+                    if (aMatchesLast && !bMatchesLast) return -1;
+                    if (!aMatchesLast && bMatchesLast) return 1;
+                    
                     const priceA = this.extractPrice(a.pricing?.dailyRate || "0");
                     const priceB = this.extractPrice(b.pricing?.dailyRate || "0");
                     return priceB - priceA;
                 });
                 break;
             case "rating":
-                this.filteredVehicles.sort((a, b) => 
-                    parseFloat(b.rating || 0) - parseFloat(a.rating || 0)
-                );
+                this.filteredVehicles.sort((a, b) => {
+                    // Preserve last filter priority
+                    const aMatchesLast = this.vehicleMatchesLastFilter(a);
+                    const bMatchesLast = this.vehicleMatchesLastFilter(b);
+                    if (aMatchesLast && !bMatchesLast) return -1;
+                    if (!aMatchesLast && bMatchesLast) return 1;
+                    
+                    return parseFloat(b.rating || 0) - parseFloat(a.rating || 0);
+                });
                 break;
             default:
+                // For "relevance", the last filter priority is already applied above
                 break;
+        }
+    }
+
+    /**
+     * Check if a vehicle matches the most recently applied filter
+     * @param {Object} vehicle - Vehicle object
+     * @returns {boolean} True if vehicle matches the last applied filter
+     */
+    vehicleMatchesLastFilter(vehicle) {
+        if (!this.lastAppliedFilter || !this.lastAppliedFilterValue) {
+            return false;
+        }
+
+        const filterName = this.lastAppliedFilter;
+        const filterValue = this.lastAppliedFilterValue;
+
+        switch (filterName) {
+            case "vehicleTypes":
+                return vehicle.type?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "brands":
+                return vehicle.brand?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "models":
+                return vehicle.name?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "transmissions":
+                return vehicle.transmission?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "fuelTypes":
+                return vehicle.fuelType?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "features":
+                const vehicleFeatures = (vehicle.features || []).map((f) => normalizeForMatch(f));
+                return vehicleFeatures.some((vf) => vf === normalizeForMatch(filterValue));
+            
+            case "insuranceTypes":
+                const vehicleInsurance = (vehicle.insuranceOptions || []).map((i) => normalizeForMatch(i));
+                const normalizedFilterValue = normalizeForMatch(filterValue);
+                return vehicleInsurance.some((vi) => vi === normalizedFilterValue || vi.startsWith(normalizedFilterValue));
+            
+            case "driverOptions":
+                const vehicleDriverOptions = (vehicle.driverOptions || []).map((d) => normalizeForMatch(d));
+                return vehicleDriverOptions.some((vdo) => vdo === normalizeForMatch(filterValue));
+            
+            case "mileagePolicy":
+                const vehicleMileage = (vehicle.mileagePolicy || []).map((m) => m.toLowerCase());
+                return vehicleMileage.includes(filterValue.toLowerCase());
+            
+            default:
+                return false;
         }
     }
 
@@ -427,6 +523,8 @@ class SearchFilterManager {
         this.filters = this.initializeFilters();
         this.clearDateAvailability();
         this.sortOrder = "relevance";
+        this.lastAppliedFilter = null;
+        this.lastAppliedFilterValue = null;
         this.notifyListeners();
     }
 
