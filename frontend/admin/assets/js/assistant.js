@@ -341,6 +341,11 @@ function appendAssistantMessage(host, text, detailElement = null) {
 
 function renderHistory(history, container) {
   container.innerHTML = '';
+  if (history.length === 0) {
+    const welcome = appendAssistantMessage(container, 'Welcome! Ask me anything about fleet availability, bookings, revenue, maintenance, or notifications. I will respond with a summary and supporting table or chart when relevant.');
+    container.appendChild(welcome);
+  }
+
   history.forEach((entry) => {
     const userBubble = createMessageHtml(entry.query, 'user');
     container.appendChild(userBubble);
