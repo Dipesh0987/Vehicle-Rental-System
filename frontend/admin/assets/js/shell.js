@@ -127,6 +127,29 @@ export function renderShell() {
     </main>
   </div>
 
+  <div id="assistantHost">
+    <aside id="assistantPanel" class="assistant-panel" aria-label="Admin AI assistant">
+      <div class="assistant-panel__header">
+        <div>
+          <p class="assistant-panel__title">Fleet Assistant</p>
+          <p id="assistantStatus" class="assistant-panel__subtitle">Ready for your next question</p>
+        </div>
+        <div class="assistant-panel__controls">
+          <button id="assistantMinimize" type="button" class="assistant-panel__control"><span class="material-symbols-outlined">minimize</span></button>
+          <button id="assistantClose" type="button" class="assistant-panel__control"><span class="material-symbols-outlined">close</span></button>
+        </div>
+      </div>
+      <div id="assistantHistory" class="assistant-history"></div>
+      <div class="assistant-input-area">
+        <textarea id="assistantInput" class="assistant-input" placeholder="Ask about bookings, revenue, fleet or maintenance..." rows="2"></textarea>
+        <button id="assistantSend" class="assistant-send-button" type="button">Send</button>
+      </div>
+    </aside>
+  </div>
+  <button id="assistantLauncher" type="button" class="assistant-launcher rounded-full border border-slate-200 bg-white p-4 text-slate-700 shadow-panel transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-100" aria-label="Open AI assistant">
+    <span class="material-symbols-outlined">support_agent</span>
+  </button>
+
   <div id="mobileSidebar" class="fixed inset-0 z-50 hidden lg:hidden">
     <div id="mobileSidebarBackdrop" class="absolute inset-0 bg-black/50"></div>
     <aside class="scroll-thin absolute left-0 top-0 h-full w-[86%] max-w-[320px] overflow-y-auto border-r border-white/10 bg-[#0e171c] p-5 text-white">
