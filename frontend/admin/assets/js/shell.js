@@ -134,7 +134,9 @@ export function renderShell() {
           <p class="assistant-panel__title">Fleet Assistant</p>
           <p id="assistantStatus" class="assistant-panel__subtitle">Ready for your next question</p>
         </div>
-        <div class="assistant-panel__controls">
+        <div class="assistant-panel__toolbar">
+          <button id="assistantExport" type="button" class="assistant-toolbar-button">Export</button>
+          <button id="assistantClear" type="button" class="assistant-toolbar-button assistant-toolbar-button--muted">Clear chat</button>
           <button id="assistantMinimize" type="button" class="assistant-panel__control"><span class="material-symbols-outlined">minimize</span></button>
           <button id="assistantClose" type="button" class="assistant-panel__control"><span class="material-symbols-outlined">close</span></button>
         </div>

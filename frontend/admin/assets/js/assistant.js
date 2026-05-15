@@ -1,5 +1,8 @@
 const SESSION_KEY = 'adminAssistantSession';
 const PANEL_STATE_KEY = 'adminAssistantPanelState';
+const SESSION_CREATED_KEY = 'adminAssistantSessionCreated';
+const SESSION_EXPIRES_KEY = 'adminAssistantSessionExpires';
+const CHAT_TIMEOUT_FALLBACK_MS = 60 * 60 * 1000; // 1 hour fallback
 const CITATION_FORMAT = 'Based on admin panel data as of';
 
 const navigationMap = {
@@ -53,9 +56,25 @@ function createChartCanvas(id) {
   return wrapper;
 }
 
+function initializeSessionMetadata() {
+  const expires = Number(window.sessionStorage.getItem(SESSION_EXPIRES_KEY));
+  const created = Number(window.sessionStorage.getItem(SESSION_CREATED_KEY));
+  if (!expires || Date.now() >= expires) {
+    const start = Date.now();
+    const expiration = start + getSessionTimeoutMs();
+    persistSessionMetadata(start, expiration);
+    return { createdAt: start, expiresAt: expiration };
+  }
+  return {
+    createdAt: created || Date.now(),
+    expiresAt: expires,
+  };
+}
+
 function persistSession(history) {
   try {
     window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(history));
+    initializeSessionMetadata();
   } catch (error) {
     console.warn('Assistant session save failed', error);
   }
@@ -63,12 +82,40 @@ function persistSession(history) {
 
 function restoreSession() {
   try {
+    if (isSessionExpired()) {
+      window.sessionStorage.removeItem(SESSION_KEY);
+      clearSessionMetadata();
+      return [];
+    }
     const raw = window.sessionStorage.getItem(SESSION_KEY);
+    initializeSessionMetadata();
     return raw ? JSON.parse(raw) : [];
   } catch (error) {
     console.warn('Assistant session restore failed', error);
     return [];
   }
+}
+
+function clearAssistantHistory() {
+  try {
+    window.sessionStorage.removeItem(SESSION_KEY);
+    clearSessionMetadata();
+  } catch (error) {
+    console.warn('Assistant clear session failed', error);
+  }
+}
+
+function exportAssistantHistory(history) {
+  if (!Array.isArray(history) || history.length === 0) return '';
+  return history
+    .map((entry) => {
+      const lines = [`You: ${entry.query}`, `Assistant: ${entry.answer}`];
+      if (entry.citation) {
+        lines.push(`Source: ${entry.citation}`);
+      }
+      return lines.join('\n');
+    })
+    .join('\n\n');
 }
 
 function persistPanelState(isOpen) {
@@ -84,6 +131,58 @@ function restorePanelState() {
     return window.localStorage.getItem(PANEL_STATE_KEY) === 'open';
   } catch (error) {
     console.warn('Assistant panel state restore failed', error);
+    return false;
+  }
+}
+
+function getStoredAuthExpiryMs() {
+  try {
+    const raw = window.localStorage.getItem('supabase.auth.token') || window.sessionStorage.getItem('supabase.auth.token');
+    if (!raw) return null;
+    const tokenData = JSON.parse(raw);
+    const session = tokenData?.currentSession || tokenData?.current_user || tokenData?.session;
+    const expiresAt = session?.expires_at || session?.expiresAt || session?.expiresAt;
+    if (typeof expiresAt === 'number') {
+      return expiresAt * 1000;
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function getSessionTimeoutMs() {
+  const authExpiryMillis = getStoredAuthExpiryMs();
+  if (authExpiryMillis) {
+    const remaining = authExpiryMillis - Date.now();
+    return remaining > 0 ? remaining : 0;
+  }
+  return CHAT_TIMEOUT_FALLBACK_MS;
+}
+
+function persistSessionMetadata(createdAt, expiresAt) {
+  try {
+    window.sessionStorage.setItem(SESSION_CREATED_KEY, String(createdAt));
+    window.sessionStorage.setItem(SESSION_EXPIRES_KEY, String(expiresAt));
+  } catch (error) {
+    console.warn('Assistant session metadata save failed', error);
+  }
+}
+
+function clearSessionMetadata() {
+  try {
+    window.sessionStorage.removeItem(SESSION_CREATED_KEY);
+    window.sessionStorage.removeItem(SESSION_EXPIRES_KEY);
+  } catch (error) {
+    console.warn('Assistant session metadata clear failed', error);
+  }
+}
+
+function isSessionExpired() {
+  try {
+    const expires = Number(window.sessionStorage.getItem(SESSION_EXPIRES_KEY));
+    return !expires || Date.now() >= expires;
+  } catch (error) {
     return false;
   }
 }
@@ -370,6 +469,7 @@ export function initAdminAssistant(appState, navigate) {
 
   let chatHistory = restoreSession();
   let isOpen = false;
+  let expiryTimer = null;
 
   function updateStatus(text) {
     if (statusLabel) statusLabel.textContent = text;
@@ -386,6 +486,33 @@ export function initAdminAssistant(appState, navigate) {
     }
   }
 
+  function scheduleSessionExpiry() {
+    if (!historyHost) return;
+    const meta = initializeSessionMetadata();
+    const delay = Math.max(meta.expiresAt - Date.now(), 0);
+    if (expiryTimer) {
+      clearTimeout(expiryTimer);
+    }
+    expiryTimer = window.setTimeout(handleSessionExpiry, delay);
+  }
+
+  function handleSessionExpiry() {
+    clearAssistantHistory();
+    chatHistory = [];
+    renderHistory(chatHistory, historyHost);
+    if (input) input.disabled = true;
+    if (sendButton) sendButton.disabled = true;
+    updateStatus('Session expired. Please re-login to continue.');
+    setPanelOpen(true);
+  }
+
+  function resetSessionState() {
+    if (input) input.disabled = false;
+    if (sendButton) sendButton.disabled = false;
+    initializeSessionMetadata();
+    scheduleSessionExpiry();
+  }
+
   function showReply(answerData) {
     const entry = {
       query: answerData.query,
@@ -397,6 +524,7 @@ export function initAdminAssistant(appState, navigate) {
     chatHistory.push(entry);
     persistSession(chatHistory);
     renderHistory(chatHistory, historyHost);
+    scheduleSessionExpiry();
     if (answerData.action) {
       const navigation = findModuleForQuery(answerData.action) || answerData.action;
       const actionButton = document.createElement('button');
@@ -416,6 +544,36 @@ export function initAdminAssistant(appState, navigate) {
     }
   }
 
+  function generateTranscript() {
+    return exportAssistantHistory(chatHistory);
+  }
+
+  function handleExport() {
+    const transcript = generateTranscript();
+    if (!transcript) {
+      updateStatus('No chat history available to export.');
+      return;
+    }
+    const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `assistant-chat-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    updateStatus('Transcript exported successfully.');
+  }
+
+  function handleClear() {
+    clearAssistantHistory();
+    chatHistory = [];
+    renderHistory(chatHistory, historyHost);
+    resetSessionState();
+    updateStatus('Chat cleared. Ready for a fresh session.');
+  }
+
   function processQuestion(query) {
     const result = bestAnswer(query, appState.data);
     result.query = query;
@@ -425,6 +583,12 @@ export function initAdminAssistant(appState, navigate) {
 
   function handleSend() {
     if (!input) return;
+    if (isSessionExpired()) {
+      updateStatus('Session expired. Please re-login to continue.');
+      if (input) input.disabled = true;
+      if (sendButton) sendButton.disabled = true;
+      return;
+    }
     const query = input.value.trim();
     if (!query) return;
     const userMessage = createMessageHtml(query, 'user');
@@ -438,10 +602,15 @@ export function initAdminAssistant(appState, navigate) {
     }, 250);
   }
 
+  const clearButton = document.getElementById('assistantClear');
+  const exportButton = document.getElementById('assistantExport');
+
   openButton?.addEventListener('click', () => setPanelOpen(true));
   closeButton?.addEventListener('click', () => setPanelOpen(false));
   minimizeButton?.addEventListener('click', () => setPanelOpen(false));
   sendButton?.addEventListener('click', handleSend);
+  clearButton?.addEventListener('click', handleClear);
+  exportButton?.addEventListener('click', handleExport);
   input?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -452,4 +621,5 @@ export function initAdminAssistant(appState, navigate) {
   renderHistory(chatHistory, historyHost);
   updateStatus('Ready for your next question');
   setPanelOpen(restorePanelState());
+  resetSessionState();
 }

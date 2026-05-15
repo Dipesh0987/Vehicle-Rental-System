@@ -112,6 +112,32 @@ body {
   gap: 0.5rem;
 }
 
+.assistant-panel__toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.assistant-toolbar-button {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+  padding: 0.55rem 0.95rem;
+  background: white;
+  color: #475569;
+  font-size: 0.83rem;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.assistant-toolbar-button:hover {
+  border-color: rgba(31, 118, 104, 0.35);
+  background: rgba(31, 118, 104, 0.06);
+}
+
+.assistant-toolbar-button--muted {
+  background: rgba(248, 250, 252, 0.9);
+}
+
 .assistant-panel__control {
   border: none;
   background: transparent;
