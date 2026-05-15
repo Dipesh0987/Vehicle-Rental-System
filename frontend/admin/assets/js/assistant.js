@@ -18,11 +18,16 @@ function formatTimestamp(date = new Date()) {
 function createMessageHtml(message, sender = 'assistant') {
   const wrapper = document.createElement('div');
   wrapper.className = `assistant-message assistant-message--${sender}`;
-  wrapper.innerHTML = `
-    <div class="assistant-message__bubble">
-      <div class="assistant-message__text">${message}</div>
-    </div>
-  `;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'assistant-message__bubble';
+
+  const text = document.createElement('div');
+  text.className = 'assistant-message__text';
+  text.textContent = message;
+
+  bubble.appendChild(text);
+  wrapper.appendChild(bubble);
   return wrapper;
 }
 
@@ -275,14 +280,22 @@ function renderResponseDetail(container, detail) {
 function appendAssistantMessage(host, text, detailElement = null) {
   const wrapper = document.createElement('div');
   wrapper.className = 'assistant-response';
-  wrapper.innerHTML = `
-    <div class="assistant-response__body">
-      <div class="assistant-response__text">${text}</div>
-      <div class="assistant-response__detail" data-detail></div>
-    </div>
-  `;
-  const detailContainer = wrapper.querySelector('[data-detail]');
-  if (detailElement && detailContainer) {
+
+  const body = document.createElement('div');
+  body.className = 'assistant-response__body';
+
+  const textElement = document.createElement('div');
+  textElement.className = 'assistant-response__text';
+  textElement.textContent = text;
+
+  const detailContainer = document.createElement('div');
+  detailContainer.className = 'assistant-response__detail';
+
+  body.appendChild(textElement);
+  body.appendChild(detailContainer);
+  wrapper.appendChild(body);
+
+  if (detailElement) {
     renderResponseDetail(detailContainer, detailElement);
   }
   return wrapper;
