@@ -172,9 +172,12 @@ body {
   gap: 0.45rem;
 }
 
-.assistant-message--user .assistant-message__bubble,
-.assistant-response__body {
+.assistant-message--user .assistant-message__bubble {
   align-self: flex-end;
+}
+
+.assistant-response__body {
+  align-self: flex-start;
 }
 
 .assistant-message--assistant .assistant-message__bubble {
