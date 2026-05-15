@@ -301,6 +301,17 @@ body {
   background: rgba(15, 23, 42, 0.04);
 }
 
+.notification-unread-tag {
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
 .notification-card--unread .notification-time {
   color: #0f172a;
 }

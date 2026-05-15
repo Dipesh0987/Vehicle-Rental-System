@@ -52,7 +52,10 @@ export function renderNotificationsModule({ data, query, notify, onRefresh }) {
               <article data-notification-id="${row.id}" class="notification-card rounded-3xl border p-4 shadow-sm ${unreadClass}">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                   <div class="space-y-2">
-                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">${row.title}</p>
+                    <div class="flex items-center gap-2">
+                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">${row.title}</p>
+                      ${row.unread ? '<span class="notification-unread-tag">Unread</span>' : ''}
+                    </div>
                     <div class="flex flex-wrap items-center gap-2">
                       <span class="notification-pill">${row.bookingRef}</span>
                       <span class="notification-pill ${channelClass(row.channel)}">${row.channel}</span>
