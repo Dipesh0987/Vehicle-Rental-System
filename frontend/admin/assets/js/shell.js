@@ -106,7 +106,7 @@ export function renderShell() {
 
         <div id="quickActions" class="hidden items-center gap-2 xl:flex">${renderQuickActions()}</div>
 
-        <button id="notificationBtn" class="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+        <button id="notificationBtn" aria-label="Notification tray" class="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
           <span class="material-symbols-outlined">notifications</span>
           <span class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">3</span>
         </button>

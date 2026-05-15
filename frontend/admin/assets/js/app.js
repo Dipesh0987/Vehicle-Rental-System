@@ -76,11 +76,13 @@ function renderActiveModule() {
 
 function updateNotificationBadge() {
   const badge = document.querySelector('#notificationBtn > span');
-  if (!badge) return;
+  const button = document.getElementById('notificationBtn');
+  if (!badge || !button) return;
   const unreadCount = appState.data.notifications.filter((item) => item.unread).length;
   badge.textContent = String(unreadCount || 0);
   badge.classList.toggle('bg-peach', unreadCount > 0);
   badge.classList.toggle('bg-slate-400', unreadCount === 0);
+  button.setAttribute('aria-label', `Notifications, ${unreadCount} unread`);
 }
 
 function handleNavigate(id) {
