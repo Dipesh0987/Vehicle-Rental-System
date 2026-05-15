@@ -1,7 +1,7 @@
 import { classMap } from '../config.js';
 import { filterRows } from '../table-utils.js';
 
-export function renderNotificationsModule({ data, query, notify }) {
+export function renderNotificationsModule({ data, query, notify, onRefresh }) {
   const host = document.createElement('section');
   const rows = filterRows(data.notifications, query, ['id', 'title', 'channel', 'priority', 'bookingRef']);
   const sorted = rows.slice().sort(sortByRecency);
@@ -18,6 +18,7 @@ export function renderNotificationsModule({ data, query, notify }) {
       <div class="flex flex-wrap items-center gap-2">
         <button id="sendEmailAlert" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Send Email Alert</button>
         <button id="sendSmsAlert" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Send SMS Alert</button>
+        <button id="markAllRead" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 dark:border-white/10 dark:text-slate-100">Mark all read</button>
       </div>
     </header>
 
@@ -53,6 +54,16 @@ export function renderNotificationsModule({ data, query, notify }) {
 
   host.querySelector('#sendSmsAlert')?.addEventListener('click', () => {
     notify('SMS alert pipeline triggered', 'success');
+  });
+
+  host.querySelector('#markAllRead')?.addEventListener('click', () => {
+    data.notifications.forEach((item) => {
+      item.unread = false;
+    });
+    notify('All notifications marked as read', 'info');
+    if (typeof onRefresh === 'function') {
+      onRefresh();
+    }
   });
 
   return host;

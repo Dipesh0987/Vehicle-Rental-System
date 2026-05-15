@@ -59,6 +59,7 @@ function renderActiveModule() {
       data: appState.data,
       query: appState.globalSearch,
       notify: pushToast,
+      onRefresh: renderActiveModule,
     });
 
     if (typeof section === 'string') {
@@ -69,6 +70,17 @@ function renderActiveModule() {
   } catch (error) {
     moduleHost.innerHTML = `<section class="rounded-2xl border border-rose-300 bg-rose-50 p-5 text-sm font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300">Unable to render module: ${error.message}</section>`;
   }
+
+  updateNotificationBadge();
+}
+
+function updateNotificationBadge() {
+  const badge = document.querySelector('#notificationBtn > span');
+  if (!badge) return;
+  const unreadCount = appState.data.notifications.filter((item) => item.unread).length;
+  badge.textContent = String(unreadCount || 0);
+  badge.classList.toggle('bg-peach', unreadCount > 0);
+  badge.classList.toggle('bg-slate-400', unreadCount === 0);
 }
 
 function handleNavigate(id) {
