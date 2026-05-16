@@ -106,22 +106,32 @@ export function renderReportsModule({ data, notify }) {
 
     <section class="${classMap.panel} p-4 sm:p-5">
       <h3 class="text-base font-extrabold">Customer Behavior Highlights</h3>
-      <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <article class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
-          <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Repeat Customers</p>
-          <p class="mt-1 text-2xl font-extrabold">42%</p>
-          <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Returning bookings in last 30 days</p>
-        </article>
-        <article class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
-          <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Avg Booking Window</p>
-          <p class="mt-1 text-2xl font-extrabold">4.3 days</p>
-          <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Lead time before pickup</p>
-        </article>
-        <article class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
-          <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Top Segment</p>
-          <p class="mt-1 text-2xl font-extrabold">SUV</p>
-          <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Highest contribution by revenue</p>
-        </article>
+      <div class="mt-3 flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium text-slate-600 dark:text-slate-300">Start</label>
+          <input type="date" id="kpiStart" class="rounded-md border px-2 py-1" />
+          <label class="text-sm font-medium text-slate-600 dark:text-slate-300">End</label>
+          <input type="date" id="kpiEnd" class="rounded-md border px-2 py-1" />
+          <button id="kpiRefresh" class="ml-3 rounded-xl bg-brand-500 px-3 py-1 text-sm font-semibold text-white">Refresh</button>
+        </div>
+
+        <div id="kpiTiles" class="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <article data-kpi="repeat" class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Repeat Customers</p>
+            <p class="mt-1 text-2xl font-extrabold">—</p>
+            <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Returning bookings in selected range</p>
+          </article>
+          <article data-kpi="window" class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Avg Booking Window</p>
+            <p class="mt-1 text-2xl font-extrabold">—</p>
+            <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Lead time before pickup</p>
+          </article>
+          <article data-kpi="segment" class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Top Segment</p>
+            <p class="mt-1 text-2xl font-extrabold">—</p>
+            <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Highest contribution by revenue</p>
+          </article>
+        </div>
       </div>
     </section>
   `;
@@ -174,6 +184,50 @@ export function renderReportsModule({ data, notify }) {
     renderRevenueReport();
     renderUtilizationReport();
   });
+
+  const apiBase = window.ADMIN_API_BASE || 'http://localhost:3001';
+
+  async function fetchKpis(start, end) {
+    const params = new URLSearchParams();
+    if (start) params.set('start_date', start);
+    if (end) params.set('end_date', end);
+    const resp = await fetch(`${apiBase}/api/kpis?${params.toString()}`);
+    if (!resp.ok) throw new Error('Failed fetching KPI metrics');
+    return resp.json();
+  }
+
+  function formatPct(v) { return `${v}%`; }
+
+  async function refreshKpis(start, end) {
+    const tiles = host.querySelector('#kpiTiles');
+    try {
+      const result = await fetchKpis(start, end);
+      const repeatTile = tiles.querySelector('[data-kpi="repeat"] p.mt-1');
+      const windowTile = tiles.querySelector('[data-kpi="window"] p.mt-1');
+      const segTile = tiles.querySelector('[data-kpi="segment"] p.mt-1');
+
+      if (repeatTile) repeatTile.textContent = formatPct(result.repeat_customers_pct);
+      if (windowTile) windowTile.textContent = `${result.avg_booking_window_days} days`;
+      if (segTile) segTile.textContent = result.top_segment.category ? `${result.top_segment.category} (${result.top_segment.revenue})` : '—';
+    } catch (err) {
+      notify('Unable to load KPIs: ' + err.message, 'error');
+    }
+  }
+
+  // Wire up date inputs and initial load
+  const startInput = host.querySelector('#kpiStart');
+  const endInput = host.querySelector('#kpiEnd');
+  const refreshBtn = host.querySelector('#kpiRefresh');
+
+  const defaultEnd = new Date();
+  const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  startInput.value = defaultStart.toISOString().slice(0,10);
+  endInput.value = defaultEnd.toISOString().slice(0,10);
+
+  refreshBtn?.addEventListener('click', () => refreshKpis(startInput.value, endInput.value));
+
+  // Initial fetch
+  refreshKpis(startInput.value, endInput.value);
 
   const exportCsvBtn = host.querySelector('#exportCsvBtn');
   const exportPdfBtn = host.querySelector('#exportPdfBtn');
