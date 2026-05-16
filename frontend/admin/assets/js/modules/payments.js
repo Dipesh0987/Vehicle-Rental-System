@@ -1,5 +1,5 @@
 import { classMap } from '../config.js';
-import { filterRows } from '../table-utils.js';
+import { filterRows, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
 const STATUS_OPTIONS = ['', 'completed', 'pending', 'initiated', 'failed', 'expired', 'cancelled', 'refunded'];

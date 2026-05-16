@@ -115,11 +115,6 @@ async function bootstrap() {
   renderActiveModule();
   setActiveNav(appState.activeModule);
 
-  initTheme();
-  bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
-  renderActiveModule();
-  setActiveNav(appState.activeModule);
-
   await hydrateVehiclesFromCatalog({ silent: true });
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });

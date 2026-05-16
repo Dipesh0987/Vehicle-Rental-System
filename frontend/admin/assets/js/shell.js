@@ -440,6 +440,7 @@ function isMobileSidebarVisible() {
   const sidebar = document.getElementById('mobileSidebar');
   return Boolean(sidebar && !sidebar.classList.contains('hidden'));
 }
+
 function openMobileSidebar() {
   const sidebar = document.getElementById('mobileSidebar');
   const backdrop = document.getElementById('mobileSidebarBackdrop');
