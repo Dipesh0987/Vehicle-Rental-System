@@ -1,3 +1,7 @@
+function formatCurrency(amount) {
+  return `NPR ${Number(amount).toLocaleString('en-IN')}`;
+}
+
 export function renderLineChart(canvasId, labels, datasetLabel, data, color = '#1f7668') {
   const canvas = document.getElementById(canvasId);
   if (!canvas || typeof Chart === 'undefined') return;
@@ -20,9 +24,12 @@ export function renderLineChart(canvasId, labels, datasetLabel, data, color = '#
           borderColor: color,
           borderWidth: 2,
           fill: true,
-          pointRadius: 3,
+          pointRadius: 4,
           tension: 0.32,
-          backgroundColor: `${color}33`,
+          backgroundColor: `${color}2a`,
+          pointBackgroundColor: color,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: color,
         },
       ],
     },
@@ -33,6 +40,14 @@ export function renderLineChart(canvasId, labels, datasetLabel, data, color = '#
         legend: {
           display: false,
         },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              const value = context.parsed.y;
+              return `${datasetLabel}: ${formatCurrency(value)}`;
+            },
+          },
+        },
       },
       scales: {
         x: {
@@ -41,7 +56,12 @@ export function renderLineChart(canvasId, labels, datasetLabel, data, color = '#
         },
         y: {
           grid: { color: gridColor },
-          ticks: { color: axisColor },
+          ticks: {
+            color: axisColor,
+            callback(value) {
+              return formatCurrency(value);
+            },
+          },
         },
       },
     },
