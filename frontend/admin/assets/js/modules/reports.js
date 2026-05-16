@@ -71,6 +71,7 @@ function createPdfDocument(title, rows) {
 export function renderReportsModule({ data, notify }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
+  let activeTab = 'revenue';
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -181,9 +182,14 @@ export function renderReportsModule({ data, notify }) {
   host.querySelectorAll('[data-report-tab]').forEach((button) => {
     button.addEventListener('click', () => {
       const tab = button.getAttribute('data-report-tab');
+      activeTab = tab;
       host.querySelectorAll('[data-report-tab]').forEach((item) => {
         const active = item === button;
-            item.setAttribute('aria-selected', String(active));
+        item.setAttribute('aria-selected', String(active));
+        item.classList.toggle('bg-brand-500', active);
+        item.classList.toggle('text-white', active);
+        item.classList.toggle('border', !active);
+      });
       const primaryTitle = host.querySelector('#reportPrimaryTitle');
       const secondaryTitle = host.querySelector('#reportSecondaryTitle');
       if (!primaryTitle || !secondaryTitle) return;
