@@ -200,6 +200,16 @@ export function renderReportsModule({ data, notify }) {
         primaryTitle.textContent = 'Revenue Analysis';
         secondaryTitle.textContent = 'Vehicle Utilization';
       }
+
+      if (tab === 'revenue') {
+        renderRevenueReport();
+      }
+      if (tab === 'utilization') {
+        renderUtilizationReport();
+      }
+      if (tab === 'customers') {
+        renderRevenueReport();
+      }
     });
   });
 
