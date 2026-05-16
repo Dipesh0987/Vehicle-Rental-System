@@ -132,3 +132,10 @@ This creates `public.user_profiles` with RLS policies and configures `storage.pr
 - ✅ User is prompted to select different dates (with "Change Dates" button)
 - ✅ Conflict check happens server-side (database trigger) AND client-side
 - ✅ Uses Tailwind CSS for all UI components
+
+## Admin KPI Reporting
+
+- New admin KPI tiles display `Repeat Customers %`, `Avg Booking Window (days)`, and `Top Segment`.
+- Tiles live-update when the Reports date range is changed and are powered by a small backend KPI service (`backend/js/kpi-server.js`).
+
+> To run the KPI server, follow `backend/README.md` and start the server on port 3001.
