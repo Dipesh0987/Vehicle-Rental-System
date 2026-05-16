@@ -84,7 +84,7 @@ export function renderReportsModule({ data, notify }) {
 
     <section class="${classMap.panel} p-3">
       <div class="flex flex-wrap gap-2" role="tablist" aria-label="report tabs">
-        ${REPORT_TABS.map((tab) => `<button data-report-tab="${tab.id}" class="rounded-xl px-3 py-2 text-sm font-semibold ${tab.id === 'revenue' ? 'bg-brand-500 text-white' : 'border border-slate-200 dark:border-white/10'}">${tab.label}</button>`).join('')}
+        ${REPORT_TABS.map((tab) => `<button type="button" data-report-tab="${tab.id}" aria-selected="${tab.id === 'revenue'}" class="rounded-xl px-3 py-2 text-sm font-semibold ${tab.id === 'revenue' ? 'bg-brand-500 text-white' : 'border border-slate-200 dark:border-white/10'}">${tab.label}</button>`).join('')}
       </div>
     </section>
 
@@ -181,11 +181,7 @@ export function renderReportsModule({ data, notify }) {
       const tab = button.getAttribute('data-report-tab');
       host.querySelectorAll('[data-report-tab]').forEach((item) => {
         const active = item === button;
-        item.classList.toggle('bg-brand-500', active);
-        item.classList.toggle('text-white', active);
-        item.classList.toggle('border', !active);
-      });
-
+            item.setAttribute('aria-selected', String(active));
       const primaryTitle = host.querySelector('#reportPrimaryTitle');
       const secondaryTitle = host.querySelector('#reportSecondaryTitle');
       if (!primaryTitle || !secondaryTitle) return;
