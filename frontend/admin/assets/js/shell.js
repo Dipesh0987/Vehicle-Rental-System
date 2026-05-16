@@ -86,6 +86,12 @@ const renderQuickActions = () =>
 export function renderShell() {
   return `
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
+    
+    <!-- Floating expand button (visible when sidebar is collapsed) -->
+    <button id="expandSidebarBtn" class="fixed left-4 top-4 z-40 hidden rounded-lg border border-slate-200 bg-white p-2.5 text-slate-700 shadow-lg transition hover:bg-slate-50 hover:shadow-xl lg:block dark:border-white/10 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" aria-label="Expand sidebar">
+      <span class="material-symbols-outlined text-[20px]">right_panel_open</span>
+    </button>
+    
     <aside id="sidebar" class="sticky top-0 hidden h-screen w-[300px] flex-col border-r border-black/10 bg-white/75 p-5 backdrop-blur-xl lg:flex dark:border-white/10 dark:bg-black/20">
       <div id="sidebarContent" class="flex h-full flex-col">
         <div class="mb-6 flex items-center justify-between">
@@ -290,7 +296,7 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onSea
     });
   });
 
-  const sidebarToggleButtons = document.querySelectorAll('#sidebarToggleBtn, #collapseSidebar');
+  const sidebarToggleButtons = document.querySelectorAll('#sidebarToggleBtn, #collapseSidebar, #expandSidebarBtn');
   sidebarToggleButtons.forEach((button) => {
     button.addEventListener('click', handleSidebarToggle);
   });
@@ -397,6 +403,7 @@ function isDesktopSidebarCollapsed() {
 function applyDesktopSidebarState(collapsed) {
   const sidebar = document.getElementById('sidebar');
   const sidebarContent = document.getElementById('sidebarContent');
+  const expandBtn = document.getElementById('expandSidebarBtn');
 
   if (!sidebar || !sidebarContent) {
     return;
@@ -413,6 +420,11 @@ function applyDesktopSidebarState(collapsed) {
   sidebarContent.classList.toggle('lg:-translate-x-3', shouldCollapse);
   sidebarContent.classList.toggle('lg:opacity-0', shouldCollapse);
   sidebarContent.classList.toggle('lg:pointer-events-none', shouldCollapse);
+
+  // Show/hide the floating expand button
+  if (expandBtn) {
+    expandBtn.classList.toggle('lg:hidden', !shouldCollapse);
+  }
 
   sidebar.setAttribute('aria-hidden', shouldCollapse ? 'true' : 'false');
   writeDesktopSidebarCollapsedState(shouldCollapse);
