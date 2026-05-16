@@ -460,14 +460,6 @@ function isMobileSidebarVisible() {
   return Boolean(sidebar && !sidebar.classList.contains('hidden'));
 }
 
-function initSidebarBehavior() {
-  applyDesktopSidebarState(false);
-  closeMobileSidebar(true);
-
-  window.addEventListener('resize', handleSidebarViewportChange);
-  handleSidebarViewportChange();
-}
-
 function handleSidebarToggle() {
   if (isDesktopViewport()) {
     applyDesktopSidebarState(!isDesktopSidebarCollapsed());
