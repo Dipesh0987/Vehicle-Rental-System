@@ -320,12 +320,12 @@
 /* ── Section ─────────────────────────────────────── */
 .trr-section {
   padding: 5rem 1.5rem;
-  background: linear-gradient(180deg, #F5F6F4 0%, #E8EBE6 100%);
+  background: #F5F6F4;
   transition: background 0.3s ease;
 }
 
 html[data-theme="dark"] .trr-section {
-  background: linear-gradient(180deg, #0B161C 0%, #0F1A21 100%);
+  background: #0F1419;
 }
 
 .trr-wrap {
@@ -440,25 +440,25 @@ html[data-theme="dark"] .trr-sub {
 
 /* ── Card ────────────────────────────────────────── */
 .trr-card {
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 24px;
   padding: 1.75rem;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   animation: trrSlideUp 0.5s ease both;
-  border: 1px solid rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
 html[data-theme="dark"] .trr-card {
-  background: linear-gradient(155deg, rgba(22,32,40,0.95), rgba(18,28,35,0.92));
+  background: rgba(30,41,51,0.95);
   border-color: rgba(255,255,255,0.08);
   box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
 
 .trr-card:hover {
   transform: translateY(-10px);
-  box-shadow: 0 16px 40px rgba(0,0,0,0.16);
-  border-color: rgba(229, 140, 78, 0.2);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+  border-color: rgba(229, 140, 78, 0.15);
 }
 
 html[data-theme="dark"] .trr-card:hover {
@@ -494,7 +494,7 @@ html[data-theme="dark"] .trr-card:hover {
   align-items: center;
   justify-content: center;
   margin-bottom: 1.25rem;
-  background: linear-gradient(180deg, rgba(var(--trr-accent-soft, 229, 140, 78), 0.1), transparent);
+  background: transparent;
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -504,13 +504,13 @@ html[data-theme="dark"] .trr-card:hover {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(229, 140, 78, 0.05), transparent);
+  background: transparent;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 
 .trr-card:hover .trr-img-box::before {
-  opacity: 1;
+  opacity: 0;
 }
 
 .trr-img-box img {
