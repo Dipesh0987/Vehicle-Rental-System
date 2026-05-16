@@ -16,12 +16,12 @@ window.VRSFooter = (function () {
           <div class="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(31,118,104,0.08),transparent_70%)] blur-2xl dark:bg-[radial-gradient(circle,rgba(74,163,153,0.12),transparent_70%)]"></div>
         </div>
 
-        <div class="relative z-10 mx-auto w-[95%] max-w-[1390px] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div class="relative z-10 mx-auto w-full max-w-[1390px] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <!-- Main Footer Content -->
-          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-12">
+          <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-5 lg:gap-8 xl:gap-12">
             
             <!-- Brand Column -->
-            <div class="lg:col-span-5">
+            <div class="lg:col-span-2">
               <div class="mb-6">
                 <h2 class="vrs-brand-wordmark bg-[linear-gradient(135deg,#0e2528,#1f7668_55%,#2c9a8a)] bg-clip-text text-[32px] font-black leading-none tracking-tight text-transparent drop-shadow-sm dark:bg-[linear-gradient(135deg,#f6fbfd,#95dacb_55%,#6fc5b7)]">
                   RENT A VEHICLE
@@ -50,7 +50,7 @@ window.VRSFooter = (function () {
             </div>
 
             <!-- Quick Links -->
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-1">
               <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Quick Links</h3>
               <ul class="space-y-3.5">
                 <li><a href="index.html" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Home</a></li>
@@ -62,7 +62,7 @@ window.VRSFooter = (function () {
             </div>
 
             <!-- Services -->
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-1">
               <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Services</h3>
               <ul class="space-y-3.5">
                 <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Daily Rentals</a></li>
@@ -74,7 +74,7 @@ window.VRSFooter = (function () {
             </div>
 
             <!-- Support -->
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-1">
               <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Support</h3>
               <ul class="space-y-3.5">
                 <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Help Center</a></li>
@@ -86,7 +86,7 @@ window.VRSFooter = (function () {
             </div>
 
             <!-- Contact Info -->
-            <div class="lg:col-span-3">
+            <div class="lg:col-span-1">
               <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Contact</h3>
               <ul class="space-y-4">
                 <li class="flex items-start gap-3">
