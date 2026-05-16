@@ -11,6 +11,12 @@ const pricingUiState = {
 
 export async function initializePricingModule() {
   try {
+    if (!window.supabase || typeof window.supabase.from !== 'function') {
+      console.warn('Supabase client not initialized for pricing module');
+      pricingUiState.discountCodes = [];
+      return;
+    }
+
     const { data, error } = await window.supabase
       .from('discount_codes')
       .select('*')
