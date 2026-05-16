@@ -18,7 +18,7 @@ window.VRSFooter = (function () {
 
         <div class="relative z-10 mx-auto w-[95%] max-w-[1390px] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <!-- Main Footer Content -->
-          <div class="grid gap-10 lg:grid-cols-12 lg:gap-12">
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-12">
             
             <!-- Brand Column -->
             <div class="lg:col-span-5">
@@ -86,24 +86,24 @@ window.VRSFooter = (function () {
             </div>
 
             <!-- Contact Info -->
-            <div class="lg:col-span-2">
-              <h3 class="mb-4 text-[15px] font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">Contact</h3>
-              <ul class="space-y-3">
-                <li class="flex items-start gap-2">
-                  <span class="material-symbols-outlined mt-0.5 text-[18px] text-[#1f7668] dark:text-[#4aa399]">location_on</span>
-                  <span class="text-[14px] text-slate-600 dark:text-slate-300">Thamel, Kathmandu<br/>Nepal</span>
+            <div class="lg:col-span-3">
+              <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Contact</h3>
+              <ul class="space-y-4">
+                <li class="flex items-start gap-3">
+                  <span class="material-symbols-outlined mt-0.5 text-[20px] text-[#1f7668] dark:text-[#4aa399]">location_on</span>
+                  <span class="text-[14px] font-medium leading-relaxed text-slate-600 dark:text-slate-300">Thamel, Kathmandu<br/>Nepal</span>
                 </li>
-                <li class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[18px] text-[#1f7668] dark:text-[#4aa399]">phone</span>
-                  <a href="tel:+9771234567890" class="text-[14px] text-slate-600 transition-colors duration-200 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]">+977 123-456-7890</a>
+                <li class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[20px] text-[#1f7668] dark:text-[#4aa399]">phone</span>
+                  <a href="tel:+9771234567890" class="text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]">+977 123-456-7890</a>
                 </li>
-                <li class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[18px] text-[#1f7668] dark:text-[#4aa399]">mail</span>
-                  <a href="mailto:info@rentavehicle.com" class="text-[14px] text-slate-600 transition-colors duration-200 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]">info@rentavehicle.com</a>
+                <li class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[20px] text-[#1f7668] dark:text-[#4aa399]">mail</span>
+                  <a href="mailto:info@rentavehicle.com" class="text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]">info@rentavehicle.com</a>
                 </li>
-                <li class="flex items-start gap-2">
-                  <span class="material-symbols-outlined mt-0.5 text-[18px] text-[#1f7668] dark:text-[#4aa399]">schedule</span>
-                  <span class="text-[14px] text-slate-600 dark:text-slate-300">24/7 Customer Support</span>
+                <li class="flex items-start gap-3">
+                  <span class="material-symbols-outlined mt-0.5 text-[20px] text-[#1f7668] dark:text-[#4aa399]">schedule</span>
+                  <span class="text-[14px] font-medium text-slate-600 dark:text-slate-300">24/7 Customer Support</span>
                 </li>
               </ul>
             </div>
