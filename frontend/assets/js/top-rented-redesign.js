@@ -129,23 +129,23 @@
     const tone = brandTone(brand || name);
 
     return `
-      <article class="trr-card" style="animation-delay:${idx * 120}ms;--trr-accent:${tone.accent};--trr-accent-soft:${tone.accentSoft};--trr-accent-deep:${tone.accentDeep}">
+      <article class="trr-card" style="animation-delay:${idx * 120}ms;--trr-accent:${tone.accent};--trr-accent-soft:${tone.accentSoft};--trr-accent-deep:${tone.accentDeep}" role="article" aria-label="${brand} ${name} rental car">
         <div class="trr-card-top">
-          <span class="trr-fuel-tag">${fuel}</span>
+          <span class="trr-fuel-tag" aria-label="Fuel type: ${fuel}">${fuel}</span>
         </div>
-        <div class="trr-img-box">
+        <div class="trr-img-box" role="img" aria-label="${brand} ${name} vehicle image">
           <img src="${img}" alt="${brand} ${name}" loading="lazy" decoding="async" onerror="this.src='${FALLBACK_IMG}'" />
         </div>
         <h3 class="trr-brand">${brand}</h3>
-        <div class="trr-specs">
-          <span class="trr-spec">${ICON.seat}<em>${seats} Seater</em></span>
-          <span class="trr-spec">${ICON.gear}<em>${trans}</em></span>
-          <span class="trr-spec">${ICON.fuel}<em>${fuel.split('/')[0]}</em></span>
+        <div class="trr-specs" aria-label="Vehicle specifications">
+          <span class="trr-spec" aria-label="${seats} seater capacity">${ICON.seat}<em>${seats} Seater</em></span>
+          <span class="trr-spec" aria-label="${trans} transmission">${ICON.gear}<em>${trans}</em></span>
+          <span class="trr-spec" aria-label="${fuel.split('/')[0]} fuel type">${ICON.fuel}<em>${fuel.split('/')[0]}</em></span>
         </div>
-        <p class="trr-price">Starting at <strong>${price}</strong><span>/Day</span></p>
+        <p class="trr-price" aria-label="Price starting at ${price} per day">Starting at <strong>${price}</strong><span>/Day</span></p>
         <div class="trr-actions">
-          <a href="${detailUrl}" class="trr-btn trr-btn--details">Details</a>
-          <a href="${bookUrl}" class="trr-btn trr-btn--book">Book Now</a>
+          <a href="${detailUrl}" class="trr-btn trr-btn--details" aria-label="View details for ${brand} ${name}">Details</a>
+          <a href="${bookUrl}" class="trr-btn trr-btn--book" aria-label="Book ${brand} ${name} now">Book Now</a>
         </div>
       </article>`;
   }
@@ -196,7 +196,15 @@
         const pillsHTML = brandList.map(b => {
           const isActive = b.brand === activeBrand;
           const tone = brandTone(b.brand);
-          return `<button type="button" class="trr-pill${isActive ? ' active' : ''}" data-brand="${esc(b.brand)}" style="--trr-accent:${tone.accent};--trr-accent-soft:${tone.accentSoft};--trr-accent-deep:${tone.accentDeep}">
+          return `<button 
+            type="button" 
+            class="trr-pill${isActive ? ' active' : ''}" 
+            data-brand="${esc(b.brand)}" 
+            style="--trr-accent:${tone.accent};--trr-accent-soft:${tone.accentSoft};--trr-accent-deep:${tone.accentDeep}"
+            aria-pressed="${isActive}"
+            aria-label="Filter by ${esc(b.brand)} brand"
+            role="tab"
+            tabindex="${isActive ? '0' : '-1'}">
             ${brandIcon(b.brand)}
             <span>${esc(b.brand)}</span>
           </button>`;
@@ -209,24 +217,60 @@
         const cardsHTML = cards.map((v, i) => renderCard(v, i)).join('');
 
         root.innerHTML = `
-          <section class="trr-section">
+          <section class="trr-section" aria-label="Top Rated Rental Cars">
             <div class="trr-wrap">
               <div class="trr-head">
                 <h2 class="trr-title">Top Rated<br>Rented Cars</h2>
                 <p class="trr-sub">Sed volupat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere.</p>
               </div>
-              <div class="trr-pills">${pillsHTML}</div>
-              <div class="trr-grid">${cardsHTML}</div>
+              <div class="trr-pills" role="tablist" aria-label="Filter by vehicle brand">${pillsHTML}</div>
+              <div class="trr-grid" role="tabpanel" aria-label="${esc(activeBrand)} vehicles">${cardsHTML}</div>
             </div>
           </section>`;
 
-        // Pill click handlers
-        root.querySelectorAll('.trr-pill').forEach(btn => {
+        // Pill click handlers with keyboard support
+        const pills = root.querySelectorAll('.trr-pill');
+        pills.forEach((btn, idx) => {
           btn.addEventListener('click', () => {
             const b = btn.getAttribute('data-brand');
             if (b && b !== activeBrand) {
               activeBrand = b;
               render();
+            }
+          });
+
+          // Keyboard navigation
+          btn.addEventListener('keydown', (e) => {
+            let targetIdx = idx;
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              targetIdx = (idx + 1) % pills.length;
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              targetIdx = (idx - 1 + pills.length) % pills.length;
+            } else if (e.key === 'Home') {
+              e.preventDefault();
+              targetIdx = 0;
+            } else if (e.key === 'End') {
+              e.preventDefault();
+              targetIdx = pills.length - 1;
+            } else {
+              return;
+            }
+            
+            const targetPill = pills[targetIdx];
+            if (targetPill) {
+              const b = targetPill.getAttribute('data-brand');
+              if (b) {
+                activeBrand = b;
+                render();
+                setTimeout(() => {
+                  const newPills = root.querySelectorAll('.trr-pill');
+                  if (newPills[targetIdx]) {
+                    newPills[targetIdx].focus();
+                  }
+                }, 50);
+              }
             }
           });
         });
