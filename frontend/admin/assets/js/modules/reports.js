@@ -77,8 +77,8 @@ export function renderReportsModule({ data, notify }) {
         <h2 class="${classMap.heading}">Advanced Reporting & Analytics</h2>
       </div>
       <div class="flex gap-2">
-        <button id="exportCsvBtn" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Export CSV</button>
-        <button id="exportPdfBtn" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Export PDF</button>
+        <button type="button" id="exportCsvBtn" aria-label="Export revenue report as CSV" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Export CSV</button>
+        <button type="button" id="exportPdfBtn" aria-label="Export revenue report as PDF" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Export PDF</button>
       </div>
     </header>
 
