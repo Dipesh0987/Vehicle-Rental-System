@@ -12,16 +12,43 @@ window.VRSFooter = (function () {
         
         <!-- Car Brand Logos Section -->
         <div class="border-b border-slate-300/50 py-8 dark:border-slate-700">
-          <div class="relative z-10 mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-center gap-8 px-4 opacity-60 grayscale transition-opacity duration-300 hover:opacity-80 sm:gap-12 lg:justify-between">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Ford_logo_flat.svg" alt="Ford" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/9/90/Mercedes-Logo.svg" alt="Mercedes" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Honda_Logo.svg" alt="Honda" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Jeep_logo.svg" alt="Jeep" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Volvo_Iron_Mark_Black.svg" alt="Volvo" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Mitsubishi_logo.svg" alt="Mitsubishi" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Volkswagen_logo_2019.svg" alt="Volkswagen" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Audi_logo.svg" alt="Audi" class="h-8 w-auto object-contain sm:h-10" />
-            <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Hyundai_Motor_Company_logo.svg" alt="Hyundai" class="h-8 w-auto object-contain sm:h-10" />
+          <div class="relative z-10 mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-center gap-8 px-4 sm:gap-12 lg:justify-between">
+            <!-- Ford -->
+            <div class="flex h-12 w-20 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 100 40" fill="currentColor"><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black" font-size="16" font-weight="900">FORD</text></svg>
+            </div>
+            <!-- Mercedes -->
+            <div class="flex h-12 w-12 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="2"><circle cx="25" cy="25" r="20"/><path d="M25 5 L25 25 L40 35 M25 25 L10 35"/></svg>
+            </div>
+            <!-- Honda -->
+            <div class="flex h-12 w-20 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 100 40" fill="currentColor"><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="18" font-weight="700">HONDA</text></svg>
+            </div>
+            <!-- Jeep -->
+            <div class="flex h-12 w-20 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 100 40" fill="currentColor"><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black" font-size="18" font-weight="900">Jeep</text></svg>
+            </div>
+            <!-- Volvo -->
+            <div class="flex h-12 w-20 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 100 40" fill="currentColor"><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="16" font-weight="700">VOLVO</text></svg>
+            </div>
+            <!-- Mitsubishi -->
+            <div class="flex h-12 w-12 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 50 50" fill="currentColor"><path d="M25 10 L35 25 L25 20 L15 25 Z M25 20 L35 25 L25 30 L15 25 Z M25 30 L35 35 L25 40 L15 35 Z"/></svg>
+            </div>
+            <!-- VW -->
+            <div class="flex h-12 w-12 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="2"><circle cx="25" cy="25" r="20"/><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="14" font-weight="700" fill="currentColor">VW</text></svg>
+            </div>
+            <!-- Audi -->
+            <div class="flex h-12 w-24 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 120 40" fill="none" stroke="currentColor" stroke-width="2"><circle cx="20" cy="20" r="12"/><circle cx="40" cy="20" r="12"/><circle cx="60" cy="20" r="12"/><circle cx="80" cy="20" r="12"/></svg>
+            </div>
+            <!-- Hyundai -->
+            <div class="flex h-12 w-20 items-center justify-center opacity-50 grayscale transition hover:opacity-70">
+              <svg class="h-full w-full" viewBox="0 0 100 40" fill="currentColor"><ellipse cx="50" cy="20" rx="30" ry="15" fill="none" stroke="currentColor" stroke-width="3"/><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-size="10" font-weight="700">H</text></svg>
+            </div>
           </div>
         </div>
 
@@ -81,16 +108,17 @@ window.VRSFooter = (function () {
             <!-- Column 4: Newsletter -->
             <div>
               <h3 class="mb-6 text-[16px] font-bold text-slate-800 dark:text-slate-100">Subscribe To Our Newsletter</h3>
-              <form class="mb-6">
-                <div class="flex gap-2">
+              <form class="mb-6" onsubmit="event.preventDefault(); alert('Newsletter subscription coming soon!');">
+                <div class="flex flex-col gap-2 sm:flex-row">
                   <input 
                     type="email" 
                     placeholder="Email Address" 
-                    class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-[13px] text-slate-700 outline-none transition focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b35]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                    required
+                    class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b35]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500"
                   />
                   <button 
                     type="submit" 
-                    class="rounded-lg bg-[#ff6b35] px-6 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#ff5722]"
+                    class="whitespace-nowrap rounded-lg bg-[#ff6b35] px-6 py-2.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#ff5722] hover:shadow-md active:scale-95"
                   >
                     Submit
                   </button>
