@@ -118,17 +118,17 @@ export function renderReportsModule({ data, notify }) {
         <div id="kpiTiles" class="grid grid-cols-1 gap-3 md:grid-cols-3">
           <article data-kpi="repeat" class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
             <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Repeat Customers</p>
-            <p class="mt-1 text-2xl font-extrabold">—</p>
+            <p class="mt-1 kpi-value">—</p>
             <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Returning bookings in selected range</p>
           </article>
           <article data-kpi="window" class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
             <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Avg Booking Window</p>
-            <p class="mt-1 text-2xl font-extrabold">—</p>
+            <p class="mt-1 kpi-value">—</p>
             <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Lead time before pickup</p>
           </article>
           <article data-kpi="segment" class="rounded-xl border border-slate-200 p-3 dark:border-white/10">
             <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Top Segment</p>
-            <p class="mt-1 text-2xl font-extrabold">—</p>
+            <p class="mt-1 kpi-value">—</p>
             <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Highest contribution by revenue</p>
           </article>
         </div>
