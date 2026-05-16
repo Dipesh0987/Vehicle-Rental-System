@@ -752,6 +752,8 @@ function mapBookingToAdminRow(booking) {
     customerUserId: String(booking && booking.customerUserId ? booking.customerUserId : ''),
     customerPhone: String(booking && booking.customerPhone ? booking.customerPhone : ''),
     vehicle: formatLabel(booking && booking.vehicleName ? booking.vehicleName : 'Vehicle'),
+    vehicleName: formatLabel(booking && booking.vehicleName ? booking.vehicleName : 'Vehicle'),
+    vehicleType: formatLabel(booking && booking.vehicleType ? booking.vehicleType : booking && booking.type ? booking.type : ''),
     vehicleId: String(booking && booking.vehicleId ? booking.vehicleId : ''),
     pickupLocation: String(booking && booking.pickupLocation ? booking.pickupLocation : ''),
     userMessage: String(booking && booking.userMessage ? booking.userMessage : ''),
@@ -759,7 +761,7 @@ function mapBookingToAdminRow(booking) {
     start: String(booking && booking.startDate ? booking.startDate : ''),
     end: String(booking && booking.endDate ? booking.endDate : ''),
     pickupTime: String(booking && booking.pickupTime ? booking.pickupTime : ''),
-    type: formatLabel(booking && booking.type ? booking.type : 'Vehicle'),
+    type: formatLabel(booking && booking.vehicleType ? booking.vehicleType : booking && booking.type ? booking.type : 'Vehicle'),
     status: formatLabel(booking && booking.statusLabel ? booking.statusLabel : booking && booking.status ? booking.status : 'Confirmed'),
     paymentDone,
     paymentLabel: paymentDone ? 'Yes' : 'No',
@@ -769,6 +771,10 @@ function mapBookingToAdminRow(booking) {
     remainingAmount,
     total: totalAmount,
     createdAt: String(booking && booking.createdAt ? booking.createdAt : ''),
+    paymentId: String(booking && booking.paymentId ? booking.paymentId : ''),
+    transactionId: String(booking && booking.transactionId ? booking.transactionId : ''),
+    paymentMethod: String(booking && booking.paymentMethod ? booking.paymentMethod : ''),
+    paymentDate: String(booking && booking.paymentDate ? booking.paymentDate : ''),
   };
 }
 
