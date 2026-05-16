@@ -240,7 +240,8 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       return;
     }
 
-    userMessageTop.innerHTML = `<strong class="booking-user-message-label">User Message (${escapeHtml(latestWithMessage.id || latestWithMessage.bookingId || '-')})</strong><span class="booking-user-message-value">: ${escapeHtml(latestWithMessage.userMessage)}</span>`;
+    const bookingId = String(latestWithMessage.bookingId || latestWithMessage.id || '').trim();
+    userMessageTop.innerHTML = `<strong class="booking-user-message-label cursor-pointer hover:underline" data-open-booking-from-message="${escapeHtml(bookingId)}">User Message (${escapeHtml(latestWithMessage.id || latestWithMessage.bookingId || '-')})</strong><span class="booking-user-message-value">: ${escapeHtml(latestWithMessage.userMessage)}</span>`;
     userMessageTop.classList.remove('hidden');
   }
 
@@ -400,6 +401,17 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
   host.addEventListener('click', (event) => {
     const target = event.target;
     if (!target) {
+      return;
+    }
+
+    const messageLink = target.closest('[data-open-booking-from-message]');
+    if (messageLink) {
+      const bookingId = String(messageLink.getAttribute('data-open-booking-from-message') || '').trim();
+      if (bookingId) {
+        bookingUiState.selectedBookingId = bookingId;
+        writeBookingIdToHash(bookingId);
+        rerender?.();
+      }
       return;
     }
 
@@ -686,7 +698,10 @@ function renderBookingRow(row) {
       <p class="booking-customer-meta text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerEmail || '-')}</p>
       <p class="booking-customer-meta text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.customerPhone || '-')}</p>
     </td>
-    <td data-col="vehicle" class="booking-vehicle-cell py-3 pr-3">${escapeHtml(row.vehicle || '-')}</td>
+    <td data-col="vehicle" class="booking-vehicle-cell py-3 pr-3">
+      <p class="font-semibold">${escapeHtml(row.vehicleName || row.vehicle || '-')}</p>
+      ${row.vehicleType ? `<p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(row.vehicleType)}</p>` : ''}
+    </td>
     <td data-col="pickupLocation" class="py-3 pr-3">${escapeHtml(row.pickupLocation || '-')}</td>
     <td data-col="start" class="py-3 pr-3">${escapeHtml(row.start || '-')}</td>
     <td data-col="end" class="py-3 pr-3">${escapeHtml(row.end || '-')}</td>
@@ -759,6 +774,7 @@ function writeBookingIdToHash(value) {
 function renderBookingDetailPage(row) {
   const status = normalizeBookingStatusLabel(row && row.status ? row.status : 'Confirmed');
   const paymentDone = Boolean(row && row.paymentDone);
+  const hasPaymentReceipt = row && (row.paymentId || row.transactionId || row.paidAmount > 0);
 
   return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -775,10 +791,10 @@ function renderBookingDetailPage(row) {
           <div>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Booking Detail Page</p>
             <h3 class="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-slate-900 dark:text-slate-100">${escapeHtml(row && row.id ? row.id : 'Booking')}</h3>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(row && row.customer ? row.customer : 'Customer')} · ${escapeHtml(row && row.vehicle ? row.vehicle : 'Vehicle')}</p>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(row && row.customer ? row.customer : 'Customer')} · ${escapeHtml(row && (row.vehicleName || row.vehicle) ? (row.vehicleName || row.vehicle) : 'Vehicle')}</p>
           </div>
           <div class="flex flex-col items-end gap-2 text-right">
-            <span class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">${escapeHtml(row && row.type ? row.type : 'Vehicle')}</span>
+            <span class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">${escapeHtml(row && (row.type || row.vehicleType) ? (row.type || row.vehicleType) : 'Vehicle')}</span>
             <span class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-300">${paymentDone ? 'Paid' : 'Unpaid'}</span>
           </div>
         </div>
@@ -787,7 +803,7 @@ function renderBookingDetailPage(row) {
           ${renderBookingField('Customer', row && row.customer ? row.customer : '-')}
           ${renderBookingField('Customer Email', row && row.customerEmail ? row.customerEmail : '-')}
           ${renderBookingField('Customer Phone', row && row.customerPhone ? row.customerPhone : '-')}
-          ${renderBookingField('Vehicle', row && row.vehicle ? row.vehicle : '-')}
+          ${renderBookingField('Vehicle', row && (row.vehicleName || row.vehicle) ? (row.vehicleName || row.vehicle) : '-')}
           ${renderBookingField('Pickup Location', row && row.pickupLocation ? row.pickupLocation : '-')}
           ${renderBookingField('Driver Option', row && row.driverOption ? row.driverOption : '-')}
           ${renderBookingField('Date From', row && row.start ? row.start : '-')}
@@ -795,6 +811,21 @@ function renderBookingDetailPage(row) {
           ${renderBookingField('Payment', paymentDone ? 'Yes' : 'No')}
           ${renderBookingField('Total', formatNpr(row && row.total ? row.total : 0))}
         </div>
+
+        ${hasPaymentReceipt ? `
+        <div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+          <h4 class="text-sm font-extrabold text-emerald-800 dark:text-emerald-200">Payment Receipt</h4>
+          <div class="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+            ${row.paymentId ? renderBookingField('Payment ID', row.paymentId) : ''}
+            ${row.transactionId ? renderBookingField('Transaction ID', row.transactionId) : ''}
+            ${row.paymentMethod ? renderBookingField('Payment Method', row.paymentMethod) : ''}
+            ${row.paidAmount ? renderBookingField('Paid Amount', formatNpr(row.paidAmount)) : ''}
+            ${row.remainingAmount ? renderBookingField('Remaining Amount', formatNpr(row.remainingAmount)) : ''}
+            ${row.paymentDate ? renderBookingField('Payment Date', row.paymentDate) : ''}
+            ${row.paymentStatus ? renderBookingField('Payment Status', row.paymentStatus) : ''}
+          </div>
+        </div>
+        ` : ''}
 
         <div class="mt-4 flex flex-wrap gap-2">
           <button type="button" data-edit-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Booking</button>
@@ -839,14 +870,19 @@ function statusOptionStyle(status) {
 function buildTypeOptions(rows, selectedType) {
   const values = new Set(['']);
   (Array.isArray(rows) ? rows : []).forEach((row) => {
-    const type = String(row && row.type ? row.type : '').trim();
+    // Try multiple fields for vehicle type
+    const type = String(row && (row.type || row.vehicleType) ? (row.type || row.vehicleType) : '').trim();
     if (type) {
       values.add(type);
     }
   });
 
   const options = Array.from(values);
-  options.sort((a, b) => a.localeCompare(b));
+  options.sort((a, b) => {
+    if (a === '') return -1;
+    if (b === '') return 1;
+    return a.localeCompare(b);
+  });
 
   if (selectedType && !options.includes(selectedType)) {
     options.push(selectedType);
