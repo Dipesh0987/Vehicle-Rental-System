@@ -652,7 +652,15 @@
 
   function mapBookingRow(row, vehiclesById) {
     var vehicleId = normalizeString(pickFirst(row, ["vehicle_id", "vehicleId"], ""), "");
-    var vehicle = vehiclesById && vehiclesById[vehicleId] ? vehiclesById[vehicleId] : null;
+    
+    // Try to get vehicle from joined data first, then fall back to vehiclesById map
+    var vehicle = null;
+    if (row && row.vehicles) {
+      vehicle = row.vehicles;
+    } else if (vehiclesById && vehiclesById[vehicleId]) {
+      vehicle = vehiclesById[vehicleId];
+    }
+    
     var vehicleName = vehicle
       ? normalizeString(vehicle.brand, "") + " " + normalizeString(vehicle.name, "")
       : "Vehicle";
@@ -703,6 +711,7 @@
       paymentDeadline: paymentDeadlineValue,
       type: type,
       vehicleName: cleanedVehicleName,
+      vehicleType: type,
       quote: {
         baseAmount: toFixedAmount(row.base_amount),
         serviceFee: toFixedAmount(row.service_fee),
@@ -803,7 +812,8 @@
       "id", "booking_code", "customer_user_id", "vehicle_id", "customer_name", "customer_email", "customer_phone", "notes",
       "start_date", "end_date", "pickup_time", "driver_option", "status", "currency", "base_amount", "service_fee", "tax_amount",
       "discount_amount", "total_amount", "created_at", "is_paid", "paid", "payment_status",
-      "paid_amount", "remaining_amount", "payment_deadline"
+      "paid_amount", "remaining_amount", "payment_deadline",
+      "vehicles(id,name,brand,category,type)"
     ];
 
     var legacyColumns = [
