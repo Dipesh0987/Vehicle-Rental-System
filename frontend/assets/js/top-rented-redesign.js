@@ -328,16 +328,18 @@
 /* ── Card ────────────────────────────────────────── */
 .trr-card {
   background: #fff;
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
+  border-radius: 24px;
+  padding: 1.75rem;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   animation: trrSlideUp 0.5s ease both;
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
 .trr-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+  transform: translateY(-10px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.16);
+  border-color: rgba(229, 140, 78, 0.2);
 }
 
 @keyframes trrSlideUp {
