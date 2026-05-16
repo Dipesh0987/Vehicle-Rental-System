@@ -592,12 +592,28 @@
 }
 
 /* ── Responsive ──────────────────────────────────── */
+@media (max-width: 1024px) {
+  .trr-grid { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+  .trr-title { font-size: 3rem; }
+}
+
 @media (max-width: 768px) {
-  .trr-section { padding: 3rem 1rem; }
+  .trr-section { padding: 3.5rem 1rem; }
   .trr-title { font-size: 2.5rem; }
   .trr-sub { font-size: 0.95rem; }
   .trr-brand { font-size: 1.5rem; }
   .trr-img-box { height: 150px; }
+  .trr-pills { gap: 0.6rem; margin-bottom: 2rem; }
+  .trr-pill { padding: 0.6rem 1.25rem; font-size: 0.9rem; }
+}
+
+@media (max-width: 640px) {
+  .trr-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+  .trr-section { padding: 3rem 1rem; }
+  .trr-title { font-size: 2.25rem; }
+  .trr-head { margin-bottom: 2rem; }
+  .trr-pills { margin-bottom: 1.75rem; }
+  .trr-card { padding: 1.5rem; }
 }
 `;
   }
