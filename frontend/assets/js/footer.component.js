@@ -1,6 +1,6 @@
 /**
  * Footer Component for Vehicle Rental System
- * Professional footer with dark/light mode support
+ * Exact design match from reference image
  */
 
 window.VRSFooter = (function () {
@@ -8,157 +8,137 @@ window.VRSFooter = (function () {
 
   function renderFooter() {
     return `
-      <footer class="vrs-footer vrs-theme-scope relative mt-20 overflow-hidden border-t border-slate-200/40 bg-gradient-to-br from-slate-50/95 via-white to-slate-100/90 backdrop-blur-sm dark:border-white/5 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <!-- Enhanced decorative gradient overlays -->
-        <div class="pointer-events-none absolute inset-0 overflow-hidden opacity-60">
-          <div class="absolute -left-32 top-0 h-96 w-96 rounded-full bg-[radial-gradient(circle,rgba(44,118,110,0.15),transparent_65%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(74,163,153,0.2),transparent_65%)]"></div>
-          <div class="absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-[radial-gradient(circle,rgba(229,140,78,0.15),transparent_65%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(226,154,102,0.2),transparent_65%)]"></div>
-          <div class="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(31,118,104,0.08),transparent_70%)] blur-2xl dark:bg-[radial-gradient(circle,rgba(74,163,153,0.12),transparent_70%)]"></div>
+      <footer class="vrs-footer vrs-theme-scope relative mt-20 bg-[#e8e6df] dark:bg-slate-900">
+        
+        <!-- Car Brand Logos Section -->
+        <div class="border-b border-slate-300/50 py-8 dark:border-slate-700">
+          <div class="relative z-10 mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-center gap-8 px-4 opacity-60 grayscale transition-opacity duration-300 hover:opacity-80 sm:gap-12 lg:justify-between">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Ford_logo_flat.svg" alt="Ford" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/90/Mercedes-Logo.svg" alt="Mercedes" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Honda_Logo.svg" alt="Honda" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Jeep_logo.svg" alt="Jeep" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Volvo_Iron_Mark_Black.svg" alt="Volvo" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Mitsubishi_logo.svg" alt="Mitsubishi" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Volkswagen_logo_2019.svg" alt="Volkswagen" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Audi_logo.svg" alt="Audi" class="h-8 w-auto object-contain sm:h-10" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Hyundai_Motor_Company_logo.svg" alt="Hyundai" class="h-8 w-auto object-contain sm:h-10" />
+          </div>
         </div>
 
-        <div class="relative z-10 mx-auto w-full max-w-[1390px] px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-          <!-- Main Footer Content -->
-          <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-5 lg:gap-8 xl:gap-12">
+        <!-- Main Footer Content -->
+        <div class="relative z-10 mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-6 lg:px-8">
+          <div class="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-12">
             
-            <!-- Brand Column -->
-            <div class="lg:col-span-2">
-              <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Luxury Vehicle Service</h3>
-              
-              <p class="mt-5 max-w-md text-[15px] leading-relaxed text-slate-600/90 dark:text-slate-300/90">
-                Your trusted partner for premium vehicle rentals in Nepal. Experience luxury, reliability, and exceptional service on every journey.
+            <!-- Column 1: Brand & Description -->
+            <div>
+              <div class="mb-4">
+                <h2 class="text-[28px] font-black uppercase leading-none tracking-tight text-slate-800 dark:text-slate-100">RENT A CAR</h2>
+                <p class="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Where Quality Meets Affordability</p>
+              </div>
+              <p class="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
+                Aliquam nec pede sit. Aliquam blandit leo vitae tristique auctor. Vestibulum eget urna leo. Suspendisse dignissim semper neque, ut sagittis augue leo. Suspendisse dignissim semper neque, ut sagittis augue faucibus vitae. Nunc vehicula.
               </p>
+            </div>
 
-              <!-- Social Media Links - Only Facebook & Instagram -->
-              <div class="mt-8 flex items-center gap-4">
-                <a href="#" class="group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-white to-slate-50 text-slate-600 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-[#1877f2] hover:text-white hover:shadow-xl hover:shadow-blue-500/25 dark:from-slate-800 dark:to-slate-900 dark:text-slate-300 dark:hover:bg-[#1877f2]" aria-label="Facebook">
-                  <svg class="relative z-10 h-6 w-6 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                  <div class="absolute inset-0 bg-gradient-to-br from-blue-400/0 to-blue-600/0 opacity-0 transition-opacity duration-300 group-hover:opacity-20"></div>
+            <!-- Column 2: Contact Info -->
+            <div>
+              <h3 class="mb-6 text-[16px] font-bold text-slate-800 dark:text-slate-100">Contact Info</h3>
+              <ul class="space-y-4">
+                <li class="flex items-start gap-3">
+                  <span class="material-symbols-outlined mt-0.5 text-[20px] text-slate-500 dark:text-slate-400">location_on</span>
+                  <div class="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
+                    <div>867 Yorkshire Circle</div>
+                    <div>Rocky Mount, North Carolina</div>
+                    <div>27801</div>
+                  </div>
+                </li>
+                <li class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[20px] text-slate-500 dark:text-slate-400">phone</span>
+                  <div class="text-[13px] text-slate-600 dark:text-slate-400">
+                    <div>+61-02448-3389</div>
+                    <div>+61-01506-1386</div>
+                  </div>
+                </li>
+                <li class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[20px] text-slate-500 dark:text-slate-400">mail</span>
+                  <a href="mailto:hello@ac.com" class="text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]">hello@ac.com</a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Column 3: Information Links -->
+            <div>
+              <h3 class="mb-6 text-[16px] font-bold text-slate-800 dark:text-slate-100">Information Links</h3>
+              <ul class="space-y-3">
+                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Book Now</a></li>
+                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Our Locations</a></li>
+                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Terms & Conditions</a></li>
+                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Cancelation</a></li>
+                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Privacy Policy</a></li>
+              </ul>
+            </div>
+
+            <!-- Column 4: Newsletter -->
+            <div>
+              <h3 class="mb-6 text-[16px] font-bold text-slate-800 dark:text-slate-100">Subscribe To Our Newsletter</h3>
+              <form class="mb-6">
+                <div class="flex gap-2">
+                  <input 
+                    type="email" 
+                    placeholder="Email Address" 
+                    class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-[13px] text-slate-700 outline-none transition focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b35]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                  />
+                  <button 
+                    type="submit" 
+                    class="rounded-lg bg-[#ff6b35] px-6 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#ff5722]"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+              
+              <!-- Social Icons -->
+              <div class="flex items-center gap-3">
+                <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:border-[#1877f2] hover:bg-[#1877f2] hover:text-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300" aria-label="Facebook">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                 </a>
-                <a href="#" class="group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-white to-slate-50 text-slate-600 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#e6683c] hover:to-[#bc1888] hover:text-white hover:shadow-xl hover:shadow-pink-500/25 dark:from-slate-800 dark:to-slate-900 dark:text-slate-300" aria-label="Instagram">
-                  <svg class="relative z-10 h-6 w-6 transition-transform duration-300 group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                  <div class="absolute inset-0 bg-gradient-to-br from-pink-400/0 to-purple-600/0 opacity-0 transition-opacity duration-300 group-hover:opacity-20"></div>
+                <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:border-[#E4405F] hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#e6683c] hover:to-[#bc1888] hover:text-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300" aria-label="Instagram">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                </a>
+                <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:border-[#FF0000] hover:bg-[#FF0000] hover:text-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300" aria-label="YouTube">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                </a>
+                <a href="#" class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:border-[#1DA1F2] hover:bg-[#1DA1F2] hover:text-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300" aria-label="Twitter">
+                  <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </a>
               </div>
             </div>
-
-            <!-- Quick Links -->
-            <div class="lg:col-span-1">
-              <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Quick Links</h3>
-              <ul class="space-y-3.5">
-                <li><a href="index.html" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Home</a></li>
-                <li><a href="vehicles.html" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Browse Vehicles</a></li>
-                <li><a href="search.html" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Advanced Search</a></li>
-                <li><a href="#" data-open-bookings-panel class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>My Bookings</a></li>
-                <li><a href="profile-verification.html" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Profile</a></li>
-              </ul>
-            </div>
-
-            <!-- Services -->
-            <div class="lg:col-span-1">
-              <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Services</h3>
-              <ul class="space-y-3.5">
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Daily Rentals</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Weekly Rentals</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Monthly Rentals</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Airport Transfer</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Corporate Rentals</a></li>
-              </ul>
-            </div>
-
-            <!-- Support -->
-            <div class="lg:col-span-1">
-              <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Support</h3>
-              <ul class="space-y-3.5">
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Help Center</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>FAQs</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Contact Us</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Terms & Conditions</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]"><span class="mr-2 text-[#1f7668] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-[#4aa399]">→</span>Privacy Policy</a></li>
-              </ul>
-            </div>
-
-            <!-- Contact Info -->
-            <div class="lg:col-span-1">
-              <h3 class="mb-5 text-[14px] font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-50">Contact</h3>
-              <ul class="space-y-4">
-                <li class="flex items-start gap-3">
-                  <span class="material-symbols-outlined mt-0.5 text-[20px] text-[#1f7668] dark:text-[#4aa399]">location_on</span>
-                  <span class="text-[14px] font-medium leading-relaxed text-slate-600 dark:text-slate-300">Thamel, Kathmandu<br/>Nepal</span>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-[20px] text-[#1f7668] dark:text-[#4aa399]">phone</span>
-                  <a href="tel:+9771234567890" class="text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]">+977 123-456-7890</a>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-[20px] text-[#1f7668] dark:text-[#4aa399]">mail</span>
-                  <a href="mailto:info@rentavehicle.com" class="text-[14px] font-medium text-slate-600 transition-all duration-200 hover:translate-x-1 hover:text-[#1f7668] dark:text-slate-300 dark:hover:text-[#4aa399]">info@rentavehicle.com</a>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="material-symbols-outlined mt-0.5 text-[20px] text-[#1f7668] dark:text-[#4aa399]">schedule</span>
-                  <span class="text-[14px] font-medium text-slate-600 dark:text-slate-300">24/7 Customer Support</span>
-                </li>
-              </ul>
-            </div>
           </div>
+        </div>
 
-          <!-- Divider -->
-          <div class="my-10 h-px bg-gradient-to-r from-transparent via-slate-300/60 to-transparent dark:via-slate-600/40"></div>
-
-          <!-- Bottom Bar -->
-          <div class="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <p class="text-center text-[13px] font-medium text-slate-500 dark:text-slate-400">
-              © ${new Date().getFullYear()} <span class="font-semibold text-slate-700 dark:text-slate-300">Rent A Vehicle Nepal</span>. All rights reserved.
-            </p>
-            
-            <div class="flex flex-wrap items-center justify-center gap-5 text-[13px] font-medium">
-              <a href="#" class="text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:text-[#1f7668] dark:text-slate-400 dark:hover:text-[#4aa399]">Privacy</a>
-              <span class="text-slate-300 dark:text-slate-600">•</span>
-              <a href="#" class="text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:text-[#1f7668] dark:text-slate-400 dark:hover:text-[#4aa399]">Terms</a>
-              <span class="text-slate-300 dark:text-slate-600">•</span>
-              <a href="#" class="text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:text-[#1f7668] dark:text-slate-400 dark:hover:text-[#4aa399]">Sitemap</a>
-            </div>
-          </div>
-
-          <!-- Trust Badges -->
-          <div class="mt-10 flex flex-wrap items-center justify-center gap-4 border-t border-slate-200/40 pt-8 dark:border-white/5">
-            <div class="group flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white/80 px-5 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-white/5">
-              <span class="material-symbols-outlined text-[22px] text-emerald-600 transition-transform duration-300 group-hover:scale-110 dark:text-emerald-400">verified</span>
-              <span class="text-[13px] font-bold text-slate-700 dark:text-slate-300">Verified Business</span>
-            </div>
-            <div class="group flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white/80 px-5 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-white/5">
-              <span class="material-symbols-outlined text-[22px] text-blue-600 transition-transform duration-300 group-hover:scale-110 dark:text-blue-400">security</span>
-              <span class="text-[13px] font-bold text-slate-700 dark:text-slate-300">Secure Payments</span>
-            </div>
-            <div class="group flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white/80 px-5 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-white/5">
-              <span class="material-symbols-outlined text-[22px] text-amber-600 transition-transform duration-300 group-hover:scale-110 dark:text-amber-400">star</span>
-              <span class="text-[13px] font-bold text-slate-700 dark:text-slate-300">4.8/5 Rating</span>
-            </div>
-          </div>
+        <!-- Copyright -->
+        <div class="border-t border-slate-300/50 py-6 dark:border-slate-700">
+          <p class="text-center text-[12px] text-slate-500 dark:text-slate-400">
+            Copyright ©${new Date().getFullYear()} All rights reserved
+          </p>
         </div>
       </footer>
     `;
   }
 
   function init() {
-    // Check if footer already exists
     if (document.querySelector('.vrs-footer')) {
       return;
     }
-
-    // Append footer to body
     const footerHTML = renderFooter();
     document.body.insertAdjacentHTML('beforeend', footerHTML);
   }
 
-  // Auto-initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  return {
-    init,
-    renderFooter
-  };
+  return { init, renderFooter };
 })();
