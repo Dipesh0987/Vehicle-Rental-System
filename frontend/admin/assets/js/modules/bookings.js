@@ -290,6 +290,55 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
     }
 
     const selectElement = event.target && event.target.closest('[data-booking-status-select]');
+    const detailStatusSelect = event.target && event.target.closest('[data-booking-detail-status-select]');
+    
+    if (detailStatusSelect) {
+      const bookingId = String(detailStatusSelect.getAttribute('data-detail-booking-id') || '').trim();
+      const previousStatus = normalizeBookingStatusLabel(detailStatusSelect.getAttribute('data-detail-current-status') || '');
+      const nextStatus = normalizeBookingStatusLabel(detailStatusSelect.value);
+
+      if (!bookingId || previousStatus === nextStatus) {
+        return;
+      }
+
+      if (!bookingService || typeof bookingService.updateBookingStatus !== 'function') {
+        notify('Booking status update service is unavailable.', 'error');
+        detailStatusSelect.value = previousStatus;
+        detailStatusSelect.className = statusSelectClass(previousStatus, false);
+        return;
+      }
+
+      detailStatusSelect.disabled = true;
+      try {
+        await bookingService.updateBookingStatus({
+          bookingId,
+          status: nextStatus,
+        });
+
+        detailStatusSelect.setAttribute('data-detail-current-status', nextStatus);
+        await refreshRowsFromDatabase(`Booking status updated to ${nextStatus}.`);
+        
+        // Update the detail page to reflect the new status
+        if (rerender) {
+          rerender();
+        }
+      } catch (error) {
+        const message = bookingService && typeof bookingService.toPublicError === 'function'
+          ? bookingService.toPublicError(error, 'Unable to update booking status right now.')
+          : 'Unable to update booking status right now.';
+        notify(message, 'error');
+        detailStatusSelect.value = previousStatus;
+        detailStatusSelect.setAttribute('data-detail-current-status', previousStatus);
+      } finally {
+        if (host.isConnected) {
+          const activeStatus = String(detailStatusSelect.getAttribute('data-detail-current-status') || detailStatusSelect.value);
+          detailStatusSelect.className = statusSelectClass(activeStatus, false);
+          detailStatusSelect.disabled = false;
+        }
+      }
+      return;
+    }
+    
     if (selectElement) {
       const rowElement = selectElement.closest('tr[data-booking-id]');
       const previousStatus = normalizeBookingStatusLabel(rowElement ? rowElement.getAttribute('data-current-status') : '');
@@ -775,6 +824,7 @@ function renderBookingDetailPage(row) {
   const status = normalizeBookingStatusLabel(row && row.status ? row.status : 'Confirmed');
   const paymentDone = Boolean(row && row.paymentDone);
   const hasPaymentReceipt = row && (row.paymentId || row.transactionId || row.paidAmount > 0);
+  const bookingId = String(row && row.bookingId ? row.bookingId : '');
 
   return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -782,7 +832,12 @@ function renderBookingDetailPage(row) {
         <span class="material-symbols-outlined text-[16px]">west</span>
         <span>Back to Bookings</span>
       </button>
-      <span class="${statusSelectClass(status, false)} inline-flex w-auto items-center">${escapeHtml(status)}</span>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold text-slate-600 dark:text-slate-400">Status:</span>
+        <select data-booking-detail-status-select data-detail-booking-id="${escapeHtml(bookingId)}" data-detail-current-status="${escapeHtml(status)}" class="${statusSelectClass(status, false)}">
+          ${BOOKING_STATUS_OPTIONS.map((option) => `<option value="${option}" ${status === option ? 'selected' : ''}>${option}</option>`).join('')}
+        </select>
+      </div>
     </div>
 
     <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
