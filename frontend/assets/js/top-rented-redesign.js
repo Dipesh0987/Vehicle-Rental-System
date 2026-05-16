@@ -82,12 +82,29 @@
 
   /* ── Skeleton loading ──────────────────────────── */
   function skeletonHTML() {
-    const card = `<div class="trr-skel-card"><div class="trr-skel-badge"></div><div class="trr-skel-img"></div><div class="trr-skel-line lg"></div><div class="trr-skel-specs"></div><div class="trr-skel-line md"></div><div class="trr-skel-btns"><div class="trr-skel-btn"></div><div class="trr-skel-btn"></div></div></div>`;
-    return `<section class="trr-section"><div class="trr-wrap">
-      <div class="trr-head"><div class="trr-skel-title"></div><div class="trr-skel-sub"></div></div>
-      <div class="trr-pills">${'<div class="trr-skel-pill"></div>'.repeat(4)}</div>
-      <div class="trr-grid">${card.repeat(3)}</div>
-    </div></section>`;
+    const card = `<div class="trr-skel-card">
+      <div class="trr-skel-badge"></div>
+      <div class="trr-skel-img"></div>
+      <div class="trr-skel-line lg"></div>
+      <div class="trr-skel-specs"></div>
+      <div class="trr-skel-line md"></div>
+      <div class="trr-skel-btns">
+        <div class="trr-skel-btn"></div>
+        <div class="trr-skel-btn"></div>
+      </div>
+    </div>`;
+    return `<section class="trr-section">
+      <div class="trr-wrap">
+        <div class="trr-head">
+          <div class="trr-skel-title"></div>
+          <div class="trr-skel-sub"></div>
+        </div>
+        <div class="trr-pills">
+          ${Array(5).fill('<div class="trr-skel-pill"></div>').join('')}
+        </div>
+        <div class="trr-grid">${card.repeat(3)}</div>
+      </div>
+    </section>`;
   }
 
   /* ── SVG Icons ─────────────────────────────────── */
@@ -407,17 +424,33 @@ html[data-theme="dark"] .trr-card:hover {
   margin-bottom: 1.25rem;
   background: linear-gradient(180deg, rgba(var(--trr-accent-soft, 229, 140, 78), 0.1), transparent);
   border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.trr-img-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(229, 140, 78, 0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.trr-card:hover .trr-img-box::before {
+  opacity: 1;
 }
 
 .trr-img-box img {
   max-height: 100%;
   max-width: 100%;
   object-fit: contain;
-  transition: transform 0.4s ease;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
 }
 
 .trr-card:hover .trr-img-box img {
-  transform: scale(1.05);
+  transform: scale(1.08) rotate(1deg);
 }
 
 .trr-brand {
