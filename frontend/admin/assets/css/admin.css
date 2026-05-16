@@ -198,6 +198,12 @@ body {
   gap: 0.45rem;
 }
 
+/* KPI tile value styling */
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
 .assistant-message--user .assistant-message__bubble {
   align-self: flex-end;
 }
