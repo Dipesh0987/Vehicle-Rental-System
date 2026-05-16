@@ -260,9 +260,25 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
     await refreshRowsFromDatabase('Bookings refreshed from database');
   });
 
-  host.querySelector('#toggleBookingColumnsBtn')?.addEventListener('click', () => {
+  host.querySelector('#toggleBookingColumnsBtn')?.addEventListener('click', (event) => {
+    event.stopPropagation();
     renderColumnPanel();
     columnPanel?.classList.toggle('hidden');
+  });
+
+  // Close column panel when clicking outside
+  document.addEventListener('click', (event) => {
+    if (!columnPanel || columnPanel.classList.contains('hidden')) {
+      return;
+    }
+
+    const toggleButton = host.querySelector('#toggleBookingColumnsBtn');
+    const clickedInsidePanel = columnPanel.contains(event.target);
+    const clickedToggleButton = toggleButton && toggleButton.contains(event.target);
+
+    if (!clickedInsidePanel && !clickedToggleButton) {
+      columnPanel.classList.add('hidden');
+    }
   });
 
   host.addEventListener('change', async (event) => {
