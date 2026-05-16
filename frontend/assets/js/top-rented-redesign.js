@@ -447,41 +447,44 @@
 
 .trr-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .trr-btn {
   flex: 1;
-  padding: 0.85rem 1.25rem;
+  padding: 0.95rem 1.5rem;
   border-radius: 9999px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   text-align: center;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-}
-
-.trr-btn--details {
-  background: linear-gradient(135deg, #E58C4E, #D67A3A);
-  color: #fff;
   border: none;
 }
 
+.trr-btn--details {
+  background: linear-gradient(135deg, #E58C4E 0%, #D67A3A 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(229, 140, 78, 0.25);
+}
+
 .trr-btn--details:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(229, 140, 78, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(229, 140, 78, 0.35);
+  filter: brightness(1.05);
 }
 
 .trr-btn--book {
-  background: transparent;
+  background: #C9D4D0;
   color: #374151;
-  border: 2px solid #C9D4D0;
+  border: 2px solid transparent;
 }
 
 .trr-btn--book:hover {
-  background: #C9D4D0;
-  transform: translateY(-2px);
+  background: #B8C4BF;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 /* ── Empty / Error ───────────────────────────────── */
