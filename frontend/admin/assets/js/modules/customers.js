@@ -1,5 +1,5 @@
 import { classMap } from '../config.js';
-import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
+import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
 const customerUiState = {
@@ -552,6 +552,66 @@ function applyStatusFilter(rows, statusFilter) {
 
     return key === filter;
   });
+}
+
+function collectReviewQueue(rows) {
+  return sortCustomersForReviewQueue(
+    (Array.isArray(rows) ? rows : []).filter((row) => {
+      const key = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted').key;
+      return key === 'pending' || key === 'rejected' || key === 'not_submitted';
+    })
+  );
+}
+
+function toTimestamp(value) {
+  if (!value) return 0;
+  if (typeof value === 'number') return value;
+  if (value && typeof value.toMillis === 'function') return value.toMillis();
+  if (value && typeof value.seconds === 'number') return value.seconds * 1000;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function sortCustomersForReviewQueue(rows) {
+  const list = Array.isArray(rows) ? rows.slice() : [];
+
+  list.sort((left, right) => {
+    const leftPriority = customerReviewPriority(left);
+    const rightPriority = customerReviewPriority(right);
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    const leftSubmitted = toTimestamp(left && left.verificationSubmittedAt ? left.verificationSubmittedAt : '');
+    const rightSubmitted = toTimestamp(right && right.verificationSubmittedAt ? right.verificationSubmittedAt : '');
+    if (leftSubmitted !== rightSubmitted) {
+      return rightSubmitted - leftSubmitted;
+    }
+
+    const leftUpdated = toTimestamp(left && left.updatedAt ? left.updatedAt : '');
+    const rightUpdated = toTimestamp(right && right.updatedAt ? right.updatedAt : '');
+    if (leftUpdated !== rightUpdated) {
+      return rightUpdated - leftUpdated;
+    }
+
+    const leftCreated = toTimestamp(left && left.createdAt ? left.createdAt : '');
+    const rightCreated = toTimestamp(right && right.createdAt ? right.createdAt : '');
+    return rightCreated - leftCreated;
+  });
+
+  return list;
+}
+
+function customerReviewPriority(customer) {
+  const status = verificationStatusMeta(customer && customer.verificationStatus ? customer.verificationStatus : 'not_submitted').key;
+  const submittedAt = toTimestamp(customer && customer.verificationSubmittedAt ? customer.verificationSubmittedAt : '');
+  const hasSubmission = submittedAt > 0;
+
+  if (status === 'pending' && hasSubmission) return 0;
+  if (status === 'rejected' && hasSubmission) return 1;
+  if (status === 'not_submitted') return 2;
+  if (status === 'approved') return 3;
+  return 4;
 }
 
 function verificationStatusMeta(statusValue) {

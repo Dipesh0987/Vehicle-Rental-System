@@ -8,20 +8,26 @@ export function createCatalogService({ data }) {
     type: row.type,
     seats: Number(row.seats || 5),
     fuel_type: row.fuel_type,
+    fuelType: row.fuel_type || 'Petrol',
     status: row.status,
     primary_image_url: row.primary_image_url,
-    category: row.category,
-    transmission: row.transmission,
+    category: row.category || row.type || 'Vehicle',
+    transmission: row.transmission || 'Automatic',
     rating: Number(row.rating || 4.6),
     location: row.location,
     available: row.available,
     is_active: row.is_active,
-    brand: row.brand,
+    brand: row.brand || 'General',
     vehicle_number: row.vehicle_number || '',
+    vehicleNumber: row.vehicle_number || '',
     price_per_day: Number(row.price_per_day || 0),
     daily: Number(row.price_per_day || 0),
-    weekly: 0,
-    seasonal: 0,
+    weekly: Math.round(Number(row.price_per_day || 0) * 6.2),
+    seasonal: Math.round(Number(row.price_per_day || 0) * 24),
+    addedAt: row.created_at || row.updated_at || '',
+    addedDate: row.created_at || row.updated_at || '',
+    createdAt: row.created_at || '',
+    updatedAt: row.updated_at || '',
     image: row.primary_image_url || row.image_url || 'https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=640&q=80',
   });
 
@@ -47,14 +53,14 @@ export function createCatalogService({ data }) {
     const client = await getClient();
     const { data: rows, error } = await client
       .from(TABLE_NAME)
-      .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number')
-      .order('updated_at', { ascending: false });
+      .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number,created_at,updated_at')
+      .order('created_at', { ascending: false });
 
     if (error) {
       const fallback = await client
         .from(TABLE_NAME)
-        .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number')
-        .order('id', { ascending: true });
+        .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number,created_at,updated_at')
+        .order('id', { ascending: false });
 
       if (fallback.error) {
         throw new Error(fallback.error.message || 'Failed to load vehicles from database.');
@@ -135,6 +141,11 @@ export function createCatalogService({ data }) {
         throw new Error('Vehicle type / category is required.');
       }
 
+      // Resolve vehicle_number from multiple possible key names
+      const rawVehicleNumber = String(
+        vehicleInput.vehicle_number || vehicleInput.vehicleNumber || vehicleInput.registrationNumber || ''
+      ).trim().toUpperCase();
+
       const normalized = {
         name: String(vehicleInput.name).trim(),
         type: vehicleInput.type || vehicleInput.category,
@@ -147,6 +158,7 @@ export function createCatalogService({ data }) {
         transmission: vehicleInput.transmission || 'Automatic',
         rating: Number.isFinite(ratingNumber) ? ratingNumber : 4.6,
         location: vehicleInput.location || '',
+        vehicle_number: rawVehicleNumber || null,
         // Admin create form does not send these flags, so default to true so
         // newly added vehicles immediately appear in the public catalog
         // instead of being silently created as hidden / inactive.

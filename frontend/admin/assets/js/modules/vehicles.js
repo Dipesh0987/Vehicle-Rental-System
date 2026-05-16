@@ -12,6 +12,7 @@ const FALLBACK_ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png
 
 const vehicleUiState = {
   selectedVehicleId: '',
+  currentPage: 1,
 };
 
 export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, reloadVehiclesData, rerender }) {
@@ -25,15 +26,18 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
     'id',
     'name',
     'vehicleNumber',
+    'vehicle_number',
     'brand',
     'category',
     'status',
     'fuelType',
+    'fuel_type',
     'transmission',
+    'location',
   ]);
   const sorted = [...filtered].sort((a, b) => {
-    const dateA = new Date(a?.addedAt || a?.addedDate || 0).getTime();
-    const dateB = new Date(b?.addedAt || b?.addedDate || 0).getTime();
+    const dateA = new Date(a?.addedAt || a?.addedDate || a?.createdAt || a?.updatedAt || 0).getTime();
+    const dateB = new Date(b?.addedAt || b?.addedDate || b?.createdAt || b?.updatedAt || 0).getTime();
 
     if (dateA !== dateB) {
       return dateB - dateA;
@@ -41,7 +45,14 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
 
     return String(a?.name || '').localeCompare(String(b?.name || ''));
   });
-  const paged = paginateRows(sorted, 1, 6);
+
+  // Reset page if search query changed or current page exceeds available pages
+  const maxPage = Math.max(1, Math.ceil(sorted.length / 8));
+  if (vehicleUiState.currentPage > maxPage) {
+    vehicleUiState.currentPage = 1;
+  }
+
+  const paged = paginateRows(sorted, vehicleUiState.currentPage, 8);
 
   const canCreateCatalog =
     Boolean(catalogService) &&
@@ -107,7 +118,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
                       </div>
                     </td>
                     <td class="py-3 pr-3">
-                      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(vehicle.vehicleNumber || '-')}</span>
+                      <span class="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs font-bold tracking-wider text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">${escapeHtml(vehicle.vehicleNumber || vehicle.vehicle_number || '-')}</span>
                     </td>
                     <td class="py-3 pr-3">${escapeHtml(vehicle.category || 'Vehicle')}</td>
                     <td class="py-3 pr-3">
@@ -158,7 +169,10 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
 
   const pagerHost = host.querySelector('#vehiclePager');
   if (pagerHost) {
-    pagerHost.appendChild(renderPagination(paged, () => notify('Pagination demo wired in utility layer')));
+    pagerHost.appendChild(renderPagination(paged, (nextPage) => {
+      vehicleUiState.currentPage = nextPage;
+      rerender?.();
+    }));
   }
 
   host.querySelector('#refreshVehiclesBtn')?.addEventListener('click', async () => {
@@ -352,7 +366,7 @@ function renderVehicleDetailPage(vehicle) {
           <div class="min-w-0 flex-1">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Vehicle Detail Page</p>
             <h3 class="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-slate-900 dark:text-slate-100">${escapeHtml(formatVehicleTitle(vehicle))}</h3>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')} · ${escapeHtml(vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : 'No vehicle number')}</p>
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')} · <span class="font-mono font-semibold tracking-wider">${escapeHtml(vehicle && (vehicle.vehicleNumber || vehicle.vehicle_number) ? (vehicle.vehicleNumber || vehicle.vehicle_number) : 'No vehicle number')}</span></p>
             <div class="mt-4 flex flex-wrap gap-2">
               <button data-edit-id="${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Vehicle</button>
               <button data-delete-id="${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')}" class="rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600">Delete Vehicle</button>
@@ -379,7 +393,7 @@ function renderVehicleDetailPage(vehicle) {
           <h4 class="text-sm font-extrabold">Vehicle Snapshot</h4>
           <div class="mt-3 space-y-2 text-xs">
             ${renderVehicleField('Vehicle ID', vehicle && vehicle.id ? vehicle.id : '-')}
-            ${renderVehicleField('Vehicle Number', vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : '-')}
+            ${renderVehicleField('Vehicle Number', vehicle && (vehicle.vehicleNumber || vehicle.vehicle_number) ? (vehicle.vehicleNumber || vehicle.vehicle_number) : '-')}
             ${renderVehicleField('Status', vehicle && vehicle.status ? vehicle.status : '-')}
           </div>
         </article>
@@ -625,7 +639,8 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
 
       <label class="block space-y-1">
         <span class="text-xs font-semibold">Vehicle Number <span class="text-rose-500">*</span></span>
-        <input name="vehicleNumber" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="BA-2-CHA-1234" />
+        <input name="vehicleNumber" class="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono uppercase tracking-wider dark:border-white/10 dark:bg-white/5" placeholder="BA-2-CHA-1234" />
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">Format: <span class="font-mono font-semibold">XX-0-XXX-0000</span> (e.g. BA-2-CHA-1234)</p>
         <p data-error-for="vehicleNumber" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
       </label>
 
@@ -695,19 +710,6 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
         <input name="features" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" placeholder="AC, GPS, Bluetooth" />
       </label>
 
-      <div class="space-y-2 rounded-2xl border border-[#d8e1dc] bg-[#f7fbf9] px-3 py-3 dark:border-white/10 dark:bg-white/5">
-        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">Bulk Add Multiple Vehicles</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Provide one vehicle per line. When bulk rows are present, single-vehicle fields above are ignored.</p>
-        <textarea
-          name="bulkRows"
-          rows="5"
-          class="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-[12px] dark:border-white/10 dark:bg-white/5"
-          placeholder="Toyota Yaris|BA-2-CHA-1111|Sedan|Petrol|5|4500|Available|Automatic|Kathmandu|AC, GPS&#10;Hyundai Creta|BA-3-PA-2222|SUV|Diesel|7|6200|Available|Automatic|Pokhara|Bluetooth, Reverse Camera"
-        ></textarea>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400">Format: name|vehicleNumber|type|fuelType|seats|dailyPrice|status(optional)|transmission(optional)|location(optional)|features(optional)</p>
-        <p data-error-for="bulkRows" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
-      </div>
-
       <div class="space-y-2">
         <label class="block text-xs font-semibold">Vehicle Images <span class="text-rose-500">*</span></label>
         <input id="vehicleImageInput" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" />
@@ -719,8 +721,16 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
         <div id="vehicleImagePreviewGrid" class="grid grid-cols-2 gap-2"></div>
       </div>
 
+      <div id="vehicleSuccessBanner" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 dark:border-emerald-400/30 dark:bg-emerald-500/10">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-300">check_circle</span>
+          <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-200" id="vehicleSuccessText">Vehicle added successfully!</p>
+        </div>
+      </div>
+
       <div class="flex items-center justify-end gap-2 pt-2">
         <button id="vehicleFormCancel" type="button" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Cancel</button>
+        <button id="vehicleFormAddAnother" type="button" class="rounded-xl border border-brand-500 px-4 py-2 text-sm font-semibold text-brand-600 transition hover:bg-brand-50 dark:border-brand-400 dark:text-brand-300 dark:hover:bg-brand-500/10">Add & Add Another</button>
         <button id="vehicleFormSubmit" type="submit" class="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white">Add Vehicle</button>
       </div>
     </form>
@@ -760,6 +770,11 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
   const previewGrid = form.querySelector('#vehicleImagePreviewGrid');
   const globalError = form.querySelector('#vehicleGlobalError');
   const submitBtn = form.querySelector('#vehicleFormSubmit');
+  const addAnotherBtn = form.querySelector('#vehicleFormAddAnother');
+  const successBanner = form.querySelector('#vehicleSuccessBanner');
+  const successText = form.querySelector('#vehicleSuccessText');
+  let addAnotherMode = false;
+  let addedCount = 0;
 
   const closeOverlay = () => {
     state.previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -792,7 +807,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
   };
 
   const applyErrors = (errors) => {
-    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'rating', 'images', 'bulkRows'].forEach((key) => {
+    ['name', 'vehicleNumber', 'type', 'fuelType', 'seats', 'pricePerDay', 'rating', 'images'].forEach((key) => {
       setFieldError(key, errors[key] || '');
     });
   };
@@ -871,6 +886,55 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
     closeOverlay();
   });
 
+  addAnotherBtn?.addEventListener('click', () => {
+    addAnotherMode = true;
+    form.requestSubmit?.() || form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+
+  const resetFormForAnother = () => {
+    // Reset form fields but keep category/status/transmission/fuel defaults
+    const savedCategory = form.querySelector('[name="category"]')?.value || '';
+    const savedStatus = form.querySelector('[name="status"]')?.value || 'Available';
+    const savedTransmission = form.querySelector('[name="transmission"]')?.value || 'Automatic';
+    const savedFuelType = form.querySelector('[name="fuelType"]')?.value || '';
+    const savedLocation = form.querySelector('[name="location"]')?.value || '';
+
+    form.reset();
+
+    // Restore defaults that are likely the same for the next vehicle
+    if (savedCategory) form.querySelector('[name="category"]').value = savedCategory;
+    if (savedStatus) form.querySelector('[name="status"]').value = savedStatus;
+    if (savedTransmission) form.querySelector('[name="transmission"]').value = savedTransmission;
+    if (savedFuelType) form.querySelector('[name="fuelType"]').value = savedFuelType;
+    if (savedLocation) form.querySelector('[name="location"]').value = savedLocation;
+    form.querySelector('[name="seats"]').value = '5';
+    form.querySelector('[name="rating"]').value = '4.6';
+
+    // Clear images
+    state.files = [];
+    refreshImagePreview();
+
+    // Clear errors
+    applyErrors({});
+    setGlobalError('');
+
+    // Show success banner briefly
+    addedCount += 1;
+    if (successBanner && successText) {
+      successText.textContent = `Vehicle added successfully! (${addedCount} added this session)`;
+      successBanner.classList.remove('hidden');
+      setTimeout(() => {
+        successBanner.classList.add('hidden');
+      }, 4000);
+    }
+
+    // Scroll to top of form
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Focus the name field
+    form.querySelector('[name="name"]')?.focus();
+  };
+
   refreshImagePreview();
 
   form.addEventListener('submit', async (event) => {
@@ -884,7 +948,6 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
     }
 
     const formData = new FormData(form);
-    const bulkRowsRaw = String(formData.get('bulkRows') || '').trim();
 
     const values = {
       name: String(formData.get('name') || '').trim(),
@@ -905,84 +968,11 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       images: state.files.slice(),
     };
 
-    if (bulkRowsRaw) {
-      const parsedBulk = parseBulkVehicleRows(bulkRowsRaw, limits);
-      const bulkErrors = {};
-
-      if (!parsedBulk.rows.length) {
-        bulkErrors.bulkRows = parsedBulk.errors[0] || 'Provide at least one valid bulk row.';
-      } else if (parsedBulk.errors.length) {
-        bulkErrors.bulkRows = parsedBulk.errors[0];
-      }
-
-      applyErrors(bulkErrors);
-
-      if (Object.keys(bulkErrors).length) {
-        const summaryMessage = parsedBulk.errors.slice(0, 2).join(' ');
-        setGlobalError(summaryMessage || 'Bulk input validation failed.');
-        notify('Please resolve bulk input errors before submitting.', 'warn');
-        return;
-      }
-
-      submitBtn?.setAttribute('disabled', 'true');
-      submitBtn?.classList.add('opacity-70', 'cursor-not-allowed');
-
-      try {
-        if (typeof catalogService.saveVehicle !== 'function') {
-          throw new Error('Bulk add requires catalog save mode.');
-        }
-
-        let createdCount = 0;
-
-        for (let i = 0; i < parsedBulk.rows.length; i += 1) {
-          const row = parsedBulk.rows[i];
-          // eslint-disable-next-line no-await-in-loop
-          await catalogService.saveVehicle({
-            brand: deriveBrandFromVehicleName(row.name),
-            name: row.name,
-            vehicleNumber: row.vehicleNumber,
-            category: row.type,
-            type: row.type,
-            status: row.status,
-            transmission: row.transmission,
-            fuelType: row.fuelType,
-            seats: row.seats,
-            daily: row.pricePerDay,
-            pricePerDay: row.pricePerDay,
-            imageUrls: [DEFAULT_IMAGE_URL],
-            primaryImageUrl: DEFAULT_IMAGE_URL,
-            features: row.features,
-            location: row.location,
-            rating: 4.6,
-          });
-          createdCount += 1;
-        }
-
-        notify(`${createdCount} vehicles added to database`, 'success');
-        closeOverlay();
-        if (typeof reloadVehiclesData === 'function') {
-          await reloadVehiclesData();
-        }
-      } catch (error) {
-        const errorMessage =
-          catalogService && typeof catalogService.toPublicError === 'function'
-            ? catalogService.toPublicError(error, 'Unable to save bulk vehicles right now.')
-            : String(error?.message || 'Unable to save bulk vehicles right now.');
-
-        setGlobalError(errorMessage);
-        notify(errorMessage, 'error');
-      } finally {
-        submitBtn?.removeAttribute('disabled');
-        submitBtn?.classList.remove('opacity-70', 'cursor-not-allowed');
-      }
-
-      return;
-    }
-
     const errors = {};
 
     if (!values.name) errors.name = 'Vehicle name is required.';
     if (!values.vehicleNumber) errors.vehicleNumber = 'Vehicle number is required.';
+    else if (!isValidVehicleNumberFormat(values.vehicleNumber)) errors.vehicleNumber = 'Invalid format. Use XX-0-XXX-0000 (e.g. BA-2-CHA-1234).';
     if (!values.type) errors.type = 'Vehicle type is required.';
     if (!values.fuelType) errors.fuelType = 'Fuel type is required.';
 
@@ -1058,9 +1048,19 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       }
 
       notify('Vehicle added to database', 'success');
-      closeOverlay();
-      if (typeof reloadVehiclesData === 'function') {
-        await reloadVehiclesData();
+
+      if (addAnotherMode) {
+        addAnotherMode = false;
+        resetFormForAnother();
+        // Reload data in background so the table updates
+        if (typeof reloadVehiclesData === 'function') {
+          reloadVehiclesData();
+        }
+      } else {
+        closeOverlay();
+        if (typeof reloadVehiclesData === 'function') {
+          await reloadVehiclesData();
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -1096,6 +1096,15 @@ async function readFilesAsDataUrls(files) {
   }
 
   return values;
+}
+
+function isValidVehicleNumberFormat(value) {
+  const cleaned = String(value || '').trim().toUpperCase();
+  if (!cleaned) return false;
+  // Nepali vehicle number format: XX-0-XXX-0000
+  // Examples: BA-2-CHA-1234, BA-3-PA-2222, LU-1-KHA-5678
+  // Pattern: 2 letters, dash, 1-2 digits, dash, 2-3 letters, dash, 4 digits
+  return /^[A-Z]{2}-\d{1,2}-[A-Z]{2,3}-\d{4}$/.test(cleaned);
 }
 
 function escapeHtml(value) {

@@ -2,3 +2,31 @@ frontend/assets/js/supabase.config.local.js
 
 supabase/.temp/
 
+# IDE settings
+.vscode/
+
+# Node modules
+node_modules/
+
+# Documentation files (session-specific)
+*.md
+!README.md
+!database/DATABASE_DESIGN.md
+!docs/*.md
+
+# Scripts
+scripts/
+
+# Server
+server/
+
+# Environment
+.env.example
+
+# Batch files
+*.bat
+
+# SQL dumps
+supabase_migration.sql
+update_images.sql
+

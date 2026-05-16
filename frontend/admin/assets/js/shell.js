@@ -83,6 +83,86 @@ const renderQuickActions = () =>
     )
     .join('');
 
+export function renderShell() {
+  return `
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
+    <aside id="sidebar" class="sticky top-0 hidden h-screen w-[300px] flex-col border-r border-black/10 bg-white/75 p-5 backdrop-blur-xl lg:flex dark:border-white/10 dark:bg-black/20">
+      <div id="sidebarContent" class="flex h-full flex-col">
+        <div class="mb-6 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Control Center</p>
+            <h1 class="text-xl font-extrabold tracking-[-0.03em]">Fleet Admin</h1>
+          </div>
+          <button id="collapseSidebar" class="rounded-lg p-2 text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Collapse sidebar">
+            <span class="material-symbols-outlined text-[20px]">left_panel_close</span>
+          </button>
+        </div>
+
+        <nav class="scroll-thin flex-1 space-y-2 overflow-y-auto">
+          ${renderNavLinks(navItems)}
+        </nav>
+
+        <div class="mt-4 rounded-xl border border-brand-100/90 bg-brand-50/80 p-4 dark:border-brand-500/20 dark:bg-brand-900/30">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700 dark:text-brand-100">Live System</p>
+          <p class="mt-1 text-sm font-semibold">Realtime Booking Sync</p>
+          <p class="mt-2 text-xs text-slate-600 dark:text-slate-300">Latency <span class="font-mono font-bold">41ms</span> <span class="ml-1 inline-block h-2 w-2 animate-pulseDot rounded-full bg-emerald-500"></span></p>
+        </div>
+
+        <button data-admin-logout class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:border-white/30 dark:hover:bg-white/10">Logout</button>
+      </div>
+    </aside>
+
+    <div class="min-w-0 flex-1">
+      <header class="sticky top-0 z-30 border-b border-black/10 bg-white/70 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-black/25">
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="sidebarToggleBtn" class="rounded-lg p-2 text-slate-700 hover:bg-slate-900/10 lg:hidden dark:text-slate-100 dark:hover:bg-white/10" aria-label="Open sidebar">
+            <span id="sidebarToggleIcon" class="material-symbols-outlined">menu</span>
+          </button>
+
+          <label class="relative min-w-[230px] flex-1 max-w-[480px]">
+            <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
+            <input id="globalSearch" placeholder="Search bookings, customer, invoice, vehicle..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
+          </label>
+
+          <div id="quickActions" class="hidden items-center gap-2 xl:flex">${renderQuickActions()}</div>
+
+          <button id="notificationBtn" class="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Notifications">
+            <span class="material-symbols-outlined">notifications</span>
+            <span id="notificationBadgeCount" class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">3</span>
+          </button>
+
+          <button id="themeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme">
+            <span class="material-symbols-outlined">contrast</span>
+          </button>
+
+          <button id="profileBtn" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">AG</span>
+            <span class="hidden text-sm font-semibold sm:inline">Ariana Gray</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="px-4 py-4 sm:px-6 sm:py-5">
+        <section id="moduleContent" class="space-y-4"></section>
+      </main>
+    </div>
+
+    <div id="mobileSidebar" class="fixed inset-0 z-50 hidden lg:hidden">
+      <div id="mobileSidebarBackdrop" class="absolute inset-0 bg-black/50"></div>
+      <aside id="mobileSidebarPanel" class="scroll-thin absolute left-0 top-0 h-full w-[86%] max-w-[320px] overflow-y-auto border-r border-white/10 bg-[#0e171c] p-5 text-white">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-base font-bold tracking-wide">Admin Navigation</h2>
+          <button id="mobileSidebarClose" class="rounded-lg p-2 hover:bg-white/10" aria-label="Close sidebar"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <nav class="space-y-2">${renderNavLinks(navItems)}</nav>
+        <button data-admin-logout class="mt-4 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/10">Logout</button>
+      </aside>
+    </div>
+
+    <div id="toastHost" class="pointer-events-none fixed bottom-4 right-4 z-50 space-y-2"></div>
+  `;
+}
+
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -128,112 +208,11 @@ function formatAdminLabel(value) {
   return cleaned ? titleCaseWords(cleaned) : 'Admin';
 }
 
-function resolveAdminIdentity() {
-  const session = window.AdminAuth && typeof window.AdminAuth.getSession === 'function'
-    ? window.AdminAuth.getSession()
-    : null;
-  const displayNameFromSession = session && session.displayName ? String(session.displayName).trim() : '';
-  const displayNameFromApi = window.AdminAuth && typeof window.AdminAuth.getDisplayName === 'function'
-    ? String(window.AdminAuth.getDisplayName() || '').trim()
-    : '';
-  const fallbackIdentifier = session ? (session.loginIdentifier || session.username || '') : '';
-  const name = formatAdminLabel(displayNameFromSession || displayNameFromApi || fallbackIdentifier || 'Admin');
-  const words = name.split(/\s+/).filter(Boolean);
-  const initials = words.length
-    ? words.slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join('')
-    : 'AD';
-
-  return {
-    name,
-    initials,
-  };
-}
-
-export function renderShell() {
-  const adminIdentity = resolveAdminIdentity();
-
-  return `
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
-  <aside id="sidebar" class="sticky top-0 hidden h-screen w-[300px] flex-col overflow-hidden border-r border-black/10 bg-white/75 p-5 backdrop-blur-xl transition-[width,padding,opacity,border-color] duration-300 ease-out lg:flex dark:border-white/10 dark:bg-black/20">
-    <div id="sidebarContent" class="flex h-full min-h-0 flex-col transition-all duration-300 ease-out">
-      <div class="mb-6">
-        <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Control Center</p>
-        <h1 class="text-xl font-extrabold tracking-[-0.03em]">Vehicle Rental Admin</h1>
-      </div>
-
-      <nav class="scroll-thin flex-1 space-y-2 overflow-y-auto">
-        ${renderNavLinks(navItems)}
-      </nav>
-
-      <div class="mt-4 border-t border-slate-200/80 pt-4 dark:border-white/10">
-        <button data-admin-logout="desktop" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:-translate-y-0.5 hover:bg-rose-100 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20">
-          <span class="material-symbols-outlined text-[18px]">logout</span>
-          <span>Logout</span>
-        </button>
-      </div>
-    </div>
-  </aside>
-
-  <div id="adminMainPanel" class="min-w-0 flex-1">
-    <header class="sticky top-0 z-30 border-b border-black/10 bg-white/70 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-black/25">
-      <div class="flex flex-wrap items-center gap-3">
-        <button id="sidebarToggleBtn" type="button" aria-label="Close sidebar" class="rounded-lg p-2 text-slate-700 transition hover:bg-slate-900/10 dark:text-slate-100 dark:hover:bg-white/10">
-          <span id="sidebarToggleIcon" class="material-symbols-outlined">menu_open</span>
-        </button>
-
-        <label class="relative min-w-0 flex-1 max-w-[480px]">
-          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
-          <input id="globalSearch" placeholder="Search vehicles, bookings, customers, and admins..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
-        </label>
-
-        <div id="quickActions" class="hidden items-center gap-2 xl:flex">${renderQuickActions()}</div>
-
-        <div class="flex items-center gap-2 ml-auto">
-          <button id="notificationBtn" class="relative shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
-            <span class="material-symbols-outlined">notifications</span>
-            <span id="notificationBadgeCount" class="absolute -right-1 -top-1 hidden h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">0</span>
-          </button>
-
-          <button id="themeToggle" class="shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
-            <span class="material-symbols-outlined">contrast</span>
-          </button>
-
-        <div id="profileBtn" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">${escapeHtml(adminIdentity.initials)}</span>
-          <span class="hidden text-sm font-semibold sm:inline">${escapeHtml(adminIdentity.name)}</span>
-        </div>
-      </div>
-    </header>
-
-    <main class="px-4 py-4 sm:px-6 sm:py-5">
-      <section id="moduleContent" class="space-y-4"></section>
-    </main>
-  </div>
-
-  <div id="mobileSidebar" class="pointer-events-none fixed inset-0 z-50 hidden lg:hidden">
-    <div id="mobileSidebarBackdrop" class="absolute inset-0 bg-black/0 transition-colors duration-300"></div>
-    <aside id="mobileSidebarPanel" class="scroll-thin absolute left-0 top-0 h-full w-[86%] max-w-[320px] -translate-x-full overflow-y-auto border-r border-white/10 bg-[#0e171c] p-5 text-white transition-transform duration-300 ease-out">
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-base font-bold tracking-wide">Admin Navigation</h2>
-        <button id="mobileSidebarClose" class="rounded-lg p-2 hover:bg-white/10"><span class="material-symbols-outlined">close</span></button>
-      </div>
-      <nav class="space-y-2">${renderNavLinks(navItems)}</nav>
-      <div class="mt-4 border-t border-white/10 pt-4">
-        <button data-admin-logout="mobile" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-200 transition hover:-translate-y-0.5 hover:bg-rose-500/20">
-          <span class="material-symbols-outlined text-[18px]">logout</span>
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
-  </div>
-
-  <div id="toastHost" class="pointer-events-none fixed bottom-4 right-4 z-50 space-y-2"></div>
-  `;
-}
-
 export function pushToast(message, variant = 'info') {
   const host = document.getElementById('toastHost');
-  if (!host) return;
+  if (!host) {
+    return;
+  }
 
   const colorMap = {
     info: 'bg-slate-900 text-white',
@@ -311,8 +290,10 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onSea
     });
   });
 
-  const sidebarToggleButton = document.getElementById('sidebarToggleBtn');
-  sidebarToggleButton?.addEventListener('click', handleSidebarToggle);
+  const sidebarToggleButtons = document.querySelectorAll('#sidebarToggleBtn, #collapseSidebar');
+  sidebarToggleButtons.forEach((button) => {
+    button.addEventListener('click', handleSidebarToggle);
+  });
 
   const mobileClose = document.getElementById('mobileSidebarClose');
   const mobileBackdrop = document.getElementById('mobileSidebarBackdrop');
@@ -459,113 +440,6 @@ function isMobileSidebarVisible() {
   const sidebar = document.getElementById('mobileSidebar');
   return Boolean(sidebar && !sidebar.classList.contains('hidden'));
 }
-
-function initSidebarBehavior() {
-  applyDesktopSidebarState(false);
-  closeMobileSidebar(true);
-
-  window.addEventListener('resize', handleSidebarViewportChange);
-  handleSidebarViewportChange();
-}
-
-function handleSidebarToggle() {
-  if (isDesktopViewport()) {
-    applyDesktopSidebarState(!isDesktopSidebarCollapsed());
-    return;
-  }
-
-  if (isMobileSidebarVisible()) {
-    closeMobileSidebar();
-    return;
-  }
-
-  openMobileSidebar();
-}
-
-function handleSidebarViewportChange() {
-  if (isDesktopViewport()) {
-    closeMobileSidebar(true);
-  }
-
-  updateSidebarToggleVisual(isDesktopSidebarCollapsed(), isMobileSidebarVisible());
-}
-
-function isDesktopViewport() {
-  return window.matchMedia('(min-width: 1024px)').matches;
-}
-
-function readDesktopSidebarCollapsedState() {
-  try {
-    return window.localStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY) === '1';
-  } catch (_error) {
-    return false;
-  }
-}
-
-function writeDesktopSidebarCollapsedState(collapsed) {
-  try {
-    window.localStorage.setItem(SIDEBAR_COLLAPSE_STORAGE_KEY, collapsed ? '1' : '0');
-  } catch (_error) {
-    // Ignore localStorage write failures.
-  }
-}
-
-function isDesktopSidebarCollapsed() {
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar) {
-    return readDesktopSidebarCollapsedState();
-  }
-
-  return sidebar.classList.contains('lg:w-0');
-}
-
-function applyDesktopSidebarState(collapsed) {
-  const sidebar = document.getElementById('sidebar');
-  const sidebarContent = document.getElementById('sidebarContent');
-
-  if (!sidebar || !sidebarContent) {
-    return;
-  }
-
-  const shouldCollapse = Boolean(collapsed);
-  sidebar.classList.toggle('lg:w-0', shouldCollapse);
-  sidebar.classList.toggle('lg:px-0', shouldCollapse);
-  sidebar.classList.toggle('lg:py-0', shouldCollapse);
-  sidebar.classList.toggle('lg:border-r-0', shouldCollapse);
-  sidebar.classList.toggle('lg:opacity-0', shouldCollapse);
-  sidebar.classList.toggle('lg:pointer-events-none', shouldCollapse);
-
-  sidebarContent.classList.toggle('lg:-translate-x-3', shouldCollapse);
-  sidebarContent.classList.toggle('lg:opacity-0', shouldCollapse);
-  sidebarContent.classList.toggle('lg:pointer-events-none', shouldCollapse);
-
-  sidebar.setAttribute('aria-hidden', shouldCollapse ? 'true' : 'false');
-  writeDesktopSidebarCollapsedState(shouldCollapse);
-  updateSidebarToggleVisual(shouldCollapse, false);
-}
-
-function updateSidebarToggleVisual(isCollapsed, mobileOpen) {
-  const icon = document.getElementById('sidebarToggleIcon');
-  const button = document.getElementById('sidebarToggleBtn');
-  if (!icon || !button) {
-    return;
-  }
-
-  if (isDesktopViewport()) {
-    icon.textContent = isCollapsed ? 'menu' : 'menu_open';
-    button.setAttribute('aria-label', isCollapsed ? 'Open sidebar' : 'Close sidebar');
-    return;
-  }
-
-  icon.textContent = mobileOpen ? 'close' : 'menu';
-  button.setAttribute('aria-label', mobileOpen ? 'Close sidebar' : 'Open sidebar');
-}
-
-function isMobileSidebarVisible() {
-  const sidebar = document.getElementById('mobileSidebar');
-  return Boolean(sidebar && !sidebar.classList.contains('hidden'));
-}
-
 function openMobileSidebar() {
   const sidebar = document.getElementById('mobileSidebar');
   const backdrop = document.getElementById('mobileSidebarBackdrop');

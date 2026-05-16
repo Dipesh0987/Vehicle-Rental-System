@@ -3,7 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'" />
     <title>Payment Status | Vehicle Rental System</title>
+    <script>
+      // CRITICAL: Aggressive iframe busting - runs immediately
+      (function() {
+        'use strict';
+        
+        // Method 1: Try to break out of iframe
+        try {
+          if (window.top !== window.self) {
+            var url = window.location.href;
+            window.top.location.replace(url);
+            // Prevent any further execution
+            throw new Error('Breaking out of iframe');
+          }
+        } catch (e) {
+          // Method 2: If cross-origin prevents access, force reload
+          try {
+            var url = window.location.href;
+            window.location.replace(url);
+          } catch (e2) {
+            // Method 3: Last resort - redirect via meta refresh
+            document.write('<meta http-equiv="refresh" content="0;url=' + window.location.href + '">');
+          }
+        }
+        
+        // Method 4: Continuous monitoring
+        setInterval(function() {
+          if (window.top !== window.self) {
+            window.top.location.replace(window.location.href);
+          }
+        }, 100);
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />

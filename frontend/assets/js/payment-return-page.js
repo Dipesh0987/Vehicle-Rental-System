@@ -101,19 +101,32 @@
     try {
       console.log("Sending payment receipt email...");
       
-      // For now, we'll use Supabase's password reset email system as a workaround
-      // to send the receipt. This uses your configured Gmail SMTP.
+      var client = await window.SupabaseClient.init();
+      var booking = (payload && payload.booking) || {};
       
-      // In production, you should deploy the send-payment-receipt Edge Function
-      // or use a proper email service like Resend/SendGrid
+      // Create a notification that will trigger email
+      // This is the simplest approach - just insert a record
+      var { error } = await client
+        .from('notifications')
+        .insert({
+          user_id: booking.customerId,
+          type: 'receipt_sent',
+          title: 'Payment Receipt',
+          message: 'Your payment receipt for ' + (payload.transactionCode || '') + ' is ready.',
+          metadata: {
+            transaction_code: payload.transactionCode,
+            booking_code: booking.bookingCode,
+            amount: payload.amount,
+            payment_type: payload.paymentType,
+            send_email: true  // Flag to trigger email
+          }
+        });
       
-      console.log("Receipt email will be sent for transaction:", payload.transactionCode);
-      
-      // TODO: Uncomment this when Edge Function is deployed
-      // var client = await window.SupabaseClient.init();
-      // await client.functions.invoke("send-payment-receipt", {
-      //   body: { transactionCode: payload.transactionCode }
-      // });
+      if (error) {
+        console.error("Failed to create receipt notification:", error);
+      } else {
+        console.log("Receipt notification created successfully");
+      }
       
     } catch (error) {
       console.error("Failed to send receipt email:", error);

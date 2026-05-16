@@ -890,6 +890,47 @@ async function sendReceiptEmail(params: {
 
   if (!response.ok) {
     const errorText = await response.text();
+    
+    // Check if this is the expected "dev redirect" 403 error
+    const is403DevRedirect = response.status === 403 && 
+      errorText.includes("validation_error") && 
+      errorText.includes("testing emails") &&
+      RESEND_DEV_REDIRECT_TO.length > 0;
+    
+    if (is403DevRedirect) {
+      // This is expected behavior when using RESEND_DEV_REDIRECT_TO
+      // Email is still being sent to the dev inbox, so mark as success
+      console.log("Dev redirect 403 (expected): Email sent to", actualRecipient);
+      
+      await supabaseAdmin
+        .from("payment_receipts")
+        .update({
+          email_status: "sent_dev_redirect",
+          email_sent_at: nowIso(),
+          email_error: "Dev mode: Redirected to " + actualRecipient + " (intended for " + originalRecipient + ")",
+        })
+        .eq("id", params.receiptId);
+      
+      // Still create notification for user
+      const userId = (params.payload as JsonRecord).booking
+        ? ((params.payload as JsonRecord).customerUserId as string | undefined)
+        : undefined;
+
+      if (userId) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: userId,
+          type: "receipt_sent",
+          title: "Payment receipt emailed",
+          body: "Receipt " + params.receiptCode + " was sent to " + originalRecipient + ".",
+          link_url: "/frontend/payment-receipt.html?payment=" + params.receiptCode,
+          metadata: { receiptCode: params.receiptCode },
+        });
+      }
+      
+      return; // Exit successfully
+    }
+    
+    // Real error - not the dev redirect 403
     await supabaseAdmin
       .from("payment_receipts")
       .update({
