@@ -1,6 +1,8 @@
 import { classMap } from '../config.js';
 import { renderBarChart, renderLineChart } from '../charts.js';
 
+// Reports module includes a default active revenue tab with export options
+// for CSV and PDF files named by current week range and report type.
 const REPORT_TABS = [
   { id: 'revenue', label: 'Revenue' },
   { id: 'utilization', label: 'Utilization' },
