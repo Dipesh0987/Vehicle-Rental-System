@@ -56,6 +56,7 @@ function createPdfDocument(title, rows) {
   }
 
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  doc.setProperties({ title });
   doc.setFontSize(18);
   doc.text(title, 40, 60);
   doc.setFontSize(12);
