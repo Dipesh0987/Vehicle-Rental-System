@@ -33,7 +33,8 @@ function createCsvContent(headers, rows) {
   const escapeCell = (value) => `"${String(value).replace(/"/g, '""')}"`;
   const csvRows = [headers.map(escapeCell).join(',')];
   rows.forEach((row) => csvRows.push(row.map(escapeCell).join(',')));
-  return csvRows.join('\r\n');
+  const bom = '\uFEFF';
+  return bom + csvRows.join('\r\n');
 }
 
 function downloadFile(content, filename, type) {
