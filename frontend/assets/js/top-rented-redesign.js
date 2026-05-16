@@ -191,89 +191,117 @@
         .slice(0, PILL_LIMIT);
 
       let activeBrand = brandList[0]?.brand || '';
+      let renderTimeout = null;
 
       function render() {
-        const pillsHTML = brandList.map(b => {
-          const isActive = b.brand === activeBrand;
-          const tone = brandTone(b.brand);
-          return `<button 
-            type="button" 
-            class="trr-pill${isActive ? ' active' : ''}" 
-            data-brand="${esc(b.brand)}" 
-            style="--trr-accent:${tone.accent};--trr-accent-soft:${tone.accentSoft};--trr-accent-deep:${tone.accentDeep}"
-            aria-pressed="${isActive}"
-            aria-label="Filter by ${esc(b.brand)} brand"
-            role="tab"
-            tabindex="${isActive ? '0' : '-1'}">
-            ${brandIcon(b.brand)}
-            <span>${esc(b.brand)}</span>
-          </button>`;
-        }).join('');
+        // Debounce rapid renders
+        if (renderTimeout) {
+          clearTimeout(renderTimeout);
+        }
+        
+        renderTimeout = setTimeout(() => {
+          const pillsHTML = brandList.map(b => {
+            const isActive = b.brand === activeBrand;
+            const tone = brandTone(b.brand);
+            return `<button 
+              type="button" 
+              class="trr-pill${isActive ? ' active' : ''}" 
+              data-brand="${esc(b.brand)}" 
+              style="--trr-accent:${tone.accent};--trr-accent-soft:${tone.accentSoft};--trr-accent-deep:${tone.accentDeep}"
+              aria-pressed="${isActive}"
+              aria-label="Filter by ${esc(b.brand)} brand"
+              role="tab"
+              tabindex="${isActive ? '0' : '-1'}">
+              ${brandIcon(b.brand)}
+              <span>${esc(b.brand)}</span>
+            </button>`;
+          }).join('');
 
-        const cards = (brandMap[activeBrand] || [])
-          .sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
-          .slice(0, CARDS_PER_BRAND);
+          const cards = (brandMap[activeBrand] || [])
+            .sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
+            .slice(0, CARDS_PER_BRAND);
 
-        const cardsHTML = cards.map((v, i) => renderCard(v, i)).join('');
+          const cardsHTML = cards.map((v, i) => renderCard(v, i)).join('');
 
-        root.innerHTML = `
-          <section class="trr-section" aria-label="Top Rated Rental Cars">
-            <div class="trr-wrap">
-              <div class="trr-head">
-                <h2 class="trr-title">Top Rated<br>Rented Cars</h2>
-                <p class="trr-sub">Sed volupat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere.</p>
+          root.innerHTML = `
+            <section class="trr-section" aria-label="Top Rated Rental Cars">
+              <div class="trr-wrap">
+                <div class="trr-head">
+                  <h2 class="trr-title">Top Rated<br>Rented Cars</h2>
+                  <p class="trr-sub">Sed volupat sed nunc vel porttitor. Fusce placerat aliquam dolor non pretium. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere.</p>
+                </div>
+                <div class="trr-pills" role="tablist" aria-label="Filter by vehicle brand">${pillsHTML}</div>
+                <div class="trr-grid" role="tabpanel" aria-label="${esc(activeBrand)} vehicles">${cardsHTML}</div>
               </div>
-              <div class="trr-pills" role="tablist" aria-label="Filter by vehicle brand">${pillsHTML}</div>
-              <div class="trr-grid" role="tabpanel" aria-label="${esc(activeBrand)} vehicles">${cardsHTML}</div>
-            </div>
-          </section>`;
+            </section>`;
 
-        // Pill click handlers with keyboard support
-        const pills = root.querySelectorAll('.trr-pill');
-        pills.forEach((btn, idx) => {
-          btn.addEventListener('click', () => {
-            const b = btn.getAttribute('data-brand');
-            if (b && b !== activeBrand) {
-              activeBrand = b;
-              render();
-            }
-          });
-
-          // Keyboard navigation
-          btn.addEventListener('keydown', (e) => {
-            let targetIdx = idx;
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-              e.preventDefault();
-              targetIdx = (idx + 1) % pills.length;
-            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-              e.preventDefault();
-              targetIdx = (idx - 1 + pills.length) % pills.length;
-            } else if (e.key === 'Home') {
-              e.preventDefault();
-              targetIdx = 0;
-            } else if (e.key === 'End') {
-              e.preventDefault();
-              targetIdx = pills.length - 1;
-            } else {
-              return;
-            }
-            
-            const targetPill = pills[targetIdx];
-            if (targetPill) {
-              const b = targetPill.getAttribute('data-brand');
-              if (b) {
+          // Pill click handlers with keyboard support
+          const pills = root.querySelectorAll('.trr-pill');
+          pills.forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+              const b = btn.getAttribute('data-brand');
+              if (b && b !== activeBrand) {
                 activeBrand = b;
                 render();
-                setTimeout(() => {
-                  const newPills = root.querySelectorAll('.trr-pill');
-                  if (newPills[targetIdx]) {
-                    newPills[targetIdx].focus();
-                  }
-                }, 50);
               }
-            }
+            });
+
+            // Keyboard navigation
+            btn.addEventListener('keydown', (e) => {
+              let targetIdx = idx;
+              if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                targetIdx = (idx + 1) % pills.length;
+              } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                targetIdx = (idx - 1 + pills.length) % pills.length;
+              } else if (e.key === 'Home') {
+                e.preventDefault();
+                targetIdx = 0;
+              } else if (e.key === 'End') {
+                e.preventDefault();
+                targetIdx = pills.length - 1;
+              } else {
+                return;
+              }
+              
+              const targetPill = pills[targetIdx];
+              if (targetPill) {
+                const b = targetPill.getAttribute('data-brand');
+                if (b) {
+                  activeBrand = b;
+                  render();
+                  setTimeout(() => {
+                    const newPills = root.querySelectorAll('.trr-pill');
+                    if (newPills[targetIdx]) {
+                      newPills[targetIdx].focus();
+                    }
+                  }, 50);
+                }
+              }
+            });
           });
-        });
+
+          // Lazy load images using Intersection Observer
+          if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  const img = entry.target;
+                  if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    imageObserver.unobserve(img);
+                  }
+                }
+              });
+            }, { rootMargin: '50px' });
+
+            root.querySelectorAll('img[data-src]').forEach(img => {
+              imageObserver.observe(img);
+            });
+          }
+        }, 50);
       }
 
       render();
