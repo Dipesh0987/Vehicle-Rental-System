@@ -232,6 +232,11 @@
 .trr-section {
   padding: 5rem 1.5rem;
   background: linear-gradient(180deg, #F5F6F4 0%, #E8EBE6 100%);
+  transition: background 0.3s ease;
+}
+
+html[data-theme="dark"] .trr-section {
+  background: linear-gradient(180deg, #0B161C 0%, #0F1A21 100%);
 }
 
 .trr-wrap {
@@ -252,6 +257,11 @@
   line-height: 1.1;
   color: #0B161C;
   margin: 0 0 1rem;
+  transition: color 0.3s ease;
+}
+
+html[data-theme="dark"] .trr-title {
+  color: #E6EEF2;
 }
 
 .trr-sub {
@@ -260,6 +270,11 @@
   font-size: 1rem;
   line-height: 1.6;
   color: #6B7280;
+  transition: color 0.3s ease;
+}
+
+html[data-theme="dark"] .trr-sub {
+  color: #9FB2BA;
 }
 
 /* ── Brand Pills ─────────────────────────────────── */
@@ -345,10 +360,21 @@
   border: 1px solid rgba(0,0,0,0.04);
 }
 
+html[data-theme="dark"] .trr-card {
+  background: linear-gradient(155deg, rgba(22,32,40,0.95), rgba(18,28,35,0.92));
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
 .trr-card:hover {
   transform: translateY(-10px);
   box-shadow: 0 16px 40px rgba(0,0,0,0.16);
   border-color: rgba(229, 140, 78, 0.2);
+}
+
+html[data-theme="dark"] .trr-card:hover {
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  border-color: rgba(229, 140, 78, 0.3);
 }
 
 @keyframes trrSlideUp {
@@ -401,6 +427,11 @@
   color: #1F2937;
   text-align: center;
   margin: 0 0 1rem;
+  transition: color 0.3s ease;
+}
+
+html[data-theme="dark"] .trr-brand {
+  color: #E6EEF2;
 }
 
 .trr-specs {
