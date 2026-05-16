@@ -1,6 +1,71 @@
 import { classMap } from '../config.js';
 import { renderBarChart, renderLineChart } from '../charts.js';
 
+const REPORT_TABS = [
+  { id: 'revenue', label: 'Revenue' },
+  { id: 'utilization', label: 'Utilization' },
+  { id: 'customers', label: 'Customer Behavior' },
+];
+
+function formatNepaliRupee(value) {
+  return `NPR ${Number(value).toLocaleString('en-IN')}`;
+}
+
+function getCurrentWeekRange() {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const sundayOffset = mondayOffset + 6;
+  const monday = new Date(today);
+  const sunday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  sunday.setDate(today.getDate() + sundayOffset);
+  const format = (date) => date.toISOString().slice(0, 10);
+  return { start: format(monday), end: format(sunday) };
+}
+
+function buildExportFilename(reportType, extension) {
+  const range = getCurrentWeekRange();
+  return `${reportType.replace(/\s+/g, '_')}_${range.start}_to_${range.end}.${extension}`;
+}
+
+function createCsvContent(headers, rows) {
+  const escapeCell = (value) => `"${String(value).replace(/"/g, '""')}"`;
+  const csvRows = [headers.map(escapeCell).join(',')];
+  rows.forEach((row) => csvRows.push(row.map(escapeCell).join(',')));
+  return csvRows.join('\r\n');
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+}
+
+function createPdfDocument(title, rows) {
+  const jspdf = window.jspdf || window.jspPDF || {};
+  const jsPDF = jspdf.jsPDF || jspdf;
+  if (typeof jsPDF !== 'function') {
+    return null;
+  }
+
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  doc.setFontSize(18);
+  doc.text(title, 40, 60);
+  doc.setFontSize(12);
+  let y = 92;
+  rows.forEach((row) => {
+    doc.text(row.join(' | '), 40, y);
+    y += 20;
+  });
+  return doc;
+}
+
 export function renderReportsModule({ data, notify }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
@@ -19,9 +84,7 @@ export function renderReportsModule({ data, notify }) {
 
     <section class="${classMap.panel} p-3">
       <div class="flex flex-wrap gap-2" role="tablist" aria-label="report tabs">
-        <button data-report-tab="revenue" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Revenue</button>
-        <button data-report-tab="utilization" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Utilization</button>
-        <button data-report-tab="customers" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Customer Behavior</button>
+        ${REPORT_TABS.map((tab) => `<button data-report-tab="${tab.id}" class="rounded-xl px-3 py-2 text-sm font-semibold ${tab.id === 'revenue' ? 'bg-brand-500 text-white' : 'border border-slate-200 dark:border-white/10'}">${tab.label}</button>`).join('')}
       </div>
     </section>
 
@@ -58,7 +121,7 @@ export function renderReportsModule({ data, notify }) {
     </section>
   `;
 
-  queueMicrotask(() => {
+  function renderRevenueReport() {
     renderLineChart(
       'reportsRevenueChart',
       data.revenueTrend.map((item) => item.label),
@@ -66,21 +129,52 @@ export function renderReportsModule({ data, notify }) {
       data.revenueTrend.map((item) => item.revenue),
       '#f08f5f'
     );
+  }
 
+  function renderUtilizationReport() {
     renderBarChart(
       'reportsUtilizationChart',
       data.utilization.map((item) => item.label),
       data.utilization.map((item) => item.value)
     );
+  }
+
+  function buildReportRows() {
+    return data.revenueTrend.map((item) => [item.label, formatNepaliRupee(item.revenue), item.bookings]);
+  }
+
+  function exportCsv() {
+    const headers = ['Day', 'Revenue', 'Bookings'];
+    const rows = buildReportRows();
+    const csv = createCsvContent(headers, rows);
+    const filename = buildExportFilename('Revenue_Report', 'csv');
+    downloadFile(csv, filename, 'text/csv;charset=utf-8;');
+    notify(`Exported ${filename}`, 'success');
+  }
+
+  function exportPdf() {
+    const title = `Revenue Report ${getCurrentWeekRange().start} to ${getCurrentWeekRange().end}`;
+    const rows = buildReportRows();
+    const document = createPdfDocument(title, rows);
+    const filename = buildExportFilename('Revenue_Report', 'pdf');
+    if (!document) {
+      notify('Unable to export PDF. Please try again later.', 'error');
+      return;
+    }
+    document.save(filename);
+    notify(`Exported ${filename}`, 'success');
+  }
+
+  queueMicrotask(() => {
+    renderRevenueReport();
+    renderUtilizationReport();
   });
 
-  host.querySelector('#exportCsvBtn')?.addEventListener('click', () => {
-    notify('CSV report generated', 'success');
-  });
+  const exportCsvBtn = host.querySelector('#exportCsvBtn');
+  const exportPdfBtn = host.querySelector('#exportPdfBtn');
 
-  host.querySelector('#exportPdfBtn')?.addEventListener('click', () => {
-    notify('PDF report generated', 'success');
-  });
+  exportCsvBtn?.addEventListener('click', exportCsv);
+  exportPdfBtn?.addEventListener('click', exportPdf);
 
   host.querySelectorAll('[data-report-tab]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -89,6 +183,7 @@ export function renderReportsModule({ data, notify }) {
         const active = item === button;
         item.classList.toggle('bg-brand-500', active);
         item.classList.toggle('text-white', active);
+        item.classList.toggle('border', !active);
       });
 
       const primaryTitle = host.querySelector('#reportPrimaryTitle');
