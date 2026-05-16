@@ -63,7 +63,7 @@ window.VRSFooter = (function () {
                 <p class="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Where Quality Meets Affordability</p>
               </div>
               <p class="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
-                Aliquam nec pede sit. Aliquam blandit leo vitae tristique auctor. Vestibulum eget urna leo. Suspendisse dignissim semper neque, ut sagittis augue leo. Suspendisse dignissim semper neque, ut sagittis augue faucibus vitae. Nunc vehicula.
+                Your trusted partner for premium vehicle rentals. We offer a wide selection of well-maintained cars, transparent pricing, and exceptional customer service. Whether it's a business trip or family vacation, we make your journey comfortable and hassle-free.
               </p>
             </div>
 
@@ -97,10 +97,10 @@ window.VRSFooter = (function () {
             <div>
               <h3 class="mb-5 text-[15px] font-bold text-slate-800 dark:text-slate-100">Information Links</h3>
               <ul class="space-y-3">
-                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Book Now</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Our Locations</a></li>
+                <li><a href="booking.html" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Book Now</a></li>
+                <li><a href="vehicles.html" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Our Vehicles</a></li>
                 <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Terms & Conditions</a></li>
-                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Cancelation</a></li>
+                <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Cancellation Policy</a></li>
                 <li><a href="#" class="group inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]"><span class="mr-2 text-slate-400">›</span>Privacy Policy</a></li>
               </ul>
             </div>

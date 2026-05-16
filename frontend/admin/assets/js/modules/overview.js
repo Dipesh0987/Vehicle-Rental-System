@@ -84,7 +84,7 @@ export function renderOverviewModule({ data, navigate }) {
       <section class="${classMap.panel} xl:col-span-6 p-4 sm:p-5">
         <div class="mb-3 flex items-center justify-between">
           <h3 class="text-base font-extrabold">Recent Activity</h3>
-          <button class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-200">View log</button>
+          <button data-view-activity-log class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">View log</button>
         </div>
         <ul class="space-y-2">
           ${data.activities
@@ -108,6 +108,11 @@ export function renderOverviewModule({ data, navigate }) {
   // Navigate to maintenance on click
   host.querySelectorAll('[data-go-maintenance]').forEach((el) => {
     el.addEventListener('click', () => { if (navigate) navigate('maintenance'); });
+  });
+
+  // Navigate to bookings (activity log) on click
+  host.querySelectorAll('[data-view-activity-log]').forEach((el) => {
+    el.addEventListener('click', () => { if (navigate) navigate('bookings'); });
   });
 
   queueMicrotask(() => {
