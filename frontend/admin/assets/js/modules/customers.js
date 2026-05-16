@@ -1,5 +1,5 @@
 import { classMap } from '../config.js';
-import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
+import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
 const customerUiState = {
