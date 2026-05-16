@@ -118,7 +118,8 @@ window.VRSFooter = (function () {
                   />
                   <button 
                     type="submit" 
-                    class="whitespace-nowrap rounded-full bg-[#ff6b35] px-7 py-3 text-[14px] font-semibold text-white shadow-md transition hover:bg-[#ff5722] hover:shadow-lg active:scale-95 dark:bg-[#ff6b35] dark:hover:bg-[#ff5722]"
+                    class="whitespace-nowrap rounded-full bg-[#ff6b35] px-7 py-3 text-[14px] font-bold text-white shadow-lg transition hover:bg-[#ff5722] hover:shadow-xl active:scale-95 dark:bg-[#ff6b35] dark:text-white dark:hover:bg-[#ff5722]"
+                    style="background-color: #ff6b35 !important;"
                   >
                     Submit
                   </button>
