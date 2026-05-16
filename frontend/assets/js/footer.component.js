@@ -109,16 +109,16 @@ window.VRSFooter = (function () {
             <div>
               <h3 class="mb-5 text-[15px] font-bold text-slate-800 dark:text-slate-100">Subscribe To Our Newsletter</h3>
               <form class="mb-6" onsubmit="event.preventDefault(); alert('Newsletter subscription coming soon!');">
-                <div class="flex gap-2">
+                <div class="flex gap-3">
                   <input 
                     type="email" 
                     placeholder="Email Address" 
                     required
-                    class="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b35]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500"
+                    class="flex-1 rounded-full border border-slate-300 bg-white px-5 py-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b35]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-[#ff6b35]"
                   />
                   <button 
                     type="submit" 
-                    class="whitespace-nowrap rounded-md bg-[#ff6b35] px-5 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#ff5722] hover:shadow-md active:scale-95"
+                    class="whitespace-nowrap rounded-full bg-[#ff6b35] px-7 py-3 text-[14px] font-semibold text-white shadow-md transition hover:bg-[#ff5722] hover:shadow-lg active:scale-95 dark:bg-[#ff6b35] dark:hover:bg-[#ff5722]"
                   >
                     Submit
                   </button>
