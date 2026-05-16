@@ -114,12 +114,12 @@ window.VRSFooter = (function () {
                     type="email" 
                     placeholder="Email Address" 
                     required
-                    class="flex-1 rounded-full border border-slate-300 bg-white px-5 py-3 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b35]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-[#ff6b35]"
+                    class="flex-1 rounded-full border border-slate-300 bg-white px-5 py-3.5 text-[13px] text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-[#ff6b35] focus:ring-2 focus:ring-[#ff6b35]/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-[#ff6b35]"
                   />
                   <button 
                     type="submit" 
-                    class="whitespace-nowrap rounded-full bg-[#ff6b35] px-7 py-3 text-[14px] font-bold text-white shadow-lg transition hover:bg-[#ff5722] hover:shadow-xl active:scale-95 dark:bg-[#ff6b35] dark:text-white dark:hover:bg-[#ff5722]"
-                    style="background-color: #ff6b35 !important;"
+                    class="whitespace-nowrap rounded-full bg-[#ff6b35] px-10 py-3.5 text-[15px] font-bold text-white shadow-lg transition hover:bg-[#ff5722] hover:shadow-xl active:scale-95 dark:bg-[#ff6b35] dark:text-white dark:hover:bg-[#ff5722]"
+                    style="background-color: #ff6b35 !important; min-width: 120px;"
                   >
                     Submit
                   </button>
