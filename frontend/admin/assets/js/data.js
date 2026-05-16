@@ -3,7 +3,7 @@ export const dashboardData = {
     totalVehicles: 248,
     activeRentals: 92,
     dailyBookings: 38,
-    revenue: 28940,
+    revenue: 40940,
     cancellations: 6,
   },
   revenueTrend: [
