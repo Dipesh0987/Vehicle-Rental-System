@@ -267,47 +267,56 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 2.5rem;
+  gap: 0.85rem;
+  margin-bottom: 2.75rem;
 }
 
 .trr-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.5rem;
+  gap: 0.6rem;
+  padding: 0.75rem 1.75rem;
   border-radius: 9999px;
   border: none;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: #C9D4D0;
   color: #374151;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .trr-pill:hover {
   background: #B8C4BF;
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .trr-pill.active {
-  background: linear-gradient(135deg, #E58C4E, #D67A3A);
+  background: linear-gradient(135deg, #E58C4E 0%, #D67A3A 100%);
   color: #fff;
-  box-shadow: 0 8px 20px rgba(229, 140, 78, 0.3);
+  box-shadow: 0 10px 24px rgba(229, 140, 78, 0.35);
+  transform: translateY(-2px);
+}
+
+.trr-pill.active:hover {
+  box-shadow: 0 12px 28px rgba(229, 140, 78, 0.4);
+  transform: translateY(-4px);
 }
 
 .trr-pill-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  background: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.35);
   color: inherit;
+  border: 2px solid rgba(255,255,255,0.2);
 }
 
 /* ── Card Grid ───────────────────────────────────── */
