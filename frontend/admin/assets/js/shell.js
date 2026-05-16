@@ -88,7 +88,7 @@ export function renderShell() {
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
     
     <!-- Floating expand button (visible when sidebar is collapsed) -->
-    <button id="expandSidebarBtn" class="fixed left-4 top-4 z-40 hidden rounded-lg border border-slate-200 bg-white p-2.5 text-slate-700 shadow-lg transition hover:bg-slate-50 hover:shadow-xl lg:block dark:border-white/10 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" aria-label="Expand sidebar">
+    <button id="expandSidebarBtn" class="fixed left-4 top-20 z-40 hidden rounded-lg border border-slate-200 bg-white p-2.5 text-slate-700 shadow-lg transition hover:bg-slate-50 hover:shadow-xl lg:block dark:border-white/10 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" aria-label="Expand sidebar">
       <span class="material-symbols-outlined text-[20px]">right_panel_open</span>
     </button>
     
