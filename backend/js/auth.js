@@ -1137,7 +1137,7 @@
       numeric = 0;
     }
 
-    return "NPR " + Math.round(numeric).toLocaleString();
+    return "NPR " + numeric.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function escapeHtml(value) {
@@ -1722,7 +1722,7 @@
 
     var overlay = document.createElement("div");
     overlay.setAttribute("data-bookings-modal-overlay", "true");
-    overlay.className = "pointer-events-none fixed inset-0 z-[250] flex items-center justify-center bg-[rgba(7,22,24,0.52)] opacity-0 transition duration-200";
+    overlay.className = "hidden pointer-events-none fixed inset-0 z-[250] items-center justify-center bg-[rgba(7,22,24,0.52)] opacity-0 transition duration-200";
 
     var card = document.createElement("section");
     card.setAttribute("role", "dialog");
@@ -1793,8 +1793,8 @@
 
     void renderBookingsWorkspace(overlay);
 
-    overlay.classList.remove("opacity-0", "pointer-events-none");
-    overlay.classList.add("opacity-100", "pointer-events-auto");
+    overlay.classList.remove("hidden", "opacity-0", "pointer-events-none");
+    overlay.classList.add("flex", "opacity-100", "pointer-events-auto");
     document.body.classList.add("overflow-hidden");
   }
 
@@ -1804,8 +1804,8 @@
       return;
     }
 
-    overlay.classList.remove("opacity-100", "pointer-events-auto");
-    overlay.classList.add("opacity-0", "pointer-events-none");
+    overlay.classList.remove("flex", "opacity-100", "pointer-events-auto");
+    overlay.classList.add("hidden", "opacity-0", "pointer-events-none");
     document.body.classList.remove("overflow-hidden");
   }
 
@@ -3519,9 +3519,49 @@
     try {
       var params = new URLSearchParams(window.location.search);
       if (params.get("registered") === "1") {
-        var registeredEmail = params.get("email");
-        if (registeredEmail) {
-          setBanner(banner, "Account created for " + registeredEmail + ". Please verify your email and sign in.", "success");
+        var registeredEmail = params.get("email") || "";
+        var storedEmail = "";
+        var storedPw = "";
+        try {
+          storedEmail = sessionStorage.getItem("vrs_registered_email") || "";
+          storedPw = sessionStorage.getItem("vrs_registered_pw") || "";
+          sessionStorage.removeItem("vrs_registered_email");
+          sessionStorage.removeItem("vrs_registered_pw");
+        } catch (_se) {}
+
+        var finalEmail = storedEmail || registeredEmail;
+        if (finalEmail) {
+          setBanner(banner, "Account created for " + finalEmail + ". Please sign in below.", "success");
+
+          // Force-fill after browser autofill finishes (multiple attempts to beat autofill race)
+          var fillFields = function () {
+            var emailInput = document.getElementById("email");
+            if (emailInput && emailInput.value !== finalEmail) {
+              emailInput.value = finalEmail;
+              emailInput.dispatchEvent(new Event("input", { bubbles: true }));
+              emailInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            if (storedPw && passwordInput && passwordInput.value !== storedPw) {
+              passwordInput.value = storedPw;
+              passwordInput.dispatchEvent(new Event("input", { bubbles: true }));
+              passwordInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          };
+
+          // Run immediately
+          fillFields();
+
+          // Run again after browser autofill (50ms, 150ms, 500ms)
+          setTimeout(fillFields, 50);
+          setTimeout(fillFields, 150);
+          setTimeout(function () {
+            fillFields();
+            if (storedPw && submitBtn) {
+              submitBtn.focus();
+            } else if (passwordInput) {
+              passwordInput.focus();
+            }
+          }, 500);
         } else {
           setBanner(banner, "Account created. Please verify your email and sign in.", "success");
         }

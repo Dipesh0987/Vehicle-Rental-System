@@ -5,18 +5,16 @@ import { renderEmptyState } from '../ui.js';
 const customerUiState = {
   selectedCustomerId: '',
   statusFilter: 'all',
-  page: 1,
-  pageSize: 9,
 };
 
 export function renderCustomersModule({ data, query, notify, customerVerificationService, reloadCustomersData, rerender }) {
   const host = document.createElement('section');
   const sourceRows = Array.isArray(data && data.customers) ? data.customers : [];
-  const searchableRows = filterRows(sourceRows, query, ['id', 'name', 'email', 'phoneNumber', 'status', 'documentNumber', 'city', 'country']);
-  const rows = sortCustomersForDisplay(searchableRows);
+  const rows = sortRows(
+    filterRows(sourceRows, query, ['id', 'name', 'email', 'phoneNumber', 'status', 'documentNumber', 'city', 'country']),
+    'name'
+  );
   const filteredRows = applyStatusFilter(rows, customerUiState.statusFilter);
-  const pagedFilteredRows = paginateRows(filteredRows, customerUiState.page, customerUiState.pageSize);
-  customerUiState.page = pagedFilteredRows.page;
 
   const statusSummary = summarizeVerificationStatuses(sourceRows);
   const reviewQueue = collectReviewQueue(sourceRows);
@@ -43,12 +41,8 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
       </div>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <button id="refreshCustomersBtn" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">Refresh</button>
-        ${topReviewCustomer && !selectedCustomer ? `<button type="button" data-open-customer-id="${escapeHtml(topReviewCustomer.id)}" class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20">Review Next Submission</button>` : ''}
         <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
           ${selectedCustomer ? `Viewing: ${escapeHtml(selectedCustomer.name || 'Customer')}` : 'Click any registered customer to open a focused detail page'}
-        </p>
-        <p class="text-xs font-semibold uppercase tracking-[0.12em] ${reviewQueueCount ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'}">
-          ${reviewQueueCount ? `${reviewQueueCount} submission${reviewQueueCount > 1 ? 's' : ''} currently waiting admin decision` : 'No active submission waiting for review'}
         </p>
         ${serviceReady ? '' : '<p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">Verification status updates are unavailable until migration 012 is applied.</p>'}
       </div>
@@ -56,7 +50,7 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
 
     ${selectedCustomer
       ? renderCustomerDetailPage(selectedCustomer, serviceReady)
-      : renderCustomerFocusGrid(filteredRows, pagedFilteredRows.rows, customerUiState.statusFilter, reviewQueue, pagedFilteredRows)}
+      : renderCustomerFocusGrid(filteredRows, customerUiState.statusFilter)}
 
     ${selectedCustomer
       ? ''
@@ -96,21 +90,9 @@ export function renderCustomersModule({ data, query, notify, customerVerificatio
     button.addEventListener('click', () => {
       const nextFilter = String(button.getAttribute('data-customer-status-filter') || 'all').trim().toLowerCase();
       customerUiState.statusFilter = nextFilter || 'all';
-      customerUiState.page = 1;
       rerender?.();
     });
   });
-
-  const customerPagerHost = host.querySelector('#customerPager');
-  if (!selectedCustomer && customerPagerHost && filteredRows.length) {
-    customerPagerHost.appendChild(renderPagination(pagedFilteredRows, (nextPage) => {
-      customerUiState.page = nextPage;
-      rerender?.();
-      window.requestAnimationFrame(() => {
-        host.querySelector('#customerCardGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }));
-  }
 
   host.querySelector('[data-back-to-customer-list]')?.addEventListener('click', () => {
     customerUiState.selectedCustomerId = '';
@@ -244,16 +226,16 @@ function renderGuideTile(title, tone, description) {
   </article>`;
 }
 
-function renderCustomerFocusGrid(allRows, pageRows, activeStatusFilter, reviewQueue, pagination) {
-  const summary = summarizeVerificationStatuses(allRows);
+function renderCustomerFocusGrid(rows, activeStatusFilter) {
+  const summary = summarizeVerificationStatuses(rows);
   const chips = [
-    { key: 'all', label: 'All', count: allRows.length },
+    { key: 'all', label: 'All', count: rows.length },
     { key: 'pending', label: 'Pending', count: summary.pending },
     { key: 'approved', label: 'Approved', count: summary.approved },
     { key: 'rejected', label: 'Rejected', count: summary.rejected },
   ];
 
-  if (!allRows.length) {
+  if (!rows.length) {
     return `<section class="${classMap.panel} p-4 sm:p-5">
       ${renderEmptyState({ title: 'No customers found', message: 'No customer profile matched the current search.', actionLabel: 'Clear Search', actionId: 'clearCustomerSearch' })}
     </section>`;
@@ -265,7 +247,7 @@ function renderCustomerFocusGrid(allRows, pageRows, activeStatusFilter, reviewQu
         <h3 class="text-base font-extrabold">Registered Customers</h3>
         <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Focused view with quick hover insights and direct detail-page navigation.</p>
       </div>
-      <p class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-white/10 dark:text-slate-300">${allRows.length} visible</p>
+      <p class="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-white/10 dark:text-slate-300">${rows.length} visible</p>
     </div>
 
     <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -274,38 +256,10 @@ function renderCustomerFocusGrid(allRows, pageRows, activeStatusFilter, reviewQu
         .join('')}
     </div>
 
-    ${renderReviewQueueBanner(reviewQueue)}
-
-    <div id="customerCardGrid" class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-      ${pageRows.map((row, index) => renderCustomerFocusCard(row, index)).join('')}
+    <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      ${rows.map((row, index) => renderCustomerFocusCard(row, index)).join('')}
     </div>
-    <div id="customerPager" class="mt-3 flex items-center justify-end"></div>
-    <p class="mt-2 text-right text-xs font-semibold uppercase tracking-[0.11em] text-slate-500 dark:text-slate-400">Page ${pagination.page} / ${pagination.pages}</p>
   </section>`;
-}
-
-function renderReviewQueueBanner(reviewQueue) {
-  const queue = collectReviewQueue(reviewQueue);
-
-  if (!queue.length) {
-    return `<div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-      Verification queue is clear. New submissions will appear here automatically.
-    </div>`;
-  }
-
-  const latest = queue[0];
-  const submittedText = formatDateTime(latest && latest.verificationSubmittedAt ? latest.verificationSubmittedAt : '') || 'Just now';
-
-  return `<div class="mt-3 rounded-2xl border border-amber-300/70 bg-[linear-gradient(130deg,rgba(255,247,214,0.95),rgba(255,238,191,0.9))] px-3 py-3 dark:border-amber-400/30 dark:bg-amber-500/10">
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.13em] text-amber-800 dark:text-amber-200">Verification Review Queue</p>
-        <p class="mt-1 text-sm font-extrabold text-amber-900 dark:text-amber-100">${queue.length} submitted profile${queue.length > 1 ? 's' : ''} awaiting admin review</p>
-        <p class="mt-1 text-xs font-semibold text-amber-800/85 dark:text-amber-200/90">Latest submission: ${escapeHtml(latest && latest.name ? latest.name : 'Customer')} · ${escapeHtml(submittedText)}</p>
-      </div>
-      <button type="button" data-open-customer-id="${escapeHtml(latest && latest.id ? latest.id : '')}" class="rounded-xl border border-amber-400 bg-white/90 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-300/40 dark:bg-amber-500/10 dark:text-amber-100 dark:hover:bg-amber-500/20">Open Next</button>
-    </div>
-  </div>`;
 }
 
 function renderFilterChip(chip, activeStatusFilter) {
@@ -326,11 +280,6 @@ function renderCustomerFocusCard(row, index) {
   const submissionText = formatDateTime(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '') || 'Not submitted yet';
   const userId = escapeHtml(String(row && row.id ? row.id : ''));
   const trips = Number.isFinite(Number(row && row.trips ? row.trips : 0)) ? Number(row.trips) : 0;
-  const reviewChip = row && row.isPendingReview
-    ? '<span class="mt-2 inline-flex items-center rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200">New Submission</span>'
-    : row && row.hasVerificationSubmission
-    ? '<span class="mt-2 inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-slate-200">Submitted</span>'
-    : '';
 
   const delay = Number.isFinite(Number(index)) ? Math.max(0, Math.min(7, Number(index))) * 26 : 0;
 
@@ -356,8 +305,6 @@ function renderCustomerFocusCard(row, index) {
         ${renderCardStat('Submission', submissionText)}
         ${renderCardStat('Location', locationText)}
       </div>
-
-      ${reviewChip}
 
       <div class="mt-3 inline-flex items-center gap-1 rounded-full border border-brand-500/25 bg-brand-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.13em] text-brand-700 transition group-hover:bg-brand-500 group-hover:text-white dark:border-brand-400/40 dark:bg-brand-400/10 dark:text-brand-300 dark:group-hover:bg-brand-500 dark:group-hover:text-white">
         <span>View Individual Details</span>
@@ -605,59 +552,6 @@ function applyStatusFilter(rows, statusFilter) {
 
     return key === filter;
   });
-}
-
-function collectReviewQueue(rows) {
-  const list = Array.isArray(rows) ? rows : [];
-  return sortCustomersForDisplay(list.filter((row) => Boolean(row && row.isPendingReview)));
-}
-
-function customerDisplayPriority(row) {
-  const status = verificationStatusMeta(row && row.verificationStatus ? row.verificationStatus : 'not_submitted').key;
-  const submittedAt = toTimestamp(row && row.verificationSubmittedAt ? row.verificationSubmittedAt : '');
-  const hasSubmission = submittedAt > 0;
-
-  if (status === 'pending' && hasSubmission) return 0;
-  if (status === 'rejected' && hasSubmission) return 1;
-  if (status === 'not_submitted') return 2;
-  if (status === 'approved') return 3;
-  return 4;
-}
-
-function sortCustomersForDisplay(rows) {
-  const list = Array.isArray(rows) ? rows.slice() : [];
-
-  list.sort((left, right) => {
-    const leftPriority = customerDisplayPriority(left);
-    const rightPriority = customerDisplayPriority(right);
-    if (leftPriority !== rightPriority) {
-      return leftPriority - rightPriority;
-    }
-
-    const leftSubmitted = toTimestamp(left && left.verificationSubmittedAt ? left.verificationSubmittedAt : '');
-    const rightSubmitted = toTimestamp(right && right.verificationSubmittedAt ? right.verificationSubmittedAt : '');
-    if (leftSubmitted !== rightSubmitted) {
-      return rightSubmitted - leftSubmitted;
-    }
-
-    const leftName = String(left && left.name ? left.name : '').toLowerCase();
-    const rightName = String(right && right.name ? right.name : '').toLowerCase();
-    if (leftName > rightName) return 1;
-    if (leftName < rightName) return -1;
-    return 0;
-  });
-
-  return list;
-}
-
-function toTimestamp(value) {
-  const text = String(value || '').trim();
-  if (!text) {
-    return 0;
-  }
-
-  const parsed = new Date(text).getTime();
-  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function verificationStatusMeta(statusValue) {

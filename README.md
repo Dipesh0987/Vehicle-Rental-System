@@ -29,7 +29,9 @@ Tailwind-based vehicle rental UI with a separated JS structure.
 - `database/migrations/005_vehicle_catalog_schema_hotfix.sql` - SQL migration to backfill required vehicle columns/defaults for legacy projects
 - `database/migrations/006_vehicle_bookings_system.sql` - SQL migration for secure booking persistence and overlap prevention
 - `database/migrations/012_user_profile_verification_workflow.sql` - SQL migration for customer KYC fields, verification statuses, and admin approval RPC
+- `database/migrations/015_password_reset_otp_flow.sql` - SQL migration for custom password reset OTP storage and lookup RPC
 - `supabase/functions/booking-chat/index.ts` - Authenticated booking AI endpoint for natural-language booking Q&A
+- `supabase/functions/password-reset-code/index.ts` - Custom forgot-password OTP edge function using Resend email delivery
 - `AI_CHAT_BOOKINGS_GUIDE.md` - Full implementation and deployment guide for AI booking chat
 
 ## Run

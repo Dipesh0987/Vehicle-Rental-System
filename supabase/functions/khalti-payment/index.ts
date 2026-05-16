@@ -115,12 +115,18 @@ const KHALTI_SECRET_KEY = (Deno.env.get("KHALTI_SECRET_KEY") ?? "").trim();
 const PAYMENT_RETURN_URL = (Deno.env.get("PAYMENT_RETURN_URL") ?? "").trim();
 const PAYMENT_WEBSITE_URL = (Deno.env.get("PAYMENT_WEBSITE_URL") ?? "").trim();
 const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
-const TEMP_FALLBACK_FROM_EMAIL =
-  `Vehicle Rental Receipts ${crypto.randomUUID().slice(0, 8)} <onboarding@resend.dev>`;
 const PAYMENT_RECEIPT_FROM_EMAIL =
-  (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim() || TEMP_FALLBACK_FROM_EMAIL;
+  (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim()
+  || "Rent A Vehicle Nepal <onboarding@resend.dev>";
+// Resend free-tier only delivers to the verified account email until a
+// domain is added at resend.com/domains. Set RESEND_DEV_REDIRECT_TO to
+// your Resend account email during development, or leave empty once a
+// domain is verified so emails go directly to the real user.
+const RESEND_DEV_REDIRECT_TO =
+  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
+  || (PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev") ? "aryal.rajat05@gmail.com" : "");
 const PAYMENT_APP_NAME =
-  (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "RentAVehicle Nepal";
+  (Deno.env.get("PAYMENT_APP_NAME") ?? "").trim() || "Rent A Vehicle Nepal";
 const PARTIAL_PAYMENT_PERCENT = clampPercent(
   Number(Deno.env.get("PARTIAL_PAYMENT_PERCENT") ?? "0.60"),
   0.6,
@@ -838,8 +844,34 @@ async function sendReceiptEmail(params: {
     return;
   }
 
-  const html = renderReceiptHtml(params.receiptCode, params.payload);
-  const text = renderReceiptText(params.receiptCode, params.payload);
+  // Dev-redirect: reroute to the single Resend-verified inbox during
+  // testing. Original recipient is preserved in subject + banner.
+  const originalRecipient = params.to;
+  const isRedirected =
+    RESEND_DEV_REDIRECT_TO.length > 0
+    && RESEND_DEV_REDIRECT_TO !== originalRecipient.toLowerCase();
+  const actualRecipient = isRedirected ? RESEND_DEV_REDIRECT_TO : originalRecipient;
+
+  const subject = isRedirected
+    ? "[DEV - to: " + originalRecipient + "] " + PAYMENT_APP_NAME + " payment receipt " + params.receiptCode
+    : PAYMENT_APP_NAME + " payment receipt " + params.receiptCode;
+
+  let html = renderReceiptHtml(params.receiptCode, params.payload);
+  let text = renderReceiptText(params.receiptCode, params.payload);
+
+  if (isRedirected) {
+    const banner =
+      '<div style="background:#fff7e6;border:1px solid #f5c97d;color:#7a4c0d;padding:12px 16px;border-radius:8px;font-family:Arial,sans-serif;font-size:13px;margin:0 0 16px 0;">'
+      + "<strong>Dev redirect:</strong> this receipt was originally addressed to <strong>"
+      + escapeHtml(originalRecipient)
+      + "</strong>. It was rerouted here because no Resend domain is verified.</div>";
+    html = banner + html;
+    text =
+      "[DEV REDIRECT] Originally addressed to: "
+      + originalRecipient
+      + "\nResend free-tier only delivers to the verified account email until a domain is added at resend.com/domains.\n\n"
+      + text;
+  }
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -849,8 +881,8 @@ async function sendReceiptEmail(params: {
     },
     body: JSON.stringify({
       from: PAYMENT_RECEIPT_FROM_EMAIL,
-      to: [params.to],
-      subject: PAYMENT_APP_NAME + " payment receipt " + params.receiptCode,
+      to: [actualRecipient],
+      subject,
       html,
       text,
     }),

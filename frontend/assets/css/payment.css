@@ -444,19 +444,393 @@
   justify-content: flex-end;
 }
 
+/* ========================================================================
+   DARK MODE
+   ======================================================================== */
+.dark .payment-card,
+[data-theme='dark'] .payment-card {
+  background: linear-gradient(160deg, rgba(18, 28, 32, 0.98), rgba(22, 34, 38, 0.98));
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+}
+
+.dark .payment-card-label,
+[data-theme='dark'] .payment-card-label {
+  color: #8ba3a6;
+}
+
+.dark .payment-card-title,
+[data-theme='dark'] .payment-card-title {
+  color: #e8f0f0;
+}
+
+.dark .payment-card-sub,
+[data-theme='dark'] .payment-card-sub {
+  color: #8ba3a6;
+}
+
+/* Accent card keeps its teal gradient in dark mode — just deepen slightly */
+.dark .payment-card--accent,
+[data-theme='dark'] .payment-card--accent {
+  background: linear-gradient(160deg, #0b2729, #174e4a 75%, #1c6358);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .payment-summary-row,
+[data-theme='dark'] .payment-summary-row {
+  color: #9bb5b8;
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+.dark .payment-summary-row strong,
+[data-theme='dark'] .payment-summary-row strong {
+  color: #e0eded;
+}
+
+.dark .payment-option,
+[data-theme='dark'] .payment-option {
+  background: #151f24;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .payment-option:hover:not(.payment-option--disabled),
+[data-theme='dark'] .payment-option:hover:not(.payment-option--disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+}
+
+.dark .payment-option--active,
+[data-theme='dark'] .payment-option--active {
+  border-color: #3da89e;
+  background: linear-gradient(135deg, #142a2c, #1a3836);
+  box-shadow: 0 16px 32px rgba(31, 91, 87, 0.22);
+}
+
+.dark .payment-option--disabled,
+[data-theme='dark'] .payment-option--disabled {
+  background: #1a2226;
+}
+
+.dark .payment-option__radio,
+[data-theme='dark'] .payment-option__radio {
+  border-color: #4a6466;
+  background: #1a2226;
+}
+
+.dark .payment-option--active .payment-option__radio,
+[data-theme='dark'] .payment-option--active .payment-option__radio {
+  border-color: #2c8c82;
+  background: #2c8c82;
+}
+
+.dark .payment-option__title,
+[data-theme='dark'] .payment-option__title {
+  color: #e0eded;
+}
+
+.dark .payment-option__sub,
+[data-theme='dark'] .payment-option__sub {
+  color: #8ba3a6;
+}
+
+.dark .payment-option__amount,
+[data-theme='dark'] .payment-option__amount {
+  color: #5ec4b8;
+}
+
+.dark .payment-option--active .payment-option__amount,
+[data-theme='dark'] .payment-option--active .payment-option__amount {
+  color: #6dd4c8;
+}
+
+.dark .payment-pay-now,
+[data-theme='dark'] .payment-pay-now {
+  background: linear-gradient(135deg, #1e1a14, #251e14);
+  border-color: #5e4a2e;
+}
+
+.dark .payment-pay-now-amount,
+[data-theme='dark'] .payment-pay-now-amount {
+  color: #f0b870;
+}
+
+.dark .payment-pay-now-sub,
+[data-theme='dark'] .payment-pay-now-sub {
+  color: #b09878;
+}
+
+.dark .payment-countdown-card,
+[data-theme='dark'] .payment-countdown-card {
+  background: linear-gradient(135deg, #111e22, #162826);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #a0ccc8;
+}
+
+.dark .payment-countdown-card.payment-countdown--urgent,
+[data-theme='dark'] .payment-countdown-card.payment-countdown--urgent {
+  background: linear-gradient(135deg, #2a1414, #301818);
+  border-color: rgba(200, 80, 80, 0.3);
+  color: #e89898;
+}
+
+.dark .payment-countdown-card.payment-countdown--expired,
+[data-theme='dark'] .payment-countdown-card.payment-countdown--expired {
+  background: #1a1e20;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #7a8080;
+}
+
+.dark .payment-secondary-button,
+[data-theme='dark'] .payment-secondary-button {
+  background: #151f24;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #a0c4c8;
+}
+
+.dark .payment-secondary-button:hover,
+[data-theme='dark'] .payment-secondary-button:hover {
+  background: #1a2a2e;
+}
+
+/* Receipt page */
+.dark .payment-receipt-shell,
+[data-theme='dark'] .payment-receipt-shell {
+  background: #111a1e;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
+}
+
+.dark .payment-receipt-row,
+[data-theme='dark'] .payment-receipt-row {
+  color: #9bb5b8;
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+.dark .payment-receipt-row strong,
+[data-theme='dark'] .payment-receipt-row strong {
+  color: #e0eded;
+}
+
+.dark .payment-receipt-totals,
+[data-theme='dark'] .payment-receipt-totals {
+  background: linear-gradient(135deg, #111e22, #142826);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .payment-receipt-totals-row,
+[data-theme='dark'] .payment-receipt-totals-row {
+  color: #9bb5b8;
+}
+
+.dark .payment-receipt-totals-row.is-grand,
+[data-theme='dark'] .payment-receipt-totals-row.is-grand {
+  color: #e0eded;
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Security badges row */
+.dark .payment-card .grid.rounded-2xl,
+[data-theme='dark'] .payment-card .grid.rounded-2xl {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #8ba3a6;
+}
+
+/* Main outer section card — !important needed to beat inline Tailwind JIT bg */
+.dark .payment-page-section,
+[data-theme='dark'] .payment-page-section {
+  background: linear-gradient(150deg, rgba(14, 22, 26, 0.96), rgba(10, 16, 20, 0.92)) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Page-level header text — !important to beat inline text-[#xxx] utilities */
+.dark .payment-page-label,
+[data-theme='dark'] .payment-page-label {
+  color: #7aacb0 !important;
+}
+
+.dark .payment-page-heading,
+[data-theme='dark'] .payment-page-heading {
+  color: #e4f0f0 !important;
+}
+
+.dark .payment-page-sub,
+[data-theme='dark'] .payment-page-sub {
+  color: #8ba3a6 !important;
+}
+
+/* Browse vehicles / My bookings buttons */
+.dark .payment-page-action,
+[data-theme='dark'] .payment-page-action {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #a0c4c8 !important;
+}
+
+.dark .payment-page-action:hover,
+[data-theme='dark'] .payment-page-action:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Loading state */
+.dark #paymentLoadingState,
+[data-theme='dark'] #paymentLoadingState {
+  background: #151f24;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #8ba3a6;
+}
+
+/* Already paid panel */
+.dark #paymentAlreadyPaidPanel,
+[data-theme='dark'] #paymentAlreadyPaidPanel {
+  background: #0f201e;
+  border-color: rgba(52, 211, 153, 0.2);
+  color: #6ee7b7;
+}
+
+/* Status banner */
+.dark #paymentStatusBanner,
+[data-theme='dark'] #paymentStatusBanner {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* "Today you are paying" amount */
+.dark #paymentSummaryAmount,
+[data-theme='dark'] #paymentSummaryAmount {
+  color: #f0b870;
+}
+
+/* Helper text under payment button and in bottom card */
+.dark .payment-card .text-center,
+[data-theme='dark'] .payment-card .text-center {
+  color: #6e8688;
+}
+
+.dark .payment-card p[class*="text-[#4f6d70]"],
+.dark .payment-card p[class*="text-[#5f7a7d]"],
+[data-theme='dark'] .payment-card p[class*="text-[#4f6d70]"],
+[data-theme='dark'] .payment-card p[class*="text-[#5f7a7d]"] {
+  color: #7a9598;
+}
+
+/* ====== Print / Save-as-PDF ====== */
 @media print {
-  body * {
-    visibility: hidden !important;
-  }
-  .payment-receipt-shell, .payment-receipt-shell * {
-    visibility: visible !important;
-  }
-  .payment-receipt-shell {
-    margin: 0;
-    box-shadow: none;
-    border: none;
-  }
-  .payment-receipt-actions, .vrs-theme-scope, header, footer, .payment-skip-print {
+  /* Hide everything that isn't the receipt.
+     NOTE: <main> also carries .vrs-theme-scope so do NOT target that class
+     generically — it would nuke the receipt container itself. */
+  body > *:not(main),
+  header, footer, nav,
+  .payment-skip-print,
+  .payment-receipt-actions,
+  #paymentReceiptStatus,
+  #paymentReceiptLoading {
     display: none !important;
+  }
+
+  /* Reset page and body so the receipt starts at the top-left corner.
+     Force light-mode colours so dark-mode users get a readable printout. */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #14373b !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    color: #14373b !important;
+  }
+
+  /* Receipt card fills the printable area cleanly */
+  .payment-receipt-shell {
+    position: relative !important;
+    margin: 0 auto !important;
+    padding: 1.2rem 1.4rem 1.6rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #14373b !important;
+    page-break-inside: avoid;
+  }
+
+  /* Force gradient header to render in print */
+  .payment-receipt-header {
+    background: linear-gradient(135deg, #0e3a3d, #1f6e63) !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    border-radius: 12px !important;
+  }
+
+  /* Section labels */
+  .payment-card-label {
+    color: #1f5b57 !important;
+  }
+
+  /* Receipt rows — force light-mode text colours for dark-mode users */
+  .payment-receipt-row {
+    font-size: 12px;
+    padding: 0.35rem 0;
+    color: #2f565a !important;
+    border-bottom-color: rgba(22, 58, 61, 0.08) !important;
+  }
+
+  .payment-receipt-row strong {
+    color: #14373b !important;
+  }
+
+  /* Totals section keeps its tinted background */
+  .payment-receipt-totals {
+    background: linear-gradient(135deg, #f8fbf9, #ecfdf3) !important;
+    border-color: #cfe5d8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .payment-receipt-totals-row {
+    font-size: 12px;
+    color: #345057 !important;
+  }
+
+  .payment-receipt-totals-row.is-grand {
+    font-size: 14px;
+    color: #14373b !important;
+    border-top-color: rgba(22, 58, 61, 0.18) !important;
+  }
+
+  /* Two-column grid stays inline for a wider printout */
+  .payment-receipt-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Amount highlight — force readable colour for print */
+  #receiptAmount {
+    color: #7a4c1f !important;
+  }
+
+  /* Footer text */
+  .payment-receipt-shell > p:last-of-type {
+    color: #728d8c !important;
+  }
+
+  /* Hide the footer "thank you" email note? No, keep it for receipts.
+     But hide the email-status line since it's not useful on paper. */
+  #receiptEmailStatus {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 18mm 14mm;
   }
 }

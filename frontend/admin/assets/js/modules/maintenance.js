@@ -5,12 +5,31 @@ import { openModal, renderEmptyState } from '../ui.js';
 const STATUS_OPTIONS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Billed'];
 const SERVICE_TYPES  = ['Damage', 'Scheduled Service', 'Inspection', 'Repair'];
 
+// Workshop summary card group IDs (used for click-to-filter)
+const CARD_UPCOMING       = 'upcoming';
+const CARD_IN_WORKSHOP    = 'inWorkshop';
+const CARD_DAMAGE_OPEN    = 'damageOpen';
+
 const maintenanceUiState = {
   selectedId: '',
   statusFilter: 'All',
+  workshopCardGroup: '',  // '' | 'upcoming' | 'inWorkshop' | 'damageOpen'
   page: 1,
   mode: 'list', // list | detail | add | edit | billing
 };
+
+/**
+ * Returns live workshop summary counts from the current data.
+ * Can be called by the overview module to display workshop stats.
+ */
+export function getWorkshopSummaryCounts(data) {
+  const rows = Array.isArray(data?.maintenance) ? data.maintenance : [];
+  return {
+    upcoming:         rows.filter((r) => r.status === 'Scheduled').length,
+    inWorkshop:       rows.filter((r) => r.status === 'In Progress').length,
+    damageClaimsOpen: rows.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled' && r.status !== 'Billed').length,
+  };
+}
 
 export function renderMaintenanceModule({ data, query, notify, rerender }) {
   const host = document.createElement('section');
@@ -46,19 +65,31 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   }
 
   // ── List View ──────────────────────────────────────────────
-  let filtered = filterRows(sourceRows, query, ['id', 'vehicle', 'damage', 'status', 'serviceType', 'technician']);
-  if (maintenanceUiState.statusFilter !== 'All') {
-    filtered = filtered.filter((r) => r.status === maintenanceUiState.statusFilter);
-  }
 
-  const paged = paginateRows(filtered, maintenanceUiState.page, 8);
-
-  // live summary counts from full source (not filtered)
+  // live summary counts from full source (not affected by any filter)
   const scheduled   = sourceRows.filter((r) => r.status === 'Scheduled').length;
   const inProgress  = sourceRows.filter((r) => r.status === 'In Progress').length;
   const completed   = sourceRows.filter((r) => r.status === 'Completed').length;
   const billed      = sourceRows.filter((r) => r.status === 'Billed').length;
   const damageOpen  = sourceRows.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled' && r.status !== 'Billed').length;
+
+  let filtered = filterRows(sourceRows, query, ['id', 'vehicle', 'damage', 'status', 'serviceType', 'technician']);
+
+  // Apply workshop card group filter
+  if (maintenanceUiState.workshopCardGroup === CARD_UPCOMING) {
+    filtered = filtered.filter((r) => r.status === 'Scheduled');
+  } else if (maintenanceUiState.workshopCardGroup === CARD_IN_WORKSHOP) {
+    filtered = filtered.filter((r) => r.status === 'In Progress');
+  } else if (maintenanceUiState.workshopCardGroup === CARD_DAMAGE_OPEN) {
+    filtered = filtered.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled' && r.status !== 'Billed');
+  }
+
+  // Apply status pill filter on top
+  if (maintenanceUiState.statusFilter !== 'All') {
+    filtered = filtered.filter((r) => r.status === maintenanceUiState.statusFilter);
+  }
+
+  const paged = paginateRows(filtered, maintenanceUiState.page, 8);
 
   host.innerHTML = `
     <header class="flex flex-wrap items-end justify-between gap-3">
@@ -73,14 +104,46 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
       </div>
     </header>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      ${summaryCard('Scheduled', scheduled, 'amber')}
-      ${summaryCard('In Progress', inProgress, 'blue')}
-      ${summaryCard('Completed', completed, 'emerald')}
-      ${summaryCard('Billed', billed, 'violet')}
-      ${summaryCard('Damage Open', damageOpen, 'rose')}
+    <!-- Workshop Summary Cards -->
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      ${workshopCard({
+        id: CARD_UPCOMING,
+        label: 'Upcoming Services',
+        count: scheduled,
+        icon: 'schedule',
+        color: 'amber',
+        subtitle: 'Awaiting workshop slot',
+        active: maintenanceUiState.workshopCardGroup === CARD_UPCOMING,
+      })}
+      ${workshopCard({
+        id: CARD_IN_WORKSHOP,
+        label: 'In Workshop',
+        count: inProgress,
+        icon: 'build',
+        color: 'blue',
+        subtitle: 'Currently being serviced',
+        active: maintenanceUiState.workshopCardGroup === CARD_IN_WORKSHOP,
+      })}
+      ${workshopCard({
+        id: CARD_DAMAGE_OPEN,
+        label: 'Damage Claims Open',
+        count: damageOpen,
+        icon: 'warning',
+        color: 'rose',
+        subtitle: 'Pending resolution',
+        active: maintenanceUiState.workshopCardGroup === CARD_DAMAGE_OPEN,
+      })}
     </div>
+
+    <!-- Active card filter banner -->
+    ${maintenanceUiState.workshopCardGroup
+      ? `<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+           <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+           Showing: <strong>${workshopCardLabel(maintenanceUiState.workshopCardGroup)}</strong>
+           <span class="text-slate-400 dark:text-slate-500">(${filtered.length} record${filtered.length !== 1 ? 's' : ''})</span>
+           <button id="clearCardFilter" class="ml-auto rounded-lg border border-slate-200 px-2 py-1 text-[11px] text-slate-500 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/10">Clear</button>
+         </div>`
+      : ''}
 
     <!-- Status Filter -->
     <div class="flex flex-wrap items-center gap-2">
@@ -95,10 +158,12 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
 
     ${paged.rows.length === 0
       ? renderEmptyState({
-          title: 'No records found',
-          message: maintenanceUiState.statusFilter !== 'All' ? 'Try a different status filter.' : 'No maintenance records yet.',
-          actionLabel: 'Schedule Service',
-          actionId: 'emptyAddBtn',
+          title: maintenanceUiState.workshopCardGroup ? `No ${workshopCardLabel(maintenanceUiState.workshopCardGroup).toLowerCase()} records` : 'No records found',
+          message: maintenanceUiState.workshopCardGroup
+            ? 'All items in this category have been resolved or none exist yet.'
+            : (maintenanceUiState.statusFilter !== 'All' ? 'Try a different status filter.' : 'No maintenance records yet.'),
+          actionLabel: maintenanceUiState.workshopCardGroup ? 'Show All Records' : 'Schedule Service',
+          actionId: maintenanceUiState.workshopCardGroup ? 'clearCardFilterEmpty' : 'emptyAddBtn',
         })
       : `<section class="${classMap.panel} p-4 sm:p-5">
         <div class="overflow-x-auto">
@@ -148,10 +213,37 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   const openAdd = () => { maintenanceUiState.mode = 'add'; maintenanceUiState.selectedId = ''; rerender(); };
 
   host.querySelector('#emptyAddBtn')?.addEventListener('click', openAdd);
+
+  // Clear card filter buttons (banner + empty state)
+  const clearCardFilter = () => {
+    maintenanceUiState.workshopCardGroup = '';
+    maintenanceUiState.page = 1;
+    rerender();
+  };
+  host.querySelector('#clearCardFilter')?.addEventListener('click', clearCardFilter);
+  host.querySelector('#clearCardFilterEmpty')?.addEventListener('click', clearCardFilter);
+
   host.querySelector('#reportDamageBtn')?.addEventListener('click', () => {
     maintenanceUiState.mode = 'add';
     maintenanceUiState.selectedId = '';
     rerender();
+  });
+
+  // Workshop summary card click → toggle filter
+  host.querySelectorAll('[data-workshop-card]').forEach((card) => {
+    const handler = () => {
+      const cardId = card.getAttribute('data-workshop-card');
+      // Toggle: clicking the active card deactivates it
+      maintenanceUiState.workshopCardGroup =
+        maintenanceUiState.workshopCardGroup === cardId ? '' : cardId;
+      maintenanceUiState.statusFilter = 'All';
+      maintenanceUiState.page = 1;
+      rerender();
+    };
+    card.addEventListener('click', handler);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
+    });
   });
 
   host.querySelectorAll('[data-filter-status]').forEach((btn) => {
@@ -663,18 +755,50 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-function summaryCard(label, count, color) {
-  const colors = {
-    amber:   'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-300',
-    blue:    'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/20 dark:text-blue-300',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-300',
-    rose:    'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/20 dark:text-rose-300',
-    violet:  'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/30 dark:bg-violet-500/20 dark:text-violet-300',
+function workshopCard({ id, label, count, icon, color, subtitle, active }) {
+  const palette = {
+    amber: {
+      base:   'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+      active: 'border-amber-400 bg-amber-100 ring-2 ring-amber-400/40 text-amber-900 dark:border-amber-400 dark:bg-amber-500/20 dark:text-amber-100',
+      icon:   'bg-amber-200/60 text-amber-700 dark:bg-amber-500/30 dark:text-amber-300',
+      count:  'text-amber-900 dark:text-amber-100',
+    },
+    blue: {
+      base:   'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
+      active: 'border-blue-400 bg-blue-100 ring-2 ring-blue-400/40 text-blue-900 dark:border-blue-400 dark:bg-blue-500/20 dark:text-blue-100',
+      icon:   'bg-blue-200/60 text-blue-700 dark:bg-blue-500/30 dark:text-blue-300',
+      count:  'text-blue-900 dark:text-blue-100',
+    },
+    rose: {
+      base:   'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200',
+      active: 'border-rose-400 bg-rose-100 ring-2 ring-rose-400/40 text-rose-900 dark:border-rose-400 dark:bg-rose-500/20 dark:text-rose-100',
+      icon:   'bg-rose-200/60 text-rose-700 dark:bg-rose-500/30 dark:text-rose-300',
+      count:  'text-rose-900 dark:text-rose-100',
+    },
   };
-  return `<article class="rounded-2xl border p-4 ${colors[color] || colors.amber}">
-    <p class="text-xs font-bold uppercase tracking-[0.14em] opacity-70">${label}</p>
-    <p class="mt-2 text-3xl font-extrabold">${count}</p>
+  const p = palette[color] || palette.amber;
+  const cardCls = active ? p.active : p.base;
+
+  return `<article data-workshop-card="${id}" class="workshop-summary-card group relative cursor-pointer select-none rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-md ${cardCls}" role="button" tabindex="0" aria-pressed="${active}">
+    <div class="flex items-start gap-3">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${p.icon} transition">
+        <span class="material-symbols-outlined text-[22px]">${icon}</span>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-bold uppercase tracking-[0.14em] opacity-70">${label}</p>
+        <p class="mt-1 text-3xl font-extrabold leading-none ${p.count}" data-ws-count="${id}">${count}</p>
+        <p class="mt-1.5 text-[11px] font-medium opacity-60">${subtitle}</p>
+      </div>
+    </div>
+    ${active ? '<div class="absolute bottom-0 left-1/2 -translate-x-1/2 h-[3px] w-10 rounded-full bg-current opacity-50"></div>' : ''}
   </article>`;
+}
+
+function workshopCardLabel(groupId) {
+  if (groupId === CARD_UPCOMING)    return 'Upcoming Services';
+  if (groupId === CARD_IN_WORKSHOP) return 'In Workshop';
+  if (groupId === CARD_DAMAGE_OPEN) return 'Damage Claims Open';
+  return 'All';
 }
 
 function detailField(label, value) {

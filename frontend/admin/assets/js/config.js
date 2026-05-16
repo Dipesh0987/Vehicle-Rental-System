@@ -20,6 +20,21 @@ export const classMap = {
   tag: 'rounded-full px-2.5 py-1 text-xs font-semibold',
 };
 
+/**
+ * Consistent segment colour palette used across overview and reporting charts.
+ * Order matches the default fleetCategory / utilization arrays in data.js.
+ */
+export const SEGMENT_COLORS = {
+  SUV:      '#f08f5f',
+  Sedan:    '#1f7668',
+  Bike:     '#5d90a5',
+  Electric: '#e5bb5d',
+  Luxury:   '#8f95b2',
+};
+
+/** Ordered array form for indexed chart datasets. */
+export const SEGMENT_COLOR_LIST = Object.values(SEGMENT_COLORS);
+
 export const quickActions = [
   { id: 'newBooking', label: 'Create Booking', icon: 'event_available' },
   { id: 'addVehicle', label: 'Add Vehicle', icon: 'directions_car' },

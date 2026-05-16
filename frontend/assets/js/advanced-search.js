@@ -16,7 +16,7 @@ class AdvancedSearchSystem {
         this.vehicles = [];
         this.isInitialized = false;
         this.unsubscribeCatalogSync = null;
-        this.vehicleCacheKey = "vrs:search:vehicles:cache:v1";
+        this.vehicleCacheKey = "vrs:search:vehicles:cache:v2";
         this.catalogVersionKey = "vrs:vehicle-catalog-version";
         this.homeSearchPrefillKey = "vrs:home-hero-search-prefill:v1";
         this.vehicleCacheTTL = 3 * 60 * 1000;
@@ -160,8 +160,6 @@ class AdvancedSearchSystem {
         }
 
         const update = {
-            pickupLocation,
-            dropoffLocation: pickupLocation,
             pickupDateTime,
             dropoffDateTime,
         };
@@ -545,12 +543,10 @@ class AdvancedSearchSystem {
                 return { applied: false, reason: "stale-request" };
             }
 
-            console.warn("Failed to evaluate booking availability for search dates:", error);
+            console.warn("Failed to evaluate booking availability for search dates (non-blocking):", error);
+            // Silently clear availability so vehicles still show even if booking table has missing columns
             this.filterManager.clearDateAvailability();
             this.lastAvailabilityRangeKey = "";
-            if (this.uiManager?.showReloadStatus) {
-                this.uiManager.showReloadStatus("Unable to verify date availability right now. Please try again.");
-            }
             return { applied: false, reason: "fetch-error" };
         }
     }
@@ -591,8 +587,8 @@ class AdvancedSearchSystem {
             }
 
             // Render UI components
-            this.uiManager.renderFilterPanel();
             this.applyFiltersAndRender();
+            this.uiManager.renderFilterPanel();
 
             // Setup event listeners
             this.setupEventListeners();
@@ -748,6 +744,10 @@ class AdvancedSearchSystem {
 
             this.vehicles = catalogVehicles;
             this.writeVehicleCache(this.vehicles);
+            
+            // Re-render filter panel to update dynamic brand options
+            this.uiManager.renderFilterPanel();
+            
             this.applyFiltersAndRender();
         } catch (error) {
             console.warn("Failed to refresh vehicles from catalog service:", error);
@@ -766,22 +766,8 @@ class AdvancedSearchSystem {
 
         this.applyDateInputConstraints(pickupDateTime, dropoffDateTime);
 
-        // Location autocomplete
-        if (pickupLocation) {
-            pickupLocation.addEventListener("input", (e) => {
-                this.apiClient.debounce("pickupSearch", () => {
-                    this.filterManager.updateFilter("pickupLocation", e.target.value);
-                }, 300);
-            });
-        }
-
-        if (dropoffLocation) {
-            dropoffLocation.addEventListener("input", (e) => {
-                this.apiClient.debounce("dropoffSearch", () => {
-                    this.filterManager.updateFilter("dropoffLocation", e.target.value);
-                }, 300);
-            });
-        }
+        // Location fields are display-only, they do NOT filter vehicles
+        // No event listeners needed for pickupLocation / dropoffLocation
 
         // Date/time changes
         if (pickupDateTime) {
@@ -898,14 +884,23 @@ class AdvancedSearchSystem {
         if (clearBtn) {
             clearBtn.addEventListener("click", () => {
                 this.filterManager.clearAllFilters();
+                this.filterManager.setSortOrder("relevance");
                 this.uiManager.renderFilterPanel();
                 this.uiManager.updateActiveFilterTags();
 
+                // Reset sort dropdown
+                const sortEl = document.getElementById("sortBy");
+                if (sortEl) sortEl.value = "relevance";
+
                 // Reset search inputs
-                document.getElementById("pickupLocation").value = "";
-                document.getElementById("dropoffLocation").value = "";
-                document.getElementById("pickupDateTime").value = "";
-                document.getElementById("dropoffDateTime").value = "";
+                const pLoc = document.getElementById("pickupLocation");
+                const dLoc = document.getElementById("dropoffLocation");
+                const pDt = document.getElementById("pickupDateTime");
+                const dDt = document.getElementById("dropoffDateTime");
+                if (pLoc) pLoc.value = "";
+                if (dLoc) dLoc.value = "";
+                if (pDt) pDt.value = "";
+                if (dDt) dDt.value = "";
 
                 // Remove quick filter active state
                 document.querySelectorAll(".quick-filter-btn").forEach((btn) => {
@@ -936,8 +931,11 @@ class AdvancedSearchSystem {
         if (resetBtn) {
             resetBtn.addEventListener("click", () => {
                 this.filterManager.clearAllFilters();
+                this.filterManager.setSortOrder("relevance");
                 this.uiManager.renderFilterPanel();
                 this.uiManager.updateActiveFilterTags();
+                const sortEl = document.getElementById("sortBy");
+                if (sortEl) sortEl.value = "relevance";
                 this.lastDateFilterKey = this.buildDateFilterKey();
                 this.applyFiltersAndRender();
             });

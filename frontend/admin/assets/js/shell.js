@@ -181,21 +181,22 @@ export function renderShell() {
           <span id="sidebarToggleIcon" class="material-symbols-outlined">menu_open</span>
         </button>
 
-        <label class="relative min-w-[230px] flex-1 max-w-[480px]">
+        <label class="relative min-w-0 flex-1 max-w-[480px]">
           <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
           <input id="globalSearch" placeholder="Search vehicles, bookings, customers, and admins..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
         </label>
 
         <div id="quickActions" class="hidden items-center gap-2 xl:flex">${renderQuickActions()}</div>
 
-        <button id="notificationBtn" class="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
-          <span class="material-symbols-outlined">notifications</span>
-          <span id="notificationBadgeCount" class="absolute -right-1 -top-1 hidden h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">0</span>
-        </button>
+        <div class="flex items-center gap-2 ml-auto">
+          <button id="notificationBtn" class="relative shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+            <span class="material-symbols-outlined">notifications</span>
+            <span id="notificationBadgeCount" class="absolute -right-1 -top-1 hidden h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">0</span>
+          </button>
 
-        <button id="themeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
-          <span class="material-symbols-outlined">contrast</span>
-        </button>
+          <button id="themeToggle" class="shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+            <span class="material-symbols-outlined">contrast</span>
+          </button>
 
         <div id="profileBtn" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
           <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">${escapeHtml(adminIdentity.initials)}</span>
@@ -351,6 +352,112 @@ export function setActiveNav(id) {
   }
 
   activeButton?.scrollIntoView({ block: 'nearest' });
+}
+
+function initSidebarBehavior() {
+  applyDesktopSidebarState(false);
+  closeMobileSidebar(true);
+
+  window.addEventListener('resize', handleSidebarViewportChange);
+  handleSidebarViewportChange();
+}
+
+function handleSidebarToggle() {
+  if (isDesktopViewport()) {
+    applyDesktopSidebarState(!isDesktopSidebarCollapsed());
+    return;
+  }
+
+  if (isMobileSidebarVisible()) {
+    closeMobileSidebar();
+    return;
+  }
+
+  openMobileSidebar();
+}
+
+function handleSidebarViewportChange() {
+  if (isDesktopViewport()) {
+    closeMobileSidebar(true);
+  }
+
+  updateSidebarToggleVisual(isDesktopSidebarCollapsed(), isMobileSidebarVisible());
+}
+
+function isDesktopViewport() {
+  return window.matchMedia('(min-width: 1024px)').matches;
+}
+
+function readDesktopSidebarCollapsedState() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY) === '1';
+  } catch (_error) {
+    return false;
+  }
+}
+
+function writeDesktopSidebarCollapsedState(collapsed) {
+  try {
+    window.localStorage.setItem(SIDEBAR_COLLAPSE_STORAGE_KEY, collapsed ? '1' : '0');
+  } catch (_error) {
+    // Ignore localStorage write failures.
+  }
+}
+
+function isDesktopSidebarCollapsed() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) {
+    return readDesktopSidebarCollapsedState();
+  }
+
+  return sidebar.classList.contains('lg:w-0');
+}
+
+function applyDesktopSidebarState(collapsed) {
+  const sidebar = document.getElementById('sidebar');
+  const sidebarContent = document.getElementById('sidebarContent');
+
+  if (!sidebar || !sidebarContent) {
+    return;
+  }
+
+  const shouldCollapse = Boolean(collapsed);
+  sidebar.classList.toggle('lg:w-0', shouldCollapse);
+  sidebar.classList.toggle('lg:px-0', shouldCollapse);
+  sidebar.classList.toggle('lg:py-0', shouldCollapse);
+  sidebar.classList.toggle('lg:border-r-0', shouldCollapse);
+  sidebar.classList.toggle('lg:opacity-0', shouldCollapse);
+  sidebar.classList.toggle('lg:pointer-events-none', shouldCollapse);
+
+  sidebarContent.classList.toggle('lg:-translate-x-3', shouldCollapse);
+  sidebarContent.classList.toggle('lg:opacity-0', shouldCollapse);
+  sidebarContent.classList.toggle('lg:pointer-events-none', shouldCollapse);
+
+  sidebar.setAttribute('aria-hidden', shouldCollapse ? 'true' : 'false');
+  writeDesktopSidebarCollapsedState(shouldCollapse);
+  updateSidebarToggleVisual(shouldCollapse, false);
+}
+
+function updateSidebarToggleVisual(isCollapsed, mobileOpen) {
+  const icon = document.getElementById('sidebarToggleIcon');
+  const button = document.getElementById('sidebarToggleBtn');
+  if (!icon || !button) {
+    return;
+  }
+
+  if (isDesktopViewport()) {
+    icon.textContent = isCollapsed ? 'menu' : 'menu_open';
+    button.setAttribute('aria-label', isCollapsed ? 'Open sidebar' : 'Close sidebar');
+    return;
+  }
+
+  icon.textContent = mobileOpen ? 'close' : 'menu';
+  button.setAttribute('aria-label', mobileOpen ? 'Close sidebar' : 'Open sidebar');
+}
+
+function isMobileSidebarVisible() {
+  const sidebar = document.getElementById('mobileSidebar');
+  return Boolean(sidebar && !sidebar.classList.contains('hidden'));
 }
 
 function initSidebarBehavior() {

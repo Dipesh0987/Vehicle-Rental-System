@@ -42,17 +42,7 @@ begin
   return query
   select up.*
   from public.user_profiles up
-  order by
-    case
-      when up.verification_status = 'pending' and up.verification_submitted_at is not null then 0
-      when up.verification_status = 'rejected' and up.verification_submitted_at is not null then 1
-      when up.verification_status = 'not_submitted' then 2
-      when up.verification_status = 'approved' then 3
-      else 4
-    end,
-    up.verification_submitted_at desc nulls last,
-    up.updated_at desc nulls last,
-    up.created_at desc nulls last;
+  order by up.updated_at desc nulls last, up.created_at desc nulls last;
 end;
 $$;
 

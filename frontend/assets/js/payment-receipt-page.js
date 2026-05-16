@@ -53,15 +53,24 @@
       banner.textContent = "";
       return;
     }
-    banner.classList.remove("hidden", "border-rose-200", "bg-rose-50", "text-rose-700",
+    banner.classList.remove("hidden",
+      "border-rose-200", "bg-rose-50", "text-rose-700",
       "border-emerald-200", "bg-emerald-50", "text-emerald-700",
       "border-slate-200", "bg-slate-50", "text-slate-700");
+    // Remove dark-mode counterparts so they don't linger across calls
+    banner.className = banner.className
+      .replace(/dark:\S+/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
     if (tone === "error") {
-      banner.classList.add("border-rose-200", "bg-rose-50", "text-rose-700");
+      banner.classList.add("border-rose-200", "bg-rose-50", "text-rose-700",
+        "dark:border-rose-500/30", "dark:bg-rose-500/10", "dark:text-rose-300");
     } else if (tone === "success") {
-      banner.classList.add("border-emerald-200", "bg-emerald-50", "text-emerald-700");
+      banner.classList.add("border-emerald-200", "bg-emerald-50", "text-emerald-700",
+        "dark:border-emerald-500/30", "dark:bg-emerald-500/10", "dark:text-emerald-300");
     } else {
-      banner.classList.add("border-slate-200", "bg-slate-50", "text-slate-700");
+      banner.classList.add("border-slate-200", "bg-slate-50", "text-slate-700",
+        "dark:border-white/10", "dark:bg-white/5", "dark:text-slate-300");
     }
     banner.textContent = message;
   }
@@ -111,13 +120,13 @@
     if (emailStatusEl) {
       if (state.receipt && state.receipt.email_status === "sent") {
         emailStatusEl.textContent = "Sent " + formatDate(state.receipt.email_sent_at) + " to " + state.receipt.email_to;
-        emailStatusEl.className = "text-[12px] font-semibold text-emerald-600";
+        emailStatusEl.className = "text-[12px] font-semibold text-emerald-300";
       } else if (state.receipt && state.receipt.email_status === "failed") {
         emailStatusEl.textContent = "Email failed: " + (state.receipt.email_error || "unknown error");
-        emailStatusEl.className = "text-[12px] font-semibold text-rose-600";
+        emailStatusEl.className = "text-[12px] font-semibold text-rose-300";
       } else {
         emailStatusEl.textContent = "Email queued";
-        emailStatusEl.className = "text-[12px] font-semibold text-slate-500";
+        emailStatusEl.className = "text-[12px] font-semibold text-white/65";
       }
     }
 

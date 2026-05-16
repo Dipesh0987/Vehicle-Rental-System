@@ -28,8 +28,8 @@ class SearchUIManager {
                 key: "vehicle",
                 title: "Vehicle Specs",
                 description: "Match the vehicle style, powertrain, and cabin layout to your trip.",
-                cards: ["vehicleType", "transmission", "fuelType"],
-                layoutClass: "grid gap-3 lg:grid-cols-3",
+                cards: ["brand", "vehicleType", "transmission", "fuelType"],
+                layoutClass: "grid gap-3 lg:grid-cols-2",
             },
             {
                 key: "experience",
@@ -53,13 +53,6 @@ class SearchUIManager {
                 filterKey: "searchText",
                 placeholder: "Search by brand, model, or feature",
             },
-            pickupLocation: {
-                label: "Location",
-                icon: "fa-location-dot",
-                type: "text",
-                filterKey: "pickupLocation",
-                placeholder: "Filter by pickup city",
-            },
             brand: {
                 label: "Brand",
                 icon: "fa-industry",
@@ -68,13 +61,6 @@ class SearchUIManager {
                 filterKey: "brands",
                 dynamicOptions: true,
             },
-                key: "search",
-                title: "Search Terms",
-                description: "Search by keywords or narrow vehicles to a specific location.",
-                cards: ["searchText", "pickupLocation"],
-                layoutClass: "grid gap-3 lg:grid-cols-2",
-            },
-            {
             vehicleType: {
                 label: "Vehicle Type",
                 icon: "fa-car",
@@ -89,8 +75,8 @@ class SearchUIManager {
                 filterKey: "vehicleTypes",
             },
             transmission: {
-                    cards: ["brand", "vehicleType", "transmission", "fuelType"],
-                    layoutClass: "grid gap-3 lg:grid-cols-2",
+                label: "Transmission",
+                icon: "fa-gears",
                 type: "checkbox",
                 options: [
                     { value: "manual", label: "Manual" },
@@ -336,6 +322,12 @@ class SearchUIManager {
         const seen = new Set();
         const options = [];
 
+        // Debug: Log vehicle count and first vehicle
+        console.log('[Brand Filter Debug] Total vehicles:', vehicles.length);
+        if (vehicles.length > 0) {
+            console.log('[Brand Filter Debug] First vehicle brand:', vehicles[0]?.brand);
+        }
+
         for (const vehicle of vehicles) {
             const rawBrand = String(vehicle?.brand || "").trim();
             if (!rawBrand) {
@@ -343,7 +335,7 @@ class SearchUIManager {
             }
 
             const value = rawBrand.toLowerCase();
-            if (value === "general" || seen.has(value)) {
+            if (seen.has(value)) {
                 continue;
             }
 
@@ -357,7 +349,18 @@ class SearchUIManager {
 
         options.sort((a, b) => a.label.localeCompare(b.label));
 
-        return options.length ? options : [{ value: "general", label: "General", icon: config.icon }];
+        console.log('[Brand Filter Debug] Brand options found:', options.length, options.map(o => o.label));
+
+        // If no brands found, show a loading message
+        if (options.length === 0) {
+            return [{
+                value: "loading",
+                label: "Loading brands...",
+                icon: config.icon,
+            }];
+        }
+
+        return options;
     }
 
     /**
@@ -375,7 +378,7 @@ class SearchUIManager {
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <span class="rounded-full border border-[#d6e0da] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#4a6568]">
-                        <span data-range-value-for="${minKey}" data-range-role="min">${minDisplay}</span>
+                        <span data-range-value-for="${minKey}" data-range-role="${maxKey ? 'min' : 'value'}">${minDisplay}</span>
                     </span>
                     ${maxKey ? `<span class="rounded-full border border-[#d6e0da] bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#4a6568]"><span data-range-value-for="${maxKey}" data-range-role="max">${maxDisplay}</span></span>` : ""}
                 </div>
@@ -478,6 +481,9 @@ class SearchUIManager {
             clearPanelBtn.dataset.listenerBound = "true";
             clearPanelBtn.addEventListener("click", () => {
                 this.filterManager.clearAllFilters();
+                this.filterManager.setSortOrder("relevance");
+                const sortEl = document.getElementById("sortBy");
+                if (sortEl) sortEl.value = "relevance";
                 this.renderFilterPanel();
                 this.updateActiveFilterTags();
             });

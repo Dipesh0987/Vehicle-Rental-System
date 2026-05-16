@@ -52,7 +52,7 @@
             <span data-profile-avatar class="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-[#1b5d5f]/40 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.95rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)]">GU</span>
             <span class="flex flex-col leading-tight">
               <span data-profile-name class="text-[15px] font-semibold">Guest User</span>
-              <span data-profile-email class="text-[11px] text-[#325254]">guest@example.com</span>
+              <span data-profile-email class="text-[11px] text-[#0f3438] dark:text-[#7a9b9d]">guest@example.com</span>
             </span>
           </button>
 
@@ -106,7 +106,7 @@
               Find Your Exact Rental Vehicle in Minutes
             </h1>
             <p class="mt-4 max-w-[820px] text-[16px] leading-relaxed text-[#355053]">
-              Search live fleet inventory with date-aware availability, transparent NPR pricing, and curated vehicle insights designed for confident booking.
+              Search live fleet inventory with date-aware availability, transparent NPR pricing, and curated vehicle insights organized by brand and class for confident booking.
             </p>
           </div>
 
@@ -124,6 +124,13 @@
               <p class="mt-1 text-[17px] font-bold text-[#1d4144]">Booked Vehicles Hidden</p>
             </article>
           </div>
+        </div>
+        <div class="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
+          <button type="button" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[#9f5825]">Featured</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Top Rated</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Budget Friendly</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Luxury Class</button>
+          <button type="button" class="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Fuel Efficient</button>
         </div>
       </section>
 
@@ -237,7 +244,9 @@
     <script src="assets/js/advanced-search.js"></script>
     <script src="assets/js/mobile-filter-modal.js"></script>
     <script>
-      window.VehicleAuthUI.init("home");
+      if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+        window.VehicleAuthUI.init("home");
+      }
     </script>
   </body>
 </html>

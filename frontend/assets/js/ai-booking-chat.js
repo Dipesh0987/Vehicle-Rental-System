@@ -390,10 +390,25 @@
     return window.SupabaseClient.init();
   }
 
-  async function askAI(query) {
+  function buildHistoryForAPI(state) {
+    if (!state || !Array.isArray(state.messages)) return [];
+    return state.messages
+      .filter(function (m) { return m && !m.isTyping && (m.role === "user" || m.role === "assistant") && trim(m.text); })
+      .slice(-10)
+      .map(function (m) { return { role: m.role, text: trim(m.text) }; });
+  }
+
+  async function askAI(query, state) {
     var client = await getClient();
+    var history = buildHistoryForAPI(state);
     var res = await client.functions.invoke("booking-chat", {
-      body: { query: query, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", nowIso: new Date().toISOString() },
+      body: {
+        query: query,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        nowIso: new Date().toISOString(),
+        history: history,
+        conversationId: state ? state.sessionId : "",
+      },
     });
     if (res.error) throw new Error(String(res.error.message || "Chat API call failed."));
     return res.data || {};
@@ -477,14 +492,31 @@
     /* body */
     var bodyHtml;
     if (isTyping) {
+      var typingLabel = msg.typingLabel || "Thinking";
       bodyHtml =
-        '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 0">' +
+        '<div style="display:flex;flex-direction:column;gap:4px">' +
+        '<span style="font-size:11px;font-weight:600;color:' + t.timestamp + ';letter-spacing:0.02em">' + esc(typingLabel) + '...</span>' +
+        '<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 0">' +
         '<span class="vrs-chat-dot-1" style="width:7px;height:7px;border-radius:50%;background:' + t.dotColor + ';display:inline-block"></span>' +
         '<span class="vrs-chat-dot-2" style="width:7px;height:7px;border-radius:50%;background:' + t.dotColor + ';display:inline-block"></span>' +
         '<span class="vrs-chat-dot-3" style="width:7px;height:7px;border-radius:50%;background:' + t.dotColor + ';display:inline-block"></span>' +
-        "</span>";
+        "</span></div>";
     } else {
-      bodyHtml = '<div style="white-space:pre-wrap">' + esc(msg.text || "").replace(/\n/g, "<br>") + "</div>";
+      /* Basic markdown rendering for AI messages */
+      var rawText = esc(msg.text || "");
+      if (!isUser) {
+        /* Bold: **text** or __text__ */
+        rawText = rawText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        rawText = rawText.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        /* Italic: *text* or _text_ (single) */
+        rawText = rawText.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        /* Bullet points: lines starting with • or - or * */
+        rawText = rawText.replace(/^([•\-\*])\s+/gm, '<span style="color:' + t.cardPrice + ';font-weight:700;margin-right:4px">•</span>');
+        /* Numbered lists: lines starting with 1. 2. etc */
+        rawText = rawText.replace(/^(\d+)\.\s+/gm, '<span style="color:' + t.cardPrice + ';font-weight:700;margin-right:4px">$1.</span>');
+      }
+      rawText = rawText.replace(/\n/g, "<br>");
+      bodyHtml = '<div style="white-space:pre-wrap">' + rawText + "</div>";
     }
 
     /* citations */
@@ -616,12 +648,18 @@
       }).join("") + "</div>";
     }
 
-    /* suggestion chips (only on welcome) */
+    /* suggestion chips (welcome message uses static, others use dynamic from API) */
     var suggestHtml = "";
-    if (msg.showSuggestions && !isUser && !isTyping) {
-      suggestHtml = '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + SUGGESTIONS.map(function (s) {
-        return '<button type="button" data-ai-suggest="' + esc(s) + '" style="border-radius:999px;border:1px solid ' + t.chipBorder + ';background:' + t.chipBg + ';padding:5px 12px;font-size:11px;font-weight:500;color:' + t.chipText + ';cursor:pointer">' + esc(s) + "</button>";
-      }).join("") + "</div>";
+    if (!isUser && !isTyping) {
+      if (msg.showSuggestions) {
+        suggestHtml = '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + SUGGESTIONS.map(function (s) {
+          return '<button type="button" data-ai-suggest="' + esc(s) + '" style="border-radius:999px;border:1px solid ' + t.chipBorder + ';background:' + t.chipBg + ';padding:5px 12px;font-size:11px;font-weight:500;color:' + t.chipText + ';cursor:pointer;transition:all .15s">' + esc(s) + "</button>";
+        }).join("") + "</div>";
+      } else if (Array.isArray(msg.suggestions) && msg.suggestions.length) {
+        suggestHtml = '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">' + msg.suggestions.map(function (s) {
+          return '<button type="button" data-ai-suggest="' + esc(s) + '" style="border-radius:999px;border:1px solid ' + t.chipBorder + ';background:' + t.chipBg + ';padding:5px 12px;font-size:11px;font-weight:500;color:' + t.chipText + ';cursor:pointer;transition:all .15s">' + esc(s) + "</button>";
+        }).join("") + "</div>";
+      }
     }
 
     /* wizard option buttons */
@@ -946,9 +984,10 @@
   function fallbackMsg(reason) {
     return {
       id: uid("m"), role: "assistant",
-      text: "I couldn't resolve that right now." + (reason ? " " + reason : "") + "\nWould you like me to connect you with support?",
+      text: "Oops! I ran into an issue processing that." + (reason ? " (" + reason + ")" : "") + "\n\nDon't worry — you can try rephrasing your question, or I can connect you with our support team for help.",
       timestamp: new Date().toISOString(), citations: [],
       actions: [{ type: "contact_support", label: "Connect to Support", href: "mailto:support@rentavehiclenepal.com" }],
+      suggestions: ["Try again", "Show vehicles", "Plan a trip", "Contact support"],
     };
   }
 
@@ -959,15 +998,29 @@
       id: uid("m"), role: "user", text: query,
       timestamp: new Date().toISOString(), citations: [], actions: [],
     }, library);
+    /* Contextual typing label based on query content */
+    var typingLabel = "Thinking";
+    var lq = query.toLowerCase();
+    if (/\b(suv|sedan|car|vehicle|show|find|search|browse|list)\b/.test(lq)) typingLabel = "Searching vehicles";
+    else if (/\b(compare|vs|versus|better)\b/.test(lq)) typingLabel = "Comparing vehicles";
+    else if (/\b(book|booking|reservation|upcoming|next)\b/.test(lq)) typingLabel = "Looking up your booking";
+    else if (/\b(trip|travel|plan|journey|itinerary)\b/.test(lq)) typingLabel = "Planning your trip";
+    else if (/\b(cancel|refund|invoice|receipt)\b/.test(lq)) typingLabel = "Checking your account";
+    else if (/\b(price|cost|rate|budget|cheap|expensive)\b/.test(lq)) typingLabel = "Checking prices";
+    else if (/\b(available|availability|free)\b/.test(lq)) typingLabel = "Checking availability";
+    else if (/\b(document|license|kyc|require)\b/.test(lq)) typingLabel = "Looking up policies";
+    else if (/\b(hour|time|open|close|office)\b/.test(lq)) typingLabel = "Getting info";
+
     pushMsg(state, {
       id: uid("m"), role: "assistant", text: "",
       timestamp: new Date().toISOString(), citations: [], actions: [], isTyping: true,
+      typingLabel: typingLabel,
     }, library);
     renderThread(ui, state);
     lockInput(ui);
 
     try {
-      var data = await askAI(query);
+      var data = await askAI(query, state);
       var text = trim(data && data.answer);
       if (!text) throw new Error("Empty AI response.");
       replaceTyping(state, {
@@ -975,6 +1028,7 @@
         timestamp: new Date().toISOString(),
         citations: normCitations(data && data.citations),
         actions: normActions(data && data.actions),
+        suggestions: Array.isArray(data && data.suggestions) ? data.suggestions : [],
       }, library);
       bumpUnread(ui, state, library);
     } catch (err) {

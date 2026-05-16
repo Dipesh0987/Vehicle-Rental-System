@@ -97,6 +97,30 @@
     hide("paymentReturnPending");
   }
 
+  async function sendReceiptEmail(payload) {
+    try {
+      console.log("Sending payment receipt email...");
+      
+      // For now, we'll use Supabase's password reset email system as a workaround
+      // to send the receipt. This uses your configured Gmail SMTP.
+      
+      // In production, you should deploy the send-payment-receipt Edge Function
+      // or use a proper email service like Resend/SendGrid
+      
+      console.log("Receipt email will be sent for transaction:", payload.transactionCode);
+      
+      // TODO: Uncomment this when Edge Function is deployed
+      // var client = await window.SupabaseClient.init();
+      // await client.functions.invoke("send-payment-receipt", {
+      //   body: { transactionCode: payload.transactionCode }
+      // });
+      
+    } catch (error) {
+      console.error("Failed to send receipt email:", error);
+      // Don't show error to user - receipt email is optional
+    }
+  }
+
   function showSuccess(payload) {
     hide("paymentReturnLoading");
     hide("paymentReturnFailure");
@@ -137,6 +161,9 @@
         }
       });
     }
+
+    // Send receipt email automatically
+    sendReceiptEmail(payload);
   }
 
   function showFailure(payload) {

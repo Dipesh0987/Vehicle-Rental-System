@@ -1,120 +1,187 @@
--- Create discount_codes table for promo code management
-CREATE TABLE IF NOT EXISTS public.discount_codes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL CHECK (code ~ '^[A-Z0-9_-]{3,20}$'),
-  description TEXT,
-  discount_type TEXT NOT NULL CHECK (discount_type IN ('percentage', 'fixed')),
-  discount_value NUMERIC NOT NULL CHECK (discount_value > 0),
-  valid_from TIMESTAMP WITH TIME ZONE NOT NULL,
-  valid_until TIMESTAMP WITH TIME ZONE NOT NULL,
-  max_uses INT CHECK (max_uses IS NULL OR max_uses > 0),
-  current_uses INT DEFAULT 0 CHECK (current_uses >= 0),
-  is_active BOOLEAN DEFAULT TRUE,
-  min_booking_amount NUMERIC CHECK (min_booking_amount IS NULL OR min_booking_amount >= 0),
-  created_by UUID NOT NULL REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  CONSTRAINT valid_date_range CHECK (valid_from < valid_until),
-  CONSTRAINT usage_limit CHECK (current_uses <= COALESCE(max_uses, current_uses + 1))
+-- 018_discount_codes.sql
+-- Purpose: Discount/Promo code management system for promotional campaigns
+
+create table if not exists public.discount_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  description text not null default '',
+  discount_type text not null default 'percentage', -- 'percentage' or 'fixed'
+  discount_value numeric(10, 2) not null check (discount_value > 0),
+  max_uses integer check (max_uses is null or max_uses > 0), -- null = unlimited
+  current_uses integer not null default 0 check (current_uses >= 0),
+  valid_from timestamptz not null,
+  valid_until timestamptz not null,
+  is_active boolean not null default true,
+  min_booking_amount numeric(10, 2) check (min_booking_amount is null or min_booking_amount >= 0),
+  max_discount_amount numeric(10, 2) check (max_discount_amount is null or max_discount_amount > 0), -- max cap for % discount
+  applicable_vehicles uuid[] default null, -- null = all vehicles
+  created_by uuid not null references auth.users(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint valid_dates_check check (valid_until >= valid_from),
+  constraint code_format_check check (code ~ '^[A-Z0-9_-]{3,20}$')
 );
 
--- Add indexes for performance
-CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON public.discount_codes(code);
-CREATE INDEX IF NOT EXISTS idx_discount_codes_is_active ON public.discount_codes(is_active);
-CREATE INDEX IF NOT EXISTS idx_discount_codes_created_by ON public.discount_codes(created_by);
+-- Create indexes for performance
+create index if not exists idx_discount_codes_code on public.discount_codes(code);
+create index if not exists idx_discount_codes_active on public.discount_codes(is_active, valid_from, valid_until);
+create index if not exists idx_discount_codes_created_by on public.discount_codes(created_by);
 
--- Enable RLS on discount_codes table
-ALTER TABLE public.discount_codes ENABLE ROW LEVEL SECURITY;
+-- Trigger to update updated_at on changes
+create or replace function public.set_updated_at_discount_codes()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 
--- RLS Policy: Service role (backend/admin) can do anything
-DROP POLICY IF EXISTS discount_codes_service_access ON public.discount_codes;
-CREATE POLICY discount_codes_service_access ON public.discount_codes
-  FOR ALL
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+drop trigger if exists trg_discount_codes_set_updated_at on public.discount_codes;
+create trigger trg_discount_codes_set_updated_at
+before update on public.discount_codes
+for each row
+execute function public.set_updated_at_discount_codes();
 
--- RLS Policy: Admin users can manage all codes
-DROP POLICY IF EXISTS discount_codes_admin_access ON public.discount_codes;
-CREATE POLICY discount_codes_admin_access ON public.discount_codes
-  FOR ALL
-  USING (
-    (auth.uid() = created_by OR EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()))
-  )
-  WITH CHECK (
-    (auth.uid() = created_by OR EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()))
-  );
+-- RLS Policies
+alter table public.discount_codes enable row level security;
 
--- RLS Policy: Authenticated users can view active codes
-DROP POLICY IF EXISTS discount_codes_user_view ON public.discount_codes;
-CREATE POLICY discount_codes_user_view ON public.discount_codes
-  FOR SELECT
-  USING (is_active = TRUE AND auth.role() = 'authenticated');
+-- Admin can read all discount codes
+create policy "discount_codes_admin_read" on public.discount_codes
+for select
+to authenticated
+using (
+  auth.uid() in (select user_id from public.admin_users)
+);
 
--- Function to validate discount code
-DROP FUNCTION IF EXISTS public.validate_discount_code(TEXT, NUMERIC);
-CREATE OR REPLACE FUNCTION public.validate_discount_code(
-  p_code TEXT,
-  p_booking_amount NUMERIC
-) RETURNS TABLE (
-  is_valid BOOLEAN,
-  discount_amount NUMERIC,
-  error_message TEXT,
-  discount_type TEXT,
-  discount_value NUMERIC
-) AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    CASE 
-      WHEN dc.id IS NULL THEN FALSE
-      WHEN dc.is_active = FALSE THEN FALSE
-      WHEN NOW() < dc.valid_from OR NOW() > dc.valid_until THEN FALSE
-      WHEN dc.max_uses IS NOT NULL AND dc.current_uses >= dc.max_uses THEN FALSE
-      WHEN dc.min_booking_amount IS NOT NULL AND p_booking_amount < dc.min_booking_amount THEN FALSE
-      ELSE TRUE
-    END AS is_valid,
-    CASE 
-      WHEN dc.id IS NULL THEN 0
-      WHEN dc.is_active = FALSE THEN 0
-      WHEN NOW() < dc.valid_from OR NOW() > dc.valid_until THEN 0
-      WHEN dc.max_uses IS NOT NULL AND dc.current_uses >= dc.max_uses THEN 0
-      WHEN dc.min_booking_amount IS NOT NULL AND p_booking_amount < dc.min_booking_amount THEN 0
-      WHEN dc.discount_type = 'percentage' THEN LEAST((p_booking_amount * dc.discount_value / 100), p_booking_amount)
-      ELSE dc.discount_value
-    END AS discount_amount,
-    CASE 
-      WHEN dc.id IS NULL THEN 'This code is not valid for your booking'
-      WHEN dc.is_active = FALSE THEN 'This code is not valid for your booking'
-      WHEN NOW() < dc.valid_from THEN 'This code is not valid yet'
-      WHEN NOW() > dc.valid_until THEN 'This code has expired'
-      WHEN dc.max_uses IS NOT NULL AND dc.current_uses >= dc.max_uses THEN 'This code has reached its usage limit'
-      WHEN dc.min_booking_amount IS NOT NULL AND p_booking_amount < dc.min_booking_amount THEN 'This code requires a minimum booking amount of NPR ' || dc.min_booking_amount
-      ELSE NULL
-    END AS error_message,
-    dc.discount_type,
-    dc.discount_value
-  FROM public.discount_codes dc
-  WHERE UPPER(dc.code) = UPPER(p_code);
-END;
-$$ LANGUAGE plpgsql;
+-- Admin can insert discount codes
+create policy "discount_codes_admin_insert" on public.discount_codes
+for insert
+to authenticated
+with check (
+  auth.uid() in (select user_id from public.admin_users)
+  and created_by = auth.uid()
+);
 
--- Function to apply discount code (increment usage)
-DROP FUNCTION IF EXISTS public.apply_discount_code(TEXT);
-CREATE OR REPLACE FUNCTION public.apply_discount_code(p_code TEXT)
-RETURNS TABLE (success BOOLEAN, error_message TEXT) AS $$
-BEGIN
-  UPDATE public.discount_codes
-  SET current_uses = current_uses + 1
-  WHERE UPPER(code) = UPPER(p_code)
-    AND is_active = TRUE
-    AND NOW() >= valid_from
-    AND NOW() <= valid_until
-    AND (max_uses IS NULL OR current_uses < max_uses);
+-- Admin can update discount codes they created
+create policy "discount_codes_admin_update" on public.discount_codes
+for update
+to authenticated
+using (
+  auth.uid() in (select user_id from public.admin_users)
+  and created_by = auth.uid()
+)
+with check (
+  auth.uid() in (select user_id from public.admin_users)
+  and created_by = auth.uid()
+);
 
-  IF FOUND THEN
-    RETURN QUERY SELECT TRUE::BOOLEAN, NULL::TEXT;
-  ELSE
-    RETURN QUERY SELECT FALSE::BOOLEAN, 'Could not apply discount code'::TEXT;
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
+-- Admin can delete discount codes they created
+create policy "discount_codes_admin_delete" on public.discount_codes
+for delete
+to authenticated
+using (
+  auth.uid() in (select user_id from public.admin_users)
+  and created_by = auth.uid()
+);
+
+-- Public users can read active discount codes (for validation)
+create policy "discount_codes_public_read_active" on public.discount_codes
+for select
+to authenticated
+using (
+  is_active = true
+  and valid_from <= now()
+  and valid_until >= now()
+);
+
+-- Function to validate and apply discount code
+create or replace function public.validate_discount_code(
+  p_code text,
+  p_booking_amount numeric
+)
+returns table (
+  valid boolean,
+  discount_type text,
+  discount_value numeric,
+  discount_amount numeric,
+  error_message text
+) as $$
+declare
+  v_code record;
+  v_discount_amount numeric;
+  v_error_message text := '';
+begin
+  -- Fetch the discount code
+  select * into v_code
+  from public.discount_codes
+  where code = upper(trim(p_code))
+  limit 1;
+
+  -- Validate code exists
+  if not found then
+    return query select false::boolean, null::text, null::numeric, 0::numeric, 'Code not found'::text;
+    return;
+  end if;
+
+  -- Validate code is active
+  if v_code.is_active = false then
+    return query select false::boolean, null::text, null::numeric, 0::numeric, 'Code is not active'::text;
+    return;
+  end if;
+
+  -- Validate date range
+  if now() < v_code.valid_from or now() > v_code.valid_until then
+    return query select false::boolean, null::text, null::numeric, 0::numeric, 'Code has expired or not yet valid'::text;
+    return;
+  end if;
+
+  -- Validate usage limit
+  if v_code.max_uses is not null and v_code.current_uses >= v_code.max_uses then
+    return query select false::boolean, null::text, null::numeric, 0::numeric, 'Code has reached max usage limit'::text;
+    return;
+  end if;
+
+  -- Validate minimum booking amount
+  if v_code.min_booking_amount is not null and p_booking_amount < v_code.min_booking_amount then
+    return query select false::boolean, null::text, null::numeric, 0::numeric, 
+      'Booking amount is below minimum required: NPR ' || v_code.min_booking_amount::text::text;
+    return;
+  end if;
+
+  -- Calculate discount amount
+  if v_code.discount_type = 'percentage' then
+    v_discount_amount := (p_booking_amount * v_code.discount_value / 100);
+    if v_code.max_discount_amount is not null then
+      v_discount_amount := least(v_discount_amount, v_code.max_discount_amount);
+    end if;
+  else -- fixed amount
+    v_discount_amount := v_code.discount_value;
+  end if;
+
+  -- Ensure discount doesn't exceed booking amount
+  v_discount_amount := least(v_discount_amount, p_booking_amount);
+
+  return query select true::boolean, v_code.discount_type, v_code.discount_value, v_discount_amount::numeric, ''::text;
+end;
+$$ language plpgsql stable;
+
+-- Function to apply discount code (increments usage)
+create or replace function public.apply_discount_code(p_code text)
+returns void as $$
+begin
+  update public.discount_codes
+  set current_uses = current_uses + 1
+  where code = upper(trim(p_code))
+    and max_uses is null or current_uses < max_uses;
+end;
+$$ language plpgsql;
+
+revoke all on function public.validate_discount_code(text, numeric) from public;
+grant execute on function public.validate_discount_code(text, numeric) to authenticated;
+
+revoke all on function public.apply_discount_code(text) from public;
+grant execute on function public.apply_discount_code(text) to authenticated;
+
+notify pgrst, 'reload schema';

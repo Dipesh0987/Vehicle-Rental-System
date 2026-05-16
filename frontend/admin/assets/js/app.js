@@ -8,7 +8,7 @@ import { renderCustomersModule } from './modules/customers.js';
 import { renderFleetModule } from './modules/fleet.js';
 import { renderDriversModule } from './modules/drivers.js';
 import { renderPaymentsModule } from './modules/payments.js';
-import { renderPricingModule } from './modules/pricing.js';
+import { renderPricingModule, initializePricingModule } from './modules/pricing.js';
 import { renderMaintenanceModule } from './modules/maintenance.js';
 import { renderReviewsModule } from './modules/reviews.js';
 import { renderAdminsModule } from './modules/admins.js';
@@ -18,7 +18,7 @@ import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
 import { createPaymentsService } from './services/payments.service.js';
 import { createDriverService } from './services/driver.service.js';
-import { subscribeToMaintenanceChanges } from './services/activity-feed.service.js';
+import { subscribeToChanges as subscribeMaintenanceChanges, mapDbRow as mapMaintenanceDbRow } from './services/maintenance.service.js';
 
 const modules = {
   overview: renderOverviewModule,
@@ -115,27 +115,33 @@ async function bootstrap() {
   renderActiveModule();
   setActiveNav(appState.activeModule);
 
+  initTheme();
+  bindShellInteractions(handleNavigate, handleQuickAction, handleGlobalSearch);
+  renderActiveModule();
+  setActiveNav(appState.activeModule);
+
   await hydrateVehiclesFromCatalog({ silent: true });
   await hydrateBookingsFromDatabase({ silent: true });
   await hydrateCustomersFromDatabase({ silent: true });
-  await hydratePaymentsFromDatabase({ silent: true });
   await hydrateDriversFromDatabase({ silent: true });
-  await hydrateMainteinanceFromDatabase({ silent: true });
+  await initializePricingModule();
   renderActiveModule();
 
   setupCatalogSync();
   setupBookingSync();
-  setupMaintenanceSync();
 
+  // Load vehicles through the local catalog service (shares same data array
+  // and mapper shape as the vehicles module expects).
   try {
     const vehicles = await catalogService.loadVehicles();
     if (Array.isArray(vehicles) && vehicles.length) {
       appState.data.vehicles = vehicles;
-      renderActiveModule();
     }
   } catch (error) {
     pushToast(`Vehicle DB sync failed: ${error.message}`, 'error');
   }
+
+  renderActiveModule();
 }
 
 async function hydrateMainteinanceFromDatabase({ silent = false } = {}) {
@@ -199,6 +205,16 @@ function renderActiveModule() {
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
+      reloadVehiclesData: async () => {
+        await hydrateVehiclesFromCatalog({ silent: true });
+        try {
+          const vehicles = await catalogService.loadVehicles();
+          if (Array.isArray(vehicles) && vehicles.length) {
+            appState.data.vehicles = vehicles;
+          }
+        } catch (_e) { /* fallback to catalog hydration above */ }
+        renderActiveModule();
+      },
       navigate: handleNavigate,
       rerender: renderActiveModule,
     });
@@ -634,16 +650,6 @@ function setupCatalogSync() {
   });
 }
 
-async function setupMaintenanceSync() {
-  if (maintenanceUnsubscribe) { maintenanceUnsubscribe(); maintenanceUnsubscribe = null; }
-  maintenanceUnsubscribe = await subscribeToMaintenanceChanges(async () => {
-    await hydrateMaintenanceFromDatabase({ silent: true });
-    if (appState.activeModule === 'overview' || appState.activeModule === 'maintenance') {
-      renderActiveModule();
-    }
-  });
-}
-
 function setupBookingSync() {
   if (!appState.bookingService || typeof appState.bookingService.subscribeToBookingChanges !== 'function') {
     return;
@@ -660,6 +666,42 @@ function setupBookingSync() {
       renderActiveModule();
     }
   });
+}
+
+async function setupMaintenanceSync() {
+  if (maintenanceUnsubscribe) {
+    maintenanceUnsubscribe();
+    maintenanceUnsubscribe = null;
+  }
+
+  try {
+    maintenanceUnsubscribe = await subscribeMaintenanceChanges((eventType, newRow, oldRow) => {
+      const rows = appState.data.maintenance || [];
+
+      if (eventType === 'INSERT' && newRow) {
+        // Avoid duplicates
+        if (!rows.some((r) => r.dbId === newRow.dbId)) {
+          rows.unshift(newRow);
+        }
+      } else if (eventType === 'UPDATE' && newRow) {
+        const idx = rows.findIndex((r) => r.dbId === newRow.dbId);
+        if (idx >= 0) {
+          rows[idx] = { ...rows[idx], ...newRow };
+        } else {
+          rows.unshift(newRow);
+        }
+      } else if (eventType === 'DELETE' && oldRow) {
+        appState.data.maintenance = rows.filter((r) => r.dbId !== oldRow.dbId);
+      }
+
+      // Re-render if on a module that shows maintenance data
+      if (appState.activeModule === 'maintenance' || appState.activeModule === 'overview') {
+        renderActiveModule();
+      }
+    });
+  } catch (err) {
+    console.warn('[maintenance] realtime setup failed:', err.message);
+  }
 }
 
 async function hydrateCustomersFromDatabase({ silent = false } = {}) {
