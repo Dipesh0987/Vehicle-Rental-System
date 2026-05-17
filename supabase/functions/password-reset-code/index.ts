@@ -33,7 +33,7 @@ const PASSWORD_RESET_APP_NAME =
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const RESEND_DEV_REDIRECT_TO =
   (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
-  || "";
+  || (PASSWORD_RESET_FROM_EMAIL.includes("@resend.dev") ? "vechilerental@gmail.com" : "");
 const PASSWORD_RESET_DEBUG =
   String(Deno.env.get("PASSWORD_RESET_DEBUG") ?? "").trim().toLowerCase() === "1";
 
