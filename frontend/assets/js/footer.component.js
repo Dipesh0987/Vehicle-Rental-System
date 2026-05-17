@@ -115,9 +115,9 @@ window.VRSFooter = (function () {
 
       /* ── Copyright bar ── */
       '<div class="vrs-footer-copy">' +
-        '<div class="mx-auto flex w-full max-w-[1220px] flex-col items-center justify-between gap-2 px-5 py-5 sm:flex-row sm:px-8">' +
-          '<p class="text-[12px]">\u00a9 ' + YEAR + ' Rent A Vehicle Nepal. All rights reserved.</p>' +
-          '<p class="text-[11px] opacity-70">Designed with <span class="text-[#d9884f]">\u2764</span> in Kathmandu</p>' +
+        '<div class="mx-auto flex w-full max-w-[1220px] flex-col items-center justify-between gap-3 px-5 py-4 sm:flex-row sm:px-8">' +
+          '<p class="vrs-footer-copy-text text-[13px] font-medium">\u00a9 ' + YEAR + ' Rent A Vehicle Nepal. All rights reserved.</p>' +
+          '<p class="vrs-footer-copy-text text-[12px]">Designed with <span style="color:#d9884f">\u2764</span> in Kathmandu</p>' +
         '</div>' +
       '</div>' +
 
