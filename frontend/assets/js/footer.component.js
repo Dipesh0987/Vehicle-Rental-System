@@ -27,7 +27,7 @@ window.VRSFooter = (function () {
         '<div class="relative z-10 mx-auto w-full max-w-[1220px] px-5 pb-10 pt-14 sm:px-8">' +
 
           /* ── 4-column grid ── */
-          '<div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.5fr] lg:gap-14">' +
+          '<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-[1.6fr_1fr_1fr_1.5fr] md:gap-10">' +
 
             /* Col 1 — Brand */
             '<div>' +
