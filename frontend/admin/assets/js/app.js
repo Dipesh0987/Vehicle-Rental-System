@@ -142,6 +142,7 @@ async function bootstrap() {
 
   setupCatalogSync();
   setupBookingSync();
+  setupPaymentRealtimeSync();
 
   // Load vehicles through the local catalog service (shares same data array
   // and mapper shape as the vehicles module expects).
@@ -682,6 +683,61 @@ function setupBookingSync() {
   });
 }
 
+let paymentRealtimeUnsubscribe = null;
+
+async function setupPaymentRealtimeSync() {
+  if (paymentRealtimeUnsubscribe) {
+    paymentRealtimeUnsubscribe();
+    paymentRealtimeUnsubscribe = null;
+  }
+
+  try {
+    if (!window.SupabaseClient || typeof window.SupabaseClient.init !== 'function') return;
+    const client = await window.SupabaseClient.init();
+    if (!client || !client.channel) return;
+
+    let debounceTimer = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        await hydrateBookingsFromDatabase({ silent: true });
+        await hydratePaymentsFromDatabase({ silent: true });
+        if (['bookings', 'payments', 'overview', 'customers'].includes(appState.activeModule)) {
+          renderActiveModule();
+        }
+      }, 1000);
+    };
+
+    const channel = client
+      .channel('admin-payment-booking-rt')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'payments' },
+        (payload) => {
+          // Only refresh when payment transitions to completed
+          if (payload.new && payload.new.status === 'completed') {
+            debouncedRefresh();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'vehicle_bookings', filter: 'payment_status=neq.unpaid' },
+        () => {
+          // Booking payment fields updated by trigger
+          debouncedRefresh();
+        }
+      )
+      .subscribe();
+
+    paymentRealtimeUnsubscribe = () => {
+      client.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('[payment-realtime] setup failed:', err.message);
+  }
+}
+
 async function setupMaintenanceSync() {
   if (maintenanceUnsubscribe) {
     maintenanceUnsubscribe();
@@ -751,7 +807,6 @@ async function hydrateCustomersFromDatabase({ silent = false } = {}) {
 }
 
 function mapBookingToAdminRow(booking) {
-  const paymentDone = Boolean(booking && (booking.paymentDone === true || booking.payment_done === true));
   const totalAmount = Number.isFinite(Number(booking && booking.quote && booking.quote.totalAmount))
     ? Number(booking.quote.totalAmount)
     : 0;
@@ -761,7 +816,12 @@ function mapBookingToAdminRow(booking) {
   const remainingAmount = booking && booking.remainingAmount != null && Number.isFinite(Number(booking.remainingAmount))
     ? Number(booking.remainingAmount)
     : Math.max(0, totalAmount - paidAmount);
-  const paymentStatus = String(booking && booking.paymentStatus ? booking.paymentStatus : (paymentDone ? 'paid' : 'unpaid')).toLowerCase();
+  const rawPaymentStatus = String(booking && booking.paymentStatus ? booking.paymentStatus : '').toLowerCase();
+  // Derive paymentDone: true if status is 'paid', or legacy boolean flags, or full amount is paid
+  const paymentDone = rawPaymentStatus === 'paid'
+    || Boolean(booking && (booking.paymentDone === true || booking.payment_done === true))
+    || (totalAmount > 0 && paidAmount >= totalAmount);
+  const paymentStatus = rawPaymentStatus || (paymentDone ? 'paid' : (paidAmount > 0 ? 'partial' : 'unpaid'));
 
   return {
     id: String(booking && booking.bookingCode ? booking.bookingCode : booking && booking.id ? booking.id : ''),
