@@ -14,6 +14,7 @@ import { renderReviewsModule } from './modules/reviews.js';
 import { renderAdminsModule } from './modules/admins.js';
 import { renderNotificationsModule } from './modules/notifications.js';
 import { renderReportsModule } from './modules/reports.js';
+import { renderContactsModule } from './modules/contacts.js';
 import { createCatalogService } from './services/catalog-service.js';
 import { createCustomerVerificationService } from './services/customer-verification.service.js';
 import { createPaymentsService } from './services/payments.service.js';
@@ -34,10 +35,11 @@ const modules = {
   admins: renderAdminsModule,
   notifications: renderNotificationsModule,
   reports: renderReportsModule,
+  contacts: renderContactsModule,
 };
 
 const appState = {
-  activeModule: 'overview',
+  activeModule: readActiveModuleFromStorage() || 'overview',
   globalSearch: '',
   canWriteCatalog: true,
   data: structuredClone(dashboardData),
@@ -87,6 +89,22 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function readActiveModuleFromStorage() {
+  try {
+    return window.sessionStorage.getItem('admin-active-module') || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveActiveModuleToStorage(moduleName) {
+  try {
+    window.sessionStorage.setItem('admin-active-module', moduleName);
+  } catch (e) {
+    // Ignore storage errors
+  }
 }
 
 bootstrap();
@@ -259,6 +277,7 @@ async function hydrateBookingsFromDatabase({ silent = false } = {}) {
 function handleNavigate(id) {
   const normalized = id === 'operations' || id === 'finance' || id === 'quality' ? 'overview' : id;
   appState.activeModule = modules[normalized] ? normalized : 'overview';
+  saveActiveModuleToStorage(appState.activeModule);
   renderActiveModule();
 }
 

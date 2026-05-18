@@ -51,9 +51,9 @@ class ContactPageModule {
   }
 
   /**
-   * Handle form submission
+   * Handle form submission — saves to Supabase contact_messages table
    */
-  handleFormSubmit() {
+  async handleFormSubmit() {
     const formData = {
       name: document.getElementById('name').value,
       email: document.getElementById('email').value,
@@ -66,14 +66,56 @@ class ContactPageModule {
       return;
     }
 
-    // Track submission
-    this.trackFormSubmission(formData);
+    // Disable submit button while saving
+    const submitBtn = this.form.querySelector('button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span style="opacity:.7">Sending…</span>';
+    }
 
-    // Show success message
-    this.showSuccessMessage();
+    try {
+      // Attempt to save to Supabase
+      let saved = false;
+      if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+        const client = await window.SupabaseClient.init();
+        if (client && typeof client.from === 'function') {
+          const { error } = await client.from('contact_messages').insert([{
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            subject: formData.subject.trim(),
+            message: formData.message.trim(),
+            status: 'unread',
+          }]);
+          if (error) {
+            console.error('Supabase contact insert error:', error);
+            throw error;
+          }
+          saved = true;
+        }
+      }
 
-    // Reset form
-    this.form.reset();
+      if (!saved) {
+        console.warn('Supabase not available — message not persisted to database');
+      }
+
+      // Track submission
+      this.trackFormSubmission(formData);
+
+      // Show success message
+      this.showSuccessMessage();
+
+      // Reset form
+      this.form.reset();
+    } catch (err) {
+      console.error('Contact form submission failed:', err);
+      this.showError('Failed to send message. Please try again.');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    }
   }
 
   /**

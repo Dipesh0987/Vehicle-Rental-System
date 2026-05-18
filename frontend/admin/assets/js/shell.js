@@ -29,6 +29,7 @@ export const navItems = [
     label: 'Quality',
     icon: 'verified',
     children: [
+      { id: 'contacts', label: 'Contact Messages', icon: 'mail' },
       { id: 'maintenance', label: 'Maintenance', icon: 'build' },
       { id: 'reviews', label: 'Reviews', icon: 'rate_review' },
       { id: 'notifications', label: 'Notifications', icon: 'notifications' },
