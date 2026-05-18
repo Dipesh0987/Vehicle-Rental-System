@@ -358,13 +358,13 @@ function renderContent(host, query, notify, rerender) {
   const filtered = filterMessages(cachedMessages, activeFilter, query);
 
   const filterBtns = ['all', 'unread', 'read', 'replied', 'archived'];
-  const filterBar = `<div class="flex flex-wrap gap-2">
+  const filterBar = `<div style="display:flex;flex-wrap:wrap;gap:8px;">
     ${filterBtns.map((f) => {
       const isActive = f === activeFilter;
-      const cls = isActive
-        ? 'bg-[#145f59] text-white border-[#145f59] shadow-[0_4px_12px_rgba(20,95,89,0.35)] dark:bg-[#1a7a72] dark:border-[#1a7a72]'
-        : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-[#e8f5f3] hover:text-[#145f59] hover:border-[#145f59] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-[#1a3a38] dark:hover:text-emerald-300 dark:hover:border-emerald-500';
-      return `<button data-contact-filter="${f}" class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wide transition-all duration-200 ${cls}">${f}</button>`;
+      const style = isActive
+        ? 'background:#145f59;color:#ffffff;border:2px solid #145f59;box-shadow:0 4px 12px rgba(20,95,89,0.35);'
+        : 'background:#f1f5f9;color:#1e293b;border:2px solid #cbd5e1;';
+      return `<button data-contact-filter="${f}" style="${style}border-radius:9999px;padding:8px 18px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all 0.2s;">${f}</button>`;
     }).join('')}
   </div>`;
 
