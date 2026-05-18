@@ -137,7 +137,7 @@ function renderTable(messages) {
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-white/5">
           ${messages.map((m) => `
-            <tr class="transition hover:bg-slate-50/60 dark:hover:bg-white/5 ${m.status === 'unread' ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}">
+            <tr data-contact-row-id="${m.id}" class="cursor-pointer transition hover:bg-slate-50/60 dark:hover:bg-white/5 ${m.status === 'unread' ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}">
               <td class="px-4 py-3">
                 <p class="font-semibold text-slate-900 dark:text-white">${escapeHtml(m.name)}</p>
                 <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(m.email)}</p>
@@ -146,7 +146,7 @@ function renderTable(messages) {
               <td class="hidden max-w-[260px] truncate px-4 py-3 text-slate-600 dark:text-slate-300 md:table-cell">${escapeHtml(m.message)}</td>
               <td class="px-4 py-3">${statusBadge(m.status)}</td>
               <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">${timeAgo(m.created_at)}</td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-4 py-3 text-right" data-actions-cell>
                 <div class="inline-flex gap-1">
                   ${m.status !== 'read' ? `<button data-contact-action="read" data-contact-id="${m.id}" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-sky-100 hover:text-sky-600 dark:hover:bg-sky-500/20 dark:hover:text-sky-400" title="Mark as read"><span class="material-symbols-outlined text-[18px]">drafts</span></button>` : ''}
                   ${m.status !== 'replied' ? `<button data-contact-action="replied" data-contact-id="${m.id}" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-400" title="Mark as replied"><span class="material-symbols-outlined text-[18px]">reply</span></button>` : ''}
@@ -224,6 +224,28 @@ export function renderContactsModule({ data, query, notify, rerender }) {
   return host;
 }
 
+async function openMessageModal(msg, host, query, notify, rerender) {
+  const modalContainer = document.createElement('div');
+  modalContainer.innerHTML = renderMessageModal(msg);
+  document.body.appendChild(modalContainer);
+  // Auto-mark as read if unread
+  if (msg.status === 'unread') {
+    const ok = await updateMessageStatus(msg.id, 'read', null);
+    if (ok) {
+      msg.status = 'read';
+      renderContent(host, query, notify, rerender);
+    }
+  }
+  // Bind close
+  modalContainer.querySelector('#closeContactModal')?.addEventListener('click', () => modalContainer.remove());
+  modalContainer.querySelector('#contactMsgModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'contactMsgModal') modalContainer.remove();
+  });
+  // Close on Escape key
+  const escHandler = (e) => { if (e.key === 'Escape') { modalContainer.remove(); document.removeEventListener('keydown', escHandler); } };
+  document.addEventListener('keydown', escHandler);
+}
+
 function renderContent(host, query, notify, rerender) {
   const filtered = filterMessages(cachedMessages, activeFilter, query);
 
@@ -264,9 +286,22 @@ function renderContent(host, query, notify, rerender) {
     });
   });
 
+  // Bind row clicks — clicking anywhere on the row opens the message detail
+  host.querySelectorAll('[data-contact-row-id]').forEach((row) => {
+    row.addEventListener('click', async (e) => {
+      // Skip if the click was on an action button
+      if (e.target.closest('[data-actions-cell]')) return;
+      const id = row.getAttribute('data-contact-row-id');
+      const msg = cachedMessages.find((m) => m.id === id);
+      if (!msg) return;
+      openMessageModal(msg, host, query, notify, rerender);
+    });
+  });
+
   // Bind action buttons (status changes)
   host.querySelectorAll('[data-contact-action]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       const action = btn.getAttribute('data-contact-action');
       const id = btn.getAttribute('data-contact-id');
       if (!id) return;
@@ -274,23 +309,7 @@ function renderContent(host, query, notify, rerender) {
       if (action === 'view') {
         const msg = cachedMessages.find((m) => m.id === id);
         if (!msg) return;
-        // Show modal
-        const modalContainer = document.createElement('div');
-        modalContainer.innerHTML = renderMessageModal(msg);
-        document.body.appendChild(modalContainer);
-        // Auto-mark as read if unread
-        if (msg.status === 'unread') {
-          const ok = await updateMessageStatus(id, 'read', null);
-          if (ok) {
-            msg.status = 'read';
-            renderContent(host, query, notify, rerender);
-          }
-        }
-        // Bind close
-        modalContainer.querySelector('#closeContactModal')?.addEventListener('click', () => modalContainer.remove());
-        modalContainer.querySelector('#contactMsgModal')?.addEventListener('click', (e) => {
-          if (e.target.id === 'contactMsgModal') modalContainer.remove();
-        });
+        openMessageModal(msg, host, query, notify, rerender);
         return;
       }
 

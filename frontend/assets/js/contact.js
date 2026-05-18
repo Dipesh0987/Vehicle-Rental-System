@@ -154,33 +154,162 @@ class ContactPageModule {
   }
 
   /**
-   * Show success message
+   * Show success message — themed toast matching website design
    */
   showSuccessMessage() {
-    const message = document.createElement('div');
-    message.className =
-      'fixed top-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in z-50';
-    message.textContent = 'Message sent successfully! We\'ll be in touch soon.';
-    document.body.appendChild(message);
-
-    setTimeout(() => {
-      message.remove();
-    }, 4000);
+    const toast = document.createElement('div');
+    toast.className = 'vrs-toast vrs-toast--success';
+    toast.innerHTML = `
+      <div class="vrs-toast__icon">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/></svg>
+      </div>
+      <div class="vrs-toast__content">
+        <p class="vrs-toast__title">Message Sent!</p>
+        <p class="vrs-toast__desc">We'll get back to you within 24 hours.</p>
+      </div>
+      <button class="vrs-toast__close" aria-label="Dismiss">&times;</button>
+    `;
+    this._injectToastStyles();
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('vrs-toast--visible'));
+    toast.querySelector('.vrs-toast__close').addEventListener('click', () => this._dismissToast(toast));
+    setTimeout(() => this._dismissToast(toast), 5000);
   }
 
   /**
-   * Show error message
+   * Show error message — themed toast matching website design
    */
   showError(errorText) {
-    const message = document.createElement('div');
-    message.className =
-      'fixed top-6 right-6 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in z-50';
-    message.textContent = errorText;
-    document.body.appendChild(message);
+    const toast = document.createElement('div');
+    toast.className = 'vrs-toast vrs-toast--error';
+    toast.innerHTML = `
+      <div class="vrs-toast__icon">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="vrs-toast__content">
+        <p class="vrs-toast__title">Oops!</p>
+        <p class="vrs-toast__desc">${errorText}</p>
+      </div>
+      <button class="vrs-toast__close" aria-label="Dismiss">&times;</button>
+    `;
+    this._injectToastStyles();
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('vrs-toast--visible'));
+    toast.querySelector('.vrs-toast__close').addEventListener('click', () => this._dismissToast(toast));
+    setTimeout(() => this._dismissToast(toast), 4000);
+  }
 
-    setTimeout(() => {
-      message.remove();
-    }, 3000);
+  /**
+   * Dismiss a toast with exit animation
+   */
+  _dismissToast(el) {
+    if (!el || !el.parentNode) return;
+    el.classList.remove('vrs-toast--visible');
+    el.classList.add('vrs-toast--exit');
+    setTimeout(() => el.remove(), 300);
+  }
+
+  /**
+   * Inject toast styles once into the page
+   */
+  _injectToastStyles() {
+    if (document.getElementById('vrs-toast-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'vrs-toast-styles';
+    style.textContent = `
+      .vrs-toast {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 320px;
+        max-width: 420px;
+        padding: 16px 20px;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.1);
+        backdrop-filter: blur(12px);
+        transform: translateX(120%);
+        opacity: 0;
+        transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), opacity 0.35s ease;
+        font-family: 'Poppins', sans-serif;
+      }
+      .vrs-toast--visible {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      .vrs-toast--exit {
+        transform: translateX(120%);
+        opacity: 0;
+      }
+      .vrs-toast--success {
+        background: linear-gradient(135deg, #145f59 0%, #1a7a72 100%);
+        border: 1px solid rgba(255,255,255,0.15);
+      }
+      .vrs-toast--error {
+        background: linear-gradient(135deg, #9f3030 0%, #c0392b 100%);
+        border: 1px solid rgba(255,255,255,0.15);
+      }
+      .vrs-toast__icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.15);
+      }
+      .vrs-toast__content {
+        flex: 1;
+        min-width: 0;
+      }
+      .vrs-toast__title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.2;
+      }
+      .vrs-toast__desc {
+        margin: 2px 0 0;
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.85);
+        line-height: 1.4;
+      }
+      .vrs-toast__close {
+        flex-shrink: 0;
+        background: rgba(255,255,255,0.15);
+        border: none;
+        border-radius: 8px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.8);
+        font-size: 18px;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+      }
+      .vrs-toast__close:hover {
+        background: rgba(255,255,255,0.25);
+        transform: scale(1.1);
+      }
+      @media (max-width: 480px) {
+        .vrs-toast {
+          top: 12px;
+          right: 12px;
+          left: 12px;
+          min-width: auto;
+          max-width: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   /**
