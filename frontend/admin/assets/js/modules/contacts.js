@@ -163,34 +163,71 @@ function renderTable(messages) {
 }
 
 function renderMessageModal(msg) {
-  return `<div id="contactMsgModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" style="animation:fadeIn .2s ease">
-    <div class="relative mx-4 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#1a2328]" style="animation:slideUp .25s ease">
-      <button id="closeContactModal" class="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white">
-        <span class="material-symbols-outlined text-[20px]">close</span>
-      </button>
-      <div class="mb-4 flex items-center gap-3">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-sm font-bold text-white">${escapeHtml((msg.name || '??').substring(0, 2).toUpperCase())}</span>
-        <div>
-          <p class="text-base font-bold text-slate-900 dark:text-white">${escapeHtml(msg.name)}</p>
-          <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(msg.email)} · ${timeAgo(msg.created_at)}</p>
+  const initials = escapeHtml((msg.name || '??').substring(0, 2).toUpperCase());
+  const formattedDate = msg.created_at ? new Date(msg.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  return `<div id="contactMsgModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" style="animation:cmFadeIn .2s ease">
+    <div class="relative mx-4 w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_25px_60px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[#141d22]" style="animation:cmSlideUp .3s cubic-bezier(0.22,1,0.36,1)">
+
+      <!-- Header Bar -->
+      <div class="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-[#145f59] to-[#1a7a72] px-6 py-4 dark:border-white/5">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/30 bg-white/20 text-sm font-bold text-white shadow-lg">${initials}</span>
+          <div>
+            <p class="text-[15px] font-bold text-white">${escapeHtml(msg.name)}</p>
+            <p class="text-[12px] font-medium text-white/75">${escapeHtml(msg.email)}</p>
+          </div>
         </div>
+        <button id="closeContactModal" class="rounded-lg p-1.5 text-white/70 transition hover:bg-white/15 hover:text-white">
+          <span class="material-symbols-outlined text-[22px]">close</span>
+        </button>
       </div>
-      <div class="mb-2 flex items-center gap-2">
-        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Subject:</span>
-        ${statusBadge(msg.status)}
-      </div>
-      <p class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(msg.subject)}</p>
-      <div class="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300" style="white-space:pre-wrap;max-height:300px;overflow-y:auto">${escapeHtml(msg.message)}</div>
-      <div class="mt-4 flex justify-end gap-2">
-        <a href="mailto:${escapeHtml(msg.email)}?subject=Re: ${encodeURIComponent(msg.subject)}" class="inline-flex items-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,#145f59,#1a7a72)] px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg">
-          <span class="material-symbols-outlined text-[16px]">reply</span> Reply via Email
-        </a>
+
+      <!-- Body -->
+      <div class="p-6">
+        <!-- Meta Row -->
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+          ${statusBadge(msg.status)}
+          <span class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+            <span class="material-symbols-outlined text-[14px]">schedule</span>
+            ${formattedDate}
+          </span>
+        </div>
+
+        <!-- Subject -->
+        <div class="mb-4">
+          <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">Subject</p>
+          <p class="text-[15px] font-semibold text-slate-900 dark:text-white">${escapeHtml(msg.subject)}</p>
+        </div>
+
+        <!-- Message -->
+        <div class="mb-5">
+          <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">Message</p>
+          <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-[14px] leading-relaxed text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300" style="white-space:pre-wrap;max-height:280px;overflow-y:auto">${escapeHtml(msg.message)}</div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-white/10">
+          <div class="flex gap-2">
+            <button data-modal-status="read" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 dark:border-white/10 dark:text-slate-300 dark:hover:border-sky-500/40 dark:hover:bg-sky-500/10 dark:hover:text-sky-300">
+              <span class="material-symbols-outlined text-[14px]">drafts</span>Read
+            </button>
+            <button data-modal-status="replied" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 dark:border-white/10 dark:text-slate-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300">
+              <span class="material-symbols-outlined text-[14px]">check_circle</span>Replied
+            </button>
+            <button data-modal-status="archived" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20 dark:hover:bg-white/10">
+              <span class="material-symbols-outlined text-[14px]">archive</span>Archive
+            </button>
+          </div>
+          <a href="mailto:${escapeHtml(msg.email)}?subject=Re: ${encodeURIComponent(msg.subject)}" class="inline-flex items-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,#145f59,#1a7a72)] px-5 py-2 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(20,95,89,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(20,95,89,0.4)]">
+            <span class="material-symbols-outlined text-[16px]">reply</span> Reply
+          </a>
+        </div>
       </div>
     </div>
   </div>
   <style>
-    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+    @keyframes cmFadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes cmSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
   </style>`;
 }
 
@@ -244,6 +281,19 @@ async function openMessageModal(msg, host, query, notify, rerender) {
   // Close on Escape key
   const escHandler = (e) => { if (e.key === 'Escape') { modalContainer.remove(); document.removeEventListener('keydown', escHandler); } };
   document.addEventListener('keydown', escHandler);
+
+  // Bind modal status action buttons
+  modalContainer.querySelectorAll('[data-modal-status]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const newStatus = btn.getAttribute('data-modal-status');
+      const ok = await updateMessageStatus(msg.id, newStatus, notify);
+      if (ok) {
+        msg.status = newStatus;
+        modalContainer.remove();
+        renderContent(host, query, notify, rerender);
+      }
+    });
+  });
 }
 
 function renderContent(host, query, notify, rerender) {
@@ -254,9 +304,9 @@ function renderContent(host, query, notify, rerender) {
     ${filterBtns.map((f) => {
       const isActive = f === activeFilter;
       const cls = isActive
-        ? 'bg-[#145f59] text-white dark:bg-[#1a7a72]'
-        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 dark:bg-white/5 dark:text-slate-300 dark:border-white/10';
-      return `<button data-contact-filter="${f}" class="rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${cls}">${f}</button>`;
+        ? 'bg-[#145f59] text-white border-[#145f59] shadow-[0_4px_12px_rgba(20,95,89,0.35)] dark:bg-[#1a7a72] dark:border-[#1a7a72]'
+        : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-[#e8f5f3] hover:text-[#145f59] hover:border-[#145f59] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-[#1a3a38] dark:hover:text-emerald-300 dark:hover:border-emerald-500';
+      return `<button data-contact-filter="${f}" class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wide transition-all duration-200 ${cls}">${f}</button>`;
     }).join('')}
   </div>`;
 
