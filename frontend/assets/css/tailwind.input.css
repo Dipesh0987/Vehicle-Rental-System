@@ -1,3 +1,225 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom animations for booking error handling */
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* How it Works section - dashed arrow animation */
+@keyframes dashAnimation {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
+/* How it Works section - step card entrance animation */
+@keyframes stepSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(229, 140, 78, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(229, 140, 78, 0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-dash {
+  animation: dashAnimation 0.5s linear infinite;
+}
+
+.animate-step-in {
+  animation: stepSlideUp 0.6s ease-out;
+}
+
+/* How it Works section step card styles */
+.step-card {
+  position: relative;
+  animation: stepSlideUp 0.6s ease-out;
+}
+
+.step-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.step-card:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+.step-card:nth-child(7) {
+  animation-delay: 0.6s;
+}
+
+.step-card .icon-container {
+  box-shadow: 0 4px 12px rgba(12, 35, 38, 0.12);
+}
+
+.step-card .icon-container:hover {
+  box-shadow: 0 12px 24px rgba(229, 140, 78, 0.2);
+}
+
+.step-card .icon-container:focus-within {
+  outline: 2px solid #E58C4E;
+  outline-offset: 2px;
+}
+
+/* Active step (step 2) glow effect */
+.step-card:nth-child(5) .icon-container {
+  animation: pulseGlow 2s infinite;
+}
+
+/* Interactive step card highlight */
+.step-card.highlighted .icon-container {
+  transform: scale(1.08);
+  box-shadow: 0 16px 32px rgba(229, 140, 78, 0.3);
+}
+
+.step-card h3.highlighted {
+  color: #E58C4E;
+}
+
+/* Step card in-view animation trigger */
+.step-card.in-view {
+  animation: stepSlideUp 0.6s ease-out forwards !important;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .step-card,
+  .animate-step-in,
+  .animate-dash {
+    animation: none;
+  }
+
+  .step-card .icon-container {
+    transition: none;
+  }
+
+  .step-card.highlighted .icon-container {
+    transform: none;
+  }
+}
+
+/* Booking error message styles */
+.booking-error-enter {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+.booking-success-enter {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Contact Page Animations */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.6s ease-out;
+}
+
+/* Contact card hover effects */
+.contact-card {
+  transition: all 0.3s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(12, 35, 38, 0.12);
+}
+
+/* Contact info item animations */
+.contact-info-item {
+  animation: slideInFromLeft 0.6s ease-out;
+}
+
+.contact-info-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.contact-info-item:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.contact-info-item:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.contact-info-item:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+
+

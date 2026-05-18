@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact Us - Rent A Vehicle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <script>
+      window.__legacyTailwindConfig = {
+        theme: {
+          extend: {
+            fontFamily: {
+              poppins: ['Poppins', 'sans-serif'],
+            },
+            colors: {
+              accent: '#E58C4E',
+              panel: '#2C766E',
+              ink: '#0E2528',
+              muted: '#6C7074',
+              paper: '#F2F3F1',
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-white font-poppins">
+    <main id="app" class="min-h-screen">
+      <!-- Header -->
+      <header class="relative z-[90] border-b border-[#e0e3df] bg-white px-4 sm:px-6 py-3 sm:py-4 lg:px-8" role="banner">
+        <div class="mx-auto max-w-[1390px] flex items-center justify-between">
+          <a href="index.html" class="group relative text-ink transition duration-200 hover:-translate-y-[1px]" aria-label="Rent A Vehicle Home">
+            <p class="bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[18px] sm:text-[24px] font-extrabold leading-none tracking-tight text-transparent lg:text-[28px]">
+              RENT A VEHICLE
+            </p>
+            <p class="-mt-1 text-[6px] sm:text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
+              Luxury Vehicle Service
+            </p>
+          </a>
+          <nav class="hidden items-center justify-start gap-8 lg:gap-10 text-[14px] lg:text-[16px] font-medium text-[#2F3336] lg:flex" role="navigation" aria-label="Main Navigation">
+            <a href="index.html" class="transition duration-200 hover:text-accent">Home</a>
+            <a href="vehicles.html" class="transition duration-200 hover:text-accent">Vehicles</a>
+            <a class="text-accent font-semibold" href="contact.html" aria-current="page">Contact</a>
+          </nav>
+        </div>
+      </header>
+
+      <!-- Contact Section -->
+      <section class="bg-white px-4 py-12 sm:px-6 lg:px-8 lg:py-24">
+        <div class="mx-auto max-w-[1390px]">
+          <!-- Page Title -->
+          <div class="mb-8 sm:mb-12 lg:mb-16">
+            <h1 class="text-[28px] font-bold text-ink sm:text-[36px] lg:text-[48px]">Contact Us</h1>
+            <p class="mt-3 sm:mt-4 text-[13px] sm:text-[14px] text-[#6C7074] lg:text-[16px] max-w-[600px]">
+              Get in touch with our team. We're here to help you with any questions about our rental services.
+            </p>
+          </div>
+
+          <!-- Contact Information Container -->
+          <div class="grid grid-cols-1 gap-8 sm:gap-10 lg:gap-16 lg:grid-cols-2">
+            <!-- Contact Information Card -->
+            <div class="contact-card rounded-[16px] sm:rounded-[20px] bg-[#F2F3F1] p-6 sm:p-8 lg:p-10 shadow-sm animate-slide-in-left">
+              <h2 class="text-[20px] sm:text-[24px] font-bold text-ink lg:text-[28px]">Get in Touch</h2>
+
+              <!-- Phone Number -->
+              <div class="contact-info-item mt-8 space-y-3" role="region" aria-label="Phone Contact">
+                <p class="text-[12px] font-semibold uppercase tracking-wider text-muted">Phone</p>
+                <a
+                  href="tel:+1234567890"
+                  class="flex items-center gap-3 rounded-lg bg-white p-4 transition duration-200 hover:shadow-md hover:scale-[1.02]"
+                  title="Call us"
+                  aria-label="Phone: +1 (234) 567-890"
+                >
+                  <svg class="h-6 w-6 text-accent flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M17.92 7.02C17.45 6.18 16.51 5.55 15.46 5.55c-1.05 0-1.99.63-2.46 1.47C11.99 5.18 11.05 4.55 10 4.55 8.95 4.55 8 5.18 7.54 6.02 7.07 6.18 6.51 6.63 6.51 7.26c0 .63.45 1.08 1.02 1.08h.98c-.04.65-.29 1.25-.75 1.74C6.97 10.34 6.24 11.35 6.24 12.64v5.28c0 .84.6 1.54 1.44 1.54.84 0 1.44-.7 1.44-1.54v-2.28h8.04v2.28c0 .84.6 1.54 1.44 1.54.84 0 1.44-.7 1.44-1.54v-5.28c0-1.29-.73-2.3-1.78-2.96-.46-.49-.71-1.09-.75-1.74h.98c.57 0 1.02-.45 1.02-1.08 0-.63-.56-1.08-1.02-1.24z"/>
+                  </svg>
+                  <div>
+                    <p class="text-[16px] font-bold text-ink lg:text-[18px]">+1 (234) 567-890</p>
+                    <p class="text-[11px] text-muted">Available 24/7</p>
+                  </div>
+                </a>
+              </div>
+
+              <!-- Email -->
+              <div class="contact-info-item mt-8 space-y-3" role="region" aria-label="Email Contact">
+                <p class="text-[12px] font-semibold uppercase tracking-wider text-muted">Email</p>
+                <a
+                  href="mailto:info@rentavehicle.com"
+                  class="flex items-center gap-3 rounded-lg bg-white p-4 transition duration-200 hover:shadow-md hover:scale-[1.02]"
+                  title="Send us an email"
+                  aria-label="Email: info@rentavehicle.com"
+                >
+                  <svg class="h-6 w-6 text-accent flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                  </svg>
+                  <div>
+                    <p class="text-[16px] font-bold text-ink lg:text-[18px] break-all">info@rentavehicle.com</p>
+                    <p class="text-[11px] text-muted">Response within 24h</p>
+                  </div>
+                </a>
+              </div>
+
+              <!-- Address -->
+              <div class="contact-info-item mt-8 space-y-3" role="region" aria-label="Address Contact">
+                <p class="text-[12px] font-semibold uppercase tracking-wider text-muted">Address</p>
+                <a
+                  href="https://maps.google.com/?q=201+S+Clinton+St+Iowa+City"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-3 rounded-lg bg-white p-4 transition duration-200 hover:shadow-md hover:scale-[1.02]"
+                  title="Open in Google Maps"
+                  aria-label="Address: 201 S Clinton St, Iowa City, IA 52240"
+                >
+                  <svg class="h-6 w-6 text-accent flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                  </svg>
+                  <div>
+                    <p class="text-[16px] font-bold text-ink lg:text-[18px]">201 S Clinton St</p>
+                    <p class="text-[11px] text-muted">Iowa City, IA 52240 • Open in Maps</p>
+                  </div>
+                </a>
+              </div>
+
+              <!-- Business Hours -->
+              <div class="contact-info-item mt-12 border-t border-[#d7dfdb] pt-8" role="region" aria-label="Business Hours">
+                <p class="text-[12px] font-semibold uppercase tracking-wider text-muted mb-6">Business Hours</p>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center p-3 rounded-lg bg-white hover:bg-[#fafaf9] transition duration-200">
+                    <span class="text-ink font-semibold text-[14px] lg:text-[15px]">Monday – Friday</span>
+                    <span class="bg-accent text-white px-3 py-1 rounded-full text-[12px] font-semibold">09:00 – 18:00</span>
+                  </div>
+                  <div class="flex justify-between items-center p-3 rounded-lg bg-white hover:bg-[#fafaf9] transition duration-200">
+                    <span class="text-ink font-semibold text-[14px] lg:text-[15px]">Saturday</span>
+                    <span class="bg-[#E0E3DF] text-ink px-3 py-1 rounded-full text-[12px] font-semibold">10:00 – 15:00</span>
+                  </div>
+                  <div class="flex justify-between items-center p-3 rounded-lg bg-white hover:bg-[#fafaf9] transition duration-200">
+                    <span class="text-ink font-semibold text-[14px] lg:text-[15px]">Sunday</span>
+                    <span class="bg-[#f5f5f5] text-muted px-3 py-1 rounded-full text-[12px] font-semibold">Closed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Form Placeholder -->
+            <div class="contact-card rounded-[16px] sm:rounded-[20px] bg-[#F2F3F1] p-6 sm:p-8 lg:p-10 shadow-sm animate-slide-in-right">
+              <h2 class="text-[20px] sm:text-[24px] font-bold text-ink lg:text-[28px]">Send us a Message</h2>
+              <form class="mt-6 sm:mt-8 space-y-5 sm:space-y-6" id="contactForm" role="region" aria-label="Contact Message Form">
+                <div>
+                  <label for="name" class="block text-[13px] sm:text-[14px] font-semibold text-ink mb-2">Full Name <span class="text-accent">*</span></label>
+                  <input
+                    id="name"
+                    type="text"
+                    name="name"
+                    placeholder="John Doe"
+                    required
+                    aria-required="true"
+                    class="w-full rounded-lg sm:rounded-xl border border-[#d7dfdb] bg-white px-3 sm:px-4 py-2 sm:py-3 text-[13px] sm:text-[14px] text-ink outline-none transition duration-200 placeholder:text-[#b7bbc0] hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
+                </div>
+
+                <div>
+                  <label for="email" class="block text-[13px] sm:text-[14px] font-semibold text-ink mb-2">Email Address <span class="text-accent">*</span></label>
+                  <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    placeholder="your@email.com"
+                    required
+                    aria-required="true"
+                    class="w-full rounded-lg sm:rounded-xl border border-[#d7dfdb] bg-white px-3 sm:px-4 py-2 sm:py-3 text-[13px] sm:text-[14px] text-ink outline-none transition duration-200 placeholder:text-[#b7bbc0] hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
+                </div>
+
+                <div>
+                  <label for="subject" class="block text-[13px] sm:text-[14px] font-semibold text-ink mb-2">Subject <span class="text-accent">*</span></label>
+                  <input
+                    id="subject"
+                    type="text"
+                    name="subject"
+                    placeholder="How can we help?"
+                    required
+                    aria-required="true"
+                    class="w-full rounded-lg sm:rounded-xl border border-[#d7dfdb] bg-white px-3 sm:px-4 py-2 sm:py-3 text-[13px] sm:text-[14px] text-ink outline-none transition duration-200 placeholder:text-[#b7bbc0] hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
+                </div>
+
+                <div>
+                  <label for="message" class="block text-[13px] sm:text-[14px] font-semibold text-ink mb-2">Message <span class="text-accent">*</span></label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    placeholder="Tell us more about your inquiry..."
+                    rows="4"
+                    required
+                    aria-required="true"
+                    class="w-full rounded-lg sm:rounded-xl border border-[#d7dfdb] bg-white px-3 sm:px-4 py-2 sm:py-3 text-[13px] sm:text-[14px] text-ink outline-none transition duration-200 placeholder:text-[#b7bbc0] hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/20 resize-none"
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  class="w-full rounded-full bg-accent px-6 sm:px-8 py-2.5 sm:py-3 text-[14px] sm:text-[16px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)] active:translate-y-[1px]"
+                >
+                  Send Message
+                </button>
+
+                <p class="text-[11px] sm:text-[12px] text-muted text-center">We'll get back to you within 24 hours</p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/auth.supabase.js"></script>
+    <script src="assets/js/contact.js"></script>
+    <script>
+      window.VehicleAuthUI.init("contact");
+    </script>
+  </body>
+</html>
