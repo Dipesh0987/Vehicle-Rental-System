@@ -20,7 +20,7 @@
       <section class="home-hero-shell relative h-screen overflow-hidden bg-[#F2F3F1]">
         <div class="pointer-events-none absolute bottom-[-200px] left-[-80px] z-[1] select-none text-[580px] font-extrabold leading-[0.8] tracking-[0.04em] text-[rgba(11,22,28,0.03)]" aria-hidden="true">WAS</div>
 
-        <div class="home-side-panel absolute inset-y-0 right-0 w-[42%] overflow-hidden bg-panel animate-panelReveal">
+         <div class="home-side-panel absolute inset-y-0 right-0 w-[42%] overflow-hidden bg-panel animate-panelReveal">
           <!-- Light triangle: upper-left corner only — teal fills lower-right where car sits -->
           <div class="pointer-events-none absolute inset-0" style="background:rgba(242,243,241,0.98);clip-path:polygon(0 0,62% 0,0 70%)" aria-hidden="true"></div>
         </div>
@@ -46,7 +46,7 @@
                 RENT A VEHICLE
               </p>
               <p class="vrs-brand-tagline -mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
-                Luxury Vehicle Service
+                Luxury Vehicle Service   
               </p>
               <span class="vrs-brand-underline mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-logoGlow"></span>
             </div>
@@ -231,100 +231,97 @@
         </div>
       </section>
       <!-- How it Works Section -->
-      <section class="bg-[#F2F3F1] px-6 py-16 lg:px-8 lg:py-32">
-        <div class="mx-auto max-w-[1390px]">
+      <section style="background:#EDEEE9;padding:72px 24px 80px">
+        <div style="max-width:1100px;margin:0 auto">
           <!-- Section Heading -->
-          <div class="mb-4 text-center">
-            <h2 class="text-center text-[36px] font-bold text-ink lg:text-[48px] leading-tight">How it Works</h2>
-            <p class="mt-4 text-center text-[14px] text-[#6C7074] lg:text-[16px] max-w-[600px] mx-auto">Follow these simple steps to book your perfect rental car</p>
+          <div style="text-align:center;margin-bottom:56px">
+            <h2 style="font-family:'Poppins',sans-serif;font-size:42px;font-weight:700;color:#1a2a2f;margin:0;line-height:1.15">How it Works</h2>
+            <p style="font-family:'Poppins',sans-serif;font-size:14px;color:#6C7074;margin-top:16px;line-height:1.7;max-width:520px;margin-left:auto;margin-right:auto">Follow these simple steps to book your perfect rental car. Fast, easy, and hassle-free vehicle booking experience.</p>
           </div>
-          
-          <!-- Steps Container - Responsive Layout -->
-          <div class="mt-16 flex flex-col items-center justify-center gap-12 lg:mt-20 lg:flex-row lg:gap-8">
+
+          <!-- Steps Row -->
+          <div class="hiw-steps">
+
             <!-- Step 1: Choose Location -->
-            <div class="step-card relative flex w-full flex-col items-center lg:w-auto" data-step="1">
-              <!-- Step Badge -->
-              <div class="absolute -top-4 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-panel text-white flex items-center justify-center font-bold text-[14px] shadow-md">1</div>
-              
-              <div class="icon-container relative h-24 w-24 rounded-[20px] bg-[#E0E3DF] flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="1">
-                <!-- Location Pin Icon -->
-                <svg class="h-12 w-12 text-[#6C7074]" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <div class="hiw-step">
+              <div style="width:88px;height:88px;border-radius:22px;background:#D6DAD4;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;cursor:pointer" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 12px 28px rgba(12,35,38,0.15)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='none'">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="#3D4F4A" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 2C7.03 2 3 6.03 3 11c0 5.25 9 11 9 11s9-5.75 9-11c0-4.97-4.03-9-9-9zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                 </svg>
               </div>
-              <h3 class="mt-6 text-[18px] font-semibold text-ink lg:text-[20px]">Choose Location</h3>
-              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[220px] leading-relaxed">Select your pickup location from our available branches</p>
+              <h3 style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:600;color:#1a2a2f;margin:20px 0 8px">Choose Location</h3>
+              <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Select your pickup location from our available branches nearby</p>
             </div>
 
-            <!-- Arrow 1 to 2 - Desktop Only -->
-            <div class="hidden arrow-container relative h-1 w-12 lg:flex items-center justify-center" data-arrow="1-2">
-              <svg class="w-16 h-8" viewBox="0 0 60 30" fill="none" stroke="#6C7074" stroke-width="2">
-                <path d="M 5 15 Q 20 5 40 15 T 55 15" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
-                <polygon points="55,15 50,12 52,15 50,18" fill="#6C7074"></polygon>
+            <!-- Curved dashed arrow 1→2 (desktop) -->
+            <div style="flex:0 0 100px;align-items:flex-start;justify-content:center;padding-top:28px" class="hiw-arrow">
+              <svg width="100" height="48" viewBox="0 0 100 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 38 C 25 2, 75 2, 96 38" stroke="#2D3B37" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" fill="none"/>
               </svg>
             </div>
 
-            <!-- Mobile Arrow 1 to 2 -->
-            <div class="flex lg:hidden items-center justify-center py-2" data-arrow-mobile="1-2">
-              <svg class="w-8 h-12" viewBox="0 0 30 60" fill="none" stroke="#6C7074" stroke-width="2">
-                <path d="M 15 5 Q 10 20 15 40 Q 20 55 15 60" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
-                <polygon points="15,60 12,50 15,52 18,50" fill="#6C7074"></polygon>
-              </svg>
+            <!-- Mobile connector 1→2 -->
+            <div class="hiw-mobile-connector">
+              <svg width="2" height="40" viewBox="0 0 2 40"><line x1="1" y1="0" x2="1" y2="40" stroke="#2D3B37" stroke-width="2" stroke-dasharray="5 4"/></svg>
             </div>
 
             <!-- Step 2: Pick-Up Date -->
-            <div class="step-card relative flex w-full flex-col items-center lg:w-auto" data-step="2">
-              <!-- Step Badge -->
-              <div class="absolute -top-4 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[14px] shadow-md">2</div>
-              
-              <div class="icon-container relative h-24 w-24 rounded-[20px] bg-accent flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="2">
-                <!-- Calendar Icon -->
-                <svg class="h-12 w-12 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"></line>
-                  <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"></line>
-                  <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"></line>
-                  <circle cx="8" cy="15" r="1.5" fill="currentColor"></circle>
-                  <circle cx="12" cy="15" r="1.5" fill="currentColor"></circle>
-                  <circle cx="16" cy="15" r="1.5" fill="currentColor"></circle>
+            <div class="hiw-step">
+              <div style="width:88px;height:88px;border-radius:22px;background:#d9884f;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(217,136,79,0.3);transition:transform 0.3s,box-shadow 0.3s;cursor:pointer" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 14px 32px rgba(217,136,79,0.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 8px 24px rgba(217,136,79,0.3)'">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <circle cx="8" cy="15" r="1.5" fill="#fff" stroke="none"/>
+                  <circle cx="12" cy="15" r="1.5" fill="#fff" stroke="none"/>
+                  <circle cx="16" cy="15" r="1.5" fill="#fff" stroke="none"/>
                 </svg>
               </div>
-              <h3 class="mt-6 text-[18px] font-semibold text-ink lg:text-[20px]">Pick-Up Date</h3>
-              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[220px] leading-relaxed">Select your preferred date and time for vehicle pickup</p>
+              <h3 style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:600;color:#1a2a2f;margin:20px 0 8px">Pick-Up Date</h3>
+              <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Select your preferred date and time for vehicle pickup</p>
             </div>
 
-            <!-- Arrow 2 to 3 - Desktop Only -->
-            <div class="hidden arrow-container relative h-1 w-12 lg:flex items-center justify-center" data-arrow="2-3">
-              <svg class="w-16 h-8" viewBox="0 0 60 30" fill="none" stroke="#6C7074" stroke-width="2">
-                <path d="M 5 15 Q 20 5 40 15 T 55 15" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
-                <polygon points="55,15 50,12 52,15 50,18" fill="#6C7074"></polygon>
+            <!-- Curved dashed arrow 2→3 (desktop) -->
+            <div style="flex:0 0 100px;align-items:flex-start;justify-content:center;padding-top:28px" class="hiw-arrow">
+              <svg width="100" height="48" viewBox="0 0 100 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 38 C 25 2, 75 2, 96 38" stroke="#2D3B37" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" fill="none"/>
               </svg>
             </div>
 
-            <!-- Mobile Arrow 2 to 3 -->
-            <div class="flex lg:hidden items-center justify-center py-2" data-arrow-mobile="2-3">
-              <svg class="w-8 h-12" viewBox="0 0 30 60" fill="none" stroke="#6C7074" stroke-width="2">
-                <path d="M 15 5 Q 10 20 15 40 Q 20 55 15 60" stroke-dasharray="4,4" stroke-dashoffset="0" class="animate-dash"></path>
-                <polygon points="15,60 12,50 15,52 18,50" fill="#6C7074"></polygon>
-              </svg>
+            <!-- Mobile connector 2→3 -->
+            <div class="hiw-mobile-connector">
+              <svg width="2" height="40" viewBox="0 0 2 40"><line x1="1" y1="0" x2="1" y2="40" stroke="#2D3B37" stroke-width="2" stroke-dasharray="5 4"/></svg>
             </div>
 
             <!-- Step 3: Book Your Car -->
-            <div class="step-card relative flex w-full flex-col items-center lg:w-auto" data-step="3">
-              <!-- Step Badge -->
-              <div class="absolute -top-4 -right-2 lg:relative lg:top-0 lg:right-0 h-8 w-8 rounded-full bg-panel text-white flex items-center justify-center font-bold text-[14px] shadow-md">3</div>
-              
-              <div class="icon-container relative h-24 w-24 rounded-[20px] bg-[#E0E3DF] flex items-center justify-center transition duration-300 hover:scale-110 hover:shadow-lg" data-step-icon="3">
-                <!-- Car Icon -->
-                <svg class="h-12 w-12 text-[#6C7074]" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <div class="hiw-step">
+              <div style="width:88px;height:88px;border-radius:22px;background:#D6DAD4;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;cursor:pointer" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 12px 28px rgba(12,35,38,0.15)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='none'">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="#3D4F4A" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm11 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM5 11l1.5-4.5h11L19 11H5z"/>
                 </svg>
               </div>
-              <h3 class="mt-6 text-[18px] font-semibold text-ink lg:text-[20px]">Book Your Car</h3>
-              <p class="mt-2 text-center text-[14px] text-[#6C7074] max-w-[220px] leading-relaxed">Complete your booking and get instant confirmation</p>
+              <h3 style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:600;color:#1a2a2f;margin:20px 0 8px">Book Your Car</h3>
+              <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Complete your booking and get instant confirmation</p>
             </div>
           </div>
         </div>
+
+        <style>
+          .hiw-steps { display: flex; align-items: flex-start; justify-content: center; gap: 0; }
+          .hiw-arrow { display: none; }
+          .hiw-step { flex: 1; max-width: 260px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+          .hiw-mobile-connector { display: none; }
+          @media (min-width: 1024px) {
+            .hiw-arrow { display: flex !important; }
+            .hiw-mobile-connector { display: none !important; }
+          }
+          @media (max-width: 1023px) {
+            .hiw-steps { flex-direction: column; align-items: center; gap: 0; }
+            .hiw-step { max-width: 300px; }
+            .hiw-mobile-connector { display: flex !important; align-items: center; justify-content: center; padding: 12px 0; }
+          }
+        </style>
       </section>
 
       <div id="homeTopRatedSection" class="bg-[#F5F6F4]"></div>
