@@ -165,70 +165,81 @@ function renderTable(messages) {
 function renderMessageModal(msg) {
   const initials = escapeHtml((msg.name || '??').substring(0, 2).toUpperCase());
   const formattedDate = msg.created_at ? new Date(msg.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
-  return `<div id="contactMsgModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" style="animation:cmFadeIn .2s ease">
-    <div class="relative mx-4 w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_25px_60px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[#141d22]" style="animation:cmSlideUp .3s cubic-bezier(0.22,1,0.36,1)">
-
-      <!-- Header Bar -->
-      <div class="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-[#145f59] to-[#1a7a72] px-6 py-4 dark:border-white/5">
-        <div class="flex items-center gap-3">
-          <span class="inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/30 bg-white/20 text-sm font-bold text-white shadow-lg">${initials}</span>
-          <div>
-            <p class="text-[15px] font-bold text-white">${escapeHtml(msg.name)}</p>
-            <p class="text-[12px] font-medium text-white/75">${escapeHtml(msg.email)}</p>
+  return `
+  <style>
+    @keyframes cmFadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes cmSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
+    .cm-overlay { position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);animation:cmFadeIn .2s ease; }
+    .cm-card { position:relative;margin:0 16px;width:100%;max-width:540px;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,0.25);animation:cmSlideUp .3s cubic-bezier(0.22,1,0.36,1); }
+    .cm-card-header { display:flex;align-items:center;justify-content:space-between;padding:20px 24px;background:linear-gradient(135deg,#145f59,#1a7a72);border-bottom:1px solid rgba(255,255,255,0.1); }
+    .cm-avatar { display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.2);font-size:14px;font-weight:700;color:#fff; }
+    .cm-sender-info { margin-left:12px; }
+    .cm-sender-name { font-size:15px;font-weight:700;color:#fff;margin:0; }
+    .cm-sender-email { font-size:12px;color:rgba(255,255,255,0.75);margin:2px 0 0; }
+    .cm-close-btn { background:rgba(255,255,255,0.12);border:none;border-radius:8px;padding:6px;cursor:pointer;color:rgba(255,255,255,0.8);transition:background .2s; }
+    .cm-close-btn:hover { background:rgba(255,255,255,0.25); }
+    .cm-body { padding:24px; }
+    .cm-meta { display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:18px; }
+    .cm-status-badge { display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em; }
+    .cm-status-unread { background:#fee2e2;color:#b91c1c; }
+    .cm-status-read { background:#e0f2fe;color:#0369a1; }
+    .cm-status-replied { background:#d1fae5;color:#047857; }
+    .cm-status-archived { background:#f1f5f9;color:#475569; }
+    .cm-time { font-size:12px;color:#64748b;display:flex;align-items:center;gap:4px; }
+    .cm-label { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#94a3b8;margin:0 0 6px; }
+    .cm-subject { font-size:15px;font-weight:600;color:#1e293b;margin:0 0 18px; }
+    .cm-message-box { background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;font-size:14px;line-height:1.6;color:#334155;white-space:pre-wrap;max-height:260px;overflow-y:auto;margin-bottom:20px; }
+    .cm-actions { display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:16px;flex-wrap:wrap;gap:8px; }
+    .cm-action-btn { display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#475569;background:#fff;cursor:pointer;transition:all .2s; }
+    .cm-action-btn:hover { border-color:#145f59;color:#145f59;background:#f0fdfa; }
+    .cm-reply-btn { display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border-radius:12px;background:linear-gradient(135deg,#145f59,#1a7a72);color:#fff;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 4px 14px rgba(20,95,89,0.3);transition:transform .2s,box-shadow .2s; }
+    .cm-reply-btn:hover { transform:translateY(-2px);box-shadow:0 8px 22px rgba(20,95,89,0.4); }
+  </style>
+  <div id="contactMsgModal" class="cm-overlay">
+    <div class="cm-card">
+      <div class="cm-card-header">
+        <div style="display:flex;align-items:center">
+          <span class="cm-avatar">${initials}</span>
+          <div class="cm-sender-info">
+            <p class="cm-sender-name">${escapeHtml(msg.name)}</p>
+            <p class="cm-sender-email">${escapeHtml(msg.email)}</p>
           </div>
         </div>
-        <button id="closeContactModal" class="rounded-lg p-1.5 text-white/70 transition hover:bg-white/15 hover:text-white">
-          <span class="material-symbols-outlined text-[22px]">close</span>
+        <button id="closeContactModal" class="cm-close-btn">
+          <span class="material-symbols-outlined" style="font-size:22px">close</span>
         </button>
       </div>
-
-      <!-- Body -->
-      <div class="p-6">
-        <!-- Meta Row -->
-        <div class="mb-4 flex flex-wrap items-center gap-3">
-          ${statusBadge(msg.status)}
-          <span class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-            <span class="material-symbols-outlined text-[14px]">schedule</span>
+      <div class="cm-body">
+        <div class="cm-meta">
+          <span class="cm-status-badge cm-status-${msg.status || 'unread'}">${msg.status || 'unread'}</span>
+          <span class="cm-time">
+            <span class="material-symbols-outlined" style="font-size:14px">schedule</span>
             ${formattedDate}
           </span>
         </div>
-
-        <!-- Subject -->
-        <div class="mb-4">
-          <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">Subject</p>
-          <p class="text-[15px] font-semibold text-slate-900 dark:text-white">${escapeHtml(msg.subject)}</p>
-        </div>
-
-        <!-- Message -->
-        <div class="mb-5">
-          <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">Message</p>
-          <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-[14px] leading-relaxed text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300" style="white-space:pre-wrap;max-height:280px;overflow-y:auto">${escapeHtml(msg.message)}</div>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-white/10">
-          <div class="flex gap-2">
-            <button data-modal-status="read" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 dark:border-white/10 dark:text-slate-300 dark:hover:border-sky-500/40 dark:hover:bg-sky-500/10 dark:hover:text-sky-300">
-              <span class="material-symbols-outlined text-[14px]">drafts</span>Read
+        <p class="cm-label">Subject</p>
+        <p class="cm-subject">${escapeHtml(msg.subject)}</p>
+        <p class="cm-label">Message</p>
+        <div class="cm-message-box">${escapeHtml(msg.message)}</div>
+        <div class="cm-actions">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button data-modal-status="read" class="cm-action-btn">
+              <span class="material-symbols-outlined" style="font-size:14px">drafts</span>Read
             </button>
-            <button data-modal-status="replied" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 dark:border-white/10 dark:text-slate-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300">
-              <span class="material-symbols-outlined text-[14px]">check_circle</span>Replied
+            <button data-modal-status="replied" class="cm-action-btn">
+              <span class="material-symbols-outlined" style="font-size:14px">check_circle</span>Replied
             </button>
-            <button data-modal-status="archived" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20 dark:hover:bg-white/10">
-              <span class="material-symbols-outlined text-[14px]">archive</span>Archive
+            <button data-modal-status="archived" class="cm-action-btn">
+              <span class="material-symbols-outlined" style="font-size:14px">archive</span>Archive
             </button>
           </div>
-          <a href="mailto:${escapeHtml(msg.email)}?subject=Re: ${encodeURIComponent(msg.subject)}" class="inline-flex items-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,#145f59,#1a7a72)] px-5 py-2 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(20,95,89,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(20,95,89,0.4)]">
-            <span class="material-symbols-outlined text-[16px]">reply</span> Reply
+          <a href="mailto:${escapeHtml(msg.email)}?subject=Re: ${encodeURIComponent(msg.subject)}" class="cm-reply-btn">
+            <span class="material-symbols-outlined" style="font-size:16px">reply</span> Reply
           </a>
         </div>
       </div>
     </div>
-  </div>
-  <style>
-    @keyframes cmFadeIn { from { opacity: 0 } to { opacity: 1 } }
-    @keyframes cmSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
-  </style>`;
+  </div>`;
 }
 
 export function renderContactsModule({ data, query, notify, rerender }) {
@@ -263,8 +274,11 @@ export function renderContactsModule({ data, query, notify, rerender }) {
 
 async function openMessageModal(msg, host, query, notify, rerender) {
   const modalContainer = document.createElement('div');
+  modalContainer.style.cssText = 'position:fixed;inset:0;z-index:9999;';
   modalContainer.innerHTML = renderMessageModal(msg);
-  document.body.appendChild(modalContainer);
+  // Append inside #adminApp so Tailwind classes are in scope
+  const appRoot = document.getElementById('adminApp') || document.body;
+  appRoot.appendChild(modalContainer);
   // Auto-mark as read if unread
   if (msg.status === 'unread') {
     const ok = await updateMessageStatus(msg.id, 'read', null);
