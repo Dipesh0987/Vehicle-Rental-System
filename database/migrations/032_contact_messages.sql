@@ -45,6 +45,13 @@ CREATE POLICY "Authenticated users can update contact messages"
   USING (true)
   WITH CHECK (true);
 
+-- Policy: Only authenticated users (admins) can DELETE
+CREATE POLICY "Authenticated users can delete contact messages"
+  ON contact_messages
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
 -- Auto-update updated_at on changes
 CREATE OR REPLACE FUNCTION update_contact_messages_updated_at()
 RETURNS TRIGGER AS $$

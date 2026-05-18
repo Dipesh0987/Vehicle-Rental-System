@@ -8,6 +8,7 @@ import { classMap } from '../config.js';
 
 let cachedMessages = [];
 let activeFilter = 'all';
+let selectedIds = new Set();
 
 async function fetchContactMessages() {
   try {
@@ -40,6 +41,28 @@ async function updateMessageStatus(id, status, notify) {
   } catch (err) {
     console.error('Failed to update contact message status:', err);
     if (notify) notify('Failed to update status', 'error');
+    return false;
+  }
+}
+
+async function deleteMessages(ids, notify) {
+  try {
+    if (!ids.length) return false;
+    if (!window.SupabaseClient || typeof window.SupabaseClient.init !== 'function') return false;
+    const client = await window.SupabaseClient.init();
+    const { error } = await client
+      .from('contact_messages')
+      .delete()
+      .in('id', ids);
+    if (error) throw error;
+    // Remove from local cache
+    cachedMessages = cachedMessages.filter((m) => !ids.includes(m.id));
+    selectedIds.clear();
+    if (notify) notify(`${ids.length} message${ids.length > 1 ? 's' : ''} deleted`, 'success');
+    return true;
+  } catch (err) {
+    console.error('Failed to delete contact messages:', err);
+    if (notify) notify('Failed to delete messages', 'error');
     return false;
   }
 }
@@ -78,7 +101,10 @@ function escapeHtml(str) {
 
 function filterMessages(messages, filter, query) {
   let filtered = messages;
-  if (filter && filter !== 'all') {
+  if (filter === 'all') {
+    // 'All' excludes archived messages
+    filtered = filtered.filter((m) => m.status !== 'archived');
+  } else if (filter) {
     filtered = filtered.filter((m) => m.status === filter);
   }
   if (query && query.trim().length >= 2) {
@@ -122,11 +148,14 @@ function renderTable(messages) {
     </div>`;
   }
 
+  const allChecked = messages.length > 0 && messages.every((m) => selectedIds.has(m.id));
+
   return `<div class="${classMap.panel} overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead>
           <tr class="border-b border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-white/5">
+            <th class="w-10 px-3 py-3"><input type="checkbox" id="selectAllContact" class="h-4 w-4 cursor-pointer rounded accent-[#145f59]" ${allChecked ? 'checked' : ''} /></th>
             <th class="px-4 py-3 font-bold text-slate-600 dark:text-slate-300">Sender</th>
             <th class="px-4 py-3 font-bold text-slate-600 dark:text-slate-300">Subject</th>
             <th class="hidden px-4 py-3 font-bold text-slate-600 dark:text-slate-300 md:table-cell">Message</th>
@@ -137,7 +166,8 @@ function renderTable(messages) {
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-white/5">
           ${messages.map((m) => `
-            <tr data-contact-row-id="${m.id}" class="cursor-pointer transition hover:bg-slate-50/60 dark:hover:bg-white/5 ${m.status === 'unread' ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''}">
+            <tr data-contact-row-id="${m.id}" class="cursor-pointer transition hover:bg-slate-50/60 dark:hover:bg-white/5 ${m.status === 'unread' ? 'bg-amber-50/40 dark:bg-amber-500/5' : ''} ${selectedIds.has(m.id) ? 'bg-[#e8f5f3] dark:bg-[#1a3a38]' : ''}">
+              <td class="w-10 px-3 py-3" data-actions-cell><input type="checkbox" data-select-msg="${m.id}" class="h-4 w-4 cursor-pointer rounded accent-[#145f59]" ${selectedIds.has(m.id) ? 'checked' : ''} /></td>
               <td class="px-4 py-3">
                 <p class="font-semibold text-slate-900 dark:text-white">${escapeHtml(m.name)}</p>
                 <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(m.email)}</p>
@@ -151,6 +181,7 @@ function renderTable(messages) {
                   ${m.status !== 'read' ? `<button data-contact-action="read" data-contact-id="${m.id}" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-sky-100 hover:text-sky-600 dark:hover:bg-sky-500/20 dark:hover:text-sky-400" title="Mark as read"><span class="material-symbols-outlined text-[18px]">drafts</span></button>` : ''}
                   ${m.status !== 'replied' ? `<button data-contact-action="replied" data-contact-id="${m.id}" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-400" title="Mark as replied"><span class="material-symbols-outlined text-[18px]">reply</span></button>` : ''}
                   ${m.status !== 'archived' ? `<button data-contact-action="archived" data-contact-id="${m.id}" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-300" title="Archive"><span class="material-symbols-outlined text-[18px]">archive</span></button>` : ''}
+                  <button data-contact-action="delete" data-contact-id="${m.id}" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-500/20 dark:hover:text-rose-400" title="Delete"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                   <button data-contact-action="view" data-contact-id="${m.id}" class="rounded-lg p-1.5 text-slate-500 transition hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-500/20 dark:hover:text-amber-400" title="View full message"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
                 </div>
               </td>
@@ -232,6 +263,9 @@ function renderMessageModal(msg) {
             <button data-modal-status="archived" class="cm-action-btn">
               <span class="material-symbols-outlined" style="font-size:14px">archive</span>Archive
             </button>
+            <button data-modal-delete class="cm-action-btn" style="color:#dc2626;border-color:#fecaca">
+              <span class="material-symbols-outlined" style="font-size:14px">delete</span>Delete
+            </button>
           </div>
           <a href="mailto:${escapeHtml(msg.email)}?subject=Re: ${encodeURIComponent(msg.subject)}" class="cm-reply-btn">
             <span class="material-symbols-outlined" style="font-size:16px">reply</span> Reply
@@ -308,6 +342,16 @@ async function openMessageModal(msg, host, query, notify, rerender) {
       }
     });
   });
+
+  // Bind modal delete button
+  modalContainer.querySelector('[data-modal-delete]')?.addEventListener('click', async () => {
+    if (!confirm('Delete this message? This cannot be undone.')) return;
+    const ok = await deleteMessages([msg.id], notify);
+    if (ok) {
+      modalContainer.remove();
+      renderContent(host, query, notify, rerender);
+    }
+  });
 }
 
 function renderContent(host, query, notify, rerender) {
@@ -328,10 +372,20 @@ function renderContent(host, query, notify, rerender) {
   const header = host.querySelector('header');
   const headerHTML = header ? header.outerHTML : '';
 
+  const bulkBar = selectedIds.size > 0 ? `
+    <div class="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 dark:border-rose-500/30 dark:bg-rose-500/10">
+      <span class="text-sm font-semibold text-rose-700 dark:text-rose-300">${selectedIds.size} selected</span>
+      <button id="bulkDeleteBtn" class="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-rose-700">
+        <span class="material-symbols-outlined text-[15px]">delete</span>Delete Selected
+      </button>
+      <button id="clearSelectionBtn" class="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/40 dark:text-rose-300 dark:hover:bg-rose-500/20">Clear</button>
+    </div>` : '';
+
   host.innerHTML = `
     ${headerHTML}
     ${renderStats(cachedMessages)}
     ${filterBar}
+    ${bulkBar}
     ${renderTable(filtered)}
   `;
 
@@ -350,10 +404,47 @@ function renderContent(host, query, notify, rerender) {
     });
   });
 
+  // Select-all checkbox
+  host.querySelector('#selectAllContact')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    const visibleIds = filtered.map((m) => m.id);
+    if (checked) {
+      visibleIds.forEach((id) => selectedIds.add(id));
+    } else {
+      visibleIds.forEach((id) => selectedIds.delete(id));
+    }
+    renderContent(host, query, notify, rerender);
+  });
+
+  // Individual checkboxes
+  host.querySelectorAll('[data-select-msg]').forEach((cb) => {
+    cb.addEventListener('change', (e) => {
+      const id = cb.getAttribute('data-select-msg');
+      if (e.target.checked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+      renderContent(host, query, notify, rerender);
+    });
+  });
+
+  // Bulk delete
+  host.querySelector('#bulkDeleteBtn')?.addEventListener('click', async () => {
+    if (!confirm(`Delete ${selectedIds.size} message${selectedIds.size > 1 ? 's' : ''}? This cannot be undone.`)) return;
+    await deleteMessages([...selectedIds], notify);
+    renderContent(host, query, notify, rerender);
+  });
+
+  // Clear selection
+  host.querySelector('#clearSelectionBtn')?.addEventListener('click', () => {
+    selectedIds.clear();
+    renderContent(host, query, notify, rerender);
+  });
+
   // Bind row clicks — clicking anywhere on the row opens the message detail
   host.querySelectorAll('[data-contact-row-id]').forEach((row) => {
     row.addEventListener('click', async (e) => {
-      // Skip if the click was on an action button
       if (e.target.closest('[data-actions-cell]')) return;
       const id = row.getAttribute('data-contact-row-id');
       const msg = cachedMessages.find((m) => m.id === id);
@@ -362,7 +453,7 @@ function renderContent(host, query, notify, rerender) {
     });
   });
 
-  // Bind action buttons (status changes)
+  // Bind action buttons (status changes + delete)
   host.querySelectorAll('[data-contact-action]').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -374,6 +465,13 @@ function renderContent(host, query, notify, rerender) {
         const msg = cachedMessages.find((m) => m.id === id);
         if (!msg) return;
         openMessageModal(msg, host, query, notify, rerender);
+        return;
+      }
+
+      if (action === 'delete') {
+        if (!confirm('Delete this message? This cannot be undone.')) return;
+        await deleteMessages([id], notify);
+        renderContent(host, query, notify, rerender);
         return;
       }
 
