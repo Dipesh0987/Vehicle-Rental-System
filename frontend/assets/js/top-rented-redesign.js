@@ -61,46 +61,60 @@
     try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (e) { /* quota */ }
   }
 
+  function normalizeRow(row) {
+    return {
+      id: row.id || row.vehicle_id || '',
+      name: row.name || row.model || row.title || 'Vehicle',
+      brand: row.brand || row.make || row.manufacturer || 'Vehicle',
+      fuelType: row.fuel_type || row.fuelType || 'Petrol',
+      seats: Number(row.seats || row.seating_capacity || 4),
+      transmission: row.transmission || 'Manual',
+      pricePerDay: Number(row.price_per_day ?? row.daily_rate ?? row.pricePerDay ?? 0),
+      rating: Number(row.rating ?? row.average_rating ?? 0),
+      primaryImageUrl: row.primary_image_url || row.image_url || row.primaryImageUrl || row.thumbnail || FALLBACK_IMG,
+      vehicleNumber: row.vehicle_number || '',
+      category: row.category || row.type || row.vehicle_type || 'Car',
+      available: row.available !== false && row.is_available !== false && row.isActive !== false && String(row.status || '').toLowerCase() !== 'inactive',
+      status: row.status || 'available'
+    };
+  }
+
   async function fetchVehicles() {
     // 1. Return from cache instantly if available
     const cached = getCached();
     if (cached && cached.length) return cached;
 
-    // 2. Get Supabase client (skip VehicleCatalogService — it's too slow)
-    let sb = window.supabase;
-    if (!sb && window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
-      sb = await window.SupabaseClient.init();
-      window.supabase = sb;
+    // 2. Try direct Supabase query first (fast path — 1 request)
+    try {
+      let sb = window.supabase;
+      if (!sb && window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+        sb = await window.SupabaseClient.init();
+        window.supabase = sb;
+      }
+      if (sb && typeof sb.from === 'function') {
+        const { data, error } = await sb
+          .from('vehicles')
+          .select('*')
+          .order('rating', { ascending: false, nullsFirst: false })
+          .limit(30);
+        if (!error && data && data.length) {
+          const vehicles = data.map(normalizeRow).filter(v => v.available);
+          if (vehicles.length) { setCache(vehicles); return vehicles; }
+        }
+        if (error) console.warn('TopRated direct query error:', error.message);
+      }
+    } catch (e) {
+      console.warn('TopRated direct query failed:', e.message);
     }
-    if (!sb || typeof sb.from !== 'function') throw new Error('Supabase not ready');
 
-    // 3. Single lightweight query — only columns we render, sorted by rating, limit 30
-    const { data, error } = await sb
-      .from('vehicles')
-      .select('id,name,brand,make,model,type,category,transmission,fuel_type,seats,rating,price_per_day,daily_rate,primary_image_url,image_url,status')
-      .order('rating', { ascending: false, nullsFirst: false })
-      .limit(30);
-    if (error) throw error;
+    // 3. Fallback to VehicleCatalogService (slower but more robust)
+    if (window.VehicleCatalogService && typeof window.VehicleCatalogService.listVehicles === 'function') {
+      const vehicles = await window.VehicleCatalogService.listVehicles({ includeInactive: false });
+      const result = (vehicles || []).map(normalizeRow).filter(v => v.available);
+      if (result.length) { setCache(result); return result; }
+    }
 
-    const vehicles = (data || []).map(row => ({
-      id: row.id,
-      name: row.name || row.model || 'Vehicle',
-      brand: row.brand || row.make || 'Vehicle',
-      fuelType: row.fuel_type || 'Petrol',
-      seats: row.seats || 4,
-      transmission: row.transmission || 'Automatic',
-      pricePerDay: row.price_per_day ?? row.daily_rate ?? 0,
-      rating: row.rating ?? 0,
-      primaryImageUrl: row.primary_image_url || row.image_url || FALLBACK_IMG,
-      vehicleNumber: '',
-      category: row.category || row.type || 'Car',
-      available: String(row.status || '').toLowerCase() !== 'inactive',
-      status: row.status || 'available'
-    })).filter(v => v.available);
-
-    // 4. Cache for next visit
-    setCache(vehicles);
-    return vehicles;
+    throw new Error('Could not load vehicles');
   }
 
   /* ── Skeleton loading ──────────────────────────── */
