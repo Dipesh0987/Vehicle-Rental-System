@@ -43,13 +43,30 @@
     return `<span class="trr-pill-logo" style="--trr-accent:${tone.accent};--trr-accent-soft:${tone.accentSoft};--trr-accent-deep:${tone.accentDeep}">${letter}</span>`;
   }
 
-  /* ── Supabase fetch ────────────────────────────── */
-  async function fetchVehicles() {
-    if (window.VehicleCatalogService && typeof window.VehicleCatalogService.listVehicles === 'function') {
-      const vehicles = await window.VehicleCatalogService.listVehicles({ includeInactive: false });
-      return (vehicles || []).filter(v => v && v.available !== false);
-    }
+  /* ── Supabase fetch (optimized: direct query, sessionStorage cache) ── */
+  const CACHE_KEY = 'trr_vehicles_cache';
+  const CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
+  function getCached() {
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (Date.now() - parsed.ts > CACHE_TTL) { sessionStorage.removeItem(CACHE_KEY); return null; }
+      return parsed.data;
+    } catch (e) { return null; }
+  }
+
+  function setCache(data) {
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch (e) { /* quota */ }
+  }
+
+  async function fetchVehicles() {
+    // 1. Return from cache instantly if available
+    const cached = getCached();
+    if (cached && cached.length) return cached;
+
+    // 2. Get Supabase client (skip VehicleCatalogService — it's too slow)
     let sb = window.supabase;
     if (!sb && window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
       sb = await window.SupabaseClient.init();
@@ -57,13 +74,15 @@
     }
     if (!sb || typeof sb.from !== 'function') throw new Error('Supabase not ready');
 
+    // 3. Single lightweight query — only columns we render, sorted by rating, limit 30
     const { data, error } = await sb
       .from('vehicles')
-      .select('id,name,brand,make,model,type,category,transmission,fuel_type,seats,rating,price_per_day,daily_rate,primary_image_url,image_url,vehicle_number,status,is_available,available')
+      .select('id,name,brand,make,model,type,category,transmission,fuel_type,seats,rating,price_per_day,daily_rate,primary_image_url,image_url,status')
       .order('rating', { ascending: false, nullsFirst: false })
-      .limit(200);
+      .limit(30);
     if (error) throw error;
-    return (data || []).map(row => ({
+
+    const vehicles = (data || []).map(row => ({
       id: row.id,
       name: row.name || row.model || 'Vehicle',
       brand: row.brand || row.make || 'Vehicle',
@@ -73,11 +92,15 @@
       pricePerDay: row.price_per_day ?? row.daily_rate ?? 0,
       rating: row.rating ?? 0,
       primaryImageUrl: row.primary_image_url || row.image_url || FALLBACK_IMG,
-      vehicleNumber: row.vehicle_number || '',
+      vehicleNumber: '',
       category: row.category || row.type || 'Car',
-      available: row.available !== false && row.is_available !== false && String(row.status || '').toLowerCase() !== 'inactive',
+      available: String(row.status || '').toLowerCase() !== 'inactive',
       status: row.status || 'available'
-    })).filter(v => v.available !== false);
+    })).filter(v => v.available);
+
+    // 4. Cache for next visit
+    setCache(vehicles);
+    return vehicles;
   }
 
   /* ── Skeleton loading ──────────────────────────── */
