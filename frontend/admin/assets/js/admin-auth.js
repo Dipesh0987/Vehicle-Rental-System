@@ -421,17 +421,23 @@
     }
 
     if (!isAllowedAdminEmail(authenticatedEmail)) {
-      // Email not in local allowlist — verify admin role via database
-      var dbAdmin = await checkDatabaseAdminRole();
-      if (!dbAdmin) {
-        if (typeof auth.signOut === "function") {
-          try {
-            await auth.signOut();
-          } catch (_signOutError) {
-            // Best effort sign-out.
+      // Check app_metadata.role from the JWT (set in Supabase Dashboard -> Auth -> Users)
+      var appMeta = user && user.app_metadata && typeof user.app_metadata === "object" ? user.app_metadata : {};
+      var hasAdminAppRole = normalizeLower(appMeta.role || "") === "admin" || normalizeLower(appMeta.role || "") === "super_admin";
+
+      if (!hasAdminAppRole) {
+        // Final fallback: verify via database RPC
+        var dbAdmin = await checkDatabaseAdminRole();
+        if (!dbAdmin) {
+          if (typeof auth.signOut === "function") {
+            try {
+              await auth.signOut();
+            } catch (_signOutError) {
+              // Best effort sign-out.
+            }
           }
+          throw new Error("This account does not have admin access. In Supabase Dashboard \u2192 Auth \u2192 Users, set app_metadata to {\"role\":\"admin\"}.");
         }
-        throw new Error("This account does not have admin access. Grant the admin role via Supabase dashboard → Authentication → Users.");
       }
     }
 
@@ -492,11 +498,16 @@
       }
 
       if (!isAllowedAdminEmail(runtimeEmail)) {
-        // Fallback: verify admin role in database
-        var dbAdmin = await checkDatabaseAdminRole();
-        if (!dbAdmin) {
-          clearSession();
-          return false;
+        // Check app_metadata.role from live session
+        var appMeta = runtimeUser.app_metadata && typeof runtimeUser.app_metadata === "object" ? runtimeUser.app_metadata : {};
+        var hasAdminAppRole = normalizeLower(appMeta.role || "") === "admin" || normalizeLower(appMeta.role || "") === "super_admin";
+
+        if (!hasAdminAppRole) {
+          var dbAdmin = await checkDatabaseAdminRole();
+          if (!dbAdmin) {
+            clearSession();
+            return false;
+          }
         }
       }
 

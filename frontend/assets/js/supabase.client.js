@@ -209,10 +209,14 @@
   }
 
   async function loadSupabaseRuntime() {
-    await loadScript(
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
-      "cdn"
-    );
+    try {
+      await loadScript(
+        "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js",
+        "cdn"
+      );
+    } catch (_cdnError) {
+      // CDN blocked or unavailable — continue to local vendor fallback
+    }
 
     if (window.supabase && typeof window.supabase.createClient === "function") {
       return;
@@ -224,10 +228,10 @@
         return;
       }
     } catch (localError) {
-      // console.warn("CDN Supabase runtime unavailable, local fallback also failed.", localError.message);
+      // local fallback also failed
     }
 
-    throw new Error("Supabase runtime failed to initialize.");
+    throw new Error("Supabase runtime failed to initialize. Ensure vendor/supabase.min.js is present.");
   }
 
   async function initClient() {
