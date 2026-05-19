@@ -33,7 +33,7 @@ export function createPaymentsService() {
     // We pull both the new provider_* columns (migration 025) and the legacy
     // khalti_* columns so the admin UI still works on databases that have not
     // run 025 yet. The mapper below prefers the new columns when present.
-    const result = await client
+    let result = await client
       .from('payments')
       .select(
         'id,transaction_code,booking_id,customer_user_id,customer_email,customer_name,' +
@@ -45,6 +45,15 @@ export function createPaymentsService() {
       .order('created_at', { ascending: false })
       .limit(500);
 
+    // Fall back to wildcard select if specific columns are missing
+    if (result.error && result.error.message && result.error.message.includes('does not exist')) {
+      result = await client
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+    }
+
     if (result.error) {
       throw new Error(result.error.message || 'Failed to load payments.');
     }
@@ -54,11 +63,20 @@ export function createPaymentsService() {
   async function listReceipts() {
     const client = await getClient();
 
-    const result = await client
+    let result = await client
       .from('payment_receipts')
       .select('id,receipt_code,payment_id,booking_id,customer_user_id,email_to,email_status,email_sent_at,email_error,created_at')
       .order('created_at', { ascending: false })
       .limit(500);
+
+    // Table might not exist yet — return empty instead of crashing
+    if (result.error && result.error.message && (
+      result.error.message.includes('does not exist') ||
+      result.error.message.includes('relation') ||
+      result.error.message.includes('permission denied')
+    )) {
+      return [];
+    }
 
     if (result.error) {
       throw new Error(result.error.message || 'Failed to load receipts.');
@@ -71,13 +89,20 @@ export function createPaymentsService() {
     const ids = Array.from(new Set((Array.isArray(bookingIds) ? bookingIds : []).filter(Boolean)));
     if (!ids.length) return {};
 
-    const result = await client
+    let result = await client
       .from('vehicle_bookings')
       .select('id,booking_code,customer_name,customer_email,total_amount,paid_amount,remaining_amount,payment_status,start_date,end_date,status')
       .in('id', ids);
 
+    if (result.error && result.error.message && result.error.message.includes('does not exist')) {
+      result = await client
+        .from('vehicle_bookings')
+        .select('*')
+        .in('id', ids);
+    }
+
     if (result.error) {
-      throw new Error(result.error.message || 'Failed to load booking summaries.');
+      return {};
     }
 
     const indexed = {};

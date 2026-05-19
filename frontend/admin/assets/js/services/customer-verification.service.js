@@ -248,9 +248,11 @@ export function createCustomerVerificationService() {
   async function listCustomers() {
     const client = await getClient();
 
+    // Try the admin RPC first
     let response = await client.rpc('admin_list_user_profiles');
 
-    if (response.error && isMissingAdminListRpcError(response.error)) {
+    // If RPC fails for ANY reason, fall back to direct table query
+    if (response.error) {
       response = await client
         .from('user_profiles')
         .select(PROFILE_VERIFICATION_SELECT)

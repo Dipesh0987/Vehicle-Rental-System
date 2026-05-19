@@ -760,10 +760,8 @@ async function hydrateCustomersFromDatabase({ silent = false } = {}) {
     }
   } catch (error) {
     syncCustomerTripCounts();
-    const message = appState.customerVerificationService && typeof appState.customerVerificationService.toPublicError === 'function'
-      ? appState.customerVerificationService.toPublicError(error, 'Unable to sync customers from database')
-      : 'Unable to sync customers: ' + (error.message || 'unknown error');
-    pushToast(message, 'warn');
+    const rawMsg = error && error.message ? error.message : 'unknown error';
+    pushToast('Customers: ' + rawMsg, 'warn');
   }
 }
 
