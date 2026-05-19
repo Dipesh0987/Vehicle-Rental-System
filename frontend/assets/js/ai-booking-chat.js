@@ -14,18 +14,20 @@
     "\u2022 Trip planning & vehicle recommendations\n" +
     "\u2022 Multi-stop itinerary quotes (rental + fuel estimate)\n" +
     "\u2022 Upcoming booking dates & details\n" +
-    "\u2022 Vehicle information\n" +
-    "\u2022 Cancellation policy & refund status\n" +
-    "\u2022 Invoice availability\n\n" +
+    "\u2022 Vehicle search, compare & availability\n" +
+    "\u2022 Discounts & promotional offers\n" +
+    "\u2022 Payment status & invoices\n" +
+    "\u2022 Cancellation policy & refund status\n\n" +
     "Tell me about your trip and I'll find the perfect vehicle for you!";
   var MAX_MESSAGES = 100;
   var MAX_SEARCHES = 25;
   var SUGGESTIONS = [
-    "When is my next booking?",
-    "Show my bookings",
+    "Show me SUVs",
     "Plan a trip",
     "Multi-stop trip",
-    "Refund status",
+    "My bookings",
+    "Discount offers",
+    "Payment status",
   ];
 
   /* ─── Dark Mode ─── */
@@ -410,8 +412,18 @@
         conversationId: state ? state.sessionId : "",
       },
     });
-    if (res.error) throw new Error(String(res.error.message || "Chat API call failed."));
-    return res.data || {};
+    /* The Supabase client may return an error object or a data payload with
+     * success=false for non-200 responses. Handle both patterns so rate-limit
+     * and server error messages propagate to the fallback handler. */
+    if (res.error) {
+      var errMsg = String(res.error.message || "Chat API call failed.");
+      /* Check if the response body has a more specific message (e.g. rate limit) */
+      if (res.data && res.data.message) errMsg = String(res.data.message);
+      throw new Error(errMsg);
+    }
+    var d = res.data || {};
+    if (d.success === false && d.message) throw new Error(String(d.message));
+    return d;
   }
 
   function normActions(arr) {
@@ -473,6 +485,8 @@
       ".vrs-history-slide{transition:transform .25s cubic-bezier(.4,0,.2,1)}",
       ".vrs-history-slide.is-hidden{transform:translateX(100%)}",
       ".vrs-vehicle-card img{display:block;width:100%;height:80px;object-fit:cover;border-radius:8px 8px 0 0}",
+      "@keyframes vrs-cursor-blink{0%,100%{opacity:1}50%{opacity:0}}",
+      ".vrs-stream-cursor::after{content:'';display:inline-block;width:2px;height:13px;margin-left:2px;background:currentColor;animation:vrs-cursor-blink .8s steps(1) infinite;vertical-align:text-bottom}",
     ].join("\n");
     document.head.appendChild(style);
   }
@@ -597,10 +611,13 @@
         '</div>';
     }
 
-    /* vehicle suggestion cards */
+    /* vehicle suggestion cards — detect compare_pick mode */
+    var isComparePick = vehicleCards.length > 0 && vehicleCards[0].meta && vehicleCards[0].meta.compare_pick;
     var cardsHtml = "";
     if (vehicleCards.length) {
-      cardsHtml = '<div style="margin-top:10px;display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">' +
+      var compareHint = isComparePick ? '<p style="margin:0 0 6px;font-size:11px;font-weight:600;color:' + t.cardPrice + '">Select any 2 vehicles to compare:</p>' : '';
+      cardsHtml = '<div style="margin-top:10px">' + compareHint +
+        '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;flex-wrap:' + (isComparePick ? 'wrap' : 'nowrap') + '">' +
         vehicleCards.map(function (a) {
           var m = a.meta || {};
           var img = trim(m.image) || DEFAULT_IMG;
@@ -611,22 +628,25 @@
           var reason = trim(m.reason) || "";
           var rank = Number(m.rank) || 0;
           var rankBadge = rank ? '<span style="position:absolute;top:6px;left:6px;background:linear-gradient(135deg,#145f59,#1a8a7e);color:#fff;font-size:9px;font-weight:700;border-radius:999px;padding:2px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.2)">#' + rank + '</span>' : '';
-          return '<div class="vrs-vehicle-card" style="flex-shrink:0;width:180px;border-radius:10px;border:1px solid ' + t.cardBorder + ';background:' + t.cardBg + ';overflow:hidden" data-action-type="suggest_vehicle" data-action-vehicle-id="' + esc(a.vehicleId || "") + '">' +
+          var selectCheckbox = isComparePick ? '<span class="vrs-compare-check" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;transition:all .2s"></span>' : '';
+          var cardWidth = isComparePick ? '160px' : '180px';
+          return '<div class="vrs-vehicle-card' + (isComparePick ? ' vrs-compare-selectable' : '') + '" style="flex-shrink:0;width:' + cardWidth + ';border-radius:10px;border:1px solid ' + t.cardBorder + ';background:' + t.cardBg + ';overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s" data-action-type="' + (isComparePick ? 'compare_select' : 'suggest_vehicle') + '" data-action-vehicle-id="' + esc(a.vehicleId || "") + '" data-vehicle-label="' + esc(a.label) + '">' +
             '<div style="position:relative">' +
             '<img src="' + esc(img) + '" alt="' + esc(a.label) + '" onerror="this.src=\'' + esc(DEFAULT_IMG) + '\'" />' +
             rankBadge +
+            selectCheckbox +
             '</div>' +
             '<div style="padding:8px 10px">' +
             '<p style="font-size:12px;font-weight:700;color:' + t.cardTitle + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(a.label) + '</p>' +
             '<p style="font-size:10px;color:' + t.cardSub + ';margin-top:2px">' + esc(seats + ' seats \u2022 ' + fuel + (cat ? ' \u2022 ' + cat : '')) + '</p>' +
             (reason ? '<p style="font-size:10px;color:' + t.cardSub + ';margin-top:4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(reason) + '</p>' : '') +
             '<p style="font-size:13px;font-weight:700;color:' + t.cardPrice + ';margin-top:4px">NPR ' + price.toLocaleString() + '<span style="font-weight:400;font-size:10px">/day</span></p>' +
-            '<div style="margin-top:6px;display:flex;gap:4px">' +
+            (isComparePick ? '' : '<div style="margin-top:6px;display:flex;gap:4px">' +
             '<button type="button" style="flex:1;padding:5px 0;border-radius:6px;border:none;background:' + t.cardBtnBg + ';color:' + t.cardBtnText + ';font-size:11px;font-weight:600;cursor:pointer" data-action-type="book_vehicle" data-action-vehicle-id="' + esc(a.vehicleId || "") + '">Book this</button>' +
             '<button type="button" style="padding:5px 10px;border-radius:6px;border:1px solid ' + t.cardBorder + ';background:transparent;color:' + t.cardSub + ';font-size:10px;font-weight:600;cursor:pointer" data-action-type="suggest_vehicle" data-action-vehicle-id="' + esc(a.vehicleId || "") + '">Details</button>' +
-            '</div>' +
+            '</div>') +
             '</div></div>';
-        }).join("") + "</div>";
+        }).join("") + "</div></div>";
     }
 
     /* regular action buttons */
@@ -866,25 +886,12 @@
       'Start a new chat' +
       '</button>';
 
-    /* ─── Recent searches ─── */
-    var searches = state.searches || [];
-    var searchHtml = searches.length
-      ? searches.slice(0, 8).map(function (s, i) {
-          return '<button type="button" data-ai-search-val="' + esc(s) + '" ' +
-            'style="display:flex;width:100%;align-items:center;gap:8px;border-radius:8px;border:1px solid ' + t.actionBorder + ';background:' + t.histItemBg + ';padding:7px 10px;text-align:left;font-size:12px;color:' + t.histItemText + ';cursor:pointer;margin-bottom:5px">' +
-            '<span style="flex-shrink:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:' + t.citeBg + ';font-size:9px;font-weight:700;color:' + t.citeText + '">' + (i + 1) + "</span>" +
-            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s) + "</span></button>";
-        }).join("")
-      : '<p style="border-radius:8px;border:1px dashed ' + t.panelBorder + ';background:' + t.histItemBg + ';padding:10px;text-align:center;font-size:11px;color:' + t.timestamp + '">No searches yet</p>';
-
     ui.historyBody.innerHTML =
-      '<section style="margin-bottom:14px">' +
-      '<h5 style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Your Chats</h5>' +
+      '<section>' +
+      '<h5 style="margin:0 0 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Your Chats</h5>' +
       newChatBtn +
       sessionsHtml +
-      "</section>" +
-      '<section><h5 style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:' + t.headerSub + '">Recent Searches</h5>' +
-      '<div>' + searchHtml + "</div></section>";
+      "</section>";
   }
 
   /* ─── Input Lock ─── */
@@ -982,9 +989,18 @@
 
   /* ─── Fallback ─── */
   function fallbackMsg(reason) {
+    var isRateLimit = reason && /too quickly|rate/i.test(reason);
+    if (isRateLimit) {
+      return {
+        id: uid("m"), role: "assistant",
+        text: "You're sending messages too quickly! Please wait a few seconds and try again.",
+        timestamp: new Date().toISOString(), citations: [], actions: [],
+        suggestions: ["Show vehicles", "Plan a trip", "My bookings"],
+      };
+    }
     return {
       id: uid("m"), role: "assistant",
-      text: "Oops! I ran into an issue processing that." + (reason ? " (" + reason + ")" : "") + "\n\nDon't worry — you can try rephrasing your question, or I can connect you with our support team for help.",
+      text: "Oops! I ran into an issue processing that." + (reason ? " (" + reason + ")" : "") + "\n\nDon't worry \u2014 you can try rephrasing your question, or I can connect you with our support team for help.",
       timestamp: new Date().toISOString(), citations: [],
       actions: [{ type: "contact_support", label: "Connect to Support", href: "mailto:support@rentavehiclenepal.com" }],
       suggestions: ["Try again", "Show vehicles", "Plan a trip", "Contact support"],
@@ -1010,6 +1026,9 @@
     else if (/\b(available|availability|free)\b/.test(lq)) typingLabel = "Checking availability";
     else if (/\b(document|license|kyc|require)\b/.test(lq)) typingLabel = "Looking up policies";
     else if (/\b(hour|time|open|close|office)\b/.test(lq)) typingLabel = "Getting info";
+    else if (/\b(discount|promo|coupon|offer|deal|voucher)\b/.test(lq)) typingLabel = "Finding offers";
+    else if (/\b(profile|account|kyc|verification)\b/.test(lq)) typingLabel = "Loading profile";
+    else if (/\b(payment|paid|pending)\b/.test(lq)) typingLabel = "Checking payments";
 
     pushMsg(state, {
       id: uid("m"), role: "assistant", text: "",
@@ -1023,14 +1042,48 @@
       var data = await askAI(query, state);
       var text = trim(data && data.answer);
       if (!text) throw new Error("Empty AI response.");
-      replaceTyping(state, {
+      var aiMsg = {
         id: uid("m"), role: "assistant", text: text,
         timestamp: new Date().toISOString(),
         citations: normCitations(data && data.citations),
         actions: normActions(data && data.actions),
         suggestions: Array.isArray(data && data.suggestions) ? data.suggestions : [],
-      }, library);
+      };
+      replaceTyping(state, aiMsg, library);
       bumpUnread(ui, state, library);
+      unlockInput(ui);
+      renderThread(ui, state);
+
+      /* Streaming typewriter effect — reveal text character-by-character
+       * for the latest AI message bubble to give a premium feel. */
+      (function streamReveal() {
+        var bubbles = ui.thread.querySelectorAll(".vrs-msg-appear");
+        var lastBubble = bubbles[bubbles.length - 1];
+        if (!lastBubble) return;
+        var textEl = lastBubble.querySelector("div[style*='white-space:pre-wrap']");
+        if (!textEl) return;
+        var fullHtml = textEl.innerHTML;
+        var len = 0;
+        var total = fullHtml.length;
+        var speed = Math.max(4, Math.min(12, Math.floor(1200 / total)));
+        textEl.innerHTML = "";
+        textEl.classList.add("vrs-stream-cursor");
+        var interval = setInterval(function () {
+          len += Math.max(1, Math.floor(total / 120));
+          if (len >= total) {
+            textEl.innerHTML = fullHtml;
+            textEl.classList.remove("vrs-stream-cursor");
+            clearInterval(interval);
+            ui.thread.scrollTo({ top: ui.thread.scrollHeight, behavior: "smooth" });
+            return;
+          }
+          textEl.innerHTML = fullHtml.slice(0, len);
+          ui.thread.scrollTop = ui.thread.scrollHeight;
+        }, speed);
+      })();
+
+      renderHistory(ui, state, library);
+      return;
     } catch (err) {
       replaceTyping(state, fallbackMsg(trim(err && err.message)), library);
       bumpUnread(ui, state, library);
@@ -1055,6 +1108,8 @@
     renderThread(ui, ref.state);
     renderBadge(ui, ref.state);
     renderHistory(ui, ref.state, ref.library);
+    /* Auto-close history panel so the user sees the chat thread */
+    if (ui.historyPanel) ui.historyPanel.style.display = "none";
   }
 
   function newSession(ref, ui) {
@@ -1147,6 +1202,47 @@
       if (wizBtn && ref.state.tripWizard) {
         var wizVal = wizBtn.getAttribute("data-wizard-pick");
         advanceWizard(ui, ref.state, ref.library, wizVal);
+        return;
+      }
+
+      /* Compare-select vehicle cards — pick exactly 2 */
+      var compareCard = e.target && e.target.closest(".vrs-compare-selectable[data-action-type='compare_select']");
+      if (compareCard) {
+        var isSelected = compareCard.getAttribute("data-compare-selected") === "true";
+        if (isSelected) {
+          compareCard.setAttribute("data-compare-selected", "false");
+          compareCard.style.borderColor = "";
+          compareCard.style.transform = "";
+          var chk = compareCard.querySelector(".vrs-compare-check");
+          if (chk) { chk.style.background = "rgba(0,0,0,0.3)"; chk.innerHTML = ""; }
+        } else {
+          /* Count currently selected */
+          var allSelected = ui.thread.querySelectorAll(".vrs-compare-selectable[data-compare-selected='true']");
+          if (allSelected.length >= 2) {
+            /* Deselect the first one to make room */
+            allSelected[0].setAttribute("data-compare-selected", "false");
+            allSelected[0].style.borderColor = "";
+            allSelected[0].style.transform = "";
+            var oldChk = allSelected[0].querySelector(".vrs-compare-check");
+            if (oldChk) { oldChk.style.background = "rgba(0,0,0,0.3)"; oldChk.innerHTML = ""; }
+          }
+          compareCard.setAttribute("data-compare-selected", "true");
+          compareCard.style.borderColor = "#145f59";
+          compareCard.style.transform = "scale(1.03)";
+          var chk2 = compareCard.querySelector(".vrs-compare-check");
+          if (chk2) { chk2.style.background = "#145f59"; chk2.innerHTML = '<svg viewBox="0 0 16 16" style="width:14px;height:14px" fill="none" stroke="#fff" stroke-width="2.5"><path d="M3.5 8.5l3 3 6-7"/></svg>'; }
+        }
+        /* Check if exactly 2 are selected, then auto-trigger compare */
+        var nowSelected = ui.thread.querySelectorAll(".vrs-compare-selectable[data-compare-selected='true']");
+        if (nowSelected.length === 2) {
+          var name1 = trim(nowSelected[0].getAttribute("data-vehicle-label"));
+          var name2 = trim(nowSelected[1].getAttribute("data-vehicle-label"));
+          var compareQuery = "compare " + name1 + " vs " + name2;
+          /* Small delay so user sees both selections before the query fires */
+          setTimeout(function () {
+            handleSubmit(ui, ref.state, ref.library, compareQuery);
+          }, 600);
+        }
         return;
       }
 

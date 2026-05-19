@@ -25,19 +25,20 @@ type VehicleRow = {
   id: string;
   name: string | null;
   brand: string | null;
+  type: string | null;
   category: string | null;
   seats?: number | null;
-  daily_rate?: number | null;
   price_per_day?: number | null;
   fuel_type?: string | null;
   transmission?: string | null;
   image_url?: string | null;
   primary_image_url?: string | null;
-  features?: string[] | null;
-  is_available?: boolean | null;
+  available?: boolean | null;
+  is_active?: boolean | null;
   status?: string | null;
   rating?: number | null;
   location?: string | null;
+  vehicle_number?: string | null;
 };
 
 type ActionItem = {
@@ -70,6 +71,20 @@ const SUPPORT_EMAIL = Deno.env.get("BOOKING_SUPPORT_EMAIL") ?? "support@rentaveh
 const SUPPORT_PHONE = Deno.env.get("BOOKING_SUPPORT_PHONE") ?? "+977-9862147350";
 const DEBUG_MODE = (Deno.env.get("BOOKING_CHAT_DEBUG") || "").toLowerCase() === "true";
 
+/* ─── Rate Limiting Config ─── */
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 20;  // max requests per window
+
+/* ─── Response Validation Patterns ─── */
+const HALLUCINATION_PATTERNS = [
+  /\bconfirmed your booking\b/i,
+  /\bsuccessfully (cancelled|modified|booked|refunded)\b/i,
+  /\bprocessed your (payment|refund)\b/i,
+  /\bcreated a new booking\b/i,
+  /\bupdated your booking\b/i,
+  /\byour booking has been (modified|changed|cancelled)\b/i,
+];
+
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -82,6 +97,215 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     persistSession: false,
   },
 });
+
+/* ─── Rate Limiting ─── */
+async function checkRateLimit(userId: string): Promise<boolean> {
+  try {
+    const windowStart = new Date(Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_WINDOW_MS).toISOString();
+    const { data } = await supabaseAdmin
+      .from("chat_rate_limits")
+      .select("request_count")
+      .eq("user_id", userId)
+      .eq("window_start", windowStart)
+      .maybeSingle();
+
+    const currentCount = data?.request_count ?? 0;
+    if (currentCount >= RATE_LIMIT_MAX_REQUESTS) return false;
+
+    await supabaseAdmin.from("chat_rate_limits").upsert(
+      { user_id: userId, window_start: windowStart, request_count: currentCount + 1 },
+      { onConflict: "user_id,window_start" }
+    );
+    return true;
+  } catch (err) {
+    console.warn("rate limit check failed (allowing request):", err);
+    return true; // fail open
+  }
+}
+
+/* ─── Analytics Logger ─── */
+async function logAnalytics(entry: {
+  userId: string;
+  sessionId?: string;
+  intent: string;
+  query: string;
+  source?: string;
+  success: boolean;
+  latencyMs: number;
+  errorMessage?: string;
+  tokenCount?: number;
+}): Promise<void> {
+  try {
+    await supabaseAdmin.from("chat_analytics").insert({
+      user_id: entry.userId,
+      session_id: entry.sessionId || null,
+      intent: entry.intent,
+      query: entry.query.slice(0, 500),
+      source: entry.source || null,
+      success: entry.success,
+      latency_ms: entry.latencyMs,
+      error_message: entry.errorMessage || null,
+      model: GEMINI_MODEL,
+      token_count: entry.tokenCount || null,
+    });
+  } catch (err) {
+    console.warn("analytics log failed:", err);
+  }
+}
+
+/* ─── Response Validation ─── */
+function validateResponse(answer: string): string {
+  let safe = answer;
+  for (const pattern of HALLUCINATION_PATTERNS) {
+    if (pattern.test(safe)) {
+      safe = safe.replace(pattern, (match) => {
+        console.warn("hallucination caught:", match);
+        return "[action requires confirmation]";
+      });
+    }
+  }
+  return safe;
+}
+
+/* ─── Discount Offers Tool ─── */
+async function handleDiscountOffers(): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("discount_codes")
+      .select("code,description,discount_type,discount_value,valid_from,valid_until,min_booking_amount,max_discount_amount")
+      .eq("is_active", true)
+      .gte("valid_until", new Date().toISOString())
+      .lte("valid_from", new Date().toISOString())
+      .order("discount_value", { ascending: false })
+      .limit(5);
+
+    if (error || !data?.length) {
+      return {
+        answer: "There are no active discount offers at the moment. Keep an eye out — we run promotions regularly! You can also ask me to plan a trip and I'll find the best-value vehicles for you.",
+        actions: [defaultSupportAction()],
+        citations: [],
+      };
+    }
+
+    const offers = data.map((d: Record<string, unknown>) => {
+      const code = normalizeText(d.code);
+      const desc = normalizeText(d.description);
+      const type = normalizeText(d.discount_type);
+      const value = Number(d.discount_value) || 0;
+      const discount = type === "percentage" ? `${value}%` : `NPR ${value.toLocaleString()}`;
+      const minBooking = Number(d.min_booking_amount) || 0;
+      const maxDiscount = Number(d.max_discount_amount) || 0;
+      let line = `🏷️ **${code}** — ${discount} off`;
+      if (desc) line += ` (${desc})`;
+      if (minBooking > 0) line += ` | Min booking: NPR ${minBooking.toLocaleString()}`;
+      if (maxDiscount > 0) line += ` | Max discount: NPR ${maxDiscount.toLocaleString()}`;
+      return line;
+    });
+
+    return {
+      answer: `Here are our current discount offers:\n\n${offers.join("\n")}\n\nApply any code during checkout to get your discount!`,
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  } catch {
+    return {
+      answer: "I couldn't fetch discount offers right now. Please try again or contact support.",
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  }
+}
+
+/* ─── User Profile Tool ─── */
+async function handleUserProfile(userId: string, email: string): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  try {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name,phone,address,city,state,zip_code,verification_status,created_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!profile) {
+      return {
+        answer: `Your account email is ${email}. I couldn't find a completed profile — please visit the Profile & Verification page to complete your KYC so you can book vehicles.`,
+        actions: [{ type: "confirmation_cta" as const, label: "Complete Profile", href: "profile-verification.html" }],
+        citations: [],
+      };
+    }
+
+    const p = profile as Record<string, unknown>;
+    const name = normalizeText(p.full_name) || "Not set";
+    const phone = normalizeText(p.phone) || "Not set";
+    const address = [normalizeText(p.address), normalizeText(p.city), normalizeText(p.state)].filter(Boolean).join(", ") || "Not set";
+    const verification = normalizeText(p.verification_status) || "pending";
+    const memberSince = p.created_at ? new Date(String(p.created_at)).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "unknown";
+
+    return {
+      answer: `Here's your profile summary:\n\n• Name: ${name}\n• Email: ${email}\n• Phone: ${phone}\n• Address: ${address}\n• Verification: ${verification}\n• Member since: ${memberSince}\n\nTo update your profile, visit the Profile & Verification page.`,
+      actions: [{ type: "confirmation_cta" as const, label: "Edit Profile", href: "profile-verification.html" }],
+      citations: [],
+    };
+  } catch {
+    return {
+      answer: `Your account email is ${email}. I couldn't load your full profile right now — please try again or visit the Profile page directly.`,
+      actions: [{ type: "confirmation_cta" as const, label: "View Profile", href: "profile-verification.html" }],
+      citations: [],
+    };
+  }
+}
+
+/* ─── Payment Status Tool ─── */
+async function handlePaymentStatus(input: {
+  bookings: BookingRow[];
+  vehicleMap: Record<string, VehicleRow>;
+}): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
+  const { bookings, vehicleMap } = input;
+
+  if (!bookings.length) {
+    return {
+      answer: "I couldn't find any bookings with payment records linked to your account.",
+      actions: [defaultSupportAction()],
+      citations: [],
+    };
+  }
+
+  const paidBookings = bookings.filter(b => Boolean(b.is_paid) || normalizeText(b.payment_status).toLowerCase() === "paid");
+  const pendingPayments = bookings.filter(b => !b.is_paid && normalizeText(b.payment_status).toLowerCase() !== "paid" && normalizeText(b.status).toLowerCase() !== "cancelled");
+
+  const lines: string[] = [];
+
+  if (pendingPayments.length) {
+    lines.push("**Pending Payments:**");
+    pendingPayments.slice(0, 3).forEach(b => {
+      const code = bookingCode(b);
+      const vName = vehicleName(b, vehicleMap);
+      const amount = formatMoney(b.total_amount, b.currency);
+      lines.push(`• ${code} — ${vName}: ${amount} (${normalizeText(b.payment_status) || "pending"})`);
+    });
+  }
+
+  if (paidBookings.length) {
+    if (lines.length) lines.push("");
+    lines.push("**Completed Payments:**");
+    paidBookings.slice(0, 3).forEach(b => {
+      const code = bookingCode(b);
+      const vName = vehicleName(b, vehicleMap);
+      const amount = formatMoney(b.total_amount, b.currency);
+      lines.push(`• ${code} — ${vName}: ${amount} ✓ Paid`);
+    });
+  }
+
+  const citations: Citation[] = bookings.length ? [citationFrom(bookings[0])] : [];
+  const actions: ActionItem[] = pendingPayments.length
+    ? [{ type: "view_booking" as const, label: "View pending booking", bookingId: pendingPayments[0].id }]
+    : [{ type: "view_booking" as const, label: "View latest booking", bookingId: bookings[0].id }];
+
+  return {
+    answer: lines.join("\n") || "All your bookings are up to date with payments.",
+    actions,
+    citations,
+  };
+}
 
 function jsonResponse(status: number, body: JsonObject): Response {
   return new Response(JSON.stringify(body), {
@@ -266,6 +490,9 @@ function classifyIntent(query: string):
   | "availability"
   | "hours"
   | "fleet"
+  | "discount"
+  | "profile"
+  | "payment_status"
   | "unknown" {
   const lower = query.toLowerCase().trim();
 
@@ -278,19 +505,27 @@ function classifyIntent(query: string):
     return "modify";
   }
 
-  /* Vehicle comparison: "compare X vs Y", "X or Y which is better" */
-  if (/(compare|vs\.?|versus|\bor\b.*which.*(better|best|cheaper|bigger|more))/i.test(lower) && /(car|vehicle|suv|sedan|van|[A-Z][a-z]{2,})/i.test(query)) {
+  /* Vehicle comparison: "compare X vs Y", "X or Y which is better", "compare vehicles" */
+  if (/(compare|vs\.?|versus)/i.test(lower) && /(car|vehicle|suv|sedan|van|[A-Z][a-z]{2,})/i.test(query)) {
+    return "vehicle_compare";
+  }
+  if (/\bcompare\s+(vehicles?|cars?|options?|these)\b/i.test(lower)) {
+    return "vehicle_compare";
+  }
+  if (/\bor\b.*which.*(better|best|cheaper|bigger|more)/i.test(lower) && /[A-Z][a-z]{2,}/.test(query)) {
     return "vehicle_compare";
   }
 
-  /* Vehicle search: "show me SUVs", "cars under 3000", "do you have Fortuner" */
-  if (/(show\s+(me\s+)?|list\s+|find\s+|search\s+|get\s+|any\s+|give\s+me\s+)(all\s+)?(suv|sedan|economy|luxury|van|hatchback|electric|car|vehicle|auto)/i.test(lower) ||
+  /* Vehicle search: "show me SUVs", "cars under 3000", "do you have Fortuner", "available cars", "cheaper option" */
+  if (/(show\s+(me\s+)?|list\s+|find\s+|search\s+|get\s+|any\s+|give\s+me\s+)(all\s+)?(suv|sedan|economy|luxury|van|hatchback|electric|car|vehicle|auto|available)/i.test(lower) ||
       /(do you have|is there|have you got|got any)\s+/i.test(lower) && /(car|vehicle|suv|sedan|van)/i.test(lower) ||
       /\b(suv|sedan|economy|luxury|van|hatchback|electric)\s*(car|vehicle)?s?\s*(under|below|within|around|for)\s*\d/i.test(lower) ||
-      /(cheap|budget|affordable|expensive|premium|best|top)\s*(car|vehicle|suv|sedan|van|rental)?s?\b/i.test(lower) ||
+      /(cheap|budget|affordable|expensive|premium|best|top|cheaper)\s*(car|vehicle|suv|sedan|van|rental|option)?s?\b/i.test(lower) ||
       /\b(show|find|get|list|search|browse)\s+(me\s+)?(cars?|vehicles?)\b/i.test(lower) ||
       /(cars?|vehicles?)\s*(under|below|within|around|for|less than)\s*(npr|rs\.?)?\s*\d/i.test(lower) ||
-      /\b(automatic|manual|diesel|petrol|electric)\s*(cars?|vehicles?|options?)\b/i.test(lower)) {
+      /\b(automatic|manual|diesel|petrol|electric)\s*(cars?|vehicles?|options?)\b/i.test(lower) ||
+      /\b(available|free)\s*(cars?|vehicles?|options?)\b/i.test(lower) ||
+      /\b(cars?|vehicles?)\s*(available|free)\b/i.test(lower)) {
     return "vehicle_search";
   }
 
@@ -352,6 +587,18 @@ function classifyIntent(query: string):
 
   if (/(my\s+(price|cost|total|amount|payment))/.test(lower)) {
     return "price";
+  }
+
+  if (/(discount|promo|coupon|offer|voucher|deal|code.*off|special.*offer|current.*offer)/.test(lower)) {
+    return "discount";
+  }
+
+  if (/(my\s+(profile|account|info|details|kyc|verification)|account\s+(info|details|settings)|profile\s+(info|details|status))/.test(lower)) {
+    return "profile";
+  }
+
+  if (/(payment\s+(status|history|details|summary|info)|my\s+payments?|paid.*bookings?|pending\s+payments?|payment\s+check)/.test(lower)) {
+    return "payment_status";
   }
 
   return "unknown";
@@ -484,13 +731,24 @@ function parseTripStops(query: string): TripStop[] {
   let lastIndex = 0;
   let am: RegExpExecArray | null;
   while ((am = arrowRegex.exec(lower)) !== null) {
-    candidates.push(am[1].trim());
+    const candidate = am[1].trim();
+    /* Only accept candidates that look like place names:
+     * - At least 3 characters
+     * - Not common English words that appear in normal sentences */
+    const skipWords = new Set(["i", "we", "you", "he", "she", "it", "me", "my", "the", "a", "an", "is", "am", "are",
+      "was", "want", "plan", "trip", "for", "with", "from", "and", "or", "but", "not",
+      "have", "has", "had", "do", "does", "did", "will", "would", "can", "could",
+      "need", "go", "going", "get", "like", "know", "think", "take", "make", "come"]);
+    if (candidate.length >= 3 && !skipWords.has(candidate)) {
+      candidates.push(candidate);
+    }
     lastIndex = arrowRegex.lastIndex;
   }
   if (candidates.length) {
     const tail = lower.slice(lastIndex).split(/[\.,;!?]/)[0].trim();
     const tailWord = tail.split(/\s+/)[0];
-    if (tailWord && /^[a-z]+$/.test(tailWord)) candidates.push(tailWord);
+    const skipWords2 = new Set(["i", "we", "you", "he", "she", "it", "me", "my", "the", "a", "an", "is", "am", "for", "with", "and", "or", "but", "want", "plan", "trip", "not"]);
+    if (tailWord && tailWord.length >= 3 && /^[a-z]+$/.test(tailWord) && !skipWords2.has(tailWord)) candidates.push(tailWord);
   }
 
   if (candidates.length >= 2) {
@@ -572,12 +830,12 @@ function missingTripInfo(ctx: TripContext): string[] {
 }
 
 function vehiclePrice(v: VehicleRow): number {
-  return Number(v.price_per_day || v.daily_rate || 0);
+  return Number(v.price_per_day || 0);
 }
 
 function vehicleAvailable(v: VehicleRow): boolean {
   const r = v as Record<string, unknown>;
-  if (r.available === false || r.is_available === false) return false;
+  if (r.available === false || r.is_active === false) return false;
   const status = normalizeText(v.status).toLowerCase();
   if (status && status !== "available" && status !== "active") return false;
   return true;
@@ -587,12 +845,11 @@ function vehicleCategory(v: VehicleRow): string {
   return (normalizeText(v.category) || normalizeText((v as Record<string, unknown>).type as string)).toLowerCase();
 }
 
-/* Fetch available vehicles using a defensive strategy that doesn't fail when
- * specific columns (price_per_day vs daily_rate, available vs is_available)
- * happen to be NULL on some rows. We pull a generous batch then rank/filter
- * in JS so partial schema variants still produce useful suggestions. */
+/* Fetch available vehicles. We pull a generous batch then rank/filter
+ * in JS so rows with NULL seat counts or prices still produce useful
+ * suggestions rather than being silently excluded. */
 async function fetchAvailableVehicles(minSeats: number, maxBudget: number, destType: string, fuelPref: string): Promise<VehicleRow[]> {
-  const columns = "id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,available,is_available,status,rating,location";
+  const columns = "id,name,brand,type,category,seats,price_per_day,fuel_type,transmission,image_url,primary_image_url,available,is_active,status,rating,location,vehicle_number";
   const result = await supabaseAdmin
     .from("vehicles")
     .select(columns)
@@ -1031,7 +1288,7 @@ async function fetchVehicleMap(bookings: BookingRow[]): Promise<Record<string, V
 
   const { data, error } = await supabaseAdmin
     .from("vehicles")
-    .select("id,name,brand,category")
+    .select("id,name,brand,type,category,price_per_day,status,available,is_active")
     .in("id", ids);
 
   if (error) {
@@ -1118,6 +1375,12 @@ function getSuggestions(intent: string, hasBookings: boolean): string[] {
       return ["Download invoice", "View booking", "Contact support"];
     case "modify":
       return ["View booking", "Cancel booking", "Contact support"];
+    case "discount":
+      return ["Show vehicles", "Plan a trip", "My bookings"];
+    case "profile":
+      return ["My bookings", "Payment status", "Show vehicles"];
+    case "payment_status":
+      return ["View my bookings", "Download invoice", "Contact support"];
     default:
       return ["Show vehicles", "Plan a trip", "My bookings", "Working hours"];
   }
@@ -1492,7 +1755,12 @@ async function handleVehicleSearch(input: {
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
   const criteria = parseSearchCriteria(input.query);
 
-  let query = supabaseAdmin.from("vehicles").select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,available,is_available,status,rating,location").order("rating", { ascending: false }).limit(30);
+  /* Detect if user wants price-based sorting (cheap/cheaper/budget/affordable) */
+  const wantsCheap = /\b(cheap|cheaper|cheapest|budget|affordable|low.?price|lowest.?price)\b/i.test(input.query);
+  const orderCol = wantsCheap ? "price_per_day" : "rating";
+  const orderAsc = wantsCheap ? true : false;
+
+  let query = supabaseAdmin.from("vehicles").select("id,name,brand,type,category,seats,price_per_day,fuel_type,transmission,image_url,primary_image_url,available,is_active,status,rating,location,vehicle_number").order(orderCol, { ascending: orderAsc }).limit(30);
 
   // Apply filters
   if (criteria.name) {
@@ -1524,6 +1792,10 @@ async function handleVehicleSearch(input: {
   if (criteria.maxBudget > 0) {
     const within = vehicles.filter(v => { const p = vehiclePrice(v); return p === 0 || p <= criteria.maxBudget; });
     vehicles = within.length >= 1 ? within : vehicles.sort((a, b) => vehiclePrice(a) - vehiclePrice(b));
+  }
+  /* If user asked for cheap options, ensure JS-level sort by price too */
+  if (wantsCheap) {
+    vehicles.sort((a, b) => vehiclePrice(a) - vehiclePrice(b));
   }
 
   if (!vehicles.length) {
@@ -1580,69 +1852,141 @@ async function handleVehicleSearch(input: {
 async function handleVehicleCompare(input: {
   query: string; history?: ChatHistoryMessage[];
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
-  // Extract vehicle names from the query
-  const knownNames = ["Swift", "Creta", "Seltos", "Fortuner", "Civic", "Corolla", "Verna", "City", "Brezza", "Tiago",
-    "WagonR", "Alto", "Kwid", "Santro", "Celerio", "Ignis", "Brio", "Ciaz", "Elantra", "Dzire", "Amaze", "Yaris",
-    "Rapid", "Tuscon", "Hector", "XUV700", "Scorpio", "EcoSport", "Venue", "5 Series", "E-Class", "A6", "XF", "S90",
-    "Camry", "Superb", "Accord", "GLC", "X5", "Innova", "Ertiga", "Carnival", "Staria", "XL6", "Carens", "Marazzo", "Hexa", "Lodgy"];
-
+  /* Dynamic comparison: extract potential vehicle/brand terms from query,
+   * then search the database for matches using ilike. This works for any
+   * vehicle in the DB, not just a hardcoded list. */
   const lower = input.query.toLowerCase();
-  const matched: string[] = [];
-  for (const n of knownNames) {
-    if (lower.includes(n.toLowerCase()) && !matched.includes(n)) {
-      matched.push(n);
-    }
-  }
 
-  if (matched.length < 2) {
-    // Try to compare types instead
+  /* Remove filler words to isolate vehicle/brand terms */
+  const cleaned = lower
+    .replace(/\b(compare|vs\.?|versus|which|is|are|one|the|a|an|or|and|better|best|cheaper|bigger|more|good|between|what|should|i|get|pick|choose)\b/g, " ")
+    .replace(/[?.!,;:()\[\]{}"']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const terms = cleaned.split(" ").filter(t => t.length >= 2);
+
+  if (terms.length < 1) {
     return {
-      answer: "I'd love to compare vehicles for you! Please mention 2 or 3 specific vehicle names, like \"compare Creta vs Seltos\" or \"Civic or Corolla which is better?\"",
+      answer: "I'd love to compare vehicles for you! Please mention 2 or 3 vehicle names or brands — for example, \"compare Civic vs Creta\" or \"Audi or BMW which is better?\"",
       actions: [],
       citations: [],
     };
   }
 
-  // Fetch vehicles by name
-  const results = await supabaseAdmin.from("vehicles")
-    .select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,features,rating,location")
-    .in("name", matched.slice(0, 3))
-    .limit(3);
+  /* Search the DB for each term by name or brand */
+  const selectCols = "id,name,brand,type,category,seats,price_per_day,fuel_type,transmission,image_url,primary_image_url,available,is_active,status,rating,location,vehicle_number";
+  const vehicleResults: VehicleRow[] = [];
+  const seenIds = new Set<string>();
 
-  const vehicles = ((results.data as VehicleRow[] | null) || []);
-  if (vehicles.length < 2) {
-    return {
-      answer: "I couldn't find all the vehicles you mentioned in our fleet. Please check the names and try again.",
-      actions: [defaultSupportAction()],
-      citations: [],
-    };
+  for (const term of terms.slice(0, 5)) {
+    const { data } = await supabaseAdmin.from("vehicles")
+      .select(selectCols)
+      .or(`name.ilike.%${term}%,brand.ilike.%${term}%`)
+      .limit(2);
+    if (data) {
+      for (const row of data as VehicleRow[]) {
+        if (!seenIds.has(row.id) && vehicleAvailable(row)) {
+          seenIds.add(row.id);
+          vehicleResults.push(row);
+        }
+      }
+    }
+    if (vehicleResults.length >= 3) break;
   }
 
-  const comparisonTable = vehicles.map(v => {
+  /* If we couldn't find at least 2 specific vehicles, show ALL available
+   * vehicles so the user can pick any 2 to compare. */
+  if (vehicleResults.length < 2) {
+    const allResult = await supabaseAdmin.from("vehicles")
+      .select("id,name,brand,type,category,seats,price_per_day,fuel_type,transmission,image_url,primary_image_url,available,is_active,status,rating,location,vehicle_number")
+      .order("rating", { ascending: false })
+      .limit(20);
+    const allVehicles = ((allResult.data as VehicleRow[] | null) || []).filter(vehicleAvailable);
+
+    if (!allVehicles.length) {
+      return {
+        answer: "No vehicles are currently available for comparison. Please try again later.",
+        actions: [defaultSupportAction()],
+        citations: [],
+      };
+    }
+
+    const vehicleList = allVehicles.map((v, i) => {
+      const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
+      return `${i + 1}. ${vName} — NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day`;
+    }).join("\n");
+
+    const answer = `Here are all our available vehicles. Please pick any 2 to compare (e.g. "compare #1 vs #3" or mention their names):\n\n${vehicleList}`;
+
+    const actions: ActionItem[] = allVehicles.slice(0, 10).map((v, i) => ({
+      type: "suggest_vehicle" as const,
+      label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+      vehicleId: v.id,
+      meta: {
+        seats: v.seats || 5,
+        price: vehiclePrice(v),
+        fuel: normalizeText(v.fuel_type) || "Petrol",
+        transmission: normalizeText(v.transmission) || "Automatic",
+        image: normalizeText(v.primary_image_url) || normalizeText(v.image_url) || "",
+        category: vehicleCategory(v) || "sedan",
+        rating: v.rating || 0,
+        location: normalizeText(v.location) || "",
+        reason: "",
+        rank: i + 1,
+        compare_pick: true,
+      },
+    }));
+
+    return { answer, actions, citations: [] };
+  }
+
+  /* We have 2-3 matched vehicles — build a detailed comparison */
+  const vehicles = vehicleResults.slice(0, 3);
+
+  /* Build a detailed feature-by-feature breakdown for each vehicle */
+  const detailedComparison = vehicles.map(v => {
     const vName = (normalizeText(v.brand) + " " + normalizeText(v.name)).trim();
-    return `${vName}: ${vehicleCategory(v)} | ${v.seats || 5} seats | NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day | ${normalizeText(v.fuel_type) || "Petrol"} | ${normalizeText(v.transmission) || "Auto"} | Rating: ${v.rating || "N/A"}`;
-  }).join("\n");
+    return [
+      `--- ${vName} ---`,
+      `Type: ${vehicleCategory(v) || "N/A"}`,
+      `Brand: ${normalizeText(v.brand) || "N/A"}`,
+      `Seats: ${v.seats || "N/A"}`,
+      `Price: NPR ${Math.round(vehiclePrice(v)).toLocaleString()}/day`,
+      `Fuel Type: ${normalizeText(v.fuel_type) || "N/A"}`,
+      `Transmission: ${normalizeText(v.transmission) || "N/A"}`,
+      `Rating: ${v.rating ? v.rating + "/5" : "N/A"}`,
+      `Location: ${normalizeText(v.location) || "N/A"}`,
+      `Status: Available`,
+    ].join("\n");
+  }).join("\n\n");
 
   let answer = "";
   if (GEMINI_API_KEY) {
     const prompt = [
       "You are a friendly vehicle rental assistant for RentAVehicle Nepal.",
-      "The user wants to compare these vehicles. Write a clear, helpful comparison in 4-5 sentences.",
-      "Mention key differences (price, seats, fuel, category) and give a recommendation.",
-      "Do not use markdown formatting. Be conversational.",
+      "The user wants to compare these vehicles. Write a detailed comparison covering:",
+      "- Price difference and value for money",
+      "- Seating capacity",
+      "- Fuel type and efficiency",
+      "- Category/type suitability",
+      "- Your recommendation based on their needs",
+      "End by asking: \"Which one would you like to book?\"",
+      "Do not use markdown formatting. Be conversational and helpful.",
       "",
-      "Vehicles:", comparisonTable,
+      "Vehicle details:",
+      detailedComparison,
+      "",
       "User query: " + input.query,
     ].join("\n");
-    answer = await callGemini(prompt, 350, input.history);
+    answer = await callGemini(prompt, 500, input.history);
   }
   if (!answer) {
-    answer = "Here's a comparison of the vehicles you asked about:\n" + comparisonTable;
+    answer = "Here's a detailed comparison:\n\n" + detailedComparison + "\n\nWhich one would you like to book?";
   }
 
   const actions: ActionItem[] = vehicles.map((v, i) => ({
-    type: "suggest_vehicle" as const,
-    label: ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()) || "Vehicle",
+    type: "book_vehicle" as const,
+    label: "Book " + ((normalizeText(v.brand) + " " + normalizeText(v.name)).trim()),
     vehicleId: v.id,
     meta: {
       seats: v.seats || 5,
@@ -1667,13 +2011,13 @@ async function handleFleetInfo(input: {
 }): Promise<{ answer: string; actions: ActionItem[]; citations: Citation[] }> {
   /* Fetch all vehicles — don't rely on is_active column existing. */
   const result = await supabaseAdmin.from("vehicles")
-    .select("id,type,category,status,available,is_available")
+    .select("id,type,category,status,available,is_active")
     .limit(200);
 
-  const allVehicles = ((result.data as Array<{ id: string; type: string; category: string; status?: string; available?: boolean; is_available?: boolean }> | null) || []);
+  const allVehicles = ((result.data as Array<{ id: string; type: string; category: string; status?: string; available?: boolean; is_active?: boolean }> | null) || []);
   /* Filter to available ones only */
   const vehicles = allVehicles.filter(v => {
-    if (v.available === false || v.is_available === false) return false;
+    if (v.available === false || v.is_active === false) return false;
     const status = normalizeText(v.status as string).toLowerCase();
     if (status && status !== "available" && status !== "active") return false;
     return true;
@@ -1727,7 +2071,7 @@ async function handleAvailabilityCheck(input: {
 
   if (criteria.name) {
     const result = await supabaseAdmin.from("vehicles")
-      .select("id,name,brand,type,category,seats,price_per_day,daily_rate,fuel_type,transmission,image_url,primary_image_url,status,available,is_available,rating,location")
+      .select("id,name,brand,type,category,seats,price_per_day,fuel_type,transmission,image_url,primary_image_url,status,available,is_active,rating,location,vehicle_number")
       .ilike("name", `%${criteria.name}%`)
       .limit(3);
 
@@ -1962,6 +2306,12 @@ Deno.serve(async (request: Request): Promise<Response> => {
     });
   }
 
+  const startMs = Date.now();
+  let userId = "";
+  let intent = "unknown";
+  let sessionId = "";
+  let query = "";
+
   try {
     const authHeader = normalizeText(request.headers.get("authorization"));
     if (!authHeader.toLowerCase().startsWith("bearer ")) {
@@ -1981,10 +2331,23 @@ Deno.serve(async (request: Request): Promise<Response> => {
       });
     }
 
+    userId = authData.user.id;
+    const email = normalizeText(authData.user.email).toLowerCase();
+
+    /* ── Rate Limiting ── */
+    const allowed = await checkRateLimit(userId);
+    if (!allowed) {
+      return jsonResponse(429, {
+        success: false,
+        message: "You're sending messages too quickly. Please wait a moment and try again.",
+      });
+    }
+
     const body = (await request.json()) as JsonObject;
-    const query = normalizeText(body.query);
+    query = normalizeText(body.query);
     const timezone = normalizeText(body.timezone) || "UTC";
     const nowIso = normalizeText(body.nowIso);
+    sessionId = normalizeText(body.conversationId);
 
     /* Conversation history — last N messages for multi-turn context. */
     const rawHistory = Array.isArray(body.history) ? body.history as Array<{ role?: string; text?: string }> : [];
@@ -2003,140 +2366,100 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const now = nowIso ? new Date(nowIso) : new Date();
     const safeNow = Number.isNaN(now.getTime()) ? new Date() : now;
 
-    const userId = authData.user.id;
-    const email = normalizeText(authData.user.email).toLowerCase();
-
     const bookings = await fetchBookingsForUser(userId, email);
     const vehicleMap = await fetchVehicleMap(bookings);
 
-    const intent = classifyIntent(query);
+    intent = classifyIntent(query);
+    const hasBookings = bookings.length > 0;
 
-    // Handle trip planning separately (doesn't need bookings).
-    // If 2+ stops are detected we go through the multi-leg quote handler that
-    // also outputs a per-stop fuel + package estimate alongside vehicle cards.
+    /* ── Helper: build final response with validation + analytics ── */
+    const buildResponse = async (result: { answer: string; actions: ActionItem[]; citations: Citation[] }, source: string, unresolved = false) => {
+      const validatedAnswer = validateResponse(result.answer);
+      const latencyMs = Date.now() - startMs;
+
+      // Fire analytics asynchronously (don't block response)
+      logAnalytics({
+        userId, sessionId, intent, query, source,
+        success: true, latencyMs,
+      }).catch(() => {});
+
+      return jsonResponse(200, {
+        success: true,
+        answer: validatedAnswer,
+        actions: result.actions as unknown as JsonValue,
+        citations: result.citations as unknown as JsonValue,
+        unresolved,
+        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
+        source,
+        suggestions: getSuggestions(intent, hasBookings) as unknown as JsonValue,
+        latencyMs,
+      });
+    };
+
+    /* ── Intent Routing ── */
+
     if (intent === "trip") {
       const ctx = parseTripContext(query);
       const tripResult = ctx.stops.length >= 2
         ? await handleMultiLegQuote({ query, ctx, timezone, now: safeNow })
         : await handleTripPlanning({ query, ctx, timezone, now: safeNow });
-      return jsonResponse(200, {
-        success: true,
-        answer: tripResult.answer,
-        actions: tripResult.actions as unknown as JsonValue,
-        citations: tripResult.citations as unknown as JsonValue,
-        unresolved: false,
-        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
-        source: "vehicles",
-        suggestions: getSuggestions("trip", bookings.length > 0) as unknown as JsonValue,
-      });
+      return buildResponse(tripResult, "vehicles");
     }
 
-    /* Vehicle search: "show me SUVs", "cars under 3000" */
     if (intent === "vehicle_search") {
       const searchResult = await handleVehicleSearch({ query, history });
-      return jsonResponse(200, {
-        success: true,
-        answer: searchResult.answer,
-        actions: searchResult.actions as unknown as JsonValue,
-        citations: searchResult.citations as unknown as JsonValue,
-        unresolved: false,
-        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
-        source: "vehicles",
-        suggestions: getSuggestions("vehicle_search", bookings.length > 0) as unknown as JsonValue,
-      });
+      return buildResponse(searchResult, "vehicles");
     }
 
-    /* Vehicle compare: "compare Creta vs Seltos" */
     if (intent === "vehicle_compare") {
       const compareResult = await handleVehicleCompare({ query, history });
-      return jsonResponse(200, {
-        success: true,
-        answer: compareResult.answer,
-        actions: compareResult.actions as unknown as JsonValue,
-        citations: compareResult.citations as unknown as JsonValue,
-        unresolved: false,
-        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
-        source: "vehicles",
-        suggestions: getSuggestions("vehicle_compare", bookings.length > 0) as unknown as JsonValue,
-      });
+      return buildResponse(compareResult, "vehicles");
     }
 
-    /* Fleet info: "how many cars do you have" */
     if (intent === "fleet") {
       const fleetResult = await handleFleetInfo({ query, history });
-      return jsonResponse(200, {
-        success: true,
-        answer: fleetResult.answer,
-        actions: fleetResult.actions as unknown as JsonValue,
-        citations: fleetResult.citations as unknown as JsonValue,
-        unresolved: false,
-        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
-        source: "vehicles",
-        suggestions: getSuggestions("fleet", bookings.length > 0) as unknown as JsonValue,
-      });
+      return buildResponse(fleetResult, "vehicles");
     }
 
-    /* Working hours */
     if (intent === "hours") {
       const hoursResult = handleHoursQuery();
-      return jsonResponse(200, {
-        success: true,
-        answer: hoursResult.answer,
-        actions: hoursResult.actions as unknown as JsonValue,
-        citations: hoursResult.citations as unknown as JsonValue,
-        unresolved: false,
-        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
-        source: "policy",
-        suggestions: getSuggestions("hours", bookings.length > 0) as unknown as JsonValue,
-      });
+      return buildResponse(hoursResult, "policy");
     }
 
-    /* Availability check: "is Creta available" */
     if (intent === "availability") {
       const availResult = await handleAvailabilityCheck({ query, history });
-      return jsonResponse(200, {
-        success: true,
-        answer: availResult.answer,
-        actions: availResult.actions as unknown as JsonValue,
-        citations: availResult.citations as unknown as JsonValue,
-        unresolved: false,
-        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
-        source: "vehicles",
-        suggestions: getSuggestions("availability", bookings.length > 0) as unknown as JsonValue,
-      });
+      return buildResponse(availResult, "vehicles");
+    }
+
+    /* ── New Tools ── */
+
+    if (intent === "discount") {
+      const discountResult = await handleDiscountOffers();
+      return buildResponse(discountResult, "discount_codes");
+    }
+
+    if (intent === "profile") {
+      const profileResult = await handleUserProfile(userId, email);
+      return buildResponse(profileResult, "profiles");
+    }
+
+    if (intent === "payment_status") {
+      const paymentResult = await handlePaymentStatus({ bookings, vehicleMap });
+      return buildResponse(paymentResult, "payments");
     }
 
     /* Greetings, generic policy/service questions, and unknowns go straight
-     * through the dynamic Gemini-backed general handler so the assistant
-     * actually responds rather than falling back to a canned booking line. */
+     * through the dynamic Gemini-backed general handler. */
     if (intent === "greeting" || intent === "policy" || intent === "unknown") {
       const generalResult = await handleGeneralQuery({
-        query,
-        bookings,
-        vehicleMap,
-        timezone,
-        now: safeNow,
-        intent,
-        history,
+        query, bookings, vehicleMap, timezone, now: safeNow, intent, history,
       });
-      return jsonResponse(200, {
-        success: true,
-        answer: generalResult.answer,
-        actions: generalResult.actions as unknown as JsonValue,
-        citations: generalResult.citations as unknown as JsonValue,
-        unresolved: false,
-        support: { email: SUPPORT_EMAIL, phone: SUPPORT_PHONE } as unknown as JsonValue,
-        source: intent,
-        suggestions: getSuggestions(intent, bookings.length > 0) as unknown as JsonValue,
-      });
+      return buildResponse(generalResult, intent);
     }
 
+    /* ── Booking-specific intents (rule-based + Gemini refinement) ── */
     const ruleAnswer = buildRuleAnswer({
-      query,
-      now: safeNow,
-      timezone,
-      bookings,
-      vehicleMap,
+      query, now: safeNow, timezone, bookings, vehicleMap,
     });
 
     let finalAnswer: string;
@@ -2157,21 +2480,24 @@ Deno.serve(async (request: Request): Promise<Response> => {
       });
     }
 
-    return jsonResponse(200, {
-      success: true,
-      answer: finalAnswer,
-      actions: finalActions as unknown as JsonValue,
-      citations: finalCitations as unknown as JsonValue,
-      unresolved: ruleAnswer.unresolved,
-      support: {
-        email: SUPPORT_EMAIL,
-        phone: SUPPORT_PHONE,
-      } as unknown as JsonValue,
-      source: "vehicle_bookings",
-      suggestions: getSuggestions(intent, bookings.length > 0) as unknown as JsonValue,
-    });
+    return buildResponse(
+      { answer: finalAnswer, actions: finalActions, citations: finalCitations },
+      "vehicle_bookings",
+      ruleAnswer.unresolved,
+    );
   } catch (error) {
+    const latencyMs = Date.now() - startMs;
     console.error("booking-chat error", error);
+
+    // Log failed request
+    if (userId) {
+      logAnalytics({
+        userId, sessionId, intent, query,
+        success: false, latencyMs,
+        errorMessage: String(error?.message || error),
+      }).catch(() => {});
+    }
+
     const payload: JsonObject = {
       success: false,
       message: "Unable to resolve booking query right now.",
