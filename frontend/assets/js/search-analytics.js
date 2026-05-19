@@ -222,11 +222,11 @@ class SearchAnalytics {
             });
 
             if (!response.ok) {
-                console.warn("Failed to send analytics");
+                // console.warn("Failed to send analytics");
             } else {
             }
         } catch (error) {
-            console.error("Error sending analytics:", error);
+            // console.error("Error sending analytics:", error);
         }
     }
 
@@ -258,7 +258,7 @@ class SearchAnalytics {
             });
             localStorage.setItem("searchAnalytics", JSON.stringify(existing.slice(-10))); // Keep last 10 sessions
         } catch (e) {
-            console.warn("Failed to save analytics:", e);
+            // console.warn("Failed to save analytics:", e);
         }
     }
 

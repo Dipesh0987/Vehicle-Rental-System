@@ -1,4 +1,4 @@
-/**
+﻿/**
  * damage-billing edge function
  * --------------------------------------------------------------------------
  * Handles the full damage charge lifecycle for approved maintenance claims.
@@ -310,7 +310,6 @@ async function sendBillingEmail(bill: DamageBillRow, paymentPageUrl: string): Pr
     const err = await res.text();
     console.error(`[damage-billing] Resend HTTP ${res.status}: ${err}`);
   } else {
-    console.log(`[damage-billing] Billing email sent to ${actualTo} for ${bill.bill_code}`);
   }
 }
 

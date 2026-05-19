@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   var clientInitPromise = null;
@@ -939,7 +939,7 @@
     try {
       await removeOldProfileImages(storageBucket, session.user.id, objectPath, "avatar-");
     } catch (cleanupError) {
-      console.warn("Old profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
+      // console.warn("Old profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
     }
 
     return publicUrl + "?v=" + Date.now();
@@ -1011,7 +1011,7 @@
     try {
       await removeOldProfileImages(storageBucket, session.user.id, objectPath, filePrefix);
     } catch (cleanupError) {
-      console.warn("Old verification document cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
+      // console.warn("Old verification document cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
     }
 
     return publicUrl + "?v=" + Date.now();
@@ -1048,7 +1048,7 @@
     }
 
     if (response.error) {
-      console.warn("Profile read skipped:", response.error.message);
+      // console.warn("Profile read skipped:", response.error.message);
       return null;
     }
 
@@ -1110,7 +1110,7 @@
     }
 
     if (response.error) {
-      console.warn("Profile upsert skipped:", response.error.message);
+      // console.warn("Profile upsert skipped:", response.error.message);
       return {
         success: false,
         data: null,

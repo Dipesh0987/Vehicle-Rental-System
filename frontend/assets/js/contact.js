@@ -14,7 +14,7 @@ class ContactPageModule {
    */
   init() {
     if (!this.form) {
-      console.warn('Contact form not found');
+      // console.warn('Contact form not found');
       return;
     }
 
@@ -87,7 +87,7 @@ class ContactPageModule {
             status: 'unread',
           }]);
           if (error) {
-            console.error('Supabase contact insert error:', error);
+            // console.error('Supabase contact insert error:', error);
             throw error;
           }
           saved = true;
@@ -95,7 +95,7 @@ class ContactPageModule {
       }
 
       if (!saved) {
-        console.warn('Supabase not available — message not persisted to database');
+        // console.warn('Supabase not available — message not persisted to database');
       }
 
       // Track submission
@@ -107,7 +107,7 @@ class ContactPageModule {
       // Reset form
       this.form.reset();
     } catch (err) {
-      console.error('Contact form submission failed:', err);
+      // console.error('Contact form submission failed:', err);
       this.showError('Failed to send message. Please try again.');
     } finally {
       if (submitBtn) {

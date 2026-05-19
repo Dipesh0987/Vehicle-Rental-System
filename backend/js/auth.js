@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   var STORAGE_SESSION = "vrs_auth_session";
@@ -2357,7 +2357,7 @@
       quickVerifyBtn = ensureProfileQuickVerifyButton(trigger);
       viewProfileBtn = ensureProfileViewProfileButton(panel);
     } catch (panelEnhancementError) {
-      console.warn("Profile panel enhancement skipped:", panelEnhancementError && panelEnhancementError.message ? panelEnhancementError.message : panelEnhancementError);
+      // console.warn("Profile panel enhancement skipped:", panelEnhancementError && panelEnhancementError.message ? panelEnhancementError.message : panelEnhancementError);
     }
 
     if (!quickVerifyBtn) {
@@ -3127,7 +3127,7 @@
             if (typeof auth.cleanupProfileImages === "function") {
               auth.cleanupProfileImages(syncedProfile.avatarDataUrl)
                 .catch(function (cleanupError) {
-                  console.warn("Profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
+                  // console.warn("Profile image cleanup skipped:", cleanupError && cleanupError.message ? cleanupError.message : cleanupError);
                 });
             }
           }

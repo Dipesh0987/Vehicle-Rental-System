@@ -1,4 +1,4 @@
-import { appConfig } from './config.js';
+﻿import { appConfig } from './config.js';
 import { dashboardData } from './data.js';
 import { bindShellInteractions, pushToast, renderShell, setActiveNav } from './shell.js';
 import { renderOverviewModule } from './modules/overview.js';
@@ -193,7 +193,7 @@ async function hydrateMainteinanceFromDatabase({ silent = false } = {}) {
     renderActiveModule();
   } catch (err) {
     if (!silent) pushToast(`Maintenance load failed: ${err.message}`, 'warn');
-    console.warn('[maintenance] hydrate failed:', err.message);
+    // console.warn('[maintenance] hydrate failed:', err.message);
   }
 }
 
@@ -264,7 +264,7 @@ async function hydrateBookingsFromDatabase({ silent = false } = {}) {
       pushToast('Bookings synced from database', 'success');
     }
   } catch (error) {
-    console.warn('Failed to sync bookings from database:', error);
+    // console.warn('Failed to sync bookings from database:', error);
     appState.data.bookings = [];
     updateBookingDrivenMetrics([]);
     syncCustomerTripCounts();
@@ -641,7 +641,7 @@ async function hydrateVehiclesFromCatalog({ silent = false } = {}) {
       pushToast('Vehicle catalog synced from database', 'success');
     }
   } catch (error) {
-    console.warn('Failed to sync vehicles from catalog service:', error);
+    // console.warn('Failed to sync vehicles from catalog service:', error);
     if (!silent) {
       pushToast('Unable to sync vehicle catalog from database', 'warn');
     }
@@ -734,7 +734,7 @@ async function setupPaymentRealtimeSync() {
       client.removeChannel(channel);
     };
   } catch (err) {
-    console.warn('[payment-realtime] setup failed:', err.message);
+    // console.warn('[payment-realtime] setup failed:', err.message);
   }
 }
 
@@ -770,7 +770,7 @@ async function setupMaintenanceSync() {
       }
     });
   } catch (err) {
-    console.warn('[maintenance] realtime setup failed:', err.message);
+    // console.warn('[maintenance] realtime setup failed:', err.message);
   }
 }
 
@@ -794,7 +794,7 @@ async function hydrateCustomersFromDatabase({ silent = false } = {}) {
       pushToast('Customers synced from verification data', 'success');
     }
   } catch (error) {
-    console.warn('Failed to sync customers from verification service:', error);
+    // console.warn('Failed to sync customers from verification service:', error);
     syncCustomerTripCounts();
 
     if (!silent) {
@@ -878,7 +878,7 @@ async function hydratePaymentsFromDatabase({ silent = false } = {}) {
   } catch (error) {
     appState.data.payments = [];
     appState.paymentStats = null;
-    console.warn('Failed to sync payments from database:', error);
+    // console.warn('Failed to sync payments from database:', error);
     if (!silent) {
       pushToast(`Payments sync failed: ${error.message}`, 'error');
     }
@@ -897,7 +897,7 @@ async function hydrateDriversFromDatabase({ silent = false } = {}) {
       pushToast('Drivers synced from database', 'success');
     }
   } catch (error) {
-    console.warn('Failed to sync drivers from database:', error);
+    // console.warn('Failed to sync drivers from database:', error);
     if (!silent) {
       pushToast(`Drivers sync failed: ${error.message}`, 'warn');
     }

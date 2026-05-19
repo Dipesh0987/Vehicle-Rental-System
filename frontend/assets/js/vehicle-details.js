@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   var DEFAULT_FALLBACK_IMAGE = "assets/images/car-transparent.png";
@@ -288,7 +288,7 @@
 
       return mapCatalogVehicleToDetail(selected, similar);
     } catch (error) {
-      console.warn("Catalog-backed vehicle details unavailable:", error);
+      // console.warn("Catalog-backed vehicle details unavailable:", error);
       return buildNotFoundDetail(requestedId);
     }
   }
@@ -833,7 +833,7 @@
       wireBookingSidebar(vehicle);
       wireRevealAnimations();
     } catch (error) {
-      console.error("Vehicle details initialization failed:", error);
+      // console.error("Vehicle details initialization failed:", error);
     } finally {
       setDetailsLoaderVisibility(false);
     }

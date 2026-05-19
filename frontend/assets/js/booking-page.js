@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   var DEFAULT_IMAGE = "assets/images/car-transparent.png";
@@ -573,7 +573,7 @@
       }
 
       if (!client || typeof client.rpc !== 'function') {
-        console.error('Supabase client not available for RPC', client);
+        // console.error('Supabase client not available for RPC', client);
         return { promoDiscount: 0, couponMessage: 'Service unavailable', code: '' };
       }
 
@@ -583,7 +583,7 @@
       });
 
       if (response.error) {
-        console.error('Error validating promo code:', response.error);
+        // console.error('Error validating promo code:', response.error);
         return { promoDiscount: 0, couponMessage: response.error.message || 'Unable to validate code', code: '' };
       }
 
@@ -616,7 +616,7 @@
         code: code.toUpperCase().trim()
       };
     } catch (error) {
-      console.error('Error validating promo code:', error);
+      // console.error('Error validating promo code:', error);
       return { promoDiscount: 0, couponMessage: 'Error validating code', code: '' };
     }
   }
@@ -716,7 +716,7 @@
       });
 
       if (error) {
-        console.error('Promo validation error:', error);
+        // console.error('Promo validation error:', error);
         applyCouponStatus("This code is not valid for your booking");
         state.appliedPromoCode = null;
         state.appliedPromoDiscount = 0;
@@ -744,7 +744,7 @@
         syncQuoteFromState(state);
       }
     } catch (error) {
-      console.error('Promo code validation exception:', error);
+      // console.error('Promo code validation exception:', error);
       applyCouponStatus("This code is not valid for your booking");
       state.appliedPromoCode = null;
       state.appliedPromoDiscount = 0;

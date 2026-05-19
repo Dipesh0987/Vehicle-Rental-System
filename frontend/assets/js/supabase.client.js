@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   var clientInitPromise = null;
@@ -224,7 +224,7 @@
         return;
       }
     } catch (localError) {
-      console.warn("CDN Supabase runtime unavailable, local fallback also failed.", localError.message);
+      // console.warn("CDN Supabase runtime unavailable, local fallback also failed.", localError.message);
     }
 
     throw new Error("Supabase runtime failed to initialize.");

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
+﻿import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -256,8 +256,6 @@ async function sendReceiptEmail(data: {
   // For now, we'll use a simple HTTP request to send via an email service
   // You can configure this to use your Gmail SMTP or any other service
   
-  console.log("Sending receipt email to:", data.customerEmail);
-  console.log("Transaction:", data.transactionCode);
   
   // TODO: Integrate with actual email sending service
   // This is a placeholder - you'll need to configure email sending
@@ -267,7 +265,6 @@ async function sendReceiptEmail(data: {
   // 3. Use your Gmail SMTP via a library
   
   // For now, just log success
-  console.log("Receipt email would be sent to:", data.customerEmail);
 }
 
 Deno.serve(async (request: Request) => {

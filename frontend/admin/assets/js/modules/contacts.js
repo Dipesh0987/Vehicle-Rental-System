@@ -1,4 +1,4 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
 
 /**
  * Contact Messages admin module.
@@ -22,7 +22,7 @@ async function fetchContactMessages() {
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.error('Failed to fetch contact messages:', err);
+    // console.error('Failed to fetch contact messages:', err);
     return [];
   }
 }
@@ -39,7 +39,7 @@ async function updateMessageStatus(id, status, notify) {
     if (notify) notify(`Message marked as ${status}`, 'success');
     return true;
   } catch (err) {
-    console.error('Failed to update contact message status:', err);
+    // console.error('Failed to update contact message status:', err);
     if (notify) notify('Failed to update status', 'error');
     return false;
   }
@@ -61,7 +61,7 @@ async function deleteMessages(ids, notify) {
     if (notify) notify(`${ids.length} message${ids.length > 1 ? 's' : ''} deleted`, 'success');
     return true;
   } catch (err) {
-    console.error('Failed to delete contact messages:', err);
+    // console.error('Failed to delete contact messages:', err);
     if (notify) notify('Failed to delete messages', 'error');
     return false;
   }

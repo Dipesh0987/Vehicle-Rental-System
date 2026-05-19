@@ -13,7 +13,7 @@ node_modules/
 # Documentation files (session-specific)
 *.md
 !README.md
-!database/DATABASE_DESIGN.md
+!database/README.md
 !docs/*.md
 
 # Scripts

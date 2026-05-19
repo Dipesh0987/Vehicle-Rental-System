@@ -127,7 +127,7 @@
       });
 
       if (error) {
-        console.error('Password reset error:', error);
+        // console.error('Password reset error:', error);
         throw error;
       }
 
@@ -139,7 +139,7 @@
       showStep(2);
       
     } catch (err) {
-      console.error("Password reset error:", err);
+      // console.error("Password reset error:", err);
       var helpfulMessage = getHelpfulErrorMessage(err);
       setError("frEmailError", helpfulMessage);
       

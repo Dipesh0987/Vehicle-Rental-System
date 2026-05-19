@@ -122,12 +122,12 @@
         });
       
       if (error) {
-        console.error("Failed to create receipt notification:", error);
+        // console.error("Failed to create receipt notification:", error);
       } else {
       }
       
     } catch (error) {
-      console.error("Failed to send receipt email:", error);
+      // console.error("Failed to send receipt email:", error);
       // Don't show error to user - receipt email is optional
     }
   }

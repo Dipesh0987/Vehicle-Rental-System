@@ -543,7 +543,7 @@ class AdvancedSearchSystem {
                 return { applied: false, reason: "stale-request" };
             }
 
-            console.warn("Failed to evaluate booking availability for search dates (non-blocking):", error);
+            // console.warn("Failed to evaluate booking availability for search dates (non-blocking):", error);
             // Silently clear availability so vehicles still show even if booking table has missing columns
             this.filterManager.clearDateAvailability();
             this.lastAvailabilityRangeKey = "";
@@ -604,7 +604,7 @@ class AdvancedSearchSystem {
 
             this.isInitialized = true;
         } catch (error) {
-            console.error("Failed to initialize search system:", error);
+            // console.error("Failed to initialize search system:", error);
             this.handleInitError();
         }
     }
@@ -635,7 +635,7 @@ class AdvancedSearchSystem {
                 catalogFailed = true;
             } catch (error) {
                 catalogFailed = true;
-                console.warn("Failed to load vehicles from catalog service:", error);
+                // console.warn("Failed to load vehicles from catalog service:", error);
             }
 
             if (cachedVehicles.length) {
@@ -649,7 +649,7 @@ class AdvancedSearchSystem {
         // In static setups, avoid /api fallback unless explicitly enabled.
         if (!this.shouldUseHttpApiFallback()) {
             if (catalogFailed) {
-                console.warn("HTTP API fallback disabled and catalog load failed.");
+                // console.warn("HTTP API fallback disabled and catalog load failed.");
             }
             this.vehicles = [];
             return;
@@ -661,7 +661,7 @@ class AdvancedSearchSystem {
             this.vehicles = response.vehicles || [];
             this.writeVehicleCache(this.vehicles);
         } catch (error) {
-            console.warn("Failed to load vehicles from API:", error);
+            // console.warn("Failed to load vehicles from API:", error);
             this.vehicles = [];
         }
     }
@@ -749,7 +749,7 @@ class AdvancedSearchSystem {
             
             this.applyFiltersAndRender();
         } catch (error) {
-            console.warn("Failed to refresh vehicles from catalog service:", error);
+            // console.warn("Failed to refresh vehicles from catalog service:", error);
         }
     }
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Search Filter Manager
  * Handles all filtering logic for the advanced search system
  * Features: Multiple filter criteria, persistence, real-time updates
@@ -575,7 +575,7 @@ class SearchFilterManager {
             try {
                 callback(this.filteredVehicles, this.filters);
             } catch (e) {
-                console.error("Error in filter listener:", e);
+                // console.error("Error in filter listener:", e);
             }
         });
     }

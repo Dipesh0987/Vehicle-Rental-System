@@ -1,4 +1,4 @@
-/**
+﻿/**
  * khalti-payment edge function
  * --------------------------------------------------------------------------
  * Single function, multiple actions:
@@ -901,7 +901,6 @@ async function sendReceiptEmail(params: {
     if (is403DevRedirect) {
       // This is expected behavior when using RESEND_DEV_REDIRECT_TO
       // Email is still being sent to the dev inbox, so mark as success
-      console.log("Dev redirect 403 (expected): Email sent to", actualRecipient);
       
       await supabaseAdmin
         .from("payment_receipts")

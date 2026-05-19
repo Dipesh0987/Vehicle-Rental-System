@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Modify Booking Page - Frontend Logic
  * Handles form interactions, price calculations, and booking modifications
  */
@@ -172,7 +172,7 @@ class ModifyBookingPage {
         vehicleSelect.appendChild(option);
       });
     } catch (error) {
-      console.error('Error loading vehicles:', error);
+      // console.error('Error loading vehicles:', error);
       this.showAlert('error', 'Failed to load available vehicles');
     }
   }
@@ -213,7 +213,7 @@ class ModifyBookingPage {
         { daily_rate: this.currentBooking.vehicles?.daily_rate };
 
       if (!vehicle) {
-        console.error('Vehicle not found');
+        // console.error('Vehicle not found');
         return;
       }
 
@@ -264,7 +264,7 @@ class ModifyBookingPage {
         statusElement.textContent = `Additional charge due`;
       }
     } catch (error) {
-      console.error('Error updating price preview:', error);
+      // console.error('Error updating price preview:', error);
     }
   }
 
@@ -310,7 +310,7 @@ class ModifyBookingPage {
         this.showAlert('error', result.error || 'Failed to modify booking');
       }
     } catch (error) {
-      console.error('Submission error:', error);
+      // console.error('Submission error:', error);
       this.showAlert('error', 'An error occurred while processing your request');
     } finally {
       submitBtn.disabled = false;
@@ -361,7 +361,7 @@ class ModifyBookingPage {
 
       document.getElementById('historyContainer').innerHTML = historyHtml;
     } catch (error) {
-      console.error('Error loading history:', error);
+      // console.error('Error loading history:', error);
       document.getElementById('historyContainer').innerHTML =
         '<p class="text-red-600 dark:text-red-400">Failed to load modification history</p>';
     }

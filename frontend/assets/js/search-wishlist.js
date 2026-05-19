@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Search Wishlist Manager
  * Handles the wishlist/favorites functionality with persistence
  */
@@ -17,7 +17,7 @@ class SearchWishlist {
             const saved = localStorage.getItem(this.storageKey);
             return saved ? JSON.parse(saved) : [];
         } catch (e) {
-            console.warn("Failed to load wishlist:", e);
+            // console.warn("Failed to load wishlist:", e);
             return [];
         }
     }
@@ -29,7 +29,7 @@ class SearchWishlist {
         try {
             localStorage.setItem(this.storageKey, JSON.stringify(this.wishlist));
         } catch (e) {
-            console.warn("Failed to save wishlist:", e);
+            // console.warn("Failed to save wishlist:", e);
         }
     }
 
@@ -134,7 +134,7 @@ class SearchWishlist {
                 this.notifyListeners("imported");
             }
         } catch (e) {
-            console.error("Failed to import wishlist:", e);
+            // console.error("Failed to import wishlist:", e);
         }
     }
 
@@ -182,7 +182,7 @@ class SearchWishlist {
             try {
                 callback({ action, vehicleId, wishlist: this.getWishlist() });
             } catch (e) {
-                console.error("Error in wishlist listener:", e);
+                // console.error("Error in wishlist listener:", e);
             }
         });
     }

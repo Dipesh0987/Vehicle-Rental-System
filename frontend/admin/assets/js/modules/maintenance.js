@@ -1,4 +1,4 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { openModal, renderEmptyState } from '../ui.js';
 
@@ -736,7 +736,7 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
         }
       }
     } catch (dbErr) {
-      console.warn('[maintenance] Supabase save failed:', dbErr.message);
+      // console.warn('[maintenance] Supabase save failed:', dbErr.message);
     }
 
     if (isEdit) {

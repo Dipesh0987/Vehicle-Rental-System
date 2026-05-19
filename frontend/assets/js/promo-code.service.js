@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Promo Code Service
  * Handles validation and application of promotional discount codes
  */
@@ -19,7 +19,7 @@ class PromoCodeService {
       });
 
       if (error) {
-        console.error('Promo validation error:', error);
+        // console.error('Promo validation error:', error);
         return {
           valid: false,
           error: 'This code is not valid for your booking'
@@ -42,7 +42,7 @@ class PromoCodeService {
         error: 'This code is not valid for your booking'
       };
     } catch (error) {
-      console.error('Promo code validation exception:', error);
+      // console.error('Promo code validation exception:', error);
       return {
         valid: false,
         error: 'This code is not valid for your booking'
@@ -57,13 +57,13 @@ class PromoCodeService {
       });
 
       if (error) {
-        console.error('Apply promo error:', error);
+        // console.error('Apply promo error:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Apply promo exception:', error);
+      // console.error('Apply promo exception:', error);
       return false;
     }
   }

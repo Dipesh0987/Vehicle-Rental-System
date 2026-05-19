@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
+﻿import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 
 type JsonObject = Record<string, unknown>;
 
@@ -397,7 +397,6 @@ async function issueResetCode(payload: JsonObject, request: Request): Promise<Re
   }
 
   if (!user) {
-    console.info("Password reset request rejected: email not registered/approved", { email });
     return jsonResponse(404, {
       success: false,
       message: "No account found for that email address.",

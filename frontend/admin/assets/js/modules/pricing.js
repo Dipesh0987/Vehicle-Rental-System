@@ -1,4 +1,4 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 
 const pricingUiState = {
@@ -12,7 +12,7 @@ const pricingUiState = {
 export async function initializePricingModule() {
   try {
     if (!window.supabase || typeof window.supabase.from !== 'function') {
-      console.warn('Supabase client not initialized for pricing module');
+      // console.warn('Supabase client not initialized for pricing module');
       pricingUiState.discountCodes = [];
       return;
     }
@@ -25,7 +25,7 @@ export async function initializePricingModule() {
     if (error) throw error;
     pricingUiState.discountCodes = Array.isArray(data) ? data : [];
   } catch (error) {
-    console.warn('Failed to load discount codes:', error);
+    // console.warn('Failed to load discount codes:', error);
     pricingUiState.discountCodes = [];
   }
 }

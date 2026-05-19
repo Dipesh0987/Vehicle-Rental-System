@@ -1,4 +1,4 @@
-// Top Rated Rental Cars — Dynamic data from database, NPR pricing, brand-based filtering
+﻿// Top Rated Rental Cars — Dynamic data from database, NPR pricing, brand-based filtering
 // Matches reference design: brand pills, fuel badges, centered images, specs, NPR prices
 
 (function () {
@@ -101,10 +101,10 @@
           const vehicles = data.map(normalizeRow).filter(v => v.available);
           if (vehicles.length) { setCache(vehicles); return vehicles; }
         }
-        if (error) console.warn('TopRated direct query error:', error.message);
+        if (error) // console.warn('TopRated direct query error:', error.message);
       }
     } catch (e) {
-      console.warn('TopRated direct query failed:', e.message);
+      // console.warn('TopRated direct query failed:', e.message);
     }
 
     // 3. Fallback to VehicleCatalogService (slower but more robust)
@@ -343,7 +343,7 @@
 
       render();
     } catch (err) {
-      console.error('Top Rated fetch error', err);
+      // console.error('Top Rated fetch error', err);
       root.innerHTML = `<section class="trr-section"><div class="trr-wrap"><p class="trr-empty trr-error">Could not load vehicles. Please try again later.</p></div></section>`;
     }
   }
