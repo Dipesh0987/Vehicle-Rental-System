@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://esm.sh https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://a.khalti.com https://dev.khalti.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://rc-epay.esewa.com.np https://epay.esewa.com.np; object-src 'none'; base-uri 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login | Rent A Vehicle</title>
     <link rel="icon" type="image/png" href="assets/images/car-transparent.png" />
@@ -27,7 +28,7 @@
         <div class="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-[linear-gradient(90deg,rgba(229,140,78,0.2),rgba(44,118,110,0.75),rgba(229,140,78,0.2))]"></div>
         <div class="grid gap-8 lg:grid-cols-[1.06fr,0.94fr] lg:items-center">
           <aside class="vrs-auth-story space-y-4 opacity-0 animate-loginSectionIn [animation-delay:120ms]">
-            <a href="index.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#3f5557] transition hover:text-panel">← Back to Home</a>
+            <a href="index.html" class="inline-flex items-center gap-2 text-[13px] font-semibold text-[#3f5557] transition hover:text-panel">â† Back to Home</a>
             <p class="inline-block rounded-full border border-[rgba(44,118,110,0.2)] bg-[#e8f2ef] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-panel">
               Secure Access
             </p>
@@ -59,8 +60,7 @@
 
             <figure class="vrs-auth-showcase mt-2 overflow-hidden rounded-[22px] border border-[rgba(23,57,60,0.16)] bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(234,242,239,0.78))] shadow-[0_18px_34px_rgba(12,35,38,0.16)] animate-vehicleReveal">
               <div class="vrs-auth-showcase-media border-b border-[rgba(23,57,60,0.12)] bg-[radial-gradient(circle_at_80%_26%,rgba(255,255,255,0.94),rgba(255,255,255,0)_48%),linear-gradient(145deg,#eef4f0_0%,#dce8e4_100%)]">
-                <img
-                  src="assets/images/car-transparent.png"
+                <img loading="lazy" src="assets/images/car-transparent.png"
                   alt="Premium rental car"
                   class="block h-[188px] w-full object-contain object-[center_70%] px-2 pb-1 pt-1 [filter:contrast(1.08)_saturate(1.03)_drop-shadow(0_16px_24px_rgba(8,25,27,0.28))] animate-vehicleFloat"
                 />

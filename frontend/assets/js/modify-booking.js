@@ -4,9 +4,59 @@
  */
 
 import { supabase } from './supabase.client.js';
-import { BookingService } from './booking-service.js';
-import { BookingModificationManager } from './booking-modification-manager.js';
 import { PriceCalculator } from './price-calculator.js';
+
+// Inline service helpers (replaces deleted legacy booking-service.js / booking-modification-manager.js)
+const BookingService = {
+  async getBookingDetail(bookingId) {
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_bookings')
+        .select('*')
+        .eq('id', bookingId)
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+};
+
+const BookingModificationManager = {
+  async modifyBooking(bookingId, changes) {
+    try {
+      const updates = {};
+      if (changes.newPickupDate) updates.start_date = changes.newPickupDate;
+      if (changes.newDropoffDate) updates.end_date = changes.newDropoffDate;
+      if (changes.newVehicleId) updates.vehicle_id = changes.newVehicleId;
+      updates.updated_at = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('vehicle_bookings')
+        .update(updates)
+        .eq('id', bookingId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, data, message: 'Booking modified successfully.' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+  async getModificationHistory(bookingId) {
+    try {
+      const { data, error } = await supabase
+        .from('booking_modifications')
+        .select('*')
+        .eq('booking_id', bookingId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+};
 
 class ModifyBookingPage {
   constructor() {

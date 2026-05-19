@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   /**
@@ -120,8 +120,6 @@
       // Use current origin so it works on any port / domain
       var redirectUrl = window.location.origin + '/frontend/reset-password.html';
       
-      console.log('Sending password reset to:', email);
-      console.log('Redirect URL:', redirectUrl);
       
       // Use Supabase's built-in password reset
       var { data, error } = await client.auth.resetPasswordForEmail(email, {
@@ -133,7 +131,6 @@
         throw error;
       }
 
-      console.log('Password reset email sent successfully');
       
       state.email = email;
       var sentTo = $("frSentTo");

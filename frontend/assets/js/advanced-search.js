@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Advanced Search System - Main Initialization
  * Coordinates all modules and handles the complete search workflow
  */
@@ -603,7 +603,6 @@ class AdvancedSearchSystem {
             window.SearchWishlist.updateWishlistCount();
 
             this.isInitialized = true;
-            console.log("Advanced Search System initialized successfully");
         } catch (error) {
             console.error("Failed to initialize search system:", error);
             this.handleInitError();
@@ -946,7 +945,6 @@ class AdvancedSearchSystem {
      * Perform search with current filters
      */
     async performSearch() {
-        console.log("Searching with filters:", this.filterManager.filters);
 
         if (this.uiManager && typeof this.uiManager.showReloadStatus === "function") {
             this.uiManager.showReloadStatus("Refining results...");

@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://esm.sh https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://a.khalti.com https://dev.khalti.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://rc-epay.esewa.com.np https://epay.esewa.com.np; object-src 'none'; base-uri 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modify Booking - Vehicle Rental System</title>
     <link rel="stylesheet" href="assets/css/tailwind.css">
@@ -47,7 +48,7 @@
                         <!-- Dates Section -->
                         <fieldset class="border border-slate-200 dark:border-slate-600 rounded-xl p-4">
                             <legend class="text-lg font-semibold text-slate-900 dark:text-white px-2 -mx-2">
-                                📅 Update Dates
+                                ðŸ“… Update Dates
                             </legend>
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -78,7 +79,7 @@
                         <!-- Vehicle Section -->
                         <fieldset class="border border-slate-200 dark:border-slate-600 rounded-xl p-4">
                             <legend class="text-lg font-semibold text-slate-900 dark:text-white px-2 -mx-2">
-                                🚗 Change Vehicle (Optional)
+                                ðŸš— Change Vehicle (Optional)
                             </legend>
                             <div class="mt-4">
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -96,7 +97,7 @@
                         <!-- Reason Section -->
                         <fieldset class="border border-slate-200 dark:border-slate-600 rounded-xl p-4">
                             <legend class="text-lg font-semibold text-slate-900 dark:text-white px-2 -mx-2">
-                                💬 Reason for Change
+                                ðŸ’¬ Reason for Change
                             </legend>
                             <div class="mt-4">
                                 <textarea
@@ -117,13 +118,13 @@
                                 type="submit"
                                 class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition transform hover:scale-105"
                             >
-                                💾 Save Changes
+                                ðŸ’¾ Save Changes
                             </button>
                             <a
                                 href="/"
                                 class="flex-1 px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition text-center"
                             >
-                                ✕ Cancel
+                                âœ• Cancel
                             </a>
                         </div>
                     </form>
@@ -131,7 +132,7 @@
 
                 <!-- Modification History -->
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4">📋 Modification History</h2>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4">ðŸ“‹ Modification History</h2>
                     <div id="historyContainer" class="space-y-3">
                         <p class="text-slate-500 dark:text-slate-400">Loading history...</p>
                     </div>
@@ -141,7 +142,7 @@
             <!-- Right Column: Price Preview -->
             <div class="lg:col-span-1">
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 sticky top-8">
-                    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">💰 Price Summary</h2>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">ðŸ’° Price Summary</h2>
 
                     <!-- Original Price -->
                     <div class="mb-6">
@@ -207,7 +208,7 @@
                     <!-- Info Box -->
                     <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg p-3">
                         <p class="text-xs text-blue-800 dark:text-blue-200">
-                            ℹ️ Prices update automatically when you change dates or vehicle. A confirmation email will be sent upon modification.
+                            â„¹ï¸ Prices update automatically when you change dates or vehicle. A confirmation email will be sent upon modification.
                         </p>
                     </div>
                 </div>

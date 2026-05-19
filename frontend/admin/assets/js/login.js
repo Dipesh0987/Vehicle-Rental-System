@@ -67,27 +67,6 @@ function wirePasswordToggle() {
   });
 }
 
-function prefillFromQuery(usernameInput, passwordInput) {
-  try {
-    var params = new URLSearchParams(window.location.search);
-    var queryUsername = String(params.get("adminUsername") || "").trim();
-    var queryPassword = String(params.get("adminPassword") || "");
-
-    if (queryUsername && usernameInput) {
-      usernameInput.value = queryUsername;
-    }
-
-    if (queryPassword && passwordInput) {
-      passwordInput.value = queryPassword;
-    }
-
-    if (queryUsername || queryPassword) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  } catch (_error) {
-    // Ignore malformed query state.
-  }
-}
 
 function setSubmitState(button, label, isLoading) {
   if (!button) {
@@ -120,7 +99,6 @@ function wireAdminLogin() {
   var submitBtn = document.getElementById("adminLoginSubmit");
 
   wirePasswordToggle();
-  prefillFromQuery(usernameInput, passwordInput);
 
   var defaultLabel = "Sign In to Admin";
 

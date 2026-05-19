@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://esm.sh https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://a.khalti.com https://dev.khalti.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://rc-epay.esewa.com.np https://epay.esewa.com.np; object-src 'none'; base-uri 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rent A Vehicle</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,7 +22,7 @@
         <div class="pointer-events-none absolute bottom-[-200px] left-[-80px] z-[1] select-none text-[580px] font-extrabold leading-[0.8] tracking-[0.04em] text-[rgba(11,22,28,0.03)]" aria-hidden="true">WAS</div>
 
          <div class="home-side-panel absolute inset-y-0 right-0 w-[42%] overflow-hidden bg-panel animate-panelReveal">
-          <!-- Light triangle: upper-left corner only — teal fills lower-right where car sits -->
+          <!-- Light triangle: upper-left corner only â€” teal fills lower-right where car sits -->
           <div class="pointer-events-none absolute inset-0" style="background:rgba(242,243,241,0.98);clip-path:polygon(0 0,62% 0,0 70%)" aria-hidden="true"></div>
         </div>
 
@@ -30,8 +31,7 @@
           <div class="mx-auto h-[16px] w-[68%] translate-y-[1px] rounded-[50%] bg-[rgba(4,14,16,0.42)] blur-[20px]"></div>
         </div>
         <!-- Car: section-level, positioned over the teal panel (right-0 = full viewport) -->
-        <img
-          src="assets/images/car-transparent.png"
+        <img loading="lazy" src="assets/images/car-transparent.png"
           alt="Luxury SUV available for rent"
           width="1600"
           height="1221"
@@ -219,8 +219,7 @@
               <a href="vehicles.html" class="rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Vehicles</a>
               <a href="#" class="rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Contact</a>
             </div>
-            <img
-              src="assets/images/car-transparent.png"
+            <img loading="lazy" src="assets/images/car-transparent.png"
               alt="Luxury SUV available for rent"
               width="1600"
               height="1221"
@@ -253,14 +252,14 @@
               <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Select your pickup location from our available branches nearby</p>
             </div>
 
-            <!-- Curved dashed arrow 1→2 (desktop) -->
+            <!-- Curved dashed arrow 1â†’2 (desktop) -->
             <div style="flex:0 0 100px;align-items:flex-start;justify-content:center;padding-top:28px" class="hiw-arrow">
               <svg width="100" height="48" viewBox="0 0 100 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4 38 C 25 2, 75 2, 96 38" stroke="#2D3B37" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" fill="none"/>
               </svg>
             </div>
 
-            <!-- Mobile connector 1→2 -->
+            <!-- Mobile connector 1â†’2 -->
             <div class="hiw-mobile-connector">
               <svg width="2" height="40" viewBox="0 0 2 40"><line x1="1" y1="0" x2="1" y2="40" stroke="#2D3B37" stroke-width="2" stroke-dasharray="5 4"/></svg>
             </div>
@@ -282,14 +281,14 @@
               <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Select your preferred date and time for vehicle pickup</p>
             </div>
 
-            <!-- Curved dashed arrow 2→3 (desktop) -->
+            <!-- Curved dashed arrow 2â†’3 (desktop) -->
             <div style="flex:0 0 100px;align-items:flex-start;justify-content:center;padding-top:28px" class="hiw-arrow">
               <svg width="100" height="48" viewBox="0 0 100 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4 38 C 25 2, 75 2, 96 38" stroke="#2D3B37" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" fill="none"/>
               </svg>
             </div>
 
-            <!-- Mobile connector 2→3 -->
+            <!-- Mobile connector 2â†’3 -->
             <div class="hiw-mobile-connector">
               <svg width="2" height="40" viewBox="0 0 2 40"><line x1="1" y1="0" x2="1" y2="40" stroke="#2D3B37" stroke-width="2" stroke-dasharray="5 4"/></svg>
             </div>
@@ -340,7 +339,6 @@
     <script src="assets/js/ai-booking-chat.js"></script>
     <script src="assets/js/home-upcoming-booking.js"></script>
     <script src="assets/js/top-rented-redesign.js"></script>
-    <script src="assets/js/db.bootstrap.js"></script>
     <script src="../backend/js/auth.js"></script>
     <script src="assets/js/how-it-works.js"></script>
     <script>

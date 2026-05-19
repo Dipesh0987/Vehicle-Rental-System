@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Payment return page (eSewa redirect target).
  *
  * eSewa hits two URLs:
@@ -99,7 +99,6 @@
 
   async function sendReceiptEmail(payload) {
     try {
-      console.log("Sending payment receipt email...");
       
       var client = await window.SupabaseClient.init();
       var booking = (payload && payload.booking) || {};
@@ -125,7 +124,6 @@
       if (error) {
         console.error("Failed to create receipt notification:", error);
       } else {
-        console.log("Receipt notification created successfully");
       }
       
     } catch (error) {

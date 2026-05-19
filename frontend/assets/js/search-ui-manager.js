@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Search UI Manager
  * Handles all UI rendering and DOM updates for the advanced search system
  */
@@ -323,9 +323,7 @@ class SearchUIManager {
         const options = [];
 
         // Debug: Log vehicle count and first vehicle
-        console.log('[Brand Filter Debug] Total vehicles:', vehicles.length);
         if (vehicles.length > 0) {
-            console.log('[Brand Filter Debug] First vehicle brand:', vehicles[0]?.brand);
         }
 
         for (const vehicle of vehicles) {
@@ -349,7 +347,6 @@ class SearchUIManager {
 
         options.sort((a, b) => a.label.localeCompare(b.label));
 
-        console.log('[Brand Filter Debug] Brand options found:', options.length, options.map(o => o.label));
 
         // If no brands found, show a loading message
         if (options.length === 0) {

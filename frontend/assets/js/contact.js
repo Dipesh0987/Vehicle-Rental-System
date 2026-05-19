@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Contact Page Module
  * Handles contact form submission, validation, and interactions
  */
@@ -25,7 +25,6 @@ class ContactPageModule {
     this.setupMapLink();
     this.setupIntersectionObserver();
 
-    console.log('Contact page module initialized');
   }
 
   /**

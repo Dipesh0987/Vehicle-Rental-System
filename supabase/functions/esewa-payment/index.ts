@@ -134,8 +134,9 @@ const PARTIAL_PAYMENT_PERCENT = clampPercent(
   0.6,
 );
 
+const ALLOWED_ORIGIN = (Deno.env.get("PAYMENT_WEBSITE_URL") ?? "").trim() || "*";
 const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };

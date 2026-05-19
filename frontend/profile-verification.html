@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://esm.sh https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://a.khalti.com https://dev.khalti.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://rc-epay.esewa.com.np https://epay.esewa.com.np; object-src 'none'; base-uri 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Profile Verification | Rent A Vehicle</title>
     <link rel="icon" type="image/png" href="assets/images/car-transparent.png" />
@@ -45,7 +46,7 @@
               <div class="px-4 pb-4">
                 <div class="-mt-[46px] flex items-end gap-3">
                   <div id="verifyProfileAvatarFrame" class="relative h-[112px] w-[112px] min-h-[112px] min-w-[112px] max-h-[112px] max-w-[112px] shrink-0 overflow-hidden rounded-full border-4 border-white bg-[linear-gradient(150deg,#eff5f3,#ffffff)] shadow-[0_10px_24px_rgba(22,53,56,0.2)]">
-                    <img id="verifyProfileAvatarImage" src="" alt="Profile image" class="hidden h-full w-full object-cover object-center" />
+                    <img loading="lazy" id="verifyProfileAvatarImage" src="" alt="Profile image" class="hidden h-full w-full object-cover object-center" />
                     <span id="verifyProfileAvatarInitial" class="absolute inset-0 flex items-center justify-center text-[30px] font-bold text-[#2f5f63]">U</span>
                   </div>
                   <div class="min-w-0 flex-1 pb-2">
@@ -91,7 +92,7 @@
 
               <div id="verifyDocumentPreviewShell" class="mt-3 overflow-hidden rounded-xl border border-[rgba(18,57,60,0.14)] bg-[#f7faf9]">
                 <div id="verifyDocumentPreviewEmpty" class="px-3 py-6 text-center text-[11px] text-[#4d6365]">No document image uploaded yet.</div>
-                <img id="verifyDocumentPreview" src="" alt="Document preview" class="hidden max-h-[220px] w-full object-contain bg-white" />
+                <img loading="lazy" id="verifyDocumentPreview" src="" alt="Document preview" class="hidden max-h-[220px] w-full object-contain bg-white" />
               </div>
 
               <div class="mt-3 flex flex-wrap items-center gap-2">

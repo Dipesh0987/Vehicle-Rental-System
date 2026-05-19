@@ -1,4 +1,4 @@
-/**
+﻿/**
  * How it Works Section - Interactive Module
  * Handles animations and interactivity for the "How it Works" section
  */
@@ -22,7 +22,6 @@ class HowItWorksModule {
     // Setup interactive step cards
     this.setupStepCardInteractions();
     
-    console.log('How it Works module initialized');
   }
 
   /**

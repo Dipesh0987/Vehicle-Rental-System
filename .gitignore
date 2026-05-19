@@ -1,4 +1,6 @@
 frontend/assets/js/supabase.config.local.js
+frontend/assets/js/supabase.config.js
+frontend/admin/assets/js/supabase.config.local.js
 
 supabase/.temp/
 
@@ -29,4 +31,12 @@ server/
 # SQL dumps
 supabase_migration.sql
 update_images.sql
+
+# Sensitive reference files
+SECRETS_QUICK_REFERENCE.txt
+ALL_SECRETS_NEEDED.md
+
+# OS files
+.DS_Store
+Thumbs.db
 
