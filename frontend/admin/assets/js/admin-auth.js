@@ -118,18 +118,28 @@
     }
 
     if (username.indexOf("@") >= 0) {
-      if (!isAllowedAdminEmail(username)) {
-        throw new Error("This account is not authorized for admin access.");
-      }
-
+      // Accept any email — admin check happens via DB after Supabase auth succeeds
       return [username];
     }
 
     if (username !== ADMIN_USERNAME) {
-      throw new Error("Use the admin username or an authorized admin email.");
+      throw new Error("Use your admin email address or the 'admin' username alias.");
     }
 
     return allowedEmails;
+  }
+
+  async function checkDatabaseAdminRole() {
+    try {
+      if (!window.SupabaseClient || typeof window.SupabaseClient.init !== "function") {
+        return false;
+      }
+      var client = await window.SupabaseClient.init();
+      var result = await client.rpc("is_admin_user");
+      return result.data === true && !result.error;
+    } catch (_e) {
+      return false;
+    }
   }
 
   function getAuthService() {
@@ -411,15 +421,18 @@
     }
 
     if (!isAllowedAdminEmail(authenticatedEmail)) {
-      if (typeof auth.signOut === "function") {
-        try {
-          await auth.signOut();
-        } catch (_signOutError) {
-          // Best effort sign-out.
+      // Email not in local allowlist — verify admin role via database
+      var dbAdmin = await checkDatabaseAdminRole();
+      if (!dbAdmin) {
+        if (typeof auth.signOut === "function") {
+          try {
+            await auth.signOut();
+          } catch (_signOutError) {
+            // Best effort sign-out.
+          }
         }
+        throw new Error("This account does not have admin access. Grant the admin role via Supabase dashboard → Authentication → Users.");
       }
-
-      throw new Error("This account is not authorized for admin access.");
     }
 
     var issuedAt = Date.now();
@@ -479,8 +492,12 @@
       }
 
       if (!isAllowedAdminEmail(runtimeEmail)) {
-        clearSession();
-        return false;
+        // Fallback: verify admin role in database
+        var dbAdmin = await checkDatabaseAdminRole();
+        if (!dbAdmin) {
+          clearSession();
+          return false;
+        }
       }
 
       if (localSession.email && localSession.email !== runtimeEmail) {
