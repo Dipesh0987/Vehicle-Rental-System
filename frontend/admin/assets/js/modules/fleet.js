@@ -1,4 +1,5 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
+import { escapeHtml } from '../utils.js';
 
 // Status color mapping
 const STATUS_COLOR = {
@@ -152,14 +153,6 @@ export function renderFleetModule({ data, query, notify }) {
     </div>`;
   }
 
-  function escapeHtml(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
 
   async function fetchFleetData() {
     if (lastFetchPromise) return lastFetchPromise;

@@ -1,6 +1,7 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { openDrawer, openModal, renderEmptyState } from '../ui.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 
 const BOOKING_STATUS_OPTIONS = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 const PAYMENT_FILTER_OPTIONS = ['', 'Yes', 'No'];
@@ -986,14 +987,6 @@ function buildOccupancyTiles(rows) {
   return tiles;
 }
 
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function statusSelectClass(status, isDisabled) {
   const normalized = normalizeBookingStatusLabel(status);
@@ -1027,8 +1020,3 @@ function paymentSelectClass(paymentDone, isDisabled) {
   return `${base} border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/20 dark:text-amber-200${disabled}`;
 }
 
-function formatNpr(value) {
-  const amount = Number(value || 0);
-  const normalized = Number.isFinite(amount) ? amount : 0;
-  return `NPR ${normalized.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}

@@ -1,4 +1,5 @@
 ﻿import { classMap } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 
 /**
  * Contact Messages admin module.
@@ -91,13 +92,6 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString();
 }
 
-function escapeHtml(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function filterMessages(messages, filter, query) {
   let filtered = messages;

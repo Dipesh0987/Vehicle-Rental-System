@@ -1,4 +1,5 @@
-import { classMap, SEGMENT_COLORS } from '../config.js';
+﻿import { classMap, SEGMENT_COLORS } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { renderBarChart, renderLineChart, renderPieChart, renderSegmentUtilizationChart } from '../charts.js';
 import { getWorkshopSummaryCounts } from './maintenance.js';
 
@@ -142,10 +143,7 @@ export function renderOverviewModule({ data, navigate }) {
   return host;
 }
 
-function formatNpr(value) {
-  const amount = Number(value || 0);
-  const normalized = Number.isFinite(amount) ? amount : 0;
-  return `NPR ${Math.round(normalized).toLocaleString()}`;
+`;
 }
 
 function overviewWorkshopMini(icon, label, count, color) {

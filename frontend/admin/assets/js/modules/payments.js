@@ -1,4 +1,5 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { filterRows, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
@@ -455,19 +456,8 @@ function capitalize(value) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }
 
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
-function formatNpr(value) {
-  const amount = Number(value || 0);
-  const normalized = Number.isFinite(amount) ? amount : 0;
-  return `NPR ${normalized.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+)}`;
 }
 
 function formatDate(value) {
@@ -480,13 +470,7 @@ function formatDate(value) {
   } catch (_e) { return text; }
 }
 
-function formatDateTime(value) {
-  const text = String(value || '').trim();
-  if (!text) return '-';
-  const d = new Date(text);
-  if (Number.isNaN(d.getTime())) return text;
-  try {
-    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+);
   } catch (_e) { return text; }
 }
 

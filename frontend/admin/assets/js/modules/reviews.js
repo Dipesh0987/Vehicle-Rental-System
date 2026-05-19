@@ -1,4 +1,4 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
 import { filterRows } from '../table-utils.js';
 
 export function renderReviewsModule({ data, query, notify }) {

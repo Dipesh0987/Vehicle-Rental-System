@@ -1,4 +1,5 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
@@ -737,11 +738,6 @@ function formatLocation(row) {
   return 'Location not provided';
 }
 
-function formatDateTime(value) {
-  const text = String(value || '').trim();
-  if (!text) {
-    return '';
-  }
 
   const parsed = new Date(text);
   if (Number.isNaN(parsed.getTime())) {
@@ -761,11 +757,3 @@ function formatDateTime(value) {
   }
 }
 
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}

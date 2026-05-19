@@ -1,4 +1,5 @@
 ﻿import { classMap } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 
 const pricingUiState = {
@@ -404,8 +405,3 @@ function setupPricingEventListeners(host, { notify, rerender }) {
   });
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}

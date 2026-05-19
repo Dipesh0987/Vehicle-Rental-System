@@ -1,4 +1,5 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { openModal, renderEmptyState } from '../ui.js';
 
@@ -529,14 +530,6 @@ function formSelect(label, name, options, selected) {
   </div>`;
 }
 
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function availabilityClass(value) {
   const base = 'rounded-full px-2.5 py-1 text-xs font-semibold';

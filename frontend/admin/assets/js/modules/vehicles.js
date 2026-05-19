@@ -1,4 +1,5 @@
-import { classMap } from '../config.js';
+﻿import { classMap } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { openDrawer, openModal, renderEmptyState } from '../ui.js';
 
@@ -1107,14 +1108,6 @@ function isValidVehicleNumberFormat(value) {
   return /^[A-Z]{2}-\d{1,2}-[A-Z]{2,3}-\d{4}$/.test(cleaned);
 }
 
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function deriveBrandFromVehicleName(vehicleName) {
   const cleaned = String(vehicleName || '').trim();
@@ -1126,8 +1119,5 @@ function deriveBrandFromVehicleName(vehicleName) {
   return firstWord || 'General';
 }
 
-function formatNpr(value) {
-  const amount = Number(value || 0);
-  const normalized = Number.isFinite(amount) ? amount : 0;
-  return `NPR ${Math.round(normalized).toLocaleString()}`;
+`;
 }
