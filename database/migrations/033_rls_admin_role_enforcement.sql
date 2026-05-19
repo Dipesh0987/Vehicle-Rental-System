@@ -6,6 +6,9 @@
 
 -- ── Helper: reusable admin check ─────────────────────────────────────────────
 -- Returns true if the calling user is an active admin.
+drop function if exists public.is_admin_user() cascade;
+drop function if exists public.is_admin_user(uuid) cascade;
+
 create or replace function public.is_admin_user()
 returns boolean
 language sql
