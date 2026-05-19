@@ -35,6 +35,11 @@ body {
   transform: translateY(-2px);
 }
 
+/* Admin top header navbar — force single line */
+header .flex {
+  flex-wrap: nowrap;
+}
+
 .booking-user-message-top {
   line-height: 1.45;
   overflow-wrap: anywhere;
