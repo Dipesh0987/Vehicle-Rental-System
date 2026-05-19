@@ -133,13 +133,20 @@ async function bootstrap() {
   renderActiveModule();
   setActiveNav(appState.activeModule);
 
-  await hydrateVehiclesFromCatalog({ silent: true });
-  await hydrateBookingsFromDatabase({ silent: true });
-  await hydrateCustomersFromDatabase({ silent: true });
-  await hydratePaymentsFromDatabase({ silent: true });
-  await hydrateMaintenanceFromDatabase({ silent: true });
-  await hydrateDriversFromDatabase({ silent: true });
-  await hydrateAdminNotificationsFromDatabase({ silent: true });
+  // Fire all hydration calls in parallel — each re-renders as it resolves
+  // so data appears incrementally instead of waiting for all to finish.
+  const hydrate = (fn) => fn({ silent: true }).then(() => renderActiveModule()).catch(() => {});
+
+  await Promise.all([
+    hydrate(hydrateVehiclesFromCatalog),
+    hydrate(hydrateBookingsFromDatabase),
+    hydrate(hydrateCustomersFromDatabase),
+    hydrate(hydratePaymentsFromDatabase),
+    hydrate(hydrateMaintenanceFromDatabase),
+    hydrate(hydrateDriversFromDatabase),
+    hydrate(hydrateAdminNotificationsFromDatabase),
+  ]);
+
   await initializePricingModule();
   renderActiveModule();
 
@@ -148,8 +155,7 @@ async function bootstrap() {
   setupPaymentRealtimeSync();
   setupMaintenanceSync();
 
-  // Load vehicles through the local catalog service (shares same data array
-  // and mapper shape as the vehicles module expects).
+  // Load vehicles through the local catalog service
   try {
     const vehicles = await catalogService.loadVehicles();
     if (Array.isArray(vehicles) && vehicles.length) {
