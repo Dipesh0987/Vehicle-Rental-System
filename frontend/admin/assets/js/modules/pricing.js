@@ -10,15 +10,22 @@ const pricingUiState = {
   pageSize: 6,
 };
 
+async function getPricingClient() {
+  if (!window.SupabaseClient || typeof window.SupabaseClient.init !== 'function') {
+    return null;
+  }
+  return window.SupabaseClient.init();
+}
+
 export async function initializePricingModule() {
   try {
-    if (!window.supabase || typeof window.supabase.from !== 'function') {
-      // console.warn('Supabase client not initialized for pricing module');
+    const client = await getPricingClient();
+    if (!client) {
       pricingUiState.discountCodes = [];
       return;
     }
 
-    const { data, error } = await window.supabase
+    const { data, error } = await client
       .from('discount_codes')
       .select('*')
       .order('created_at', { ascending: false });
@@ -26,7 +33,6 @@ export async function initializePricingModule() {
     if (error) throw error;
     pricingUiState.discountCodes = Array.isArray(data) ? data : [];
   } catch (error) {
-    // console.warn('Failed to load discount codes:', error);
     pricingUiState.discountCodes = [];
   }
 }
@@ -315,7 +321,8 @@ function setupPricingEventListeners(host, { notify, rerender }) {
     };
 
     try {
-      const { data, error } = await window.supabase.from('discount_codes').insert([formData]).select();
+      const client = await getPricingClient();
+      const { data, error } = await client.from('discount_codes').insert([formData]).select();
       if (error) throw error;
 
       pricingUiState.discountCodes.push(data[0]);
@@ -338,7 +345,8 @@ function setupPricingEventListeners(host, { notify, rerender }) {
     };
 
     try {
-      const { data, error } = await window.supabase.from('discount_codes').update(updateData).eq('id', codeId).select();
+      const client = await getPricingClient();
+      const { data, error } = await client.from('discount_codes').update(updateData).eq('id', codeId).select();
       if (error) throw error;
 
       const index = pricingUiState.discountCodes.findIndex(c => c.id === codeId);
@@ -360,7 +368,8 @@ function setupPricingEventListeners(host, { notify, rerender }) {
       const code = pricingUiState.discountCodes.find(c => c.id === codeId);
       
       try {
-        const { data, error } = await window.supabase.from('discount_codes').update({ is_active: !code.is_active }).eq('id', codeId).select();
+        const client = await getPricingClient();
+        const { data, error } = await client.from('discount_codes').update({ is_active: !code.is_active }).eq('id', codeId).select();
         if (error) throw error;
 
         const index = pricingUiState.discountCodes.findIndex(c => c.id === codeId);
@@ -392,7 +401,8 @@ function setupPricingEventListeners(host, { notify, rerender }) {
       if (!confirm(`Delete discount code ${code.code}? This action cannot be undone.`)) return;
 
       try {
-        const { error } = await window.supabase.from('discount_codes').delete().eq('id', codeId);
+        const client = await getPricingClient();
+        const { error } = await client.from('discount_codes').delete().eq('id', codeId);
         if (error) throw error;
 
         pricingUiState.discountCodes = pricingUiState.discountCodes.filter(c => c.id !== codeId);
