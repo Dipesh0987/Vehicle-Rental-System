@@ -30,7 +30,10 @@ export async function initializePricingModule() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      pricingUiState.discountCodes = [];
+      return;
+    }
     pricingUiState.discountCodes = Array.isArray(data) ? data : [];
   } catch (error) {
     pricingUiState.discountCodes = [];
@@ -169,7 +172,7 @@ function renderCreateDiscountCodeForm() {
           <label class="block text-sm font-semibold mb-2">Code</label>
           <input type="text" id="codeInput" placeholder="e.g., SUMMER2024" required 
             class="w-full rounded-lg border border-slate-200 px-4 py-2 dark:border-white/10 dark:bg-white/5" 
-            pattern="^[A-Z0-9_-]{3,20}$" maxlength="20">
+            pattern="[A-Z0-9_\\-]{3,20}" maxlength="20">
           <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">Letters, numbers, dash, underscore (3-20 chars)</p>
         </div>
         <div>
