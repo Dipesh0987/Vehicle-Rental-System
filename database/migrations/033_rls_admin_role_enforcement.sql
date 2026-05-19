@@ -81,12 +81,6 @@ create policy "Admins can manage damage_bills"
   using (public.is_admin_user())
   with check (public.is_admin_user());
 
--- Allow customers to read their own damage bills
-create policy "Customers can view own damage_bills"
-  on public.damage_bills for select
-  to authenticated
-  using (customer_user_id = auth.uid());
-
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- 4. CONTACT_MESSAGES TABLE
 -- ═══════════════════════════════════════════════════════════════════════════════
