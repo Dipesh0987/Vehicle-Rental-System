@@ -1,42 +1,51 @@
-frontend/assets/js/supabase.config.local.js
+# ─────────────────────────────────────────────
+# Supabase config (contains live credentials)
+# ─────────────────────────────────────────────
 frontend/assets/js/supabase.config.js
+frontend/assets/js/supabase.config.local.js
 frontend/admin/assets/js/supabase.config.local.js
 
+# ─────────────────────────────────────────────
+# Supabase CLI temp files
+# ─────────────────────────────────────────────
 supabase/.temp/
 
-# IDE settings
-.vscode/
-
-# Node modules
+# ─────────────────────────────────────────────
+# Dependencies
+# ─────────────────────────────────────────────
 node_modules/
 
-# Documentation files (session-specific)
-*.md
-!README.md
-!database/README.md
-!docs/*.md
-
-# Scripts
-scripts/
-
-# Server
-server/
-
-# Environment
-.env.example
-
-# Batch files
-*.bat
-
-# SQL dumps
-supabase_migration.sql
-update_images.sql
-
-# Sensitive reference files
+# ─────────────────────────────────────────────
+# Environment & secrets
+# ─────────────────────────────────────────────
+.env
+.env.local
+.env.production
 SECRETS_QUICK_REFERENCE.txt
-ALL_SECRETS_NEEDED.md
 
-# OS files
+# ─────────────────────────────────────────────
+# OS & IDE artifacts
+# ─────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+.vscode/
 
+# ─────────────────────────────────────────────
+# Session/temporary docs (keep only README.md)
+# ─────────────────────────────────────────────
+*.md
+!README.md
+
+# ─────────────────────────────────────────────
+# Dev scripts & local server
+# ─────────────────────────────────────────────
+scripts/
+server/
+*.bat
+*.ps1
+
+# ─────────────────────────────────────────────
+# Build artifacts
+# ─────────────────────────────────────────────
+*.log
+package-lock.json
