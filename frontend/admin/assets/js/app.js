@@ -933,16 +933,6 @@ async function hydrateAdminNotificationsFromDatabase({ silent = false } = {}) {
   }
 }
 
-function formatRelativeTime(iso) {
-  if (!iso) return '';
-  const diff = Date.now() - Date.parse(iso);
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-  if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
-  try { return new Date(iso).toLocaleDateString(); } catch (_e) { return ''; }
-}
-
 function mapCustomerProfileToAdminRow(profile) {
   const status = String(profile && profile.verificationStatus ? profile.verificationStatus : 'not_submitted').toLowerCase();
   const documentLabel = String(profile && profile.documentTypeLabel ? profile.documentTypeLabel : '').trim();
