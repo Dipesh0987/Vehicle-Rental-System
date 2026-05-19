@@ -138,8 +138,9 @@ create policy "Owners and admins can read vehicle bookings"
 -- 7. MISSING INDEXES for performance
 -- ═══════════════════════════════════════════════════════════════════════════════
 
-create index if not exists idx_notifications_user_read
-  on public.notifications (user_id, is_read);
+create index if not exists idx_notifications_user_unread_admin
+  on public.notifications (user_id, created_at desc)
+  where read_at is null;
 
 create index if not exists idx_vehicle_locations_vehicle_recorded
   on public.vehicle_locations (vehicle_id, recorded_at desc);
