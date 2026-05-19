@@ -5,7 +5,6 @@
   var SESSION_TTL_MS = 1000 * 60 * 60 * 12;
   var ADMIN_USERNAME = "admin";
   var DEFAULT_ADMIN_EMAILS = [
-    "admin.bootstrap@vehicle-rental.local",
     "admin@vehicle-rental.local",
   ];
 
