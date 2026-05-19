@@ -139,6 +139,7 @@ async function bootstrap() {
   await hydratePaymentsFromDatabase({ silent: true });
   await hydrateMaintenanceFromDatabase({ silent: true });
   await hydrateDriversFromDatabase({ silent: true });
+  await hydrateAdminNotificationsFromDatabase({ silent: true });
   await initializePricingModule();
   renderActiveModule();
 
@@ -875,6 +876,71 @@ async function hydrateMaintenanceFromDatabase({ silent = false } = {}) {
       pushToast(`Maintenance sync failed: ${error.message}`, 'warn');
     }
   }
+}
+
+async function hydrateAdminNotificationsFromDatabase({ silent = false } = {}) {
+  try {
+    if (!window.SupabaseClient || typeof window.SupabaseClient.init !== 'function') return;
+    const client = await window.SupabaseClient.init();
+    const { data, error } = await client
+      .from('notifications')
+      .select('id,user_id,type,title,body,link_url,metadata,is_admin,read_at,created_at')
+      .eq('is_admin', true)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      if (!silent) pushToast('Admin notifications: ' + (error.message || 'fetch failed'), 'warn');
+      return;
+    }
+
+    const dbNotifs = (Array.isArray(data) ? data : []).map((n) => ({
+      id: n.id,
+      title: n.title || '',
+      channel: 'In-app',
+      priority: n.read_at ? 'Normal' : 'High',
+      time: formatRelativeTime(n.created_at),
+      type: n.type || 'info',
+      body: n.body || '',
+      metadata: n.metadata || {},
+      read_at: n.read_at,
+    }));
+
+    // Merge DB notifications into baseNotifications so they appear in the notification center
+    const existingIds = new Set(appState.baseNotifications.map((n) => n.id));
+    dbNotifs.forEach((n) => {
+      if (!existingIds.has(n.id)) {
+        appState.baseNotifications.push(n);
+        existingIds.add(n.id);
+      }
+    });
+
+    // Re-merge all notifications
+    const generatedNotifications = buildVerificationNotifications(
+      (Array.isArray(appState.data.customers) ? appState.data.customers : []).filter(isPendingReviewCustomer)
+    );
+    const bookingNotifications = buildBookingNotifications(appState.data.bookings);
+    appState.data.notifications = mergeNotifications(appState.baseNotifications, generatedNotifications, bookingNotifications);
+
+    // Update badge count
+    const pendingCustomers = (Array.isArray(appState.data.customers) ? appState.data.customers : []).filter(isPendingReviewCustomer).length;
+    const pendingBookings = (Array.isArray(appState.data.bookings) ? appState.data.bookings : [])
+      .filter((b) => String(b.status || '').toLowerCase() === 'pending').length;
+    const unreadDbNotifs = dbNotifs.filter((n) => !n.read_at).length;
+    updateVerificationNotificationBadge(pendingCustomers + pendingBookings + unreadDbNotifs);
+  } catch (err) {
+    if (!silent) pushToast('Admin notifications fetch failed', 'warn');
+  }
+}
+
+function formatRelativeTime(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - Date.parse(iso);
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+  try { return new Date(iso).toLocaleDateString(); } catch (_e) { return ''; }
 }
 
 function mapCustomerProfileToAdminRow(profile) {
