@@ -442,6 +442,8 @@ class SearchUIManager {
      */
     createVehicleCard(vehicle) {
         const price = this.filterManager.extractPrice(vehicle.pricing?.dailyRate || "0");
+        const USD_TO_NPR = 130; // Static conversion fallback
+        const priceNPR = Math.round(price * USD_TO_NPR);
         const rating = parseFloat(vehicle.rating || 0);
         const isWishlisted = this.isVehicleWishlisted(vehicle.id);
 
@@ -484,9 +486,15 @@ class SearchUIManager {
                     </div>
 
                     <!-- Price -->
-                    <div class="mb-4 flex items-baseline gap-2">
-                        <span class="text-2xl font-bold text-accent">$${price}</span>
-                        <span class="text-sm text-muted">/ day</span>
+                    <div class="mb-4 flex items-baseline gap-3">
+                        <div>
+                            <span class="text-2xl font-bold text-accent">$${price}</span>
+                            <span class="text-sm text-muted">/ day</span>
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-ink">NPR ${priceNPR.toLocaleString()}</span>
+                            <span class="text-xs text-muted">/ day</span>
+                        </div>
                     </div>
 
                     <!-- Features Tags -->
@@ -561,6 +569,75 @@ class SearchUIManager {
                 window.location.href = `booking.html?vehicle=${vehicleId}`;
             });
         });
+    }
+
+    /**
+     * Render AI-style recommendations (up to 3) with reasons and a Book action
+     * @param {Array} vehicles
+     * @param {Object} filters
+     */
+    renderRecommendations(vehicles = [], filters = {}) {
+        const container = document.getElementById('aiRecommendations');
+        if (!container) return;
+
+        if (!vehicles || vehicles.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = `
+            <div class="rounded-2xl border border-[#d9e2de] bg-white/90 p-4 shadow-[0_10px_26px_rgba(10,31,34,0.06)]">
+                <h3 class="text-lg font-bold text-ink mb-3">Recommended for you</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        `;
+
+        for (const v of vehicles) {
+            const score = parseFloat(v.rating || 0).toFixed(1);
+            const reason = this.buildRecommendationReason(v, filters);
+            html += `
+                <div class="rounded-xl border border-[#eef3f1] p-3">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-bold">${v.brand} ${v.name}</p>
+                            <p class="text-xs text-muted">${v.type || 'Vehicle'} • ${v.seats || 5} seats</p>
+                        </div>
+                        <div class="text-sm font-semibold text-ink">${score}★</div>
+                    </div>
+                    <p class="mt-2 text-sm text-muted">${reason}</p>
+                    <div class="mt-3 flex items-center justify-between">
+                        <div class="text-sm font-bold text-accent">NPR ${Math.round((this.filterManager.extractPrice(v.pricing?.dailyRate||0) * 130)).toLocaleString()}</div>
+                        <button class="book-this rounded-lg bg-accent px-3 py-1 text-sm font-semibold text-white" data-vehicle-id="${v.id}">Book this</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div></div>`;
+        container.innerHTML = html;
+
+        // Attach book-this listeners
+        container.querySelectorAll('.book-this').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.vehicleId;
+                window.location.href = `booking.html?vehicle=${id}`;
+            });
+        });
+    }
+
+    buildRecommendationReason(vehicle, filters) {
+        const reasons = [];
+        if (filters.pickupLocation && vehicle.location && vehicle.location.toLowerCase().includes(filters.pickupLocation.toLowerCase())) {
+            reasons.push('Located near your pickup');
+        }
+        if (filters.vehicleTypes && filters.vehicleTypes.length > 0 && filters.vehicleTypes.includes(vehicle.type)) {
+            reasons.push('Matches requested vehicle type');
+        }
+        const price = this.filterManager.extractPrice(vehicle.pricing?.dailyRate || 0);
+        if (filters.maxPrice && price <= filters.maxPrice) {
+            reasons.push('Within your budget');
+        }
+        if (reasons.length === 0) return 'Popular choice in your area with good ratings.';
+        return reasons.join(' • ');
     }
 
     /**

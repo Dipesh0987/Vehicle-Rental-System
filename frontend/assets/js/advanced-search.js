@@ -119,7 +119,17 @@ class AdvancedSearchSystem {
         // Otherwise try to load from API
         try {
             const response = await this.apiClient.searchVehicles({});
-            this.vehicles = response.vehicles || [];
+
+            // Normalize response: some backends return an array, others an object
+            if (Array.isArray(response)) {
+                this.vehicles = response;
+            } else if (response && Array.isArray(response.vehicles)) {
+                this.vehicles = response.vehicles;
+            } else if (response && Array.isArray(response.data)) {
+                this.vehicles = response.data;
+            } else {
+                this.vehicles = [];
+            }
         } catch (error) {
             console.warn("Failed to load vehicles from API, using test data");
             this.loadTestData();
@@ -356,6 +366,24 @@ class AdvancedSearchSystem {
         console.log("Searching with filters:", this.filterManager.filters);
         const filtered = this.filterManager.applyFilters(this.vehicles);
         this.uiManager.renderVehicleResults(filtered);
+
+        // Generate up to 3 ranked recommendations for the user (best-rated first)
+        const recommendations = filtered
+            .slice()
+            .sort((a, b) => parseFloat(b.rating || 0) - parseFloat(a.rating || 0))
+            .slice(0, 3);
+
+        // If no direct matches, provide fallbacks by relaxing availability and price
+        if (recommendations.length === 0) {
+            const fallbacks = this.vehicles
+                .filter((v) => v.available !== false)
+                .slice()
+                .sort((a, b) => parseFloat(b.rating || 0) - parseFloat(a.rating || 0))
+                .slice(0, 3);
+            this.uiManager.renderRecommendations(fallbacks, this.filterManager.filters);
+        } else {
+            this.uiManager.renderRecommendations(recommendations, this.filterManager.filters);
+        }
     }
 
     /**
