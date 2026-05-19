@@ -81,6 +81,7 @@ function resolveNavTarget(row) {
   if (type === 'booking_created') return 'bookings';
   if (type === 'payment_success' || type === 'payment_initiated' || type === 'payment_due') return 'payments';
   if (type === 'damage_bill_issued' || type === 'damage_bill_overdue' || type === 'damage_bill_paid') return 'maintenance';
+  if (type === 'contact_message') return 'contacts';
   return '';
 }
 
@@ -90,6 +91,7 @@ function resolveIcon(row) {
   if (type === 'booking_created') return { name: 'event_note', color: 'text-brand-500 dark:text-brand-400' };
   if (type.startsWith('payment')) return { name: 'credit_card', color: 'text-emerald-500 dark:text-emerald-400' };
   if (type.startsWith('damage')) return { name: 'car_crash', color: 'text-rose-500 dark:text-rose-400' };
+  if (type === 'contact_message') return { name: 'mail', color: 'text-blue-500 dark:text-blue-400' };
   return { name: 'notifications', color: 'text-slate-400 dark:text-slate-500' };
 }
 
@@ -98,6 +100,7 @@ function notifBorderClass(row) {
   if (type === 'verification_queue' || type === 'verification_submission') return 'border-amber-300/70 bg-amber-50/50 dark:border-amber-400/30 dark:bg-amber-500/10';
   if (type === 'booking_created') return 'border-brand-300/60 bg-brand-50/40 dark:border-brand-400/30 dark:bg-brand-500/10';
   if (type.startsWith('damage')) return 'border-rose-300/60 bg-rose-50/40 dark:border-rose-400/30 dark:bg-rose-500/10';
+  if (type === 'contact_message') return 'border-blue-300/60 bg-blue-50/40 dark:border-blue-400/30 dark:bg-blue-500/10';
   return 'border-slate-200 dark:border-white/10';
 }
 
