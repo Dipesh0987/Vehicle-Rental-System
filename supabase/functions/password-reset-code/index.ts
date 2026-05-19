@@ -266,6 +266,39 @@ async function sendResetCodeEmail(params: {
 
   if (!response.ok) {
     const providerMessage = await response.text();
+
+    // Resend free-tier 403: retry with the dev redirect email
+    const is403FreeTier = response.status === 403
+      && providerMessage.includes("validation_error")
+      && providerMessage.includes("testing emails")
+      && RESEND_DEV_REDIRECT_TO.length > 0;
+
+    if (is403FreeTier) {
+      const retryTo = RESEND_DEV_REDIRECT_TO;
+      const retrySubject = `[DEV - to: ${originalTo}] ${subject}`;
+      const retryBanner = `<div style="background:#fff7e6;border:1px solid #f5c97d;color:#7a4c0d;padding:12px 16px;border-radius:8px;font-size:13px;margin:0 0 16px 0;"><strong>Dev redirect:</strong> originally for <strong>${originalTo}</strong></div>`;
+      const retryResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: PASSWORD_RESET_FROM_EMAIL,
+          to: [retryTo],
+          subject: retrySubject,
+          html: retryBanner + html,
+          text: `[DEV REDIRECT] Originally to: ${originalTo}\n\n${text}`,
+        }),
+      });
+      if (!retryResponse.ok) {
+        const retryMsg = await retryResponse.text();
+        throw new Error(`Email retry to dev inbox also failed (${retryResponse.status}): ${retryMsg}`);
+      }
+      console.info("Password reset email redirected to dev inbox", { retryTo, originalTo });
+      return;
+    }
+
     throw new Error(`Email send failed (${response.status}): ${providerMessage}`);
   }
 }

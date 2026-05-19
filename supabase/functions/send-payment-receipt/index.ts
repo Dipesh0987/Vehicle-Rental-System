@@ -2,6 +2,14 @@
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+const PAYMENT_RECEIPT_FROM_EMAIL =
+  (Deno.env.get("PAYMENT_RECEIPT_FROM_EMAIL") ?? "").trim()
+  || "Rent A Vehicle Nepal <onboarding@resend.dev>";
+const RESEND_DEV_REDIRECT_TO =
+  (Deno.env.get("RESEND_DEV_REDIRECT_TO") ?? "").trim().toLowerCase()
+  || (PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev") ? "vechilerental@gmail.com" : "");
+const PAYMENT_WEBSITE_URL = (Deno.env.get("PAYMENT_WEBSITE_URL") ?? "").trim().replace(/\/$/, "");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,7 +71,8 @@ function generateReceiptHTML(data: {
   paidAmount: number;
   remainingAmount: number;
 }): string {
-  const receiptUrl = `http://127.0.0.1:5501/frontend/payment-receipt.html?payment=${encodeURIComponent(data.transactionCode)}`;
+  const base = PAYMENT_WEBSITE_URL || "https://rentavehiclenepal.com";
+  const receiptUrl = `${base}/frontend/payment-receipt.html?payment=${encodeURIComponent(data.transactionCode)}`;
   
   return `
 <!DOCTYPE html>
@@ -252,19 +261,71 @@ async function sendReceiptEmail(data: {
 }): Promise<void> {
   const htmlContent = generateReceiptHTML(data);
   
-  // Send email using Resend or configured SMTP
-  // For now, we'll use a simple HTTP request to send via an email service
-  // You can configure this to use your Gmail SMTP or any other service
-  
-  
-  // TODO: Integrate with actual email sending service
-  // This is a placeholder - you'll need to configure email sending
-  // Options:
-  // 1. Use Resend API
-  // 2. Use SendGrid API
-  // 3. Use your Gmail SMTP via a library
-  
-  // For now, just log success
+  if (!RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY not set — skipping email send");
+    return;
+  }
+
+  const originalTo = data.customerEmail;
+  if (!originalTo) {
+    console.warn("No customer email — skipping receipt email");
+    return;
+  }
+
+  const subject = `Rent A Vehicle Nepal - Payment Receipt ${data.transactionCode}`;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: PAYMENT_RECEIPT_FROM_EMAIL,
+      to: [originalTo],
+      subject,
+      html: htmlContent,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    // Resend free-tier 403: retry sending to dev redirect email
+    const is403FreeTier = response.status === 403
+      && errorText.includes("validation_error")
+      && errorText.includes("testing emails")
+      && RESEND_DEV_REDIRECT_TO.length > 0;
+
+    if (is403FreeTier) {
+      const retrySubject = `[DEV - to: ${originalTo}] ${subject}`;
+      const retryResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: PAYMENT_RECEIPT_FROM_EMAIL,
+          to: [RESEND_DEV_REDIRECT_TO],
+          subject: retrySubject,
+          html: htmlContent,
+        }),
+      });
+      if (!retryResponse.ok) {
+        const retryMsg = await retryResponse.text();
+        console.error("Receipt email retry failed:", retryMsg);
+      } else {
+        console.info("Receipt email redirected to dev inbox", RESEND_DEV_REDIRECT_TO);
+      }
+      return;
+    }
+
+    console.error("Receipt email failed:", errorText);
+    return;
+  }
+
+  console.info("Receipt email sent to", originalTo);
 }
 
 Deno.serve(async (request: Request) => {
@@ -290,17 +351,10 @@ Deno.serve(async (request: Request) => {
       });
     }
 
-    // Fetch payment and booking details
+    // Fetch payment details
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from("payments")
-      .select(`
-        *,
-        booking:vehicle_bookings(
-          *,
-          vehicle:vehicles(name, model, brand),
-          customer:user_profiles(full_name, email)
-        )
-      `)
+      .select("*")
       .eq("transaction_code", transactionCode)
       .single();
 
@@ -311,25 +365,46 @@ Deno.serve(async (request: Request) => {
       });
     }
 
-    const booking = payment.booking as Record<string, unknown>;
-    const vehicle = booking.vehicle as Record<string, unknown>;
-    const customer = booking.customer as Record<string, unknown>;
+    // Fetch booking details
+    let booking: Record<string, unknown> = {};
+    if (payment.booking_id) {
+      const { data: bookingData } = await supabaseAdmin
+        .from("vehicle_bookings")
+        .select("*")
+        .eq("id", payment.booking_id)
+        .single();
+      booking = (bookingData as Record<string, unknown>) || {};
+    }
+
+    // Fetch vehicle details
+    let vehicle: Record<string, unknown> = {};
+    const vehicleId = String(booking.vehicle_id || "");
+    if (vehicleId) {
+      const { data: vehicleData } = await supabaseAdmin
+        .from("vehicles")
+        .select("name, brand, type")
+        .eq("id", vehicleId)
+        .single();
+      vehicle = (vehicleData as Record<string, unknown>) || {};
+    }
+
+    const vehicleName = [vehicle.brand, vehicle.name].filter(Boolean).join(" ") || String(booking.vehicle_name || "Vehicle");
 
     // Send receipt email
     await sendReceiptEmail({
-      transactionCode: payment.transaction_code,
-      customerEmail: String(customer.email || ""),
-      customerName: String(customer.full_name || "Guest"),
+      transactionCode: String(payment.transaction_code || ""),
+      customerEmail: String(payment.customer_email || booking.customer_email || ""),
+      customerName: String(payment.customer_name || booking.customer_name || "Guest"),
       bookingCode: String(booking.booking_code || ""),
-      vehicleName: `${vehicle.brand} ${vehicle.name} ${vehicle.model}`,
+      vehicleName,
       amount: Number(payment.amount || 0),
       paymentType: String(payment.payment_type || ""),
       paymentMethod: String(payment.payment_method || "eSewa"),
       paymentDate: String(payment.created_at || ""),
-      pickupDate: String(booking.pickup_datetime || ""),
-      returnDate: String(booking.return_datetime || ""),
-      pickupLocation: String(booking.pickup_location || ""),
-      returnLocation: String(booking.return_location || ""),
+      pickupDate: String(booking.start_date || ""),
+      returnDate: String(booking.end_date || ""),
+      pickupLocation: String(booking.pickup_location || booking.notes || ""),
+      returnLocation: String(booking.pickup_location || booking.notes || ""),
       totalAmount: Number(booking.total_amount || 0),
       paidAmount: Number(booking.paid_amount || 0),
       remainingAmount: Number(booking.remaining_amount || 0),

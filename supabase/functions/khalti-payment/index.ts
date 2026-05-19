@@ -899,32 +899,57 @@ async function sendReceiptEmail(params: {
       RESEND_DEV_REDIRECT_TO.length > 0;
     
     if (is403DevRedirect) {
-      // This is expected behavior when using RESEND_DEV_REDIRECT_TO
-      // Email is still being sent to the dev inbox, so mark as success
-      
+      // Resend free-tier rejected because recipient isn't the verified
+      // account email. Retry sending to the dev redirect email directly.
+      const retryTo = RESEND_DEV_REDIRECT_TO;
+      const retrySubject = "[DEV - to: " + originalRecipient + "] " + PAYMENT_APP_NAME + " payment receipt " + params.receiptCode;
+      const retryBanner =
+        '<div style="background:#fff7e6;border:1px solid #f5c97d;color:#7a4c0d;padding:12px 16px;border-radius:8px;font-family:Arial,sans-serif;font-size:13px;margin:0 0 16px 0;">'
+        + "<strong>Dev redirect:</strong> this receipt was originally addressed to <strong>"
+        + escapeHtml(originalRecipient)
+        + "</strong>.</div>";
+      const retryHtml = retryBanner + renderReceiptHtml(params.receiptCode, params.payload);
+      const retryText = "[DEV REDIRECT] Originally to: " + originalRecipient + "\n\n" + renderReceiptText(params.receiptCode, params.payload);
+
+      const retryResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + RESEND_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: PAYMENT_RECEIPT_FROM_EMAIL,
+          to: [retryTo],
+          subject: retrySubject,
+          html: retryHtml,
+          text: retryText,
+        }),
+      });
+
+      const retryOk = retryResponse.ok;
       await supabaseAdmin
         .from("payment_receipts")
         .update({
-          email_status: "sent_dev_redirect",
-          email_sent_at: nowIso(),
-          email_error: "Dev mode: Redirected to " + actualRecipient + " (intended for " + originalRecipient + ")",
+          email_status: retryOk ? "sent_dev_redirect" : "failed",
+          email_sent_at: retryOk ? nowIso() : null,
+          email_error: retryOk
+            ? "Dev mode: Redirected to " + retryTo + " (intended for " + originalRecipient + ")"
+            : ("Retry also failed: " + (await retryResponse.text()).slice(0, 300)),
         })
         .eq("id", params.receiptId);
-      
-      // Still create notification for user
-      const userId = (params.payload as JsonRecord).booking
-        ? ((params.payload as JsonRecord).customerUserId as string | undefined)
-        : undefined;
 
-      if (userId) {
-        await supabaseAdmin.from("notifications").insert({
-          user_id: userId,
-          type: "receipt_sent",
-          title: "Payment receipt emailed",
-          body: "Receipt " + params.receiptCode + " was sent to " + originalRecipient + ".",
-          link_url: "/frontend/payment-receipt.html?payment=" + params.receiptCode,
-          metadata: { receiptCode: params.receiptCode },
-        });
+      if (retryOk) {
+        const userId = (params.payload as JsonRecord).customerUserId as string | undefined;
+        if (userId) {
+          await supabaseAdmin.from("notifications").insert({
+            user_id: userId,
+            type: "receipt_sent",
+            title: "Payment receipt emailed",
+            body: "Receipt " + params.receiptCode + " was sent to " + originalRecipient + ".",
+            link_url: "/frontend/payment-receipt.html?payment=" + params.receiptCode,
+            metadata: { receiptCode: params.receiptCode },
+          });
+        }
       }
       
       return; // Exit successfully
