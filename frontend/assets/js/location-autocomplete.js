@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Location Autocomplete Manager
  * Handles location search with caching and suggestions
  */

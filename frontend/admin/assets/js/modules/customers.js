@@ -1,4 +1,4 @@
-﻿import { classMap } from '../config.js';
+import { classMap } from '../config.js';
 import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
@@ -736,24 +736,5 @@ function formatLocation(row) {
   }
 
   return 'Location not provided';
-}
-
-
-  const parsed = new Date(text);
-  if (Number.isNaN(parsed.getTime())) {
-    return text;
-  }
-
-  try {
-    return parsed.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch (_error) {
-    return text;
-  }
 }
 

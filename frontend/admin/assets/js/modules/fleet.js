@@ -1,4 +1,4 @@
-﻿import { classMap } from '../config.js';
+import { classMap } from '../config.js';
 import { escapeHtml } from '../utils.js';
 
 // Status color mapping

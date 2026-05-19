@@ -1,4 +1,4 @@
-﻿import { classMap } from '../config.js';
+import { classMap } from '../config.js';
 import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { filterRows, paginateRows, renderPagination } from '../table-utils.js';
 import { openDrawer, openModal, renderEmptyState } from '../ui.js';
@@ -1117,7 +1117,4 @@ function deriveBrandFromVehicleName(vehicleName) {
 
   const firstWord = cleaned.split(/\s+/)[0] || '';
   return firstWord || 'General';
-}
-
-`;
 }

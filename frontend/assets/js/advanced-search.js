@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Advanced Search System - Main Initialization
  * Coordinates all modules and handles the complete search workflow
  */

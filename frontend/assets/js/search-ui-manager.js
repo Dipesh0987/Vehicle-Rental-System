@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Search UI Manager
  * Handles all UI rendering and DOM updates for the advanced search system
  */

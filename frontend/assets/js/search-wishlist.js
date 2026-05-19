@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Search Wishlist Manager
  * Handles the wishlist/favorites functionality with persistence
  */

@@ -1,4 +1,4 @@
-﻿import { appConfig } from './config.js';
+import { appConfig } from './config.js';
 import { dashboardData } from './data.js';
 import { bindShellInteractions, pushToast, renderShell, setActiveNav } from './shell.js';
 import { renderOverviewModule } from './modules/overview.js';

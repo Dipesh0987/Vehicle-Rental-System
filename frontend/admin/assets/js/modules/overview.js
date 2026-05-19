@@ -1,4 +1,4 @@
-﻿import { classMap, SEGMENT_COLORS } from '../config.js';
+import { classMap, SEGMENT_COLORS } from '../config.js';
 import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
 import { renderBarChart, renderLineChart, renderPieChart, renderSegmentUtilizationChart } from '../charts.js';
 import { getWorkshopSummaryCounts } from './maintenance.js';
@@ -141,9 +141,6 @@ export function renderOverviewModule({ data, navigate }) {
   });
 
   return host;
-}
-
-`;
 }
 
 function overviewWorkshopMini(icon, label, count, color) {

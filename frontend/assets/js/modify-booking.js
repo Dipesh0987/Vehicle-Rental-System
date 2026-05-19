@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Modify Booking Page - Frontend Logic
  * Handles form interactions, price calculations, and booking modifications
  */

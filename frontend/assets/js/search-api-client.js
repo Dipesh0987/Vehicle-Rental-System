@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Search API Client
  * Handles all backend API calls for the advanced search system
  * Features: Debouncing, caching, error handling, request validation

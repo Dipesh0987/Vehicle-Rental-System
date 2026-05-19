@@ -1,4 +1,4 @@
-﻿import { classMap, SEGMENT_COLORS, SEGMENT_COLOR_LIST } from '../config.js';
+import { classMap, SEGMENT_COLORS, SEGMENT_COLOR_LIST } from '../config.js';
 import { renderBarChart, renderLineChart, renderSegmentUtilizationChart } from '../charts.js';
 import { computeSegmentUtilization, getStaticUtilization } from '../services/utilization.service.js';
 

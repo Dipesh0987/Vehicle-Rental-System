@@ -1,4 +1,4 @@
-﻿// Top Rated Rental Cars — Dynamic data from database, NPR pricing, brand-based filtering
+// Top Rated Rental Cars — Dynamic data from database, NPR pricing, brand-based filtering
 // Matches reference design: brand pills, fuel badges, centered images, specs, NPR prices
 
 (function () {
@@ -101,7 +101,7 @@
           const vehicles = data.map(normalizeRow).filter(v => v.available);
           if (vehicles.length) { setCache(vehicles); return vehicles; }
         }
-        if (error) // console.warn('TopRated direct query error:', error.message);
+        if (error) { /* query error — handled by fallback below */ }
       }
     } catch (e) {
       // console.warn('TopRated direct query failed:', e.message);

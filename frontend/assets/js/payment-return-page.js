@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Payment return page (eSewa redirect target).
  *
  * eSewa hits two URLs:

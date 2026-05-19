@@ -1,5 +1,5 @@
-﻿import { classMap } from '../config.js';
-import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
+import { classMap } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime } from '../utils.js';
 import { filterRows, sortRows } from '../table-utils.js';
 import { renderEmptyState } from '../ui.js';
 
@@ -456,10 +456,6 @@ function capitalize(value) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }
 
-
-)}`;
-}
-
 function formatDate(value) {
   const text = String(value || '').trim();
   if (!text) return '-';
@@ -467,10 +463,6 @@ function formatDate(value) {
   if (Number.isNaN(d.getTime())) return text;
   try {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch (_e) { return text; }
-}
-
-);
   } catch (_e) { return text; }
 }
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Search Filter Manager
  * Handles all filtering logic for the advanced search system
  * Features: Multiple filter criteria, persistence, real-time updates

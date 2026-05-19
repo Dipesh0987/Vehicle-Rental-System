@@ -1,4 +1,4 @@
-﻿import { classMap } from '../config.js';
+import { classMap } from '../config.js';
 import { filterRows } from '../table-utils.js';
 
 export function renderAdminsModule({ data, query, notify }) {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Contact Page Module
  * Handles contact form submission, validation, and interactions
  */

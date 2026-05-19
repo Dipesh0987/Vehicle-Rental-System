@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Search Analytics Tracker
  * Tracks user interactions and search patterns for analytics
  */

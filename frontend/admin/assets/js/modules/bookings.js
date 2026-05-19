@@ -1,4 +1,4 @@
-﻿import { classMap } from '../config.js';
+import { classMap } from '../config.js';
 import { filterRows, paginateRows, renderPagination, sortRows } from '../table-utils.js';
 import { openDrawer, openModal, renderEmptyState } from '../ui.js';
 import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';

@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   "use strict";
 
   var STORAGE_SESSION = "vrs_auth_session";

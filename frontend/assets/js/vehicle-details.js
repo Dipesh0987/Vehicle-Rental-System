@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   "use strict";
 
   var DEFAULT_FALLBACK_IMAGE = "assets/images/car-transparent.png";
