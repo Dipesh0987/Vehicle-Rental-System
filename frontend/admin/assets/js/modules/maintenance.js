@@ -6,6 +6,18 @@ import { openModal, renderEmptyState } from '../ui.js';
 const STATUS_OPTIONS = ['All', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Billed'];
 const SERVICE_TYPES  = ['Damage', 'Scheduled Service', 'Inspection', 'Repair'];
 
+function generateMaintenanceId(existing) {
+  const rows = Array.isArray(existing) ? existing : [];
+  const nums = rows
+    .map((r) => {
+      const m = String(r.id || '').match(/^M-(\d+)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    })
+    .filter(Boolean);
+  const next = nums.length ? Math.max(...nums) + 1 : 1;
+  return `M-${String(next).padStart(3, '0')}`;
+}
+
 // Workshop summary card group IDs (used for click-to-filter)
 const CARD_UPCOMING       = 'upcoming';
 const CARD_IN_WORKSHOP    = 'inWorkshop';
@@ -32,7 +44,7 @@ export function getWorkshopSummaryCounts(data) {
   };
 }
 
-export function renderMaintenanceModule({ data, query, notify, rerender }) {
+export function renderMaintenanceModule({ data, query, notify, rerender, reloadMaintenanceData }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -99,6 +111,7 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
         <h2 class="${classMap.heading} text-slate-900 dark:text-white">Maintenance &amp; Damage</h2>
       </div>
       <div class="flex flex-wrap items-center gap-2">
+        <button id="refreshMaintenanceBtn" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">Refresh</button>
         <button id="reportDamageBtn" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20">
           <span class="material-symbols-outlined mr-1 text-[16px] align-middle">car_crash</span> Report Damage
         </button>
@@ -223,6 +236,15 @@ export function renderMaintenanceModule({ data, query, notify, rerender }) {
   };
   host.querySelector('#clearCardFilter')?.addEventListener('click', clearCardFilter);
   host.querySelector('#clearCardFilterEmpty')?.addEventListener('click', clearCardFilter);
+
+  host.querySelector('#refreshMaintenanceBtn')?.addEventListener('click', async () => {
+    if (typeof reloadMaintenanceData === 'function') {
+      await reloadMaintenanceData();
+    } else {
+      rerender?.();
+    }
+    notify('Maintenance records refreshed', 'success');
+  });
 
   host.querySelector('#reportDamageBtn')?.addEventListener('click', () => {
     maintenanceUiState.mode = 'add';
@@ -481,7 +503,7 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
             </div>
           </div>
           <div class="flex-1 grid grid-cols-1 gap-3 sm:grid-cols-3" style="min-width:0">
-            ${formField('Record ID', 'maintId', 'text', r.id, true, 'e.g. M-305')}
+            ${formField('Record ID', 'maintId', 'text', isEdit ? r.id : generateMaintenanceId(data.maintenance), !isEdit, isEdit ? '' : 'Auto-generated')}${isEdit ? '' : '<p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Auto-generated — you can change it</p>'}
             ${formSelect('Service Type', 'serviceType', SERVICE_TYPES, r.serviceType || 'Damage')}
             ${formSelect('Status', 'status', STATUS_OPTIONS.filter((s) => s !== 'All'), r.status || (isDamageDefault ? 'In Progress' : 'Scheduled'))}
           </div>

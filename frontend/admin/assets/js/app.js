@@ -191,6 +191,7 @@ function renderActiveModule() {
       reloadBookingsData: () => hydrateBookingsFromDatabase({ silent: true }),
       reloadCustomersData: () => hydrateCustomersFromDatabase({ silent: true }),
       reloadPaymentsData: () => hydratePaymentsFromDatabase({ silent: true }),
+      reloadMaintenanceData: async () => { await hydrateMaintenanceFromDatabase({ silent: true }); renderActiveModule(); },
       reloadVehiclesData: async () => {
         await hydrateVehiclesFromCatalog({ silent: true });
         try {
