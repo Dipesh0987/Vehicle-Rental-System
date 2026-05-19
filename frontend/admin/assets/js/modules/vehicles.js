@@ -212,12 +212,45 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
       });
 
       const editForm = document.getElementById('editVehicleForm');
+
+      // Wire up image file picker to show preview and update URL field
+      const editImageFileInput = document.getElementById('editVehicleImageFile');
+      const editImagePreview = document.getElementById('editVehicleImagePreview');
+      const editImageUrlInput = document.getElementById('editVehiclePrimaryImageUrl');
+      let editSelectedFile = null;
+
+      editImageFileInput?.addEventListener('change', () => {
+        const file = editImageFileInput.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          notify('Image must be less than 5 MB', 'warn');
+          editImageFileInput.value = '';
+          return;
+        }
+        editSelectedFile = file;
+        const objectUrl = URL.createObjectURL(file);
+        if (editImagePreview) {
+          editImagePreview.innerHTML = `<img src="${objectUrl}" alt="New image" class="h-20 w-28 rounded-xl object-cover border border-brand-400 dark:border-brand-300" /><span class="text-xs font-semibold text-brand-600 dark:text-brand-300">${escapeHtml(file.name)}</span>`;
+        }
+      });
+
       editForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         try {
           if (!catalogService || (typeof catalogService.updateVehicle !== 'function' && typeof catalogService.saveVehicle !== 'function')) {
             throw new Error('Catalog service is unavailable.');
+          }
+
+          // If a file was selected, read it as data URL for the image
+          let resolvedImageUrl =
+            editImageUrlInput?.value?.trim() ||
+            selectedVehicle.primary_image_url ||
+            selectedVehicle.image;
+
+          if (editSelectedFile) {
+            const dataUrls = await readFilesAsDataUrls([editSelectedFile]);
+            if (dataUrls[0]) resolvedImageUrl = dataUrls[0];
           }
 
           const payload = {
@@ -234,10 +267,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
             available: document.getElementById('editVehicleAvailable')?.checked ?? (selectedVehicle.available ?? true),
             is_active: document.getElementById('editVehicleIsActive')?.checked ?? (selectedVehicle.is_active ?? true),
             brand: document.getElementById('editVehicleBrand')?.value?.trim() || selectedVehicle.brand || 'General',
-            primary_image_url:
-              document.getElementById('editVehiclePrimaryImageUrl')?.value?.trim() ||
-              selectedVehicle.primary_image_url ||
-              selectedVehicle.image,
+            primary_image_url: resolvedImageUrl,
           };
 
           if (!payload.name) {
@@ -256,13 +286,13 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
           } else {
             rerender?.();
           }
-          notify(`Vehicle ${selectedVehicle.id} updated successfully.`, 'success');
+          notify(`${payload.name || selectedVehicle.name || 'Vehicle'} updated successfully`, 'success');
         } catch (error) {
-          notify(`Failed to update vehicle ${selectedVehicle.id}: ${error.message}`, 'error');
+          notify(`Failed to update ${selectedVehicle.name || 'vehicle'}: ${error.message}`, 'error');
         }
       });
 
-      notify(`Editing ${id}`, 'info');
+      notify(`Editing ${selectedVehicle.name || id}`, 'info');
     });
   });
 
@@ -271,17 +301,18 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
       const id = button.getAttribute('data-delete-id');
       openModal({
         title: 'Confirm Vehicle Deletion',
-        content: `<p>Vehicle <strong>${id}</strong> will be removed from availability and hidden from booking channels.</p>`,
+        content: `<p><strong>${escapeHtml((data.vehicles.find((v) => v.id === id) || {}).name || id)}</strong> will be removed from availability and hidden from booking channels.</p>`,
         onConfirm: () => {
           if (!canDeleteWithWrite) {
             notify('Catalog write mode is unavailable', 'error');
             return;
           }
 
+          const vehicleName = (data.vehicles.find((v) => v.id === id) || {}).name || 'Vehicle';
           void (async () => {
             try {
               await catalogService.deleteVehicle(id);
-              notify(`Vehicle ${id} deleted`, 'success');
+              notify(`${vehicleName} deleted successfully`, 'success');
               if (typeof reloadVehiclesData === 'function') {
                 await reloadVehiclesData();
               } else {
@@ -472,7 +503,18 @@ function renderVehicleEditDrawer(vehicle) {
         <label class="flex items-center gap-2"><input id="editVehicleIsActive" type="checkbox" class="h-4 w-4" ${vehicle?.is_active !== false ? 'checked' : ''} /><span class="text-xs font-semibold">Is Active</span></label>
       </div>
 
-      <label class="block space-y-1"><span class="text-xs font-semibold">Upload Image</span><input type="file" class="w-full text-xs" /></label>
+      <div class="space-y-2">
+        <span class="text-xs font-semibold">Current Image</span>
+        <div id="editVehicleImagePreview" class="flex items-center gap-3">
+          ${safeImage ? `<img src="${safeImage}" alt="Current" class="h-20 w-28 rounded-xl object-cover border border-slate-200 dark:border-white/10" />` : '<p class="text-xs text-slate-400">No image set</p>'}
+        </div>
+        <label class="block space-y-1">
+          <span class="text-xs font-semibold">Replace Image (upload file)</span>
+          <input id="editVehicleImageFile" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" />
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Selecting a file will replace the current image. Max 5 MB.</p>
+        </label>
+      </div>
+
       <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
     </form>
   `;
@@ -776,6 +818,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
   const successText = form.querySelector('#vehicleSuccessText');
   let addAnotherMode = false;
   let addedCount = 0;
+  let lastAddedName = '';
 
   const closeOverlay = () => {
     state.previewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -922,7 +965,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
     // Show success banner briefly
     addedCount += 1;
     if (successBanner && successText) {
-      successText.textContent = `Vehicle added successfully! (${addedCount} added this session)`;
+      successText.textContent = `${lastAddedName || 'Vehicle'} added successfully! (${addedCount} added this session)`;
       successBanner.classList.remove('hidden');
       setTimeout(() => {
         successBanner.classList.add('hidden');
@@ -1048,7 +1091,8 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
         });
       }
 
-      notify('Vehicle added to database', 'success');
+      lastAddedName = values.name || 'Vehicle';
+      notify(`${lastAddedName} added successfully`, 'success');
 
       if (addAnotherMode) {
         addAnotherMode = false;
