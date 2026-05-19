@@ -1,7 +1,7 @@
 import { classMap } from '../config.js';
 import { renderBarChart, renderLineChart, renderPieChart } from '../charts.js';
 
-export function renderOverviewModule({ data }) {
+export function renderOverviewModule({ data, notify, onNavigate, onRefresh }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -64,10 +64,10 @@ export function renderOverviewModule({ data }) {
       </section>
 
       <section class="${classMap.panel} xl:col-span-6 p-4 sm:p-5">
-        <div class="mb-3 flex items-center justify-between">
-          <h3 class="text-base font-extrabold">Recent Activity</h3>
-          <button class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-200">View log</button>
-        </div>
+          <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-base font-extrabold">Recent Activity</h3>
+            <button id="viewAuditLogBtn" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-200">View log</button>
+          </div>
         <ul class="space-y-2">
           ${data.activities
             .map(
@@ -109,5 +109,49 @@ export function renderOverviewModule({ data }) {
     );
   });
 
+  host.querySelector('#viewAuditLogBtn')?.addEventListener('click', () => {
+    if (typeof onNavigate === 'function') {
+      onNavigate('auditLog');
+      return;
+    }
+    window.location.hash = '#auditLog';
+  });
+
+  // Clear any previous interval to avoid duplicate timers when modules re-render
+  if (window.adminActivityFeedInterval) {
+    clearInterval(window.adminActivityFeedInterval);
+  }
+
+  // Create a repeating interval to simulate / receive new activity events.
+  // Each tick prepends a new activity to `data.activities` and triggers an optional refresh.
+  window.adminActivityFeedInterval = window.setInterval(() => {
+    const event = nextActivityEvent();
+    const newActivity = {
+      id: `A-${Date.now()}`,
+      type: event.type,
+      detail: event.detail,
+      time: buildRelativeTime(),
+    };
+    data.activities.unshift(newActivity);
+    notify(`New event: ${event.type}`, 'success');
+    if (typeof onRefresh === 'function') {
+      onRefresh();
+    }
+  }, 5000);
+
   return host;
 }
+
+  function nextActivityEvent() {
+    const events = [
+      { type: 'Booking Created', detail: 'BK-4992 booked by Maya Singh' },
+      { type: 'Vehicle Returned', detail: 'Nissan Altima returned at Midtown garage' },
+      { type: 'Cancellation', detail: 'BK-4985 cancelled by customer' },
+      { type: 'Maintenance Alert', detail: 'Ford F-150 requires tire replacement' },
+    ];
+    return events[Math.floor(Math.random() * events.length)];
+  }
+
+  function buildRelativeTime() {
+    return 'Just now';
+  }
