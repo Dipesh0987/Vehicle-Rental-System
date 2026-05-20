@@ -32,7 +32,14 @@ export function createCatalogService({ data }) {
     createdAt: row.created_at || '',
     updatedAt: row.updated_at || '',
     image: row.primary_image_url || row.image_url || 'https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=640&q=80',
-    imageUrls: Array.isArray(row.image_urls) ? row.image_urls.filter(Boolean) : [],
+    imageUrls: (() => {
+      const raw = row.image_urls;
+      if (Array.isArray(raw)) return raw.filter(Boolean);
+      if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+        try { const p = JSON.parse(raw); return Array.isArray(p) ? p.filter(Boolean) : []; } catch { return []; }
+      }
+      return [];
+    })(),
   });
 
   async function getClient() {
@@ -184,9 +191,12 @@ export function createCatalogService({ data }) {
         available: vehicleInput.available !== undefined ? Boolean(vehicleInput.available) : true,
         is_active: vehicleInput.is_active !== undefined ? Boolean(vehicleInput.is_active) : true,
         brand: vehicleInput.brand || 'General',
-        image_urls: Array.isArray(vehicleInput.imageUrls) && vehicleInput.imageUrls.length
-          ? vehicleInput.imageUrls
-          : (rawImage ? [rawImage] : []),
+        image_urls: (() => {
+          const arr = Array.isArray(vehicleInput.imageUrls) && vehicleInput.imageUrls.length
+            ? vehicleInput.imageUrls
+            : (rawImage ? [rawImage] : []);
+          return arr;
+        })(),
       };
 
       if (id) {
