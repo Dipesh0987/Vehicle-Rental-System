@@ -524,7 +524,7 @@
 
     if (sameAsLastCreated || sameCustomer) {
       if (bookingCode) {
-        return "These dates are already reserved in your confirmed booking " + bookingCode + ". Choose a different date range for a new reservation.";
+        return "These dates are already reserved in your booking " + bookingCode + ". Choose a different date range for a new reservation.";
       }
 
       return "These dates are already reserved under your account. Choose a different date range for a new reservation.";

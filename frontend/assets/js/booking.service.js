@@ -4,7 +4,7 @@
   var BOOKING_TABLE_CANDIDATES = ["vehicle_bookings", "bookings"];
   var BOOKING_CHANGE_EVENT = "vrs:vehicle-booking-changed";
   var BOOKING_VERSION_KEY = "vrs:vehicle-booking-version";
-  var ACTIVE_BOOKING_STATUSES = ["pending", "confirmed"];
+  var ACTIVE_BOOKING_STATUSES = ["confirmed"];
   var ALL_BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
   var ALL_DRIVER_OPTIONS = ["self_drive", "with_driver"];
   var PAYMENT_DONE_COLUMNS = ["is_paid", "payment_done", "paid"];
