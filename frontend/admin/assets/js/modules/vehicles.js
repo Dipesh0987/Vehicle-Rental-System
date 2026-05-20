@@ -1234,25 +1234,37 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData, navigat
   });
 }
 
-async function readFilesAsDataUrls(files) {
-  const values = [];
-
-  for (let i = 0; i < files.length; i += 1) {
-    const file = files[i];
-    // eslint-disable-next-line no-await-in-loop
+async function compressImageFile(file, maxDim = 1024, quality = 0.75) {
+  const objectUrl = URL.createObjectURL(file);
+  try {
     const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => resolve(String(event?.target?.result || ''));
-      reader.onerror = () => reject(new Error('Unable to read selected image.'));
-      reader.readAsDataURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Unable to load image for compression.'));
+      img.src = objectUrl;
     });
-
-    if (dataUrl) {
-      values.push(dataUrl);
-    }
+    return dataUrl;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
   }
+}
 
-  return values;
+async function readFilesAsDataUrls(files) {
+  const results = await Promise.all(
+    Array.from(files).map((file) => compressImageFile(file).catch(() => null))
+  );
+  return results.filter(Boolean);
 }
 
 function isValidVehicleNumberFormat(value) {
