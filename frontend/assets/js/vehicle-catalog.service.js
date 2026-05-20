@@ -22,6 +22,11 @@
   var cachedVehicleTable = null;
   var cachedImageTable = null;
 
+  var _vehicleListCache = null;
+  var _vehicleListCacheTime = 0;
+  var _vehicleListCachePromise = null;
+  var VEHICLE_CACHE_TTL_MS = 60000;
+
   function normalizeString(value, fallback) {
     if (value === null || value === undefined) {
       return fallback || "";
@@ -1234,7 +1239,14 @@
     };
   }
 
+  function invalidateVehicleCache() {
+    _vehicleListCache = null;
+    _vehicleListCacheTime = 0;
+    _vehicleListCachePromise = null;
+  }
+
   function notifyCatalogChanged(source) {
+    invalidateVehicleCache();
     var version = Date.now();
 
     try {
@@ -1396,9 +1408,7 @@
     throw new Error(errorMessage(lastError));
   }
 
-  async function listVehicles(options) {
-    var includeInactive = Boolean(options && options.includeInactive);
-
+  async function _fetchAllVehicles() {
     var client = await getClient();
     var tableName = await resolveVehicleTable(client);
     if (!tableName) {
@@ -1415,17 +1425,42 @@
     var imageRows = await fetchVehicleImageRows(client, ids);
     var imageMap = buildImageMap(imageRows);
 
-    var normalized = rows.map(function (row) {
+    return rows.map(function (row) {
       return normalizeVehicleRecord(row, imageMap);
     });
+  }
+
+  async function _getCachedVehicles() {
+    var now = Date.now();
+    if (_vehicleListCache && (now - _vehicleListCacheTime) < VEHICLE_CACHE_TTL_MS) {
+      return _vehicleListCache;
+    }
+    if (_vehicleListCachePromise) {
+      return _vehicleListCachePromise;
+    }
+    _vehicleListCachePromise = _fetchAllVehicles().then(function (list) {
+      _vehicleListCache = list;
+      _vehicleListCacheTime = Date.now();
+      _vehicleListCachePromise = null;
+      return list;
+    }).catch(function (err) {
+      _vehicleListCachePromise = null;
+      throw err;
+    });
+    return _vehicleListCachePromise;
+  }
+
+  async function listVehicles(options) {
+    var includeInactive = Boolean(options && options.includeInactive);
+    var all = await _getCachedVehicles();
 
     if (!includeInactive) {
-      normalized = normalized.filter(function (vehicle) {
+      return all.filter(function (vehicle) {
         return vehicle.isActive;
       });
     }
 
-    return normalized;
+    return all;
   }
 
   async function listVehiclesForSearch() {
@@ -1590,5 +1625,6 @@
     touchCatalogVersion: function () {
       return notifyCatalogChanged("manual");
     },
+    invalidateCache: invalidateVehicleCache,
   };
 })();
