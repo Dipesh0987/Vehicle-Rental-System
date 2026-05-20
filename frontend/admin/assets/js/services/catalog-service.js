@@ -226,29 +226,53 @@ export function createCatalogService({ data }) {
 
       const client = await getClient();
 
-      // Try full soft-delete with status='inactive'; if DB check constraint
-      // rejects 'inactive', fall back to only toggling available/is_active.
-      let { error } = await client
+      // Attempt a real hard DELETE first — works for vehicles that have no
+      // related bookings or other FK-dependent records.
+      const hardDelete = await client
         .from(TABLE_NAME)
-        .update({ status: 'inactive', available: false, is_active: false })
+        .delete()
         .eq('id', id);
 
-      if (error && error.message && error.message.includes('check constraint')) {
-        const fallback = await client
-          .from(TABLE_NAME)
-          .update({ available: false, is_active: false })
-          .eq('id', id);
-        error = fallback.error;
+      if (hardDelete.error) {
+        const isFK = hardDelete.error.code === '23503'
+          || String(hardDelete.error.message || '').toLowerCase().includes('foreign key')
+          || String(hardDelete.error.message || '').toLowerCase().includes('violates');
+
+        if (!isFK) {
+          throw new Error(hardDelete.error.message || `Vehicle ${id} deletion failed.`);
+        }
+
+        // FK constraint exists (vehicle has linked bookings) — fall back to
+        // soft-delete. Try each status value until the DB accepts one.
+        const softStatuses = ['maintenance', 'available'];
+        let softError = null;
+
+        for (const s of softStatuses) {
+          const attempt = await client
+            .from(TABLE_NAME)
+            .update({ available: false, is_active: false, status: s })
+            .eq('id', id);
+
+          if (!attempt.error) { softError = null; break; }
+          softError = attempt.error;
+        }
+
+        // Last resort: update only the boolean flags (no status change).
+        if (softError) {
+          const last = await client
+            .from(TABLE_NAME)
+            .update({ available: false, is_active: false })
+            .eq('id', id);
+          if (last.error) {
+            throw new Error(last.error.message || `Vehicle ${id} deletion failed.`);
+          }
+        }
       }
 
-      if (error) {
-        throw new Error(error.message || `Vehicle ${id} soft deletion failed.`);
-      }
-
+      // Remove from the local in-memory list immediately so the UI updates
+      // without waiting for a DB round-trip.
       const index = data.vehicles.findIndex((vehicle) => vehicle.id === id);
-      if (index < 0) return { id };
-
-      const [deleted] = data.vehicles.splice(index, 1);
+      const [deleted] = index >= 0 ? data.vehicles.splice(index, 1) : [{ id }];
       invalidateCache();
       return deleted || { id };
     },

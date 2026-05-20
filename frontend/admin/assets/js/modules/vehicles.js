@@ -313,11 +313,10 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
             try {
               await catalogService.deleteVehicle(id);
               notify(`${vehicleName} deleted successfully`, 'success');
-              if (typeof reloadVehiclesData === 'function') {
-                await reloadVehiclesData();
-              } else {
-                rerender?.();
-              }
+              // deleteVehicle already removed the entry from data.vehicles, so
+              // re-render immediately without a DB round-trip (which would bring
+              // soft-deleted vehicles back).
+              rerender?.();
             } catch (error) {
               const message = catalogService && typeof catalogService.toPublicError === 'function'
                 ? catalogService.toPublicError(error, 'Unable to delete vehicle right now.')
