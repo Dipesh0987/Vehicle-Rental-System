@@ -49,21 +49,28 @@ export function computeSegmentUtilization({ bookings, vehicles, startDate, endDa
   for (const b of bList) {
     // Only count confirmed / active / completed bookings
     const status = String(b.status || '').toLowerCase();
-    if (status === 'cancelled') continue;
+    if (status === 'cancelled' || status === 'expired') continue;
 
-    const bStart = b.startDate ? new Date(b.startDate) : null;
-    const bEnd   = b.endDate   ? new Date(b.endDate)   : null;
+    const bStart = (b.startDate || b.start) ? new Date(b.startDate || b.start) : null;
+    const bEnd   = (b.endDate || b.end)     ? new Date(b.endDate || b.end)     : null;
     if (!bStart || !bEnd || isNaN(bStart) || isNaN(bEnd)) continue;
 
-    const seg = b.vehicleCategory || b.category || b.segment || 'Other';
+    // Resolve segment: prefer explicit category fields, then match via vehicleId
+    let seg = b.vehicleCategory || b.vehicleType || b.category || b.type || b.segment || '';
+    if ((!seg || seg === 'Vehicle') && b.vehicleId) {
+      const matchedVehicle = vList.find((v) => v.id === b.vehicleId);
+      if (matchedVehicle) seg = matchedVehicle.category || matchedVehicle.segment || 'Other';
+    }
+    if (!seg || seg === 'Vehicle') seg = 'Other';
+
     const days = overlapDays(bStart, bEnd, startDate, endDate);
     if (days > 0) {
       segmentBookedDays[seg] = (segmentBookedDays[seg] || 0) + days;
     }
   }
 
-  // Build result array — use all known segments, including those from SEGMENT_COLORS
-  const allSegments = new Set([...DEFAULT_SEGMENTS, ...Object.keys(segmentVehicleCounts)]);
+  // Build result array — only use segments that exist in the actual vehicle fleet
+  const allSegments = new Set([...Object.keys(segmentVehicleCounts)]);
   const result = [];
 
   for (const seg of allSegments) {

@@ -579,6 +579,21 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       });
       return;
     }
+
+    const printReceiptBtn = target.closest('[data-print-receipt-code]');
+    if (printReceiptBtn) {
+      const txCode = String(printReceiptBtn.getAttribute('data-print-receipt-code') || '').trim();
+      if (txCode) {
+        const receiptUrl = '../payment-receipt.html?payment=' + encodeURIComponent(txCode);
+        const printWindow = window.open(receiptUrl, '_blank');
+        if (printWindow) {
+          printWindow.addEventListener('load', function () {
+            setTimeout(function () { printWindow.print(); }, 800);
+          });
+        }
+      }
+      return;
+    }
   });
 
   [dateInput, statusSelect, typeSelect, paymentSelect].forEach((control) => {
@@ -900,6 +915,8 @@ function renderBookingDetailPage(row) {
         ` : ''}
 
         <div class="mt-4 flex flex-wrap gap-2">
+          ${hasPaymentReceipt && row.transactionId ? `<a href="../payment-receipt.html?payment=${encodeURIComponent(row.transactionId)}" target="_blank" class="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-300"><span class="material-symbols-outlined text-[16px]">receipt_long</span>View Receipt</a>` : ''}
+          ${hasPaymentReceipt && row.transactionId ? `<button type="button" data-print-receipt-code="${escapeHtml(row.transactionId)}" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10"><span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>Save as PDF</button>` : ''}
           <button type="button" data-edit-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Booking</button>
           <button type="button" data-delete-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" data-delete-booking-code="${escapeHtml(row && row.id ? row.id : '')}" class="rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600">Delete Booking</button>
         </div>

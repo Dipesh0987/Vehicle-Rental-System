@@ -76,6 +76,7 @@ class ContactPageModule {
     try {
       // Attempt to save to Supabase
       let saved = false;
+      let saveError = '';
       if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
         try {
           const client = await window.SupabaseClient.init();
@@ -88,24 +89,29 @@ class ContactPageModule {
               status: 'unread',
             }]);
             if (error) {
-              console.warn('Contact DB save failed (message still sent):', error.message);
+              saveError = error.message || 'Database error';
+              console.warn('Contact DB save failed:', saveError);
             } else {
               saved = true;
             }
           }
         } catch (dbErr) {
-          console.warn('Contact DB save failed (message still sent):', dbErr.message);
+          saveError = dbErr.message || 'Connection error';
+          console.warn('Contact DB save failed:', saveError);
         }
+      } else {
+        saveError = 'Database client not available';
       }
 
       // Track submission
       this.trackFormSubmission(formData);
 
-      // Show success message regardless — the message was "sent"
-      this.showSuccessMessage();
-
-      // Reset form
-      this.form.reset();
+      if (saved) {
+        this.showSuccessMessage();
+        this.form.reset();
+      } else {
+        this.showError('Could not deliver your message right now. Please try again or email us directly. (' + saveError + ')');
+      }
     } catch (err) {
       console.error('Contact form submission failed:', err);
       this.showError('Failed to send message. Please try again.');

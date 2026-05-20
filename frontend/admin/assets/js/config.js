@@ -27,7 +27,6 @@ export const classMap = {
 export const SEGMENT_COLORS = {
   SUV:      '#f08f5f',
   Sedan:    '#1f7668',
-  Bike:     '#5d90a5',
   Electric: '#e5bb5d',
   Luxury:   '#8f95b2',
 };

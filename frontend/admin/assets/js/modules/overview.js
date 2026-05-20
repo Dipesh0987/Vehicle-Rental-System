@@ -11,11 +11,18 @@ export function renderOverviewModule({ data, navigate }) {
   const availableDrivers = driverRows.filter((d) => d.availability === 'Available').length;
   const ws = getWorkshopSummaryCounts(data);
 
+  const vehiclesList = Array.isArray(data.vehicles) ? data.vehicles : [];
+  const availableVehicles = vehiclesList.filter((v) => String(v.status || '').toLowerCase() === 'available').length;
+  const bookingsList = Array.isArray(data.bookings) ? data.bookings : [];
+  const totalBookings = bookingsList.length;
+
+  const totalVehicleCount = data.metrics.totalVehicles || vehiclesList.length;
+
   const metrics = [
-    { label: 'Total Vehicles', value: data.metrics.totalVehicles, delta: '+3.2% this week' },
-    { label: 'Active Rentals', value: data.metrics.activeRentals, delta: '+8 currently in transit' },
-    { label: 'Daily Bookings', value: data.metrics.dailyBookings, delta: '+14.5% vs yesterday' },
-    { label: 'Revenue', value: formatNpr(data.metrics.revenue), delta: '+12.1% MTD' },
+    { label: 'Total Vehicles', value: totalVehicleCount, delta: `${availableVehicles} available now` },
+    { label: 'Active Rentals', value: data.metrics.activeRentals, delta: `${totalBookings} total bookings` },
+    { label: 'Daily Bookings', value: data.metrics.dailyBookings, delta: `Today's bookings` },
+    { label: 'Revenue', value: formatNpr(data.metrics.revenue), delta: 'From completed payments' },
     { label: 'Drivers', value: driverRows.length, delta: `${availableDrivers} available now` },
   ];
 
@@ -116,28 +123,49 @@ export function renderOverviewModule({ data, navigate }) {
     el.addEventListener('click', () => { if (navigate) navigate('bookings'); });
   });
 
+  // Build fleet category from vehicles if not already computed
+  let fleetCategory = Array.isArray(data.fleetCategory) ? data.fleetCategory : [];
+  if (!fleetCategory.length && vehiclesList.length) {
+    const counts = {};
+    vehiclesList.forEach((v) => {
+      const cat = String(v.category || 'Other').trim();
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    fleetCategory = Object.entries(counts)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
   queueMicrotask(() => {
-    renderLineChart(
-      'revenueChart',
-      data.revenueTrend.map((item) => item.label),
-      'Revenue',
-      data.revenueTrend.map((item) => item.revenue),
-      '#1f7668'
-    );
+    const revenueTrend = Array.isArray(data.revenueTrend) ? data.revenueTrend : [];
+    if (revenueTrend.length) {
+      renderLineChart(
+        'revenueChart',
+        revenueTrend.map((item) => item.label),
+        'Revenue',
+        revenueTrend.map((item) => item.revenue),
+        '#1f7668'
+      );
+    }
 
-    renderPieChart(
-      'fleetPieChart',
-      data.fleetCategory.map((item) => item.type),
-      data.fleetCategory.map((item) => item.count)
-    );
+    if (fleetCategory.length) {
+      renderPieChart(
+        'fleetPieChart',
+        fleetCategory.map((item) => item.type),
+        fleetCategory.map((item) => item.count)
+      );
+    }
 
-    const utilColors = data.utilization.map((item) => SEGMENT_COLORS[item.label] || '#94a3b8');
-    renderSegmentUtilizationChart(
-      'utilizationBarChart',
-      data.utilization.map((item) => item.label),
-      data.utilization.map((item) => item.value),
-      utilColors
-    );
+    const utilization = Array.isArray(data.utilization) ? data.utilization : [];
+    if (utilization.length) {
+      const utilColors = utilization.map((item) => SEGMENT_COLORS[item.label] || '#94a3b8');
+      renderSegmentUtilizationChart(
+        'utilizationBarChart',
+        utilization.map((item) => item.label),
+        utilization.map((item) => item.value),
+        utilColors
+      );
+    }
   });
 
   return host;

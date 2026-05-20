@@ -1,6 +1,9 @@
 export function createCatalogService({ data }) {
   const TABLE_NAME = 'vehicles';
   let clientPromise;
+  let vehicleCache = null;
+  let vehicleCacheTime = 0;
+  const CACHE_TTL_MS = 30000;
 
   const toLocalVehicle = (row) => ({
     id: row.id,
@@ -49,7 +52,17 @@ export function createCatalogService({ data }) {
     return clientPromise;
   }
 
+  function invalidateCache() {
+    vehicleCache = null;
+    vehicleCacheTime = 0;
+  }
+
   async function loadVehiclesFromDatabase() {
+    const now = Date.now();
+    if (vehicleCache && (now - vehicleCacheTime) < CACHE_TTL_MS) {
+      return vehicleCache;
+    }
+
     const client = await getClient();
     const { data: rows, error } = await client
       .from(TABLE_NAME)
@@ -69,7 +82,10 @@ export function createCatalogService({ data }) {
       return (fallback.data || []).map(toLocalVehicle);
     }
 
-    return (rows || []).map(toLocalVehicle);
+    const result = (rows || []).map(toLocalVehicle);
+    vehicleCache = result;
+    vehicleCacheTime = Date.now();
+    return result;
   }
 
   return {
@@ -197,6 +213,7 @@ export function createCatalogService({ data }) {
 
       const created = toLocalVehicle(inserted || record);
       data.vehicles.unshift(created);
+      invalidateCache();
       return created;
     },
 
@@ -223,6 +240,7 @@ export function createCatalogService({ data }) {
       if (index < 0) return { id };
 
       const [deleted] = data.vehicles.splice(index, 1);
+      invalidateCache();
       return deleted || { id };
     },
   };

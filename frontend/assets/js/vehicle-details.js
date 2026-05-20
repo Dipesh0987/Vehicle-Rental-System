@@ -283,6 +283,11 @@
             name: String(entry && entry.name ? entry.name : "Vehicle"),
             type: entryType,
             priceLabel: formatDetailCurrency(entryPrice) + " / day",
+            image: String(entry && (entry.primaryImageUrl || entry.imageUrl) ? (entry.primaryImageUrl || entry.imageUrl) : DEFAULT_FALLBACK_IMAGE),
+            seats: Number(entry && entry.seats ? entry.seats : 5),
+            fuelType: String(entry && entry.fuelType ? entry.fuelType : "Petrol"),
+            rating: Number(entry && entry.rating ? entry.rating : 0),
+            transmission: String(entry && entry.transmission ? entry.transmission : "Automatic"),
           };
         });
 
@@ -503,13 +508,28 @@
       var type = String(item && item.type ? item.type : "Vehicle");
       var priceLabel = String(item && item.priceLabel ? item.priceLabel : "View pricing");
       var href = id ? "vehicle-details.html?id=" + encodeURIComponent(id) : "vehicles.html";
+      var imgSrc = String(item && item.image ? item.image : DEFAULT_FALLBACK_IMAGE);
+      var seats = item && item.seats ? item.seats : '';
+      var fuelType = item && item.fuelType ? item.fuelType : '';
+      var rating = item && item.rating ? Number(item.rating).toFixed(1) : '';
 
-      return '<a href="' + href + '" class="flex items-center justify-between gap-3 rounded-2xl border border-[#d8e3de] bg-white px-4 py-3 transition hover:-translate-y-[1px] hover:shadow-[0_10px_18px_rgba(9,30,34,0.08)]">' +
-        '<span class="min-w-0">' +
+      var metaHtml = '';
+      if (seats || fuelType || rating) {
+        var metaParts = [];
+        if (seats) metaParts.push(seats + ' seats');
+        if (fuelType) metaParts.push(fuelType);
+        if (rating && rating !== '0.0') metaParts.push('★ ' + rating);
+        metaHtml = '<span class="block truncate text-[10px] text-[#6b8a8d] mt-0.5">' + metaParts.join(' · ') + '</span>';
+      }
+
+      return '<a href="' + href + '" class="flex items-center gap-3 rounded-2xl border border-[#d8e3de] bg-white px-3 py-3 transition hover:-translate-y-[1px] hover:shadow-[0_10px_18px_rgba(9,30,34,0.08)]">' +
+        '<img src="' + imgSrc + '" alt="' + name + '" class="h-14 w-20 flex-shrink-0 rounded-xl object-cover" loading="lazy" onerror="this.src=\'' + DEFAULT_FALLBACK_IMAGE + '\'"/>' +
+        '<span class="min-w-0 flex-1">' +
           '<span class="block truncate text-[13px] font-semibold text-[#29494c]">' + name + '</span>' +
           '<span class="block truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5a7376]">' + type + '</span>' +
+          metaHtml +
         '</span>' +
-        '<span class="text-[12px] font-semibold text-[#1f5b57]">' + priceLabel + '</span>' +
+        '<span class="flex-shrink-0 text-[12px] font-semibold text-[#1f5b57]">' + priceLabel + '</span>' +
         '</a>';
     }).join("");
   }

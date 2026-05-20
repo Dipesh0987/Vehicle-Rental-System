@@ -963,15 +963,13 @@ async function sendReceiptEmail(params: {
     return;
   }
 
-  // Dev-redirect: when RESEND_DEV_REDIRECT_TO is set we still address the
-  // mail to that single inbox (Resend free tier won't deliver elsewhere
-  // until a domain is verified). The original recipient is preserved in
-  // the subject and a banner so it stays obvious which booking the email
-  // is for. When the var is empty we behave exactly like before.
+  // Dev-redirect: on Resend free tier (from = @resend.dev) emails can ONLY
+  // be delivered to the verified account email. Always redirect in that case
+  // to avoid 403 errors. The original recipient is preserved in the subject.
   const originalRecipient = params.to;
+  const isFreeTier = PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev");
   const isRedirected =
-    RESEND_DEV_REDIRECT_TO.length > 0
-    && RESEND_DEV_REDIRECT_TO !== originalRecipient.toLowerCase();
+    isFreeTier && RESEND_DEV_REDIRECT_TO.length > 0;
   const actualRecipient = isRedirected ? RESEND_DEV_REDIRECT_TO : originalRecipient;
 
   const subject = isRedirected

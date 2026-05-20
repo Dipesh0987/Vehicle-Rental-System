@@ -31,7 +31,6 @@ export const navItems = [
     children: [
       { id: 'contacts', label: 'Contact Messages', icon: 'mail' },
       { id: 'maintenance', label: 'Maintenance', icon: 'build' },
-      { id: 'reviews', label: 'Reviews', icon: 'rate_review' },
       { id: 'notifications', label: 'Notifications', icon: 'notifications' },
     ],
   },
@@ -77,12 +76,28 @@ const renderNavLinks = (items) =>
 const renderQuickActions = () =>
   quickActions
     .map(
-      (action) => `<button data-quick-action="${action.id}" class="quick-action whitespace-nowrap rounded-xl border border-slate-200 bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:border-white/30 dark:hover:bg-white/10">
-        <span class="material-symbols-outlined mr-1 text-[16px] align-middle">${action.icon}</span>
-        <span>${action.label}</span>
+      (action) => `<button data-quick-action="${action.id}" class="quick-action whitespace-nowrap rounded-lg border border-slate-200 bg-white/80 px-2 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:border-white/30 dark:hover:bg-white/10" title="${action.label}">
+        <span class="material-symbols-outlined text-[16px] align-middle">${action.icon}</span>
+        <span class="ml-1 hidden xl:inline">${action.label}</span>
       </button>`
     )
     .join('');
+
+function getAdminDisplayName() {
+  if (window.AdminAuth && typeof window.AdminAuth.getDisplayName === 'function') {
+    return window.AdminAuth.getDisplayName();
+  }
+  return 'Admin';
+}
+
+function getAdminInitials() {
+  const name = getAdminDisplayName();
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return (name.slice(0, 2) || 'AD').toUpperCase();
+}
 
 export function renderShell() {
   return `
@@ -121,31 +136,33 @@ export function renderShell() {
 
     <div class="min-w-0 flex-1">
       <header class="sticky top-0 z-30 border-b border-black/10 bg-white/70 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-black/25">
-        <div class="flex items-center gap-2">
-          <button id="sidebarToggleBtn" class="rounded-lg p-2 text-slate-700 hover:bg-slate-900/10 lg:hidden dark:text-slate-100 dark:hover:bg-white/10" aria-label="Open sidebar">
+        <div class="flex flex-nowrap items-center gap-2 sm:gap-3">
+          <button id="sidebarToggleBtn" class="flex-shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-900/10 lg:hidden dark:text-slate-100 dark:hover:bg-white/10" aria-label="Open sidebar">
             <span id="sidebarToggleIcon" class="material-symbols-outlined">menu</span>
           </button>
 
-          <label class="relative min-w-0 w-48 flex-shrink flex-grow max-w-[320px]">
+          <label class="relative min-w-0 flex-1 max-w-xs">
             <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
-            <input id="globalSearch" placeholder="Search bookings, customer, invoice, vehicle..." class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
+            <input id="globalSearch" placeholder="Search bookings, vehicles…" class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-xs font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
           </label>
 
-          <div id="quickActions" class="hidden items-center gap-1.5 flex-shrink-0 lg:flex">${renderQuickActions()}</div>
+          <div id="quickActions" class="hidden items-center gap-2 flex-shrink-0 lg:flex">${renderQuickActions()}</div>
 
-          <button id="notificationBtn" class="relative flex-shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Notifications">
-            <span class="material-symbols-outlined">notifications</span>
-            <span id="notificationBadgeCount" class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">3</span>
-          </button>
+          <div class="ml-auto flex flex-shrink-0 items-center gap-2">
+            <button id="notificationBtn" class="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Notifications">
+              <span class="material-symbols-outlined text-[20px]">notifications</span>
+              <span id="notificationBadgeCount" class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">3</span>
+            </button>
 
-          <button id="themeToggle" class="flex-shrink-0 rounded-xl border border-slate-200 bg-white p-2 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme">
-            <span class="material-symbols-outlined">contrast</span>
-          </button>
+            <button id="themeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme">
+              <span class="material-symbols-outlined text-[20px]">contrast</span>
+            </button>
 
-          <button id="profileBtn" class="flex flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 dark:border-white/10 dark:bg-white/5">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-xs font-bold text-white">AG</span>
-            <span class="hidden text-sm font-semibold sm:inline">Ariana Gray</span>
-          </button>
+            <button id="profileBtn" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5">
+              <span id="profileInitials" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-[11px] font-bold text-white">${getAdminInitials()}</span>
+              <span id="profileDisplayName" class="hidden text-xs font-semibold xl:inline dark:text-slate-100">${escapeHtml(getAdminDisplayName())}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -308,6 +325,21 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onSea
   mobileBackdrop?.addEventListener('click', () => closeMobileSidebar());
 
   initSidebarBehavior();
+
+  // Profile dropdown
+  const profileBtn = document.getElementById('profileBtn');
+  if (profileBtn) {
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleAdminProfilePanel();
+    });
+    document.addEventListener('pointerdown', (e) => {
+      const panel = document.getElementById('adminProfilePanel');
+      if (panel && !panel.contains(e.target) && !profileBtn.contains(e.target)) {
+        panel.remove();
+      }
+    });
+  }
 }
 
 export function setActiveNav(id) {
@@ -513,4 +545,193 @@ function closeMobileSidebar(immediate = false) {
   }
 
   mobileSidebarHideTimer = window.setTimeout(finalizeClose, MOBILE_TRANSITION_MS);
+}
+
+const ADMIN_AVATAR_STORAGE_KEY = 'vrs_admin_avatar_url';
+
+function getStoredAdminAvatar() {
+  try { return window.localStorage.getItem(ADMIN_AVATAR_STORAGE_KEY) || ''; } catch (_e) { return ''; }
+}
+
+function setStoredAdminAvatar(url) {
+  try { window.localStorage.setItem(ADMIN_AVATAR_STORAGE_KEY, url || ''); } catch (_e) { /* ignore */ }
+}
+
+function updateHeaderAvatar(avatarUrl) {
+  const initialsEl = document.getElementById('profileInitials');
+  if (!initialsEl) return;
+  if (avatarUrl) {
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = 'Admin';
+    img.className = 'h-8 w-8 rounded-full object-cover';
+    img.onerror = function () { this.replaceWith(initialsEl.cloneNode(true)); };
+    initialsEl.replaceWith(img);
+    img.id = 'profileInitials';
+  }
+}
+
+function initAdminAvatar() {
+  const stored = getStoredAdminAvatar();
+  if (stored) {
+    queueMicrotask(() => updateHeaderAvatar(stored));
+  }
+  // Also try to fetch from Supabase session
+  const auth = window.VehicleAuthService;
+  if (auth && typeof auth.getSession === 'function') {
+    auth.getSession().then(function (session) {
+      if (!session || !session.user) return;
+      const meta = session.user.user_metadata || {};
+      const avatarUrl = meta.avatar_url || meta.avatarUrl || '';
+      if (avatarUrl) {
+        setStoredAdminAvatar(avatarUrl);
+        updateHeaderAvatar(avatarUrl);
+      }
+    }).catch(function () { /* ignore */ });
+  }
+}
+
+// Auto-init avatar when shell loads
+queueMicrotask(initAdminAvatar);
+
+function toggleAdminProfilePanel() {
+  const existing = document.getElementById('adminProfilePanel');
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  const name = getAdminDisplayName();
+  const initials = getAdminInitials();
+  const storedAvatar = getStoredAdminAvatar();
+  let email = '';
+  let role = 'Admin';
+  if (window.AdminAuth && typeof window.AdminAuth.getSession === 'function') {
+    const session = window.AdminAuth.getSession();
+    if (session) {
+      email = session.email || '';
+      role = (session.role || 'admin').replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+  }
+
+  const avatarHtml = storedAvatar
+    ? `<img id="adminPanelAvatar" src="${escapeHtml(storedAvatar)}" alt="Admin" class="h-14 w-14 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-md" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';" />
+       <span class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-base font-bold text-white" style="display:none">${escapeHtml(initials)}</span>`
+    : `<span class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-base font-bold text-white">${escapeHtml(initials)}</span>`;
+
+  const panel = document.createElement('div');
+  panel.id = 'adminProfilePanel';
+  panel.className = 'absolute right-4 top-[60px] z-[100] w-80 origin-top-right rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_20px_45px_rgba(0,0,0,0.12)] dark:border-white/10 dark:bg-[#1a2228]';
+  panel.innerHTML = `
+    <div class="flex flex-col items-center gap-2 mb-4">
+      <div class="relative group cursor-pointer" id="adminAvatarWrapper">
+        ${avatarHtml}
+        <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition pointer-events-none">
+          <span class="material-symbols-outlined text-white text-[20px]">photo_camera</span>
+        </div>
+        <input id="adminAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" title="Upload profile image" />
+      </div>
+      <p id="adminAvatarStatus" class="text-[11px] font-medium text-slate-400 dark:text-slate-500 h-4"></p>
+      <p class="text-sm font-bold truncate dark:text-slate-100">${escapeHtml(name)}</p>
+      <p class="text-xs text-slate-500 truncate dark:text-slate-400">${escapeHtml(email || 'admin@system')}</p>
+    </div>
+    <div class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+      <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Role</p>
+      <p class="mt-0.5 text-sm font-semibold dark:text-slate-200">${escapeHtml(role)}</p>
+    </div>
+    ${storedAvatar ? `<button id="adminRemoveAvatar" class="mb-2 w-full rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-500 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:border-amber-400/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300">Remove Photo</button>` : ''}
+    <button id="adminProfileLogout" class="w-full rounded-xl border border-slate-200 bg-white py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-rose-400/40 dark:hover:bg-rose-500/10 dark:hover:text-rose-300">Logout</button>
+  `;
+
+  const header = document.querySelector('header.sticky');
+  if (header) {
+    header.style.position = 'relative';
+    header.appendChild(panel);
+  } else {
+    document.body.appendChild(panel);
+  }
+
+  // Handle avatar upload
+  const avatarInput = panel.querySelector('#adminAvatarInput');
+  const statusEl = panel.querySelector('#adminAvatarStatus');
+  if (avatarInput) {
+    avatarInput.addEventListener('change', async () => {
+      const file = avatarInput.files && avatarInput.files[0];
+      if (!file) return;
+
+      const auth = window.VehicleAuthService;
+      if (!auth || typeof auth.uploadProfileImage !== 'function' || typeof auth.upsertProfile !== 'function') {
+        if (statusEl) { statusEl.textContent = 'Upload service unavailable'; statusEl.className = 'text-[11px] font-medium text-rose-500 h-4'; }
+        return;
+      }
+
+      if (statusEl) { statusEl.textContent = 'Uploading...'; statusEl.className = 'text-[11px] font-medium text-brand-600 dark:text-brand-400 h-4 animate-pulse'; }
+
+      try {
+        const uploadedUrl = await auth.uploadProfileImage(file);
+        await auth.upsertProfile({ fullName: name, avatarUrl: uploadedUrl });
+
+        setStoredAdminAvatar(uploadedUrl);
+        updateHeaderAvatar(uploadedUrl);
+
+        // Update panel avatar
+        const wrapper = panel.querySelector('#adminAvatarWrapper');
+        if (wrapper) {
+          const existingImg = wrapper.querySelector('#adminPanelAvatar');
+          if (existingImg) {
+            existingImg.src = uploadedUrl;
+          } else {
+            const newImg = document.createElement('img');
+            newImg.id = 'adminPanelAvatar';
+            newImg.src = uploadedUrl;
+            newImg.alt = 'Admin';
+            newImg.className = 'h-14 w-14 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-md';
+            const fallbackSpan = wrapper.querySelector('span');
+            if (fallbackSpan) fallbackSpan.style.display = 'none';
+            wrapper.insertBefore(newImg, wrapper.firstChild);
+          }
+        }
+
+        if (statusEl) { statusEl.textContent = 'Photo updated!'; statusEl.className = 'text-[11px] font-medium text-emerald-600 dark:text-emerald-400 h-4'; }
+        pushToast('Profile image updated', 'success');
+      } catch (err) {
+        const msg = (err && err.message) || 'Upload failed';
+        if (statusEl) { statusEl.textContent = msg; statusEl.className = 'text-[11px] font-medium text-rose-500 h-4'; }
+        pushToast('Image upload failed: ' + msg, 'error');
+      }
+
+      avatarInput.value = '';
+    });
+  }
+
+  // Handle remove avatar
+  panel.querySelector('#adminRemoveAvatar')?.addEventListener('click', async () => {
+    const auth = window.VehicleAuthService;
+    if (auth && typeof auth.upsertProfile === 'function') {
+      try {
+        await auth.upsertProfile({ fullName: name, avatarUrl: '' });
+      } catch (_e) { /* best effort */ }
+    }
+    setStoredAdminAvatar('');
+    // Restore initials in header
+    const headerAvatarEl = document.getElementById('profileInitials');
+    if (headerAvatarEl) {
+      const span = document.createElement('span');
+      span.id = 'profileInitials';
+      span.className = 'inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(140deg,#1f7668,#1b5f8b)] text-[11px] font-bold text-white';
+      span.textContent = getAdminInitials();
+      headerAvatarEl.replaceWith(span);
+    }
+    panel.remove();
+    pushToast('Profile image removed', 'success');
+  });
+
+  panel.querySelector('#adminProfileLogout')?.addEventListener('click', () => {
+    panel.remove();
+    if (window.AdminAuth && typeof window.AdminAuth.signOut === 'function') {
+      window.AdminAuth.signOut();
+    } else {
+      window.location.assign('login.html');
+    }
+  });
 }

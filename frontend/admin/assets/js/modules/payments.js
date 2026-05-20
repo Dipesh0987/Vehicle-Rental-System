@@ -149,6 +149,7 @@ function renderTableRow(row) {
     <td class="py-3 pr-3 text-xs">
       ${row.receiptCode ? `<div class="font-semibold">${escapeHtml(row.receiptCode)}</div>` : '<div class="text-slate-400">-</div>'}
       ${row.receiptEmailStatus ? `<div class="${receiptEmailToneClass(row.receiptEmailStatus)}">${escapeHtml(row.receiptEmailStatus)}</div>` : ''}
+      ${row.status === 'completed' && row.transactionCode ? `<a href="../payment-receipt.html?payment=${encodeURIComponent(row.transactionCode)}" target="_blank" class="mt-1 inline-flex items-center gap-0.5 text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-200" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">receipt_long</span><span>View</span></a>` : ''}
     </td>
     <td class="py-3 pr-3 text-xs text-slate-500">${escapeHtml(formatDateTime(row.paidAt || row.createdAt))}</td>
   </tr>`;
@@ -172,6 +173,8 @@ function renderPaymentDetailPage(row) {
         <span>Back to Payments</span>
       </button>
       <div class="flex flex-wrap items-center gap-2">
+        ${isCompleted && row.transactionCode ? `<a href="../payment-receipt.html?payment=${encodeURIComponent(row.transactionCode)}" target="_blank" class="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-300"><span class="material-symbols-outlined text-[16px]">receipt_long</span><span>View Receipt</span></a>` : ''}
+        ${isCompleted && row.transactionCode ? `<button data-action="print-receipt" data-receipt-tx="${escapeHtml(row.transactionCode)}" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"><span class="material-symbols-outlined text-[16px]">picture_as_pdf</span><span>Save PDF</span></button>` : ''}
         ${isCompleted ? `<button data-action="resend-receipt" class="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-300"><span class="material-symbols-outlined text-[16px]">forward_to_inbox</span><span>Resend receipt</span></button>` : ''}
         <span class="${statusPillClass(row.status)}">${escapeHtml(prettyStatus(row.status))}</span>
       </div>
@@ -347,6 +350,21 @@ function wireDetailHandlers(host, row, { paymentsService, notify, reloadPayments
         paymentUiState.resending = false;
         resendBtn.disabled = false;
         resendBtn.innerHTML = original;
+      }
+    });
+  }
+
+  const printBtn = host.querySelector('[data-action="print-receipt"]');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      const txCode = String(printBtn.getAttribute('data-receipt-tx') || '').trim();
+      if (!txCode) return;
+      const receiptUrl = '../payment-receipt.html?payment=' + encodeURIComponent(txCode);
+      const printWindow = window.open(receiptUrl, '_blank');
+      if (printWindow) {
+        printWindow.addEventListener('load', function () {
+          setTimeout(function () { printWindow.print(); }, 800);
+        });
       }
     });
   }

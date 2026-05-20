@@ -172,7 +172,7 @@ export function renderPieChart(canvasId, labels, data) {
       datasets: [
         {
           data,
-          backgroundColor: ['#f08f5f', '#1f7668', '#5d90a5', '#e5bb5d', '#8f95b2'],
+          backgroundColor: ['#f08f5f', '#1f7668', '#e5bb5d', '#8f95b2', '#5d90a5', '#e87777', '#6bc5a0'],
           borderWidth: 0,
         },
       ],

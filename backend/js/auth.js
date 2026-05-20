@@ -1482,6 +1482,23 @@
         '<span class="material-symbols-outlined text-[16px]">receipt_long</span>' +
         '<span>View Receipt</span>';
       actions.appendChild(receiptBtn);
+
+      var pdfBtn = document.createElement("button");
+      pdfBtn.type = "button";
+      pdfBtn.className = "vrs-bookings-receipt-cta";
+      pdfBtn.innerHTML =
+        '<span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>' +
+        '<span>Save as PDF</span>';
+      pdfBtn.addEventListener("click", function () {
+        var pdfUrl = "payment-receipt.html?payment=" + encodeURIComponent(receiptCode);
+        var pdfWindow = window.open(pdfUrl, "_blank");
+        if (pdfWindow) {
+          pdfWindow.addEventListener("load", function () {
+            setTimeout(function () { pdfWindow.print(); }, 800);
+          });
+        }
+      });
+      actions.appendChild(pdfBtn);
     }
 
     if (canCancel) {
@@ -1536,32 +1553,53 @@
   }
 
   async function loadLatestCompletedPaymentsByBooking() {
-    if (!window.VehiclePaymentService || typeof window.VehiclePaymentService.listUserPayments !== "function") {
-      return {};
+    var byBooking = {};
+
+    // Strategy 1: Edge Function (uses customer_user_id)
+    if (window.VehiclePaymentService && typeof window.VehiclePaymentService.listUserPayments === "function") {
+      try {
+        var response = await window.VehiclePaymentService.listUserPayments();
+        var rows = (response && Array.isArray(response.payments)) ? response.payments : [];
+        rows.forEach(function (row) {
+          if (!row || row.status !== "completed") return;
+          var bookingId = String(row.booking_id || "").trim();
+          if (!bookingId) return;
+          if (!byBooking[bookingId]) {
+            byBooking[bookingId] = {
+              transactionCode: String(row.transaction_code || ""),
+              paymentId: String(row.id || ""),
+              paidAt: String(row.paid_at || ""),
+            };
+          }
+        });
+      } catch (_e) { /* ignore */ }
     }
 
-    try {
-      var response = await window.VehiclePaymentService.listUserPayments();
-      var rows = (response && Array.isArray(response.payments)) ? response.payments : [];
-      var byBooking = {};
-      rows.forEach(function (row) {
-        if (!row || row.status !== "completed") return;
-        var bookingId = String(row.booking_id || "").trim();
-        if (!bookingId) return;
-
-        // Keep the most recent (rows are pre-sorted desc by created_at).
-        if (!byBooking[bookingId]) {
+    // Strategy 2: Direct DB query fallback (uses customer_email from session)
+    if (Object.keys(byBooking).length === 0 && window.SupabaseClient && typeof window.SupabaseClient.init === "function") {
+      try {
+        var session = getSession();
+        var client = window.SupabaseClient.init();
+        var query = client.from("payments").select("id,booking_id,transaction_code,paid_at,status").eq("status", "completed").order("created_at", { ascending: false }).limit(50);
+        if (session && session.email) {
+          query = query.eq("customer_email", session.email);
+        }
+        var result = await query;
+        var dbRows = (result && Array.isArray(result.data)) ? result.data : [];
+        dbRows.forEach(function (row) {
+          if (!row) return;
+          var bookingId = String(row.booking_id || "").trim();
+          if (!bookingId || byBooking[bookingId]) return;
           byBooking[bookingId] = {
             transactionCode: String(row.transaction_code || ""),
             paymentId: String(row.id || ""),
             paidAt: String(row.paid_at || ""),
           };
-        }
-      });
-      return byBooking;
-    } catch (_e) {
-      return {};
+        });
+      } catch (_e2) { /* ignore */ }
     }
+
+    return byBooking;
   }
 
   async function renderBookingsWorkspace(modalRoot) {

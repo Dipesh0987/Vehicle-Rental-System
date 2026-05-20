@@ -147,6 +147,7 @@ async function bootstrap() {
     hydrate(hydrateAdminNotificationsFromDatabase),
   ]);
 
+  enrichBookingsWithPaymentData();
   await initializePricingModule();
   renderActiveModule();
 
@@ -159,7 +160,11 @@ async function bootstrap() {
   try {
     const vehicles = await catalogService.loadVehicles();
     if (Array.isArray(vehicles) && vehicles.length) {
-      appState.data.vehicles = vehicles;
+      const mapped = vehicles.map(mapCatalogVehicleToAdminRow);
+      appState.data.vehicles = mapped;
+      appState.data.metrics.totalVehicles = mapped.length;
+      rebuildFleetCategoryFromVehicles(mapped);
+      rebuildUtilizationFromData();
     }
   } catch (error) {
     pushToast(`Vehicle DB sync failed: ${error.message}`, 'error');
@@ -226,7 +231,7 @@ async function hydrateBookingsFromDatabase({ silent = false } = {}) {
   try {
     const rows = await appState.bookingService.listBookings();
     const normalizedRows = Array.isArray(rows)
-      ? rows.map(mapBookingToAdminRow)
+      ? rows.map(mapBookingToAdminRow).filter((r) => String(r.status || '').toLowerCase() !== 'expired')
       : [];
 
     appState.data.bookings = normalizedRows;
@@ -408,8 +413,9 @@ function renderGlobalSearchResults(query) {
     groupTitle:  isDark ? '#94a3b8'                    : '#64748b',
     label:       isDark ? '#f1f5f9'                    : '#0f172a',
     meta:        isDark ? '#94a3b8'                    : '#64748b',
-    badgeBg:     isDark ? 'rgba(255,255,255,0.07)'     : '#f8fafc',
-    badgeBorder: isDark ? 'rgba(255,255,255,0.12)'     : '#e2e8f0',
+    badgeBg:     isDark ? 'rgba(255,255,255,0.10)'     : '#f1f5f9',
+    badgeBorder: isDark ? 'rgba(255,255,255,0.18)'     : '#cbd5e1',
+    badgeText:   isDark ? '#e2e8f0'                    : '#334155',
     activeBg:    isDark ? 'rgba(31,118,104,0.22)'      : 'rgba(31,118,104,0.08)',
     hoverBg:     isDark ? 'rgba(255,255,255,0.05)'     : '#f1f5f9',
     dotActive:   '#1f7668',
@@ -450,7 +456,7 @@ function renderGlobalSearchResults(query) {
       html.push(`<span style="margin-top:0.25rem;height:0.625rem;width:0.625rem;flex-shrink:0;border-radius:9999px;background:${isActive ? clr.dotActive : clr.dotDefault};${isActive ? 'box-shadow:0 0 0 4px rgba(31,118,104,0.14);' : ''}"></span>`);
       html.push(`<span style="min-width:0;flex:1;">`);
       html.push(`<div style="font-size:0.875rem;font-weight:600;color:${clr.label};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.label)}</div>`);
-      html.push(`<div style="margin-top:0.25rem;display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:${clr.meta};"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.meta)}</span><span style="flex-shrink:0;border-radius:9999px;border:1px solid ${clr.badgeBorder};background:${clr.badgeBg};padding:0.1rem 0.5rem;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:${clr.meta};">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
+      html.push(`<div style="margin-top:0.25rem;display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:${clr.meta};"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.meta)}</span><span style="flex-shrink:0;border-radius:9999px;border:1px solid ${clr.badgeBorder};background:${clr.badgeBg};padding:0.1rem 0.5rem;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:${clr.badgeText};">${escapeHtml(searchTypeLabels[g.key] || g.title)}</span></div>`);
       html.push(`</span>`);
       html.push(`</button>`);
     }
@@ -609,6 +615,7 @@ async function hydrateVehiclesFromCatalog({ silent = false } = {}) {
 
     appState.data.vehicles = normalizedRows;
     appState.data.metrics.totalVehicles = normalizedRows.length;
+    rebuildFleetCategoryFromVehicles(normalizedRows);
 
     if (!silent) {
       pushToast('Vehicle catalog synced from database', 'success');
@@ -650,6 +657,7 @@ function setupBookingSync() {
   bookingUnsubscribe = appState.bookingService.subscribeToBookingChanges(async () => {
     await hydrateBookingsFromDatabase({ silent: true });
     await hydratePaymentsFromDatabase({ silent: true });
+    enrichBookingsWithPaymentData();
     if (appState.activeModule === 'bookings' || appState.activeModule === 'customers' || appState.activeModule === 'overview' || appState.activeModule === 'payments') {
       renderActiveModule();
     }
@@ -675,6 +683,7 @@ async function setupPaymentRealtimeSync() {
       debounceTimer = setTimeout(async () => {
         await hydrateBookingsFromDatabase({ silent: true });
         await hydratePaymentsFromDatabase({ silent: true });
+        enrichBookingsWithPaymentData();
         if (['bookings', 'payments', 'overview', 'customers'].includes(appState.activeModule)) {
           renderActiveModule();
         }
@@ -829,6 +838,42 @@ function prettyPaymentStatusLabel(statusKey) {
   if (!key) return 'Unpaid';
   if (key === 'partial') return 'Partially Paid';
   return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function enrichBookingsWithPaymentData() {
+  const payments = appState.data.payments || [];
+  if (!payments.length || !appState.data.bookings || !appState.data.bookings.length) return;
+
+  const paymentByBookingId = {};
+  payments.forEach(function (p) {
+    if (!p || p.status !== 'completed') return;
+    const bid = String(p.bookingId || '').trim();
+    if (!bid) return;
+    if (!paymentByBookingId[bid]) {
+      paymentByBookingId[bid] = p;
+    }
+  });
+
+  appState.data.bookings.forEach(function (booking) {
+    const bid = String(booking.bookingId || '').trim();
+    if (!bid) return;
+    const payment = paymentByBookingId[bid];
+    if (!payment) return;
+
+    if (!booking.paymentId) booking.paymentId = String(payment.id || '');
+    if (!booking.transactionId) booking.transactionId = String(payment.transactionCode || '');
+    if (!booking.paymentMethod) booking.paymentMethod = String(payment.method || '').toUpperCase();
+    if (!booking.paymentDate) booking.paymentDate = String(payment.paidAt || '');
+    if (!booking.paymentStatus || booking.paymentStatus === 'unpaid') {
+      booking.paymentStatus = 'paid';
+      booking.paymentStatusLabel = 'Paid';
+      booking.paymentDone = true;
+      booking.paymentLabel = 'Yes';
+    }
+    if (payment.amount && (!booking.paidAmount || booking.paidAmount === 0)) {
+      booking.paidAmount = Number(payment.amount);
+    }
+  });
 }
 
 async function hydratePaymentsFromDatabase({ silent = false } = {}) {
@@ -1338,6 +1383,192 @@ function updateBookingDrivenMetrics(rows) {
   appState.data.metrics.dailyBookings = dailyBookings;
   appState.data.metrics.activeRentals = activeRentals;
   appState.data.metrics.cancellations = cancellations;
+
+  rebuildUtilizationFromData();
+  rebuildRevenueTrendFromData();
+  rebuildRecentActivitiesFromData();
+  rebuildDynamicMetricDeltas();
+}
+
+function rebuildFleetCategoryFromVehicles(vehicleRows) {
+  const vehicles = Array.isArray(vehicleRows) ? vehicleRows : [];
+  if (!vehicles.length) {
+    appState.data.fleetCategory = [];
+    return;
+  }
+
+  const counts = {};
+  vehicles.forEach((v) => {
+    const cat = String(v.category || 'Other').trim();
+    counts[cat] = (counts[cat] || 0) + 1;
+  });
+
+  appState.data.fleetCategory = Object.entries(counts)
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function rebuildUtilizationFromData() {
+  const vehicles = Array.isArray(appState.data.vehicles) ? appState.data.vehicles : [];
+  const bookings = Array.isArray(appState.data.bookings) ? appState.data.bookings : [];
+  if (!vehicles.length) {
+    appState.data.utilization = [];
+    return;
+  }
+
+  // Use a 90-day rolling window so utilization reflects recent activity
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 90 * 86400000);
+  const windowEnd = now;
+  const totalDays = 90;
+
+  const segVehicles = {};
+  vehicles.forEach((v) => {
+    const seg = String(v.category || 'Other').trim();
+    segVehicles[seg] = (segVehicles[seg] || 0) + 1;
+  });
+
+  const segBooked = {};
+  bookings.forEach((b) => {
+    const status = String(b.status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'expired') return;
+    const bStart = b.start ? new Date(b.start) : null;
+    const bEnd = b.end ? new Date(b.end) : null;
+    if (!bStart || !bEnd || isNaN(bStart) || isNaN(bEnd)) return;
+
+    // Match booking to vehicle segment via vehicleId lookup
+    let seg = String(b.vehicleType || b.type || 'Other').trim();
+    if ((!seg || seg === 'Vehicle') && b.vehicleId) {
+      const matchedVehicle = vehicles.find((v) => v.id === b.vehicleId);
+      if (matchedVehicle) seg = String(matchedVehicle.category || 'Other').trim();
+    }
+    if (!seg || seg === 'Vehicle') seg = 'Other';
+
+    const s = Math.max(bStart.getTime(), windowStart.getTime());
+    const e = Math.min(bEnd.getTime(), windowEnd.getTime());
+    if (e <= s) return;
+    const days = Math.ceil((e - s) / 86400000);
+    segBooked[seg] = (segBooked[seg] || 0) + days;
+  });
+
+  // Always show all vehicle segments even if utilization is 0
+  const result = [];
+  Object.keys(segVehicles).forEach((seg) => {
+    const vc = segVehicles[seg] || 0;
+    const bd = segBooked[seg] || 0;
+    const cap = vc * totalDays;
+    const rate = cap > 0 ? Math.round((bd / cap) * 100) : 0;
+    result.push({ label: seg, value: Math.min(rate, 100) });
+  });
+
+  appState.data.utilization = result.sort((a, b) => b.value - a.value);
+}
+
+function rebuildRevenueTrendFromData() {
+  const payments = Array.isArray(appState.data.payments) ? appState.data.payments : [];
+  const bookings = Array.isArray(appState.data.bookings) ? appState.data.bookings : [];
+
+  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const now = new Date();
+  const trend = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const label = dayLabels[d.getDay()];
+
+    let revenue = 0;
+    let bookingCount = 0;
+
+    payments.forEach((p) => {
+      const pDate = String(p.paidAt || p.paid_at || p.createdAt || p.created_at || '').slice(0, 10);
+      if (pDate === iso && String(p.status || '').toLowerCase() === 'completed') {
+        revenue += Number(p.amount || 0);
+      }
+    });
+
+    bookings.forEach((b) => {
+      const bDate = String(b.createdAt || '').slice(0, 10);
+      if (bDate === iso) {
+        bookingCount += 1;
+      }
+    });
+
+    trend.push({ label, revenue: Math.round(revenue), bookings: bookingCount });
+  }
+
+  if (trend.some((t) => t.revenue > 0 || t.bookings > 0)) {
+    appState.data.revenueTrend = trend;
+  }
+}
+
+function rebuildRecentActivitiesFromData() {
+  const bookings = Array.isArray(appState.data.bookings) ? appState.data.bookings : [];
+  const payments = Array.isArray(appState.data.payments) ? appState.data.payments : [];
+
+  const activities = [];
+  const now = Date.now();
+
+  bookings.slice(0, 10).forEach((b) => {
+    const created = b.createdAt ? new Date(b.createdAt) : null;
+    if (!created || isNaN(created)) return;
+    const diff = Math.max(0, Math.round((now - created.getTime()) / 60000));
+    const timeLabel = diff < 1 ? 'Just now' : diff < 60 ? `${diff} min ago` : diff < 1440 ? `${Math.round(diff / 60)}h ago` : `${Math.round(diff / 1440)}d ago`;
+
+    const status = String(b.status || '').toLowerCase();
+    let type = 'Booking Created';
+    if (status === 'cancelled') type = 'Cancellation';
+    else if (status === 'confirmed') type = 'Booking Confirmed';
+    else if (status === 'completed') type = 'Rental Completed';
+
+    activities.push({
+      id: b.id || b.bookingId,
+      type,
+      detail: `${b.id} – ${b.vehicle} by ${b.customer}`,
+      time: timeLabel,
+      sortTime: created.getTime(),
+    });
+  });
+
+  payments.slice(0, 5).forEach((p) => {
+    const createdRaw = p.createdAt || p.created_at || p.paidAt || p.paid_at;
+    const created = createdRaw ? new Date(createdRaw) : null;
+    if (!created || isNaN(created)) return;
+    const diff = Math.max(0, Math.round((now - created.getTime()) / 60000));
+    const timeLabel = diff < 1 ? 'Just now' : diff < 60 ? `${diff} min ago` : diff < 1440 ? `${Math.round(diff / 60)}h ago` : `${Math.round(diff / 1440)}d ago`;
+
+    if (String(p.status || '').toLowerCase() === 'completed') {
+      activities.push({
+        id: p.transactionCode || p.transaction_code || p.id,
+        type: 'Payment Received',
+        detail: `NPR ${Number(p.amount || 0).toLocaleString()} via ${p.method || p.payment_method || 'eSewa'}`,
+        time: timeLabel,
+        sortTime: created.getTime(),
+      });
+    }
+  });
+
+  if (activities.length) {
+    activities.sort((a, b) => b.sortTime - a.sortTime);
+    appState.data.activities = activities.slice(0, 5);
+  }
+}
+
+function rebuildDynamicMetricDeltas() {
+  const bookings = Array.isArray(appState.data.bookings) ? appState.data.bookings : [];
+  const payments = Array.isArray(appState.data.payments) ? appState.data.payments : [];
+  const vehicles = Array.isArray(appState.data.vehicles) ? appState.data.vehicles : [];
+
+  // Total revenue from completed payments
+  let totalRevenue = 0;
+  payments.forEach((p) => {
+    if (String(p.status || '').toLowerCase() === 'completed') {
+      totalRevenue += Number(p.amount || 0);
+    }
+  });
+  appState.data.metrics.revenue = Math.round(totalRevenue);
+  appState.data.metrics.totalVehicles = vehicles.length;
 }
 
 function mapCatalogVehicleToAdminRow(vehicle) {

@@ -272,7 +272,15 @@ async function sendReceiptEmail(data: {
     return;
   }
 
-  const subject = `Rent A Vehicle Nepal - Payment Receipt ${data.transactionCode}`;
+  // On Resend free tier (from = @resend.dev) emails can ONLY be sent to the
+  // verified account email. Always redirect to dev inbox in that case to
+  // avoid 403 errors.
+  const isFreeTier = PAYMENT_RECEIPT_FROM_EMAIL.includes("@resend.dev");
+  const shouldRedirect = isFreeTier && RESEND_DEV_REDIRECT_TO.length > 0;
+  const actualTo = shouldRedirect ? RESEND_DEV_REDIRECT_TO : originalTo;
+  const subject = shouldRedirect
+    ? `[DEV - to: ${originalTo}] Rent A Vehicle Nepal - Payment Receipt ${data.transactionCode}`
+    : `Rent A Vehicle Nepal - Payment Receipt ${data.transactionCode}`;
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -282,7 +290,7 @@ async function sendReceiptEmail(data: {
     },
     body: JSON.stringify({
       from: PAYMENT_RECEIPT_FROM_EMAIL,
-      to: [originalTo],
+      to: [actualTo],
       subject,
       html: htmlContent,
     }),
@@ -290,42 +298,11 @@ async function sendReceiptEmail(data: {
 
   if (!response.ok) {
     const errorText = await response.text();
-
-    // Resend free-tier 403: retry sending to dev redirect email
-    const is403FreeTier = response.status === 403
-      && errorText.includes("validation_error")
-      && errorText.includes("testing emails")
-      && RESEND_DEV_REDIRECT_TO.length > 0;
-
-    if (is403FreeTier) {
-      const retrySubject = `[DEV - to: ${originalTo}] ${subject}`;
-      const retryResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: PAYMENT_RECEIPT_FROM_EMAIL,
-          to: [RESEND_DEV_REDIRECT_TO],
-          subject: retrySubject,
-          html: htmlContent,
-        }),
-      });
-      if (!retryResponse.ok) {
-        const retryMsg = await retryResponse.text();
-        console.error("Receipt email retry failed:", retryMsg);
-      } else {
-        console.info("Receipt email redirected to dev inbox", RESEND_DEV_REDIRECT_TO);
-      }
-      return;
-    }
-
-    console.error("Receipt email failed:", errorText);
+    console.error("Receipt email failed:", response.status, errorText);
     return;
   }
 
-  console.info("Receipt email sent to", originalTo);
+  console.info("Receipt email sent to", actualTo, shouldRedirect ? `(redirected from ${originalTo})` : "");
 }
 
 Deno.serve(async (request: Request) => {

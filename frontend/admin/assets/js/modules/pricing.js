@@ -31,6 +31,10 @@ export async function initializePricingModule() {
       .order('created_at', { ascending: false });
 
     if (error) {
+      // Table may not exist yet — suppress relation-not-found errors
+      if (error.code !== '42P01' && !(error.message || '').includes('does not exist')) {
+        console.warn('Pricing init:', error.message);
+      }
       pricingUiState.discountCodes = [];
       return;
     }
@@ -311,6 +315,25 @@ function setupPricingEventListeners(host, { notify, rerender }) {
   host.querySelector('#discountCodeForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = host.querySelector('#discountCodeForm');
+    // Get admin user ID for created_by field (required by DB constraint)
+    let adminUserId = null;
+    try {
+      const client = await getPricingClient();
+      if (client) {
+        const { data: { user } } = await client.auth.getUser();
+        adminUserId = user?.id || null;
+      }
+    } catch (_) { /* ignore */ }
+    // Fallback: try AdminAuth session
+    if (!adminUserId && window.AdminAuth && typeof window.AdminAuth.getSession === 'function') {
+      const session = window.AdminAuth.getSession();
+      adminUserId = session?.id || session?.userId || null;
+    }
+    if (!adminUserId) {
+      notify('Cannot create discount code: admin session not found. Please re-login.', 'error');
+      return;
+    }
+
     const formData = {
       code: form.querySelector('#codeInput').value.toUpperCase().trim(),
       description: form.querySelector('#descriptionInput').value.trim(),
@@ -321,10 +344,12 @@ function setupPricingEventListeners(host, { notify, rerender }) {
       max_uses: form.querySelector('#maxUsesInput').value ? parseInt(form.querySelector('#maxUsesInput').value) : null,
       min_booking_amount: form.querySelector('#minBookingInput').value ? parseFloat(form.querySelector('#minBookingInput').value) : null,
       max_discount_amount: form.querySelector('#maxDiscountInput').value ? parseFloat(form.querySelector('#maxDiscountInput').value) : null,
+      ...(adminUserId ? { created_by: adminUserId } : {}),
     };
 
     try {
       const client = await getPricingClient();
+      if (!client) throw new Error('Database not available. Please check Supabase connection.');
       const { data, error } = await client.from('discount_codes').insert([formData]).select();
       if (error) throw error;
 

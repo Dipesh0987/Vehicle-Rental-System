@@ -42,6 +42,8 @@ html[data-theme="dark"] {
 body.vrs-page {
   background: var(--vrs-bg) !important;
   color: var(--vrs-text);
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .vrs-theme-toggle {
