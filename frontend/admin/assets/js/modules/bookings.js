@@ -834,9 +834,10 @@ function renderBookingRow(row) {
     </td>
     <td data-col="total" class="py-3 pr-3 font-semibold">${escapeHtml(formatNpr(row.total || 0))}</td>
     <td data-col="actions" class="py-3 pr-3">
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <button data-edit-booking-id="${escapeHtml(bookingId)}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold dark:border-white/10">Edit</button>
         <button data-delete-booking-id="${escapeHtml(bookingId)}" data-delete-booking-code="${escapeHtml(bookingCode)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600">Delete</button>
+        ${currentStatus === 'Cancelled' ? `<button data-initiate-refund-booking-id="${escapeHtml(bookingId)}" class="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300">Refund</button>` : ''}
       </div>
     </td>
   </tr>`;
