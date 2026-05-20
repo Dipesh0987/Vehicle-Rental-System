@@ -93,10 +93,13 @@
     if (response.error) {
       var serverPayload = response.data || (await readFunctionErrorBody(response.error)) || {};
       var rawMessage = response.error.message || "";
-      var apiHint = describeNetworkError(rawMessage);
-      var apiMessage = apiHint || pickMessage(serverPayload, rawMessage || "Payment service error.");
+      // Only treat as network error if it is genuinely a fetch/network failure
+      var isFetchError = rawMessage.indexOf("Failed to send a request") >= 0 || rawMessage.indexOf("Failed to fetch") >= 0;
+      var apiMessage = isFetchError
+        ? describeNetworkError(rawMessage) || rawMessage
+        : pickMessage(serverPayload, rawMessage || "Payment service error.");
       var apiErr = new Error(apiMessage);
-      apiErr.code = apiHint ? "PAYMENT_NETWORK_ERROR" : "PAYMENT_API_ERROR";
+      apiErr.code = isFetchError ? "PAYMENT_NETWORK_ERROR" : "PAYMENT_API_ERROR";
       apiErr.payload = serverPayload;
       throw apiErr;
     }
