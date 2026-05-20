@@ -210,7 +210,7 @@ INSERT INTO vehicles (
   NOW(), NOW()
 ),
 (
-  'LS 500', 'Lexus', 'luxury', 'Luxury', 'Automatic', 'Hybrid', 5, 35000,
+  'LS 500', 'Lexus', 'luxury', 'Luxury', 'Automatic', 'Petrol', 5, 35000,
   5.0, 'Kathmandu', 'available', true, true,
   '["GPS Navigation", "Bluetooth", "USB Charging", "Sunroof", "Leather Seats", "Heated Seats", "Cruise Control", "Apple CarPlay", "Android Auto", "Reverse Camera", "Child Seat"]'::jsonb,
   'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=800&q=80',
