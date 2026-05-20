@@ -1603,6 +1603,104 @@
     detail.appendChild(money);
     detail.appendChild(extra);
     detail.appendChild(actions);
+
+    // Refund tracking card (async — appended after load)
+    void appendRefundTracker(detail, booking);
+  }
+
+  async function appendRefundTracker(container, booking) {
+    if (!window.VehicleRefundService || typeof window.VehicleRefundService.getRefundByBookingId !== "function") return;
+    var bookingId = String(booking.id || "").trim();
+    if (!bookingId) return;
+
+    try {
+      var refund = await window.VehicleRefundService.getRefundByBookingId(bookingId);
+      if (!refund) return;
+
+      var progress = window.VehicleRefundService.getRefundStepProgress(refund);
+      var fmtMoney = window.VehicleRefundService.formatRefundMoney;
+
+      var card = document.createElement("div");
+      card.className = "vrs-refund-tracker mt-4 rounded-2xl border p-4 text-[12px]";
+
+      if (progress.isCompleted) {
+        card.style.borderColor = "#86efac";
+        card.style.background = "linear-gradient(145deg, #f0fdf4, #dcfce7)";
+      } else if (progress.isRejected || progress.isFailed) {
+        card.style.borderColor = "#fca5a5";
+        card.style.background = "linear-gradient(145deg, #fef2f2, #fee2e2)";
+      } else {
+        card.style.borderColor = "#93c5fd";
+        card.style.background = "linear-gradient(145deg, #eff6ff, #dbeafe)";
+      }
+
+      var titleHtml = '<div class="flex items-center justify-between mb-3">' +
+        '<h4 class="text-[14px] font-bold" style="color:#1e3a5f">Refund Tracking — ' + escapeHtml(refund.refund_code || "") + '</h4>' +
+        '<span class="rounded-full px-2.5 py-1 text-[11px] font-semibold" style="background:rgba(30,58,95,0.1);color:#1e3a5f">' + escapeHtml(fmtMoney(refund.refund_amount)) + '</span>' +
+        '</div>';
+
+      // Step tracker
+      var stepsHtml = '<div class="flex items-center gap-0 mb-3" style="overflow-x:auto">';
+      for (var i = 0; i < progress.steps.length; i++) {
+        var step = progress.steps[i];
+        var circleColor = step.isComplete ? "#16a34a" : step.isActive ? "#2563eb" : "#cbd5e1";
+        var lineColor = step.isComplete ? "#16a34a" : "#e2e8f0";
+        var textColor = step.isComplete ? "#16a34a" : step.isActive ? "#2563eb" : "#94a3b8";
+
+        stepsHtml += '<div class="flex flex-col items-center text-center" style="min-width:70px;flex:1">';
+        stepsHtml += '<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:' + circleColor + ';color:white;font-size:14px">';
+        if (step.isComplete) {
+          stepsHtml += '<span class="material-symbols-outlined" style="font-size:16px">check</span>';
+        } else {
+          stepsHtml += '<span class="material-symbols-outlined" style="font-size:16px">' + escapeHtml(step.icon) + '</span>';
+        }
+        stepsHtml += '</div>';
+        stepsHtml += '<p style="margin-top:4px;font-size:10px;font-weight:600;color:' + textColor + '">' + escapeHtml(step.label) + '</p>';
+        if (step.timestamp) {
+          var d = new Date(step.timestamp);
+          stepsHtml += '<p style="font-size:9px;color:#94a3b8">' + d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + '</p>';
+        }
+        stepsHtml += '</div>';
+
+        if (i < progress.steps.length - 1) {
+          stepsHtml += '<div style="flex:1;height:2px;background:' + lineColor + ';margin-top:-16px;min-width:16px"></div>';
+        }
+      }
+      stepsHtml += '</div>';
+
+      // Info rows
+      var infoHtml = '<div class="grid grid-cols-2 gap-2 text-[11px]">';
+      infoHtml += '<p><span style="color:#64748b;display:block">Policy</span><strong style="color:#1e293b">' + escapeHtml(
+        refund.policy_rule === "full_refund" ? "Full refund (>24h)" :
+        refund.policy_rule === "partial_refund_50" ? "50% refund (2-24h)" :
+        refund.policy_rule === "no_refund" ? "No refund (<2h)" : "Manual"
+      ) + '</strong></p>';
+      infoHtml += '<p><span style="color:#64748b;display:block">Method</span><strong style="color:#1e293b">' + escapeHtml(
+        refund.refund_method === "original" ? "Original payment (eSewa)" :
+        refund.refund_method === "cash" ? "Cash" :
+        refund.refund_method === "bank_transfer" ? "Bank Transfer" : refund.refund_method || "—"
+      ) + '</strong></p>';
+      infoHtml += '<p><span style="color:#64748b;display:block">Original Paid</span><strong style="color:#1e293b">' + escapeHtml(fmtMoney(refund.original_paid_amount)) + '</strong></p>';
+      infoHtml += '<p><span style="color:#64748b;display:block">Refund Amount</span><strong style="color:#16a34a">' + escapeHtml(fmtMoney(refund.refund_amount)) + '</strong></p>';
+      infoHtml += '</div>';
+
+      // Status message
+      var statusMsg = "";
+      if (progress.isCompleted) {
+        statusMsg = '<div class="mt-3 rounded-xl px-3 py-2" style="background:rgba(22,163,74,0.1);color:#166534;border:1px solid rgba(22,163,74,0.2)"><strong>Refund completed!</strong> The amount has been returned to your ' + escapeHtml(refund.refund_method === "original" ? "eSewa wallet" : refund.refund_method || "account") + '.</div>';
+      } else if (progress.isRejected) {
+        statusMsg = '<div class="mt-3 rounded-xl px-3 py-2" style="background:rgba(220,38,38,0.1);color:#991b1b;border:1px solid rgba(220,38,38,0.2)"><strong>Refund rejected.</strong> ' + escapeHtml(progress.rejectionReason || "Contact support for details.") + '</div>';
+      } else if (progress.isFailed) {
+        statusMsg = '<div class="mt-3 rounded-xl px-3 py-2" style="background:rgba(220,38,38,0.1);color:#991b1b;border:1px solid rgba(220,38,38,0.2)"><strong>Refund failed.</strong> Please contact support for assistance.</div>';
+      } else {
+        statusMsg = '<div class="mt-3 rounded-xl px-3 py-2" style="background:rgba(37,99,235,0.1);color:#1e40af;border:1px solid rgba(37,99,235,0.2)"><strong>Refund in progress.</strong> You will receive an email notification when your refund is processed.</div>';
+      }
+
+      card.innerHTML = titleHtml + stepsHtml + infoHtml + statusMsg;
+      container.appendChild(card);
+    } catch (_e) {
+      // Refund table might not exist yet — silently skip
+    }
   }
 
   function buildPaymentLedgerHtml(booking) {

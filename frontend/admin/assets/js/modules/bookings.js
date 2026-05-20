@@ -580,6 +580,25 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       return;
     }
 
+    const refundBtn = target.closest('[data-initiate-refund-booking-id]');
+    if (refundBtn) {
+      const refundBookingId = String(refundBtn.getAttribute('data-initiate-refund-booking-id') || '').trim();
+      if (refundBookingId && window.VehicleRefundService) {
+        void handleInitiateRefund(refundBookingId, { notify, rerender, bookingService });
+      }
+      return;
+    }
+
+    const refundActionBtn = target.closest('[data-refund-action]');
+    if (refundActionBtn) {
+      const action = String(refundActionBtn.getAttribute('data-refund-action') || '');
+      const refundId = String(refundActionBtn.getAttribute('data-refund-id') || '');
+      if (action && refundId && window.VehicleRefundService) {
+        void handleRefundStatusAction(refundId, action, { notify, rerender });
+      }
+      return;
+    }
+
     const printReceiptBtn = target.closest('[data-print-receipt-code]');
     if (printReceiptBtn) {
       const txCode = String(printReceiptBtn.getAttribute('data-print-receipt-code') || '').trim();
@@ -595,6 +614,15 @@ export function renderBookingsModule({ data, query, notify, reloadBookingsData, 
       return;
     }
   });
+
+  // Auto-load refund status for the detail page
+  const refundSection = host.querySelector('#refundStatusSection');
+  if (refundSection) {
+    const rbid = String(refundSection.getAttribute('data-refund-booking-id') || '');
+    if (rbid && window.VehicleRefundService) {
+      void loadRefundStatusSection(refundSection, rbid, { notify, rerender });
+    }
+  }
 
   [dateInput, statusSelect, typeSelect, paymentSelect].forEach((control) => {
     control?.addEventListener('input', applyFiltersToTable);
@@ -919,7 +947,10 @@ function renderBookingDetailPage(row) {
           ${hasPaymentReceipt && row.transactionId ? `<button type="button" data-print-receipt-code="${escapeHtml(row.transactionId)}" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10"><span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>Save as PDF</button>` : ''}
           <button type="button" data-edit-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Booking</button>
           <button type="button" data-delete-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" data-delete-booking-code="${escapeHtml(row && row.id ? row.id : '')}" class="rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600">Delete Booking</button>
+          ${status === 'Cancelled' && hasPaymentReceipt ? `<button type="button" data-initiate-refund-booking-id="${escapeHtml(bookingId)}" class="inline-flex items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300"><span class="material-symbols-outlined text-[16px]">currency_exchange</span>Initiate Refund</button>` : ''}
         </div>
+
+        <div id="refundStatusSection" data-refund-booking-id="${escapeHtml(bookingId)}" class="mt-4"></div>
       </article>
 
       <aside class="space-y-3">
@@ -1037,3 +1068,238 @@ function paymentSelectClass(paymentDone, isDisabled) {
   return `${base} border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/20 dark:text-amber-200${disabled}`;
 }
 
+
+// ──────────────────────────────────────────────────────────────
+// Refund management functions
+// ──────────────────────────────────────────────────────────────
+
+async function handleInitiateRefund(bookingId, { notify, rerender, bookingService }) {
+  const RS = window.VehicleRefundService;
+  if (!RS) { notify('Refund service unavailable.', 'error'); return; }
+
+  try {
+    const elig = await RS.checkEligibility(bookingId);
+
+    if (!elig || typeof elig !== 'object') {
+      notify('Could not check refund eligibility.', 'error');
+      return;
+    }
+
+    const eligible = elig.eligible;
+    const policyLabel = elig.rule === 'full_refund' ? 'Full Refund (cancelled >24h before pickup)'
+      : elig.rule === 'partial_refund_50' ? '50% Refund (cancelled 2-24h before pickup)'
+      : elig.rule === 'no_refund' ? 'No Refund (cancelled <2h before pickup)' : 'Manual';
+
+    const content = `
+      <div class="space-y-3 text-sm">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Refund Policy Assessment</p>
+          <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <p><span class="text-slate-500">Booking:</span> <strong>${escapeHtml(String(elig.booking_code || bookingId))}</strong></p>
+            <p><span class="text-slate-500">Hours before pickup:</span> <strong>${Number(elig.hours_before_pickup || 0).toFixed(1)}h</strong></p>
+            <p><span class="text-slate-500">Original paid:</span> <strong>${RS.formatRefundMoney(elig.original_paid)}</strong></p>
+            <p><span class="text-slate-500">Policy:</span> <strong>${escapeHtml(policyLabel)}</strong></p>
+          </div>
+        </div>
+        ${eligible ? `
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-400/30 dark:bg-emerald-500/10">
+          <p class="font-bold text-emerald-700 dark:text-emerald-300">Refund Amount: ${RS.formatRefundMoney(elig.refund_amount)} (${elig.percentage}%)</p>
+          <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">${escapeHtml(String(elig.reason || ''))}</p>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300">Refund Method</label>
+          <select id="refundMethodSelect" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5">
+            <option value="original">Original Payment Method (eSewa)</option>
+            <option value="cash">Cash</option>
+            <option value="bank_transfer">Bank Transfer</option>
+          </select>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300">Admin Notes (optional)</label>
+          <textarea id="refundNotesInput" rows="2" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5" placeholder="Internal notes..."></textarea>
+        </div>
+        ` : `
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 dark:border-rose-400/30 dark:bg-rose-500/10">
+          <p class="font-bold text-rose-700 dark:text-rose-300">Not Eligible for Refund</p>
+          <p class="mt-1 text-xs text-rose-600 dark:text-rose-400">${escapeHtml(String(elig.reason || 'Cancellation was too close to pickup time.'))}</p>
+        </div>
+        `}
+      </div>
+    `;
+
+    openModal({
+      title: 'Initiate Refund',
+      content,
+      confirmLabel: eligible ? 'Create Refund' : 'Close',
+      onConfirm: eligible ? async () => {
+        const method = document.getElementById('refundMethodSelect')?.value || 'original';
+        const notes = document.getElementById('refundNotesInput')?.value || '';
+
+        try {
+          await RS.initiateRefund({
+            bookingId,
+            paymentId: null,
+            transactionCode: null,
+            customerUserId: elig.customer_user_id || null,
+            customerEmail: elig.customer_email || null,
+            customerName: elig.customer_name || null,
+            originalPaidAmount: elig.original_paid || 0,
+            refundAmount: elig.refund_amount || 0,
+            refundPercentage: elig.percentage || 0,
+            policyRule: elig.rule || 'manual',
+            pickupDate: elig.pickup_date || null,
+            cancelledAt: elig.cancelled_at || null,
+            hoursBeforePickup: elig.hours_before_pickup || 0,
+            refundMethod: method,
+            notes: notes || null,
+          });
+          notify('Refund initiated successfully.', 'success');
+          rerender?.();
+        } catch (err) {
+          notify('Failed to create refund: ' + (err.message || 'Unknown error'), 'error');
+        }
+      } : undefined,
+    });
+  } catch (err) {
+    notify('Refund eligibility check failed: ' + (err.message || 'Unknown error'), 'error');
+  }
+}
+
+async function handleRefundStatusAction(refundId, action, { notify, rerender }) {
+  const RS = window.VehicleRefundService;
+  if (!RS) return;
+
+  const statusMap = {
+    approve: 'approved',
+    process: 'processing',
+    complete: 'completed',
+    reject: 'rejected',
+    fail: 'failed',
+  };
+
+  const newStatus = statusMap[action];
+  if (!newStatus) return;
+
+  if (action === 'reject') {
+    const reason = window.prompt('Enter rejection reason:');
+    if (!reason) return;
+    try {
+      await RS.updateRefundStatus(refundId, newStatus, { rejectionReason: reason });
+      notify('Refund rejected.', 'success');
+      rerender?.();
+    } catch (err) {
+      notify('Failed: ' + (err.message || ''), 'error');
+    }
+    return;
+  }
+
+  if (action === 'complete') {
+    const ref = window.prompt('Enter refund reference (transaction ID, receipt number, etc.):') || '';
+    try {
+      await RS.updateRefundStatus(refundId, newStatus, { refundReference: ref, note: 'Refund completed' });
+      notify('Refund marked as completed.', 'success');
+
+      // Send email notification
+      try {
+        const client = window.SupabaseClient?.init();
+        if (client) {
+          await client.functions.invoke('process-refund', {
+            body: { action: 'send_refund_email', refundId },
+          });
+        }
+      } catch (_e) { /* email sending is best-effort */ }
+
+      rerender?.();
+    } catch (err) {
+      notify('Failed: ' + (err.message || ''), 'error');
+    }
+    return;
+  }
+
+  try {
+    await RS.updateRefundStatus(refundId, newStatus, { note: `Refund ${newStatus}` });
+    notify(`Refund ${newStatus}.`, 'success');
+    rerender?.();
+  } catch (err) {
+    notify('Failed: ' + (err.message || ''), 'error');
+  }
+}
+
+async function loadRefundStatusSection(container, bookingId, { notify, rerender }) {
+  const RS = window.VehicleRefundService;
+  if (!RS || !container) return;
+
+  try {
+    const refund = await RS.getRefundByBookingId(bookingId);
+    if (!refund) return;
+
+    const progress = RS.getRefundStepProgress(refund);
+    const fmtMoney = RS.formatRefundMoney;
+
+    let bgClass = 'border-blue-200 bg-blue-50 dark:border-blue-400/30 dark:bg-blue-500/10';
+    if (progress.isCompleted) bgClass = 'border-emerald-200 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-500/10';
+    if (progress.isRejected || progress.isFailed) bgClass = 'border-rose-200 bg-rose-50 dark:border-rose-400/30 dark:bg-rose-500/10';
+
+    // Step tracker
+    let stepsHtml = '<div class="flex items-center gap-0 my-3" style="overflow-x:auto">';
+    progress.steps.forEach((step, idx) => {
+      const circleClasses = step.isComplete ? 'bg-emerald-500 text-white' : step.isActive ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-300';
+      const textClass = step.isComplete ? 'text-emerald-600 dark:text-emerald-300' : step.isActive ? 'text-blue-600 dark:text-blue-300' : 'text-slate-400 dark:text-slate-500';
+      const lineClass = step.isComplete ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-slate-600';
+
+      stepsHtml += `<div class="flex flex-col items-center text-center" style="min-width:70px;flex:1">
+        <div class="flex h-7 w-7 items-center justify-center rounded-full ${circleClasses}">
+          <span class="material-symbols-outlined text-[14px]">${step.isComplete ? 'check' : escapeHtml(step.icon)}</span>
+        </div>
+        <p class="mt-1 text-[10px] font-semibold ${textClass}">${escapeHtml(step.label)}</p>
+        ${step.timestamp ? `<p class="text-[9px] text-slate-400">${new Date(step.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>` : ''}
+      </div>`;
+      if (idx < progress.steps.length - 1) {
+        stepsHtml += `<div class="h-0.5 flex-1 ${lineClass}" style="margin-top:-16px;min-width:12px"></div>`;
+      }
+    });
+    stepsHtml += '</div>';
+
+    // Action buttons based on current status
+    let actionsHtml = '';
+    if (!progress.isCompleted && !progress.isRejected && !progress.isFailed) {
+      const rid = escapeHtml(refund.id);
+      if (refund.status === 'initiated') {
+        actionsHtml = `<div class="mt-3 flex gap-2">
+          <button data-refund-action="approve" data-refund-id="${rid}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-300">Approve</button>
+          <button data-refund-action="reject" data-refund-id="${rid}" class="rounded-xl border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300">Reject</button>
+        </div>`;
+      } else if (refund.status === 'approved') {
+        actionsHtml = `<div class="mt-3 flex gap-2">
+          <button data-refund-action="process" data-refund-id="${rid}" class="rounded-xl border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-400/40 dark:bg-blue-500/10 dark:text-blue-300">Mark Processing</button>
+          <button data-refund-action="reject" data-refund-id="${rid}" class="rounded-xl border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300">Reject</button>
+        </div>`;
+      } else if (refund.status === 'processing') {
+        actionsHtml = `<div class="mt-3 flex gap-2">
+          <button data-refund-action="complete" data-refund-id="${rid}" class="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-300">Mark Completed</button>
+          <button data-refund-action="fail" data-refund-id="${rid}" class="rounded-xl border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-300">Mark Failed</button>
+        </div>`;
+      }
+    }
+
+    container.innerHTML = `
+      <div class="rounded-2xl border ${bgClass} p-4">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-extrabold">Refund — ${escapeHtml(refund.refund_code || '')}</h4>
+          <span class="rounded-full border border-slate-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider dark:border-white/10">${escapeHtml(refund.status || '')}</span>
+        </div>
+        ${stepsHtml}
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          ${renderBookingField('Policy', refund.policy_rule === 'full_refund' ? 'Full Refund (>24h)' : refund.policy_rule === 'partial_refund_50' ? '50% Refund (2-24h)' : refund.policy_rule === 'no_refund' ? 'No Refund (<2h)' : 'Manual')}
+          ${renderBookingField('Method', refund.refund_method === 'original' ? 'eSewa' : refund.refund_method === 'cash' ? 'Cash' : refund.refund_method === 'bank_transfer' ? 'Bank Transfer' : refund.refund_method || '-')}
+          ${renderBookingField('Original Paid', fmtMoney(refund.original_paid_amount))}
+          ${renderBookingField('Refund Amount', fmtMoney(refund.refund_amount))}
+          ${refund.refund_reference ? renderBookingField('Reference', refund.refund_reference) : ''}
+          ${refund.notes ? renderBookingField('Notes', refund.notes) : ''}
+          ${progress.isRejected ? renderBookingField('Rejection Reason', refund.rejection_reason || '-') : ''}
+        </div>
+        ${actionsHtml}
+      </div>
+    `;
+  } catch (_e) {
+    // refunds table may not exist yet
+  }
+}
