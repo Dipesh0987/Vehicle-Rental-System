@@ -1682,6 +1682,7 @@ function initTheme() {
 }
 
 function applyTheme(mode) {
+  document.documentElement.setAttribute('data-theme', mode);
   document.body.setAttribute('data-theme', mode);
   document.documentElement.classList.toggle('dark', mode === 'dark');
 }
