@@ -476,7 +476,10 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
   const vehicleMap = {};
-  for (const v of vehicles) { vehicleMap[v.name || v.vehicle_number || v.id] = v.vehicle_number || v.id; }
+  for (const v of vehicles) {
+    const label = v.name || v.vehicleNumber || v.vehicle_number || v.id;
+    vehicleMap[label] = v.id; // store UUID for vehicle_id FK
+  }
   const scheduledMinAttr = isEdit ? '' : `min="${todayStr}"`;
   const completedMinAttr = r.schedule ? `min="${r.schedule}"` : '';
   // For Damage type (default): hide schedule/completed/technician fields
@@ -870,7 +873,11 @@ function vehicleComboField(vehicles, selectedName, selectedId) {
       <input name="vehicle" list="maintVehicleList" value="${escapeHtml(selectedName || '')}" placeholder="Type to search vehicles..." required
         class="${inputCls}" />
       <datalist id="maintVehicleList">
-        ${vehicles.map((v) => `<option value="${escapeHtml(v.name || v.vehicle_number || v.id)}">${escapeHtml(v.vehicle_number || v.id)}</option>`).join('')}
+        ${vehicles.map((v) => {
+          const label = v.name || v.vehicleNumber || v.vehicle_number || v.id;
+          const num = v.vehicleNumber || v.vehicle_number || '';
+          return `<option value="${escapeHtml(label)}">${escapeHtml(num ? `${label} (${num})` : label)}</option>`;
+        }).join('')}
       </datalist>
     </div>
     <div>

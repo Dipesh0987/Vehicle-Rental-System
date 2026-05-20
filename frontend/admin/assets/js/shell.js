@@ -104,16 +104,11 @@ export function renderShell() {
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
     
     
-    <aside id="sidebar" class="sticky top-0 hidden h-screen w-[300px] flex-col border-r border-black/10 bg-white/75 p-5 backdrop-blur-xl lg:flex dark:border-white/10 dark:bg-black/20">
-      <div id="sidebarContent" class="flex h-full flex-col">
-        <div class="mb-6 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Control Center</p>
-            <h1 class="text-xl font-extrabold tracking-[-0.03em]">Fleet Admin</h1>
-          </div>
-          <button id="collapseSidebar" class="rounded-lg p-2 text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-white/10" aria-label="Collapse sidebar">
-            <span class="material-symbols-outlined text-[20px]">left_panel_close</span>
-          </button>
+    <aside id="sidebar" class="sticky top-0 hidden h-screen w-[300px] flex-col overflow-hidden border-r border-black/10 bg-white/75 p-5 backdrop-blur-xl transition-[width,padding,opacity,border] duration-300 lg:flex dark:border-white/10 dark:bg-black/20">
+      <div id="sidebarContent" class="flex h-full flex-col transition-[transform,opacity] duration-300">
+        <div class="mb-6">
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Control Center</p>
+          <h1 class="text-xl font-extrabold tracking-[-0.03em]">Fleet Admin</h1>
         </div>
 
         <nav class="scroll-thin flex-1 space-y-2 overflow-y-auto">
@@ -140,7 +135,7 @@ export function renderShell() {
 
           <!-- Search + quick actions fill remaining space -->          
           <div class="flex min-w-0 flex-1 items-center gap-2">
-            <label class="relative min-w-0 flex-1 max-w-xs">
+            <label class="relative min-w-0 flex-1">
               <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
               <input id="globalSearch" placeholder="Search bookings, vehicles…" class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-xs font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
             </label>
@@ -313,7 +308,7 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onSea
     });
   });
 
-  const sidebarToggleButtons = document.querySelectorAll('#sidebarToggleBtn, #collapseSidebar');
+  const sidebarToggleButtons = document.querySelectorAll('#sidebarToggleBtn');
   sidebarToggleButtons.forEach((button) => {
     button.addEventListener('click', handleSidebarToggle);
   });
