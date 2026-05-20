@@ -667,7 +667,7 @@
     }
   }
 
-  async function validateAndApplyPromoCode(state) {
+  async function handleApplyPromoClick(state) {
     var couponInput = byId("bookingCouponCode");
     var code = normalizeString(couponInput ? couponInput.value : "", "");
 
@@ -705,12 +705,21 @@
 
     // Validate promo code using Supabase RPC
     try {
-      if (!window.supabase) {
-        applyCouponStatus("This code is not valid for your booking");
+      var rpcClient = null;
+      if (window.SupabaseRuntime && window.SupabaseRuntime.client) {
+        rpcClient = window.SupabaseRuntime.client;
+      } else if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+        rpcClient = await window.SupabaseClient.init();
+      } else if (window.supabase) {
+        rpcClient = window.supabase;
+      }
+
+      if (!rpcClient || typeof rpcClient.rpc !== 'function') {
+        applyCouponStatus("Service unavailable. Try again.");
         return;
       }
 
-      var { data, error } = await window.supabase.rpc('validate_discount_code', {
+      var { data, error } = await rpcClient.rpc('validate_discount_code', {
         p_code: code.toUpperCase().trim(),
         p_booking_amount: baseQuote.totalAmount
       });
@@ -822,7 +831,7 @@
         }
 
         event.preventDefault();
-        validateAndApplyPromoCode(state);
+        handleApplyPromoClick(state);
       });
 
       couponCode.addEventListener("change", function () {
@@ -835,7 +844,7 @@
 
     if (applyCoupon) {
       applyCoupon.addEventListener("click", function () {
-        validateAndApplyPromoCode(state);
+        handleApplyPromoClick(state);
       });
     }
   }

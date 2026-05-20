@@ -10,11 +10,11 @@
 
   var FUNCTION_NAME = "esewa-payment";
 
-  function getClient() {
+  async function getClient() {
     if (!window.SupabaseClient || typeof window.SupabaseClient.init !== "function") {
       throw new Error("Supabase client is not loaded.");
     }
-    return window.SupabaseClient.init();
+    return await window.SupabaseClient.init();
   }
 
   function trim(value) {
