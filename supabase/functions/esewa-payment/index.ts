@@ -134,12 +134,27 @@ const PARTIAL_PAYMENT_PERCENT = clampPercent(
   0.6,
 );
 
-const ALLOWED_ORIGIN = (Deno.env.get("PAYMENT_WEBSITE_URL") ?? "").trim() || "*";
-const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const CONFIGURED_ORIGIN = (Deno.env.get("PAYMENT_WEBSITE_URL") ?? "").trim();
+
+function resolveAllowedOrigin(requestOrigin: string): string {
+  const origin = (requestOrigin || "").trim();
+  if (!CONFIGURED_ORIGIN) return "*";
+  if (origin === CONFIGURED_ORIGIN) return origin;
+  // Allow any localhost / 127.0.0.1 origin for local development
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
+  return CONFIGURED_ORIGIN;
+}
+
+function buildCorsHeaders(requestOrigin: string): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": resolveAllowedOrigin(requestOrigin),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+// Default headers used by helper functions (overridden per-request in serve)
+let corsHeaders: Record<string, string> = buildCorsHeaders("");
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for esewa-payment.");
@@ -1268,6 +1283,9 @@ async function handleExpireStale(_payload: JsonRecord, request: Request): Promis
 /* ------------------------------------------------------------------------- */
 
 Deno.serve(async (request: Request) => {
+  // Set CORS headers based on the actual request origin
+  corsHeaders = buildCorsHeaders(request.headers.get("origin") || "");
+
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
