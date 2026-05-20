@@ -5,13 +5,27 @@
  * MODIFIED: Optimized for Sprint 2 Vehicle Type filtering
  */
 
+const DEFAULT_MAX_PRICE_NPR = 50000;
+
+/** Normalize a string for flexible filter matching (hyphens/underscores → spaces). */
+function normalizeForMatch(str) {
+    return String(str || "").toLowerCase().replace(/[-_]+/g, " ").trim();
+}
+
 class SearchFilterManager {
     constructor() {
+        this.storageKey = "searchFilters:v2";
+        this.legacyStorageKey = "searchFilters";
         this.filters = this.initializeFilters();
+        this.dateAvailability = this.initializeDateAvailability();
         this.filteredVehicles = [];
         this.allVehicles = [];
         this.sortOrder = "relevance";
         this.listeners = new Set();
+        this.lastAppliedFilter = null; // Track the most recently applied filter
+        this.lastAppliedFilterValue = null; // Track the value of the last applied filter
+        // Always start with clean filters on page load
+        this.clearPersistedState();
     }
 
     /**
@@ -32,7 +46,7 @@ class SearchFilterManager {
 
             // Price filter
             minPrice: 0,
-            maxPrice: 500,
+            maxPrice: DEFAULT_MAX_PRICE_NPR,
 
             // Transmission filter
             transmissions: [], // 'manual', 'automatic'
@@ -71,6 +85,49 @@ class SearchFilterManager {
         };
     }
 
+    initializeDateAvailability() {
+        return {
+            active: false,
+            startDate: "",
+            endDate: "",
+            unavailableVehicleIds: new Set(),
+        };
+    }
+
+    setDateAvailability(context = {}) {
+        const startDate = String(context.startDate || "").trim();
+        const endDate = String(context.endDate || "").trim();
+        const sourceIds = context.unavailableVehicleIds;
+        const normalizedIds = [];
+
+        if (sourceIds instanceof Set) {
+            sourceIds.forEach((id) => {
+                const normalized = String(id || "").trim();
+                if (normalized) {
+                    normalizedIds.push(normalized);
+                }
+            });
+        } else if (Array.isArray(sourceIds)) {
+            sourceIds.forEach((id) => {
+                const normalized = String(id || "").trim();
+                if (normalized) {
+                    normalizedIds.push(normalized);
+                }
+            });
+        }
+
+        this.dateAvailability = {
+            active: Boolean(startDate && endDate),
+            startDate,
+            endDate,
+            unavailableVehicleIds: new Set(normalizedIds),
+        };
+    }
+
+    clearDateAvailability() {
+        this.dateAvailability = this.initializeDateAvailability();
+    }
+
     /**
      * Update a single filter and trigger update
      * @param {string} filterName - Filter name
@@ -78,7 +135,26 @@ class SearchFilterManager {
      */
     updateFilter(filterName, value) {
         if (filterName in this.filters) {
-            this.filters[filterName] = value;
+            const numericValue = Number(value);
+            const nextValue = Number.isFinite(numericValue) ? numericValue : value;
+
+            if (filterName === "minPrice" && Number.isFinite(numericValue) && numericValue > Number(this.filters.maxPrice)) {
+                this.filters.maxPrice = numericValue;
+            }
+
+            if (filterName === "maxPrice" && Number.isFinite(numericValue) && numericValue < Number(this.filters.minPrice)) {
+                this.filters.minPrice = numericValue;
+            }
+
+            if (filterName === "minSeats" && Number.isFinite(numericValue) && numericValue > Number(this.filters.maxSeats)) {
+                this.filters.maxSeats = numericValue;
+            }
+
+            if (filterName === "maxSeats" && Number.isFinite(numericValue) && numericValue < Number(this.filters.minSeats)) {
+                this.filters.minSeats = numericValue;
+            }
+
+            this.filters[filterName] = nextValue;
             // Trigger filtering on the current dataset
             this.applyFilters(this.allVehicles);
             this.notifyListeners();
@@ -105,8 +181,16 @@ class SearchFilterManager {
             const index = this.filters[filterName].indexOf(value);
             if (index > -1) {
                 this.filters[filterName].splice(index, 1);
+                // If removing, clear last applied filter tracking
+                if (this.lastAppliedFilter === filterName && this.lastAppliedFilterValue === value) {
+                    this.lastAppliedFilter = null;
+                    this.lastAppliedFilterValue = null;
+                }
             } else {
                 this.filters[filterName].push(value);
+                // Track this as the most recently applied filter
+                this.lastAppliedFilter = filterName;
+                this.lastAppliedFilterValue = value;
             }
             this.applyFilters(this.allVehicles);
             this.notifyListeners();
@@ -119,13 +203,7 @@ class SearchFilterManager {
      * @returns {boolean} True if vehicle matches all filters
      */
     matchesFilters(vehicle) {
-        // Location filter
-        if (
-            this.filters.pickupLocation &&
-            !vehicle.location?.toLowerCase().includes(this.filters.pickupLocation.toLowerCase())
-        ) {
-            return false;
-        }
+        // NOTE: pickupLocation is stored as text only, it does NOT filter vehicles
 
         // UPDATED: Vehicle type filter
         if (this.filters.vehicleTypes.length > 0) {
@@ -181,10 +259,10 @@ class SearchFilterManager {
             return false;
         }
 
-        // Features filter
-        const vehicleFeatures = (vehicle.features || []).map((f) => f.toLowerCase());
+        // Features filter (normalize hyphens/spaces for matching)
+        const vehicleFeatures = (vehicle.features || []).map((f) => normalizeForMatch(f));
         for (const feature of this.filters.features) {
-            if (!vehicleFeatures.includes(feature.toLowerCase())) {
+            if (!vehicleFeatures.some((vf) => vf === normalizeForMatch(feature))) {
                 return false;
             }
         }
@@ -200,6 +278,54 @@ class SearchFilterManager {
             this.filters.availabilityOnly &&
             vehicle.available !== true &&
             vehicle.availability !== "Available"
+        ) {
+            return false;
+        }
+
+        if (this.dateAvailability.active) {
+            const vehicleId = String(vehicle && vehicle.id ? vehicle.id : "").trim();
+            if (!vehicleId) {
+                return false;
+            }
+
+            if (this.dateAvailability.unavailableVehicleIds.has(vehicleId)) {
+                return false;
+            }
+        }
+
+        // Insurance types filter (partial match: filter "basic" matches vehicle "Basic Coverage")
+        if (this.filters.insuranceTypes.length > 0) {
+            const vehicleInsurance = (vehicle.insuranceOptions || []).map((i) => normalizeForMatch(i));
+            const hasInsurance = this.filters.insuranceTypes.some((type) => {
+                const normalizedType = normalizeForMatch(type);
+                return vehicleInsurance.some((vi) => vi === normalizedType || vi.startsWith(normalizedType));
+            });
+            if (!hasInsurance) return false;
+        }
+
+        // Driver options filter (normalize hyphens/spaces: "self-drive" matches "Self Drive")
+        if (this.filters.driverOptions.length > 0) {
+            const vehicleDriverOptions = (vehicle.driverOptions || []).map((d) => normalizeForMatch(d));
+            const hasDriverOption = this.filters.driverOptions.some((option) => {
+                const normalizedOption = normalizeForMatch(option);
+                return vehicleDriverOptions.some((vdo) => vdo === normalizedOption);
+            });
+            if (!hasDriverOption) return false;
+        }
+
+        // Mileage policy filter
+        if (this.filters.mileagePolicy.length > 0) {
+            const vehicleMileage = (vehicle.mileagePolicy || []).map((m) => m.toLowerCase());
+            const hasMilage = this.filters.mileagePolicy.some((policy) =>
+                vehicleMileage.includes(policy.toLowerCase())
+            );
+            if (!hasMilage) return false;
+        }
+
+        // EV range filter
+        if (
+            this.filters.minEVRange > 0 &&
+            (!vehicle.evRange || vehicle.evRange < this.filters.minEVRange)
         ) {
             return false;
         }
@@ -239,21 +365,46 @@ class SearchFilterManager {
     }
 
     /**
-     * Extract price from string (e.g., "$82 / day" -> 82)
+     * Extract price from string (e.g., "NPR 4,500 / day" -> 4500)
+     * @param {string} priceString - Price string
+     * @returns {number} Extracted price
      */
     extractPrice(priceString) {
-        if (typeof priceString === 'number') return priceString;
-        const match = priceString.match(/\d+/);
-        return match ? parseInt(match[0]) : 0;
+        const normalized = String(priceString || "").replace(/,/g, "");
+        const match = normalized.match(/-?\d+(?:\.\d+)?/);
+        const parsed = match ? Number(match[0]) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
     }
 
     /**
      * Apply sorting
      */
     applySort() {
+        // First, prioritize vehicles matching the most recently applied filter
+        if (this.lastAppliedFilter && this.lastAppliedFilterValue) {
+            this.filteredVehicles.sort((a, b) => {
+                const aMatches = this.vehicleMatchesLastFilter(a);
+                const bMatches = this.vehicleMatchesLastFilter(b);
+                
+                // Vehicles matching the last filter come first
+                if (aMatches && !bMatches) return -1;
+                if (!aMatches && bMatches) return 1;
+                
+                // If both match or both don't match, continue with regular sorting
+                return 0;
+            });
+        }
+
+        // Then apply the selected sort order
         switch (this.sortOrder) {
             case "price-low":
                 this.filteredVehicles.sort((a, b) => {
+                    // Preserve last filter priority
+                    const aMatchesLast = this.vehicleMatchesLastFilter(a);
+                    const bMatchesLast = this.vehicleMatchesLastFilter(b);
+                    if (aMatchesLast && !bMatchesLast) return -1;
+                    if (!aMatchesLast && bMatchesLast) return 1;
+                    
                     const priceA = this.extractPrice(a.pricing?.dailyRate || "0");
                     const priceB = this.extractPrice(b.pricing?.dailyRate || "0");
                     return priceA - priceB;
@@ -261,18 +412,82 @@ class SearchFilterManager {
                 break;
             case "price-high":
                 this.filteredVehicles.sort((a, b) => {
+                    // Preserve last filter priority
+                    const aMatchesLast = this.vehicleMatchesLastFilter(a);
+                    const bMatchesLast = this.vehicleMatchesLastFilter(b);
+                    if (aMatchesLast && !bMatchesLast) return -1;
+                    if (!aMatchesLast && bMatchesLast) return 1;
+                    
                     const priceA = this.extractPrice(a.pricing?.dailyRate || "0");
                     const priceB = this.extractPrice(b.pricing?.dailyRate || "0");
                     return priceB - priceA;
                 });
                 break;
             case "rating":
-                this.filteredVehicles.sort((a, b) => 
-                    parseFloat(b.rating || 0) - parseFloat(a.rating || 0)
-                );
+                this.filteredVehicles.sort((a, b) => {
+                    // Preserve last filter priority
+                    const aMatchesLast = this.vehicleMatchesLastFilter(a);
+                    const bMatchesLast = this.vehicleMatchesLastFilter(b);
+                    if (aMatchesLast && !bMatchesLast) return -1;
+                    if (!aMatchesLast && bMatchesLast) return 1;
+                    
+                    return parseFloat(b.rating || 0) - parseFloat(a.rating || 0);
+                });
                 break;
             default:
+                // For "relevance", the last filter priority is already applied above
                 break;
+        }
+    }
+
+    /**
+     * Check if a vehicle matches the most recently applied filter
+     * @param {Object} vehicle - Vehicle object
+     * @returns {boolean} True if vehicle matches the last applied filter
+     */
+    vehicleMatchesLastFilter(vehicle) {
+        if (!this.lastAppliedFilter || !this.lastAppliedFilterValue) {
+            return false;
+        }
+
+        const filterName = this.lastAppliedFilter;
+        const filterValue = this.lastAppliedFilterValue;
+
+        switch (filterName) {
+            case "vehicleTypes":
+                return vehicle.type?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "brands":
+                return vehicle.brand?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "models":
+                return vehicle.name?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "transmissions":
+                return vehicle.transmission?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "fuelTypes":
+                return vehicle.fuelType?.toLowerCase() === filterValue.toLowerCase();
+            
+            case "features":
+                const vehicleFeatures = (vehicle.features || []).map((f) => normalizeForMatch(f));
+                return vehicleFeatures.some((vf) => vf === normalizeForMatch(filterValue));
+            
+            case "insuranceTypes":
+                const vehicleInsurance = (vehicle.insuranceOptions || []).map((i) => normalizeForMatch(i));
+                const normalizedFilterValue = normalizeForMatch(filterValue);
+                return vehicleInsurance.some((vi) => vi === normalizedFilterValue || vi.startsWith(normalizedFilterValue));
+            
+            case "driverOptions":
+                const vehicleDriverOptions = (vehicle.driverOptions || []).map((d) => normalizeForMatch(d));
+                return vehicleDriverOptions.some((vdo) => vdo === normalizeForMatch(filterValue));
+            
+            case "mileagePolicy":
+                const vehicleMileage = (vehicle.mileagePolicy || []).map((m) => m.toLowerCase());
+                return vehicleMileage.includes(filterValue.toLowerCase());
+            
+            default:
+                return false;
         }
     }
 
@@ -284,29 +499,71 @@ class SearchFilterManager {
 
     getActiveFilters() {
         const active = {};
+        const defaults = this.initializeFilters();
+
         for (const [key, value] of Object.entries(this.filters)) {
-            if (Array.isArray(value) && value.length > 0) active[key] = value;
-            else if (value !== "" && value !== 0 && value !== false) active[key] = value;
+            if (Array.isArray(value)) {
+                if (value.length > 0) active[key] = value;
+            } else if (typeof value === "number") {
+                if (Number(value) !== Number(defaults[key])) {
+                    active[key] = value;
+                }
+            } else if (typeof value === "boolean") {
+                if (Boolean(value) !== Boolean(defaults[key])) {
+                    active[key] = value;
+                }
+            } else if (value !== "") {
+                active[key] = value;
+            }
         }
         return active;
     }
 
     clearAllFilters() {
         this.filters = this.initializeFilters();
-        this.applyFilters(this.allVehicles);
+        this.clearDateAvailability();
+        this.sortOrder = "relevance";
+        this.lastAppliedFilter = null;
+        this.lastAppliedFilterValue = null;
         this.notifyListeners();
     }
 
+    /**
+     * Clear a specific filter
+     * @param {string} filterName - Filter name to clear
+     */
+    clearFilter(filterName) {
+        const defaults = this.initializeFilters();
+
+        if (Array.isArray(this.filters[filterName])) {
+            this.filters[filterName] = [];
+        } else if (typeof this.filters[filterName] === "boolean") {
+            this.filters[filterName] = Boolean(defaults[filterName]);
+        } else if (typeof this.filters[filterName] === "number") {
+            this.filters[filterName] = Number(defaults[filterName]);
+        } else {
+            this.filters[filterName] = defaults[filterName] || "";
+        }
+        this.notifyListeners();
+    }
+
+    /**
+     * Save filter state to localStorage
+     */
     saveState() {
-        localStorage.setItem("searchFilters", JSON.stringify(this.filters));
+        // No longer persist filters — always start fresh on page load
     }
 
     restoreState() {
-        const saved = localStorage.getItem("searchFilters");
-        if (saved) {
-            this.filters = { ...this.filters, ...JSON.parse(saved) };
-            this.notifyListeners();
-        }
+        // No longer restore filters — always start fresh on page load
+        this.clearPersistedState();
+    }
+
+    clearPersistedState() {
+        try {
+            localStorage.removeItem(this.storageKey);
+            localStorage.removeItem(this.legacyStorageKey);
+        } catch (_e) {}
     }
 
     onFilterChange(callback) {
@@ -318,7 +575,7 @@ class SearchFilterManager {
             try {
                 callback(this.filteredVehicles, this.filters);
             } catch (e) {
-                console.error("Error in filter listener:", e);
+                // console.error("Error in filter listener:", e);
             }
         });
     }

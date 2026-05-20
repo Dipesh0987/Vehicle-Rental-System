@@ -1,16 +1,29 @@
-import { classMap } from '../config.js';
-import { renderBarChart, renderLineChart, renderPieChart } from '../charts.js';
+import { classMap, SEGMENT_COLORS } from '../config.js';
+import { escapeHtml, formatNpr, formatDateTime, formatDate } from '../utils.js';
+import { renderBarChart, renderLineChart, renderPieChart, renderSegmentUtilizationChart } from '../charts.js';
+import { getWorkshopSummaryCounts } from './maintenance.js';
 
-export function renderOverviewModule({ data }) {
+export function renderOverviewModule({ data, navigate }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
+  const driverRows = Array.isArray(data.drivers) ? data.drivers : [];
+  const availableDrivers = driverRows.filter((d) => d.availability === 'Available').length;
+  const ws = getWorkshopSummaryCounts(data);
+
+  const vehiclesList = Array.isArray(data.vehicles) ? data.vehicles : [];
+  const availableVehicles = vehiclesList.filter((v) => String(v.status || '').toLowerCase() === 'available').length;
+  const bookingsList = Array.isArray(data.bookings) ? data.bookings : [];
+  const totalBookings = bookingsList.length;
+
+  const totalVehicleCount = data.metrics.totalVehicles || vehiclesList.length;
+
   const metrics = [
-    { label: 'Total Vehicles', value: data.metrics.totalVehicles, delta: '+3.2% this week' },
-    { label: 'Active Rentals', value: data.metrics.activeRentals, delta: '+8 currently in transit' },
-    { label: 'Daily Bookings', value: data.metrics.dailyBookings, delta: '+14.5% vs yesterday' },
-    { label: 'Revenue', value: `$${data.metrics.revenue.toLocaleString()}`, delta: '+12.1% MTD' },
-    { label: 'Cancellations', value: data.metrics.cancellations, delta: '-2.4% reduced churn' },
+    { label: 'Total Vehicles', value: totalVehicleCount, delta: `${availableVehicles} available now` },
+    { label: 'Active Rentals', value: data.metrics.activeRentals, delta: `${totalBookings} total bookings` },
+    { label: 'Daily Bookings', value: data.metrics.dailyBookings, delta: `Today's bookings` },
+    { label: 'Revenue', value: formatNpr(data.metrics.revenue), delta: 'From completed payments' },
+    { label: 'Drivers', value: driverRows.length, delta: `${availableDrivers} available now` },
   ];
 
   host.innerHTML = `
@@ -35,6 +48,19 @@ export function renderOverviewModule({ data }) {
         )
         .join('')}
     </div>
+
+    <!-- Workshop Priorities -->
+    <section class="${classMap.panel} p-4 sm:p-5">
+      <div class="mb-3 flex items-center justify-between">
+        <h3 class="text-base font-extrabold">Workshop Priorities</h3>
+        <button data-go-maintenance class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">View all</button>
+      </div>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        ${overviewWorkshopMini('schedule', 'Upcoming Services', ws.upcoming, 'amber')}
+        ${overviewWorkshopMini('build', 'In Workshop', ws.inWorkshop, 'blue')}
+        ${overviewWorkshopMini('warning', 'Damage Claims Open', ws.damageClaimsOpen, 'rose')}
+      </div>
+    </section>
 
     <div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
       <section class="${classMap.panel} xl:col-span-7 p-4 sm:p-5">
@@ -66,7 +92,7 @@ export function renderOverviewModule({ data }) {
       <section class="${classMap.panel} xl:col-span-6 p-4 sm:p-5">
         <div class="mb-3 flex items-center justify-between">
           <h3 class="text-base font-extrabold">Recent Activity</h3>
-          <button class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-slate-200">View log</button>
+          <button data-view-activity-log class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">View log</button>
         </div>
         <ul class="space-y-2">
           ${data.activities
@@ -87,27 +113,80 @@ export function renderOverviewModule({ data }) {
     </div>
   `;
 
+  // Navigate to maintenance on click
+  host.querySelectorAll('[data-go-maintenance]').forEach((el) => {
+    el.addEventListener('click', () => { if (navigate) navigate('maintenance'); });
+  });
+
+  // Navigate to bookings (activity log) on click
+  host.querySelectorAll('[data-view-activity-log]').forEach((el) => {
+    el.addEventListener('click', () => { if (navigate) navigate('bookings'); });
+  });
+
+  // Build fleet category from vehicles if not already computed
+  let fleetCategory = Array.isArray(data.fleetCategory) ? data.fleetCategory : [];
+  if (!fleetCategory.length && vehiclesList.length) {
+    const counts = {};
+    vehiclesList.forEach((v) => {
+      const cat = String(v.category || 'Other').trim();
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    fleetCategory = Object.entries(counts)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
   queueMicrotask(() => {
-    renderLineChart(
-      'revenueChart',
-      data.revenueTrend.map((item) => item.label),
-      'Revenue',
-      data.revenueTrend.map((item) => item.revenue),
-      '#1f7668'
-    );
+    const revenueTrend = Array.isArray(data.revenueTrend) ? data.revenueTrend : [];
+    if (revenueTrend.length) {
+      renderLineChart(
+        'revenueChart',
+        revenueTrend.map((item) => item.label),
+        'Revenue',
+        revenueTrend.map((item) => item.revenue),
+        '#1f7668'
+      );
+    }
 
-    renderPieChart(
-      'fleetPieChart',
-      data.fleetCategory.map((item) => item.type),
-      data.fleetCategory.map((item) => item.count)
-    );
+    if (fleetCategory.length) {
+      renderPieChart(
+        'fleetPieChart',
+        fleetCategory.map((item) => item.type),
+        fleetCategory.map((item) => item.count)
+      );
+    }
 
-    renderBarChart(
-      'utilizationBarChart',
-      data.utilization.map((item) => item.label),
-      data.utilization.map((item) => item.value)
-    );
+    const utilization = Array.isArray(data.utilization) ? data.utilization : [];
+    if (utilization.length) {
+      const utilColors = utilization.map((item) => SEGMENT_COLORS[item.label] || '#94a3b8');
+      renderSegmentUtilizationChart(
+        'utilizationBarChart',
+        utilization.map((item) => item.label),
+        utilization.map((item) => item.value),
+        utilColors
+      );
+    }
   });
 
   return host;
+}
+
+function overviewWorkshopMini(icon, label, count, color) {
+  const bg = {
+    amber: 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10',
+    blue:  'border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10',
+    rose:  'border-rose-200 bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10',
+  };
+  const txt = {
+    amber: 'text-amber-700 dark:text-amber-300',
+    blue:  'text-blue-700 dark:text-blue-300',
+    rose:  'text-rose-700 dark:text-rose-300',
+  };
+  return `<div data-go-maintenance class="cursor-pointer rounded-xl border p-3 transition hover:shadow-sm ${bg[color] || bg.amber}">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-[20px] ${txt[color] || ''}">${icon}</span>
+      <span class="text-xs font-bold uppercase tracking-[0.12em] ${txt[color] || ''}">${label}</span>
+    </div>
+    <p class="mt-1 text-2xl font-extrabold ${txt[color] || ''}">${count}</p>
+  </div>`;
 }

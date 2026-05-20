@@ -91,6 +91,70 @@ export function renderBarChart(canvasId, labels, data) {
   });
 }
 
+/**
+ * Segment utilization bar chart — one bar per vehicle segment,
+ * colour-coded by the provided palette, Y-axis fixed 0-100%.
+ *
+ * @param {string}   canvasId
+ * @param {string[]} labels          — segment names
+ * @param {number[]} data            — utilization percentages (0-100)
+ * @param {string[]} segmentColors   — colour per bar
+ */
+export function renderSegmentUtilizationChart(canvasId, labels, data, segmentColors) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const existing = Chart.getChart(canvasId);
+  if (existing) existing.destroy();
+
+  const isDark = document.documentElement.classList.contains('dark');
+  const axisColor = isDark ? '#cbd5e1' : '#64748b';
+  const gridColor = isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(100, 116, 139, 0.2)';
+
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Utilization %',
+          data,
+          borderRadius: 8,
+          backgroundColor: segmentColors || ['#f08f5f', '#1f7668', '#5d90a5', '#e5bb5d', '#8f95b2'],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.parsed.y}%`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: axisColor, font: { weight: 600 } },
+        },
+        y: {
+          min: 0,
+          max: 100,
+          grid: { color: gridColor },
+          ticks: {
+            color: axisColor,
+            callback: (v) => `${v}%`,
+            stepSize: 20,
+          },
+        },
+      },
+    },
+  });
+}
+
 export function renderPieChart(canvasId, labels, data) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || typeof Chart === 'undefined') return;
@@ -108,7 +172,7 @@ export function renderPieChart(canvasId, labels, data) {
       datasets: [
         {
           data,
-          backgroundColor: ['#f08f5f', '#1f7668', '#5d90a5', '#e5bb5d', '#8f95b2'],
+          backgroundColor: ['#f08f5f', '#1f7668', '#e5bb5d', '#8f95b2', '#5d90a5', '#e87777', '#6bc5a0'],
           borderWidth: 0,
         },
       ],

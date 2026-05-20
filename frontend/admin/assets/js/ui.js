@@ -19,7 +19,7 @@ export function ensureOverlayHost() {
   return host;
 }
 
-export function openModal({ title, content, onConfirm }) {
+export function openModal({ title, content, onConfirm, onClose }) {
   const host = ensureOverlayHost();
   host.innerHTML = `
     <div id="overlayBackdrop" class="pointer-events-auto absolute inset-0 bg-black/45"></div>
@@ -38,6 +38,7 @@ export function openModal({ title, content, onConfirm }) {
 
   const close = () => {
     host.innerHTML = '';
+    onClose?.();
   };
 
   host.querySelector('#overlayClose')?.addEventListener('click', close);
@@ -47,9 +48,11 @@ export function openModal({ title, content, onConfirm }) {
     onConfirm?.();
     close();
   });
+
+  return close;
 }
 
-export function openDrawer({ title, content }) {
+export function openDrawer({ title, content, onClose }) {
   const host = ensureOverlayHost();
   host.innerHTML = `
     <div id="overlayBackdrop" class="pointer-events-auto absolute inset-0 bg-black/45"></div>
@@ -64,8 +67,11 @@ export function openDrawer({ title, content }) {
 
   const close = () => {
     host.innerHTML = '';
+    onClose?.();
   };
 
   host.querySelector('#overlayClose')?.addEventListener('click', close);
   host.querySelector('#overlayBackdrop')?.addEventListener('click', close);
+
+  return close;
 }

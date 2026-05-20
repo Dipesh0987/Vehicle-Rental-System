@@ -222,12 +222,11 @@ class SearchAnalytics {
             });
 
             if (!response.ok) {
-                console.warn("Failed to send analytics");
+                // console.warn("Failed to send analytics");
             } else {
-                console.log("Analytics sent successfully");
             }
         } catch (error) {
-            console.error("Error sending analytics:", error);
+            // console.error("Error sending analytics:", error);
         }
     }
 
@@ -259,7 +258,7 @@ class SearchAnalytics {
             });
             localStorage.setItem("searchAnalytics", JSON.stringify(existing.slice(-10))); // Keep last 10 sessions
         } catch (e) {
-            console.warn("Failed to save analytics:", e);
+            // console.warn("Failed to save analytics:", e);
         }
     }
 
@@ -275,13 +274,6 @@ class SearchAnalytics {
      */
     log() {
         console.group("Search Analytics Summary");
-        console.log("Session ID:", this.sessionId);
-        console.log("Duration:", this.getSessionDuration(), "seconds");
-        console.log("Events:", this.events.length);
-        console.log("Search Count:", this.userProfile.searches);
-        console.log("Vehicles Viewed:", this.userProfile.vehiclesViewed.length);
-        console.log("Engagement Score:", this.getEngagementScore());
-        console.log("Event Breakdown:", this.getEventCountByType());
         console.groupEnd();
     }
 }

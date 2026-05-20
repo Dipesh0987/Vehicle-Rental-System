@@ -193,7 +193,7 @@ class LocationAutocomplete {
             recent.unshift(location);
             localStorage.setItem("recentLocations", JSON.stringify(recent.slice(0, 5)));
         } catch (e) {
-            console.warn("Failed to save recent location:", e);
+            // console.warn("Failed to save recent location:", e);
         }
     }
 

@@ -1,0 +1,130 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://esm.sh https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://a.khalti.com https://dev.khalti.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://rc-epay.esewa.com.np https://epay.esewa.com.np; object-src 'none'; base-uri 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Receipt | Vehicle Rental System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
+    <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <link rel="stylesheet" href="assets/css/theme.css" />
+    <link rel="stylesheet" href="assets/css/payment.css" />
+    <script src="assets/js/theme-manager.js"></script>
+  </head>
+  <body class="vrs-page min-h-screen bg-paper font-sans text-ink antialiased">
+    <header class="vrs-theme-scope payment-skip-print relative z-[90] mx-auto grid w-[95%] max-w-[1390px] grid-cols-[auto,1fr,auto] items-center gap-6 py-4">
+      <a href="index.html" class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
+        <span class="vrs-brand-wordmark block bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent lg:text-[34px]">RENT A VEHICLE</span>
+        <span class="vrs-brand-tagline -mt-1 block text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">Luxury Vehicle Service</span>
+      </a>
+      <div></div>
+      <div class="flex items-center justify-end gap-4">
+        <button type="button" data-theme-toggle id="publicThemeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme" title="Toggle theme">
+          <span class="material-symbols-outlined">contrast</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="vrs-theme-scope mx-auto w-[95%] pb-14">
+      <div id="paymentReceiptStatus" class="hidden mx-auto max-w-[760px] rounded-2xl border px-3 py-2 text-[13px] font-semibold mb-3"></div>
+
+      <div id="paymentReceiptLoading" class="payment-skip-print payment-receipt-shell text-center text-[#3d5f61] dark:text-slate-300">
+        <span class="material-symbols-outlined animate-spin text-[40px] text-[#1f5b57] dark:text-emerald-400">progress_activity</span>
+        <h2 class="mt-3 text-[22px] font-extrabold text-[#14373b] dark:text-slate-100">Loading receipt...</h2>
+        <p class="mt-1 text-[13.5px]">Pulling transaction <span id="paymentReceiptHeaderCode" class="font-mono">-</span></p>
+      </div>
+
+      <article id="paymentReceiptCard" class="hidden payment-receipt-shell">
+        <div class="payment-receipt-header">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">Vehicle Rental Receipt</p>
+          <h1 class="mt-1 text-[24px] font-extrabold tracking-[-0.01em]">Receipt <span id="receiptCode">-</span></h1>
+          <p class="mt-1 text-[13px] text-white/85">Issued <span id="receiptIssuedAt">-</span></p>
+          <p class="mt-3 text-[12px] text-white/65" id="receiptEmailStatus">Email queued</p>
+        </div>
+
+        <div class="payment-receipt-grid">
+          <section>
+            <p class="payment-card-label">Customer</p>
+            <div class="mt-2">
+              <div class="payment-receipt-row"><span>Name</span><strong id="receiptCustomerName">-</strong></div>
+              <div class="payment-receipt-row"><span>Email</span><strong id="receiptCustomerEmail">-</strong></div>
+              <div class="payment-receipt-row"><span>Phone</span><strong id="receiptCustomerPhone">-</strong></div>
+            </div>
+          </section>
+
+          <section>
+            <p class="payment-card-label">Booking</p>
+            <div class="mt-2">
+              <div class="payment-receipt-row"><span>Booking Code</span><strong id="receiptBookingCode">-</strong></div>
+              <div class="payment-receipt-row"><span>Travel Dates</span><strong id="receiptBookingDates">-</strong></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="payment-receipt-grid">
+          <section>
+            <p class="payment-card-label">Payment</p>
+            <div class="mt-2">
+              <div class="payment-receipt-row"><span>Transaction ID</span><strong id="receiptTransactionCode">-</strong></div>
+              <div class="payment-receipt-row"><span>eSewa Reference</span><strong id="receiptEsewaTxn" class="font-mono">-</strong></div>
+              <div class="payment-receipt-row"><span>Method</span><strong id="receiptPaymentMethod">-</strong></div>
+              <div class="payment-receipt-row"><span>Type</span><strong id="receiptPaymentType" class="capitalize">-</strong></div>
+              <div class="payment-receipt-row"><span>Status</span><strong id="receiptStatus">-</strong></div>
+              <div class="payment-receipt-row"><span>Paid at</span><strong id="receiptPaidAt">-</strong></div>
+            </div>
+          </section>
+
+          <section>
+            <p class="payment-card-label">Amount</p>
+            <div class="mt-2">
+              <div class="payment-receipt-row"><span>This payment</span><strong id="receiptAmount" class="text-[#7a4c1f] dark:text-amber-300">NPR 0.00</strong></div>
+              <div class="payment-receipt-row"><span>Booking total</span><strong id="receiptTotalAmount">NPR 0.00</strong></div>
+              <div class="payment-receipt-row"><span>Paid so far</span><strong id="receiptPaidAmount">NPR 0.00</strong></div>
+              <div class="payment-receipt-row"><span>Remaining</span><strong id="receiptRemainingAmount">NPR 0.00</strong></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="payment-receipt-totals">
+          <div class="payment-receipt-totals-row"><span>Base amount</span><span id="receiptBaseAmount">NPR 0.00</span></div>
+          <div class="payment-receipt-totals-row"><span>Service fee</span><span id="receiptServiceFee">NPR 0.00</span></div>
+          <div class="payment-receipt-totals-row"><span>Tax</span><span id="receiptTaxAmount">NPR 0.00</span></div>
+          <div class="payment-receipt-totals-row"><span>Discount</span><span id="receiptDiscount">- NPR 0.00</span></div>
+          <div class="payment-receipt-totals-row is-grand"><span>Booking total</span><span id="receiptGrandTotal">NPR 0.00</span></div>
+        </div>
+
+        <div class="payment-receipt-actions">
+          <button id="paymentReceiptResendBtn" type="button" class="payment-secondary-button"><span class="material-symbols-outlined text-[18px]">forward_to_inbox</span><span>Resend Email</span></button>
+          <button id="paymentReceiptPrintBtn" type="button" class="payment-secondary-button"><span class="material-symbols-outlined text-[18px]">print</span><span>Print / Save PDF</span></button>
+          <a id="paymentReceiptBookingsBtn" href="#" data-open-bookings-panel class="payment-secondary-button"><span class="material-symbols-outlined text-[18px]">event_note</span><span>My bookings</span></a>
+        </div>
+
+        <p class="mt-4 text-center text-[11px] text-[#728d8c] dark:text-slate-400">Thank you for renting with us. For questions, contact support@rentavehiclenepal.com.</p>
+      </article>
+    </main>
+
+    <script src="assets/js/supabase.config.local.js"></script>
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/auth.supabase.js"></script>
+    <script src="assets/js/vehicle-catalog.service.js"></script>
+    <script src="assets/js/booking.service.js"></script>
+    <script src="assets/js/payment.service.js"></script>
+    <script src="assets/js/notifications.service.js"></script>
+    <script src="assets/js/notifications-bell.js"></script>
+    <script src="../backend/js/auth.js"></script>
+    <script src="assets/js/payment-receipt-page.js"></script>
+    <script>
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+          window.VehicleAuthUI.init("home");
+        }
+      } catch (error) {
+        console.warn("VehicleAuthUI init failed:", error);
+      }
+    </script>
+  </body>
+</html>

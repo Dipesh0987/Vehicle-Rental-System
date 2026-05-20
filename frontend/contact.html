@@ -1,0 +1,519 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://esm.sh https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://a.khalti.com https://dev.khalti.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://www.google.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; object-src 'none'; base-uri 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact Us - Rent A Vehicle</title>
+    <link rel="icon" type="image/png" href="assets/images/car-transparent.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
+    <link rel="stylesheet" href="assets/css/tailwind.css" />
+    <link rel="stylesheet" href="assets/css/theme.css" />
+    <script src="assets/js/theme-manager.js"></script>
+    <style>
+      /* â”€â”€ Contact Page Styles â”€â”€ */
+      .cp-hero {
+        background: linear-gradient(135deg, #0e2528 0%, #145f59 50%, #1a7a72 100%);
+        padding: 56px 24px 48px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .cp-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%;
+        right: -20%;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(229,140,78,0.15), transparent 70%);
+        pointer-events: none;
+      }
+      .cp-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -40%;
+        left: -10%;
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(44,118,110,0.2), transparent 70%);
+        pointer-events: none;
+      }
+      .cp-hero h1 {
+        font-family: 'Poppins', sans-serif;
+        font-size: 38px;
+        font-weight: 800;
+        color: #fff;
+        margin: 0;
+        position: relative;
+      }
+      .cp-hero p {
+        font-family: 'Poppins', sans-serif;
+        font-size: 15px;
+        color: rgba(255,255,255,0.7);
+        margin-top: 12px;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.6;
+        position: relative;
+      }
+      .cp-hero-accent {
+        color: #E58C4E;
+      }
+      @media (min-width: 768px) {
+        .cp-hero { padding: 72px 24px 64px; }
+        .cp-hero h1 { font-size: 48px; }
+      }
+
+      .cp-body {
+        background: #F2F3F1;
+        padding: 48px 20px 64px;
+      }
+      @media (min-width: 768px) { .cp-body { padding: 64px 24px 80px; } }
+
+      .cp-grid {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 1024px) { .cp-grid { grid-template-columns: 1fr 1fr; gap: 40px; } }
+
+      .cp-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 32px 28px;
+        box-shadow: 0 4px 24px rgba(12,35,38,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
+        transition: box-shadow 0.3s, transform 0.3s;
+      }
+      .cp-card:hover {
+        box-shadow: 0 12px 40px rgba(12,35,38,0.1);
+        transform: translateY(-2px);
+      }
+      @media (min-width: 768px) { .cp-card { padding: 40px 36px; } }
+
+      .cp-card-title {
+        font-family: 'Poppins', sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        color: #0E2528;
+        margin: 0 0 28px;
+      }
+
+      .cp-info-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        border-radius: 14px;
+        background: #F8F9F7;
+        margin-bottom: 14px;
+        transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+      }
+      .cp-info-item:hover {
+        background: #f0f2ee;
+        box-shadow: 0 4px 16px rgba(12,35,38,0.08);
+        transform: translateY(-1px);
+      }
+      .cp-info-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .cp-info-icon svg { width: 22px; height: 22px; }
+      .cp-info-icon.teal { background: rgba(20,95,89,0.1); color: #145f59; }
+      .cp-info-icon.amber { background: rgba(229,140,78,0.12); color: #c97a3a; }
+      .cp-info-title {
+        font-family: 'Poppins', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        color: #0E2528;
+        margin: 0;
+      }
+      .cp-info-sub {
+        font-family: 'Poppins', sans-serif;
+        font-size: 12px;
+        color: #6C7074;
+        margin: 2px 0 0;
+      }
+
+      .cp-hours-label {
+        font-family: 'Poppins', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #6C7074;
+        margin: 32px 0 16px;
+        padding-top: 24px;
+        border-top: 1px solid #e8ebe6;
+      }
+      .cp-hour-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        background: #F8F9F7;
+        transition: background 0.2s;
+      }
+      .cp-hour-row:hover { background: #f0f2ee; }
+      .cp-hour-day {
+        font-family: 'Poppins', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: #0E2528;
+      }
+      .cp-hour-badge {
+        font-family: 'Poppins', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 20px;
+      }
+      .cp-hour-badge.open { background: #145f59; color: #fff; }
+      .cp-hour-badge.half { background: #E58C4E; color: #fff; }
+      .cp-hour-badge.closed { background: #e8ebe6; color: #6C7074; }
+
+      /* Form */
+      .cp-label {
+        display: block;
+        font-family: 'Poppins', sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: #0E2528;
+        margin-bottom: 6px;
+      }
+      .cp-label span { color: #E58C4E; }
+      .cp-input {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1.5px solid #dfe3dc;
+        background: #F8F9F7;
+        font-family: 'Poppins', sans-serif;
+        font-size: 14px;
+        color: #0E2528;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        box-sizing: border-box;
+      }
+      .cp-input:hover { border-color: #c5ccc2; }
+      .cp-input:focus {
+        border-color: #145f59;
+        box-shadow: 0 0 0 3px rgba(20,95,89,0.1);
+        background: #fff;
+      }
+      .cp-input::placeholder { color: #b0b5b1; }
+      textarea.cp-input { resize: none; min-height: 120px; }
+
+      .cp-field { margin-bottom: 20px; }
+
+      .cp-submit {
+        width: 100%;
+        padding: 14px 24px;
+        border: none;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #145f59, #1a7a72);
+        color: #fff;
+        font-family: 'Poppins', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(20,95,89,0.25);
+        transition: transform 0.18s, box-shadow 0.18s;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .cp-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 32px rgba(20,95,89,0.35);
+      }
+      .cp-submit:active { transform: translateY(0); }
+      .cp-submit svg { width: 18px; height: 18px; }
+
+      .cp-form-note {
+        font-family: 'Poppins', sans-serif;
+        font-size: 12px;
+        color: #6C7074;
+        text-align: center;
+        margin-top: 16px;
+      }
+
+      /* Map Section */
+      .cp-map-section {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px 48px;
+      }
+      @media (min-width: 768px) { .cp-map-section { padding: 0 24px 64px; } }
+      .cp-map-card {
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(12,35,38,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
+      }
+      .cp-map-frame {
+        width: 100%;
+        height: 280px;
+        border: none;
+        display: block;
+      }
+      @media (min-width: 768px) { .cp-map-frame { height: 360px; } }
+
+      /* Animations */
+      @keyframes cpFadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .cp-animate {
+        opacity: 0;
+        animation: cpFadeUp 0.5s ease both;
+      }
+      .cp-animate-d1 { animation-delay: 0.1s; }
+      .cp-animate-d2 { animation-delay: 0.2s; }
+      .cp-animate-d3 { animation-delay: 0.3s; }
+    </style>
+  </head>
+  <body class="vrs-page min-h-screen font-poppins" style="background:#F2F3F1">
+    <main id="app" class="min-h-screen">
+      <!-- Header (matches site-wide navbar) -->
+      <header class="vrs-theme-scope relative z-[90] mx-auto grid w-[95%] max-w-[1390px] grid-cols-[auto,1fr,auto] items-center gap-6 py-4">
+        <a href="index.html" class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
+          <span class="vrs-brand-wordmark block bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent lg:text-[34px]">
+            RENT A VEHICLE
+          </span>
+          <span class="vrs-brand-tagline -mt-1 block text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">Luxury Vehicle Service</span>
+          <span class="vrs-brand-underline mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75"></span>
+        </a>
+
+        <nav class="vrs-global-nav hidden items-center justify-start gap-10 pl-6 text-[16px] font-medium text-[#2F3336] lg:flex">
+          <a class="vrs-global-nav-link bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="index.html">Home</a>
+          <a class="vrs-global-nav-link bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="vehicles.html">Vehicles</a>
+          <a class="vrs-global-nav-link text-accent" href="contact.html">Contact</a>
+          <a data-auth-bookings-link data-open-bookings-panel class="vrs-global-nav-link hidden bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Your Bookings</a>
+        </nav>
+
+        <div class="flex items-center justify-end gap-4">
+          <button type="button" data-theme-toggle id="publicThemeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme" title="Toggle theme">
+            <span class="material-symbols-outlined">contrast</span>
+          </button>
+          <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-[#204144] lg:flex">
+            <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-panel" href="login.html">Sign In</a>
+            <a href="registration.html" class="rounded-full bg-accent px-8 py-3 text-[16px] font-medium leading-none text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">
+              Sign Up
+            </a>
+          </div>
+
+          <div data-auth-user class="relative hidden items-center pr-8 text-[#143236] lg:flex">
+            <button type="button" data-profile-trigger class="inline-flex cursor-pointer items-center gap-[0.65rem] transition duration-200 hover:-translate-y-[1px] hover:brightness-105">
+              <span data-profile-avatar class="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-[#1b5d5f]/40 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.95rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.16)]">GU</span>
+              <span class="flex flex-col leading-tight">
+                <span data-profile-name class="text-[15px] font-semibold">Guest User</span>
+                <span data-profile-email class="text-[11px] text-[#0f3438] dark:text-[#7a9b9d]">guest@example.com</span>
+              </span>
+            </button>
+
+            <div data-profile-panel class="absolute right-0 top-[calc(100%+14px)] z-[130] w-[320px] max-h-[72vh] origin-top-right overflow-y-auto rounded-[18px] border border-white/25 bg-[linear-gradient(160deg,rgba(21,52,56,0.96),rgba(17,41,44,0.96))] p-4 text-white shadow-[0_20px_45px_rgba(2,14,16,0.36)] opacity-0 -translate-y-2 scale-95 pointer-events-none transition duration-200 max-[1024px]:fixed max-[1024px]:left-1/2 max-[1024px]:right-auto max-[1024px]:top-[90px] max-[1024px]:w-[min(92vw,360px)] max-[1024px]:-translate-x-1/2">
+              <p class="text-[16px] font-semibold">Edit Profile</p>
+              <p class="mt-1 text-[12px] text-white/80">Update display name and photo.</p>
+              <div class="mt-3 space-y-3">
+                <label class="block text-[12px] text-white/85" for="profileName">Username</label>
+                <input id="profileName" type="text" class="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[14px] text-white outline-none" placeholder="Enter username" />
+                <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
+                <div class="profile-photo-shell rounded-xl border border-white/20 bg-[linear-gradient(145deg,rgba(44,118,110,0.2),rgba(255,255,255,0.08))] p-3 backdrop-blur-[1px] transition duration-200">
+                  <div class="flex items-center gap-2">
+                    <input id="profilePhoto" type="file" accept="image/*" class="hidden" />
+                    <label for="profilePhoto" class="inline-flex cursor-pointer items-center justify-center rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_8px_18px_rgba(229,140,78,0.3)] transition hover:-translate-y-[1px] hover:brightness-105">Choose Photo</label>
+                    <span id="profileFileLabel" class="min-w-0 truncate text-[12px] text-white/88">No file selected</span>
+                  </div>
+                  <p class="mt-2 text-[11px] text-white/72">JPG, PNG, WEBP up to 20 MB.</p>
+                </div>
+                <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90 transition duration-200 hover:-translate-y-[1px]">
+                  Changes are stored locally (dummy UI flow).
+                </div>
+                <div class="flex gap-2">
+                  <button id="saveProfile" type="button" class="rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_10px_22px_rgba(229,140,78,0.32)]">Save</button>
+                  <button id="logoutBtn" type="button" class="rounded-full border border-white/40 px-4 py-2 text-[13px] font-semibold text-white transition duration-200 hover:-translate-y-[1px]">Logout</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Mobile Nav Pills -->
+      <div class="vrs-theme-scope relative z-20 mx-auto flex w-[95%] max-w-[1390px] flex-wrap gap-2 pb-2 lg:hidden">
+        <a href="index.html" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Home</a>
+        <a href="vehicles.html" class="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Vehicles</a>
+        <a href="contact.html" class="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[12px] font-semibold text-[#9f5825]">Contact</a>
+      </div>
+
+      <!-- Hero Banner -->
+      <div class="cp-hero">
+        <h1 class="cp-animate">Get in <span class="cp-hero-accent">Touch</span></h1>
+        <p class="cp-animate cp-animate-d1">Have questions about our rental services? We'd love to hear from you. Our team is always ready to help.</p>
+      </div>
+
+      <!-- Main Content -->
+      <div class="cp-body">
+        <div class="cp-grid">
+
+          <!-- Left: Contact Info -->
+          <div class="cp-card cp-animate cp-animate-d1">
+            <h2 class="cp-card-title">Contact Information</h2>
+
+            <!-- Phone -->
+            <a href="tel:+9779812345678" class="cp-info-item" aria-label="Call us">
+              <div class="cp-info-icon teal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="cp-info-title">+977 98-1234-5678</p>
+                <p class="cp-info-sub">Available Monâ€“Sat, 9AMâ€“6PM</p>
+              </div>
+            </a>
+
+            <!-- Email -->
+            <a href="mailto:info@rentavehicle.com" class="cp-info-item" aria-label="Email us">
+              <div class="cp-info-icon amber">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="M22 7l-8.97 5.7a1.94 1.94 0 01-2.06 0L2 7"/>
+                </svg>
+              </div>
+              <div>
+                <p class="cp-info-title">info@rentavehicle.com</p>
+                <p class="cp-info-sub">Response within 24 hours</p>
+              </div>
+            </a>
+
+            <!-- Address -->
+            <a href="https://maps.google.com/?q=Kathmandu+Nepal" target="_blank" rel="noopener noreferrer" class="cp-info-item" aria-label="View on map">
+              <div class="cp-info-icon teal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <p class="cp-info-title">Kathmandu, Nepal</p>
+                <p class="cp-info-sub">Thamel District â€¢ Open in Maps</p>
+              </div>
+            </a>
+
+            <!-- WhatsApp -->
+            <a href="https://wa.me/9779812345678" target="_blank" rel="noopener noreferrer" class="cp-info-item" aria-label="Chat on WhatsApp">
+              <div class="cp-info-icon" style="background:rgba(37,211,102,0.1);color:#25d366">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="cp-info-title">WhatsApp</p>
+                <p class="cp-info-sub">Chat with us instantly</p>
+              </div>
+            </a>
+
+            <!-- Business Hours -->
+            <div class="cp-hours-label">Business Hours</div>
+            <div class="cp-hour-row">
+              <span class="cp-hour-day">Monday â€“ Friday</span>
+              <span class="cp-hour-badge open">09:00 â€“ 18:00</span>
+            </div>
+            <div class="cp-hour-row">
+              <span class="cp-hour-day">Saturday</span>
+              <span class="cp-hour-badge half">10:00 â€“ 15:00</span>
+            </div>
+            <div class="cp-hour-row">
+              <span class="cp-hour-day">Sunday</span>
+              <span class="cp-hour-badge closed">Closed</span>
+            </div>
+          </div>
+
+          <!-- Right: Contact Form -->
+          <div class="cp-card cp-animate cp-animate-d2">
+            <h2 class="cp-card-title">Send us a Message</h2>
+            <form id="contactForm" role="form" aria-label="Contact Message Form">
+              <div class="cp-field">
+                <label for="name" class="cp-label">Full Name <span>*</span></label>
+                <input id="name" type="text" name="name" placeholder="Your full name" required aria-required="true" class="cp-input" />
+              </div>
+
+              <div class="cp-field">
+                <label for="email" class="cp-label">Email Address <span>*</span></label>
+                <input id="email" type="email" name="email" placeholder="your@email.com" required aria-required="true" class="cp-input" />
+              </div>
+
+              <div class="cp-field">
+                <label for="subject" class="cp-label">Subject <span>*</span></label>
+                <input id="subject" type="text" name="subject" placeholder="How can we help?" required aria-required="true" class="cp-input" />
+              </div>
+
+              <div class="cp-field">
+                <label for="message" class="cp-label">Message <span>*</span></label>
+                <textarea id="message" name="message" placeholder="Tell us more about your inquiry..." rows="5" required aria-required="true" class="cp-input"></textarea>
+              </div>
+
+              <button type="submit" class="cp-submit">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Send Message
+              </button>
+              <p class="cp-form-note">We'll get back to you within 24 hours</p>
+            </form>
+          </div>
+
+        </div>
+
+        <!-- Map Section -->
+        <div class="cp-map-section cp-animate cp-animate-d3" style="margin-top:40px">
+          <div class="cp-map-card">
+            <iframe class="cp-map-frame" title="Our Location" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14130.857847982156!2d85.30914!3d27.7172!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb18fcb77fd4bd%3A0x58099b1deffed7e1!2sThamel%2C%20Kathmandu%2044600!5e0!3m2!1sen!2snp!4v1" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="assets/js/footer.component.js"></script>
+    <script src="assets/js/supabase.config.local.js"></script>
+    <script src="assets/js/supabase.config.js"></script>
+    <script src="assets/js/supabase.client.js"></script>
+    <script src="assets/js/auth.supabase.js"></script>
+    <script src="assets/js/notifications.service.js"></script>
+    <script src="assets/js/notifications-bell.js"></script>
+    <script src="../backend/js/auth.js"></script>
+    <script src="assets/js/contact.js"></script>
+    <script>
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === 'function') {
+          window.VehicleAuthUI.init('contact');
+        }
+      } catch (e) { console.warn('VehicleAuthUI init failed:', e); }
+    </script>
+  </body>
+</html>

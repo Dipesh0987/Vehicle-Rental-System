@@ -1,129 +1,69 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://esm.sh https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://a.khalti.com https://dev.khalti.com https://rc-epay.esewa.com.np https://epay.esewa.com.np; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://rc-epay.esewa.com.np https://epay.esewa.com.np; object-src 'none'; base-uri 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rent A Vehicle</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&amp;family=Poppins:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
     <link rel="stylesheet" href="assets/css/tailwind.css" />
-    <script>
-      window.__legacyTailwindConfig = {
-        theme: {
-          extend: {
-            fontFamily: {
-              poppins: ['Poppins', 'sans-serif'],
-            },
-            colors: {
-              accent: '#E58C4E',
-              panel: '#2C766E',
-              ink: '#0E2528',
-              muted: '#6C7074',
-              paper: '#F2F3F1',
-            },
-            keyframes: {
-              fadeUp: {
-                to: {
-                  opacity: '1',
-                  transform: 'translateY(0)',
-                },
-              },
-              floatIn: {
-                from: {
-                  opacity: '0',
-                  transform: 'translateY(16px) scale(0.98)',
-                },
-                to: {
-                  opacity: '1',
-                  transform: 'translateY(0) scale(1)',
-                },
-              },
-              panelReveal: {
-                from: {
-                  opacity: '0.5',
-                  transform: 'translateX(30px)',
-                },
-                to: {
-                  opacity: '1',
-                  transform: 'translateX(0)',
-                },
-              },
-              logoIn: {
-                from: {
-                  opacity: '0',
-                  transform: 'translateY(10px)',
-                  filter: 'blur(4px)',
-                },
-                to: {
-                  opacity: '1',
-                  transform: 'translateY(0)',
-                  filter: 'blur(0)',
-                },
-              },
-              logoGlow: {
-                '0%, 100%': {
-                  opacity: '0.72',
-                },
-                '50%': {
-                  opacity: '1',
-                },
-              },
-              carDrift: {
-                '0%, 100%': {
-                  transform: 'translateY(0)',
-                },
-                '50%': {
-                  transform: 'translateY(-6px)',
-                },
-              },
-            },
-            animation: {
-              fadeUp: 'fadeUp 620ms ease forwards',
-              floatIn: 'floatIn 620ms cubic-bezier(0.19, 1, 0.22, 1) forwards',
-              panelReveal: 'panelReveal 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
-              logoIn: 'logoIn 760ms cubic-bezier(0.19, 1, 0.22, 1) forwards',
-              logoGlow: 'logoGlow 3.6s ease-in-out infinite',
-              carDrift: 'carDrift 6s ease-in-out 800ms infinite',
-              carEntry: 'floatIn 620ms cubic-bezier(0.19, 1, 0.22, 1) forwards, carDrift 6s ease-in-out 800ms infinite',
-            },
-          },
-        },
-      };
-    </script>
+    <link rel="stylesheet" href="assets/css/theme.css" />
+    <script src="assets/js/theme-manager.js"></script>
   </head>
-  <body class="h-screen overflow-hidden bg-white font-poppins">
-    <main id="app" class="h-screen">
-      <section class="relative h-screen overflow-hidden bg-[#F2F3F1]">
+  <body class="vrs-page min-h-screen bg-white font-poppins">
+    <main id="app" class="vrs-theme-scope min-h-screen">
+      <section class="home-hero-shell relative h-screen overflow-hidden bg-[#F2F3F1]">
         <div class="pointer-events-none absolute bottom-[-200px] left-[-80px] z-[1] select-none text-[580px] font-extrabold leading-[0.8] tracking-[0.04em] text-[rgba(11,22,28,0.03)]" aria-hidden="true">WAS</div>
 
-        <div class="absolute inset-y-0 right-0 w-[31.5%] bg-panel opacity-75 animate-panelReveal"></div>
+         <div class="home-side-panel absolute inset-y-0 right-0 w-[42%] overflow-hidden bg-panel animate-panelReveal">
+          <!-- Light triangle: upper-left corner only â€” teal fills lower-right where car sits -->
+          <div class="pointer-events-none absolute inset-0" style="background:rgba(242,243,241,0.98);clip-path:polygon(0 0,62% 0,0 70%)" aria-hidden="true"></div>
+        </div>
 
-        <div class="relative z-20 mx-auto h-full w-[95%] max-w-[1390px] pb-4 pt-4 lg:pt-5">
-          <header class="relative z-[90] grid grid-cols-[auto,1fr,auto] items-center gap-6 opacity-0 animate-fadeUp">
+        <!-- Ground shadow: section-level so it aligns with the teal panel -->
+        <div class="pointer-events-none absolute bottom-0 right-0 z-[17] hidden w-[44%] max-w-[700px] lg:block" aria-hidden="true">
+          <div class="mx-auto h-[16px] w-[68%] translate-y-[1px] rounded-[50%] bg-[rgba(4,14,16,0.42)] blur-[20px]"></div>
+        </div>
+        <!-- Car: section-level, positioned over the teal panel (right-0 = full viewport) -->
+        <img loading="lazy" src="assets/images/car-transparent.png"
+          alt="Luxury SUV available for rent"
+          width="1600"
+          height="1221"
+          decoding="async"
+          class="home-hero-car absolute bottom-0 right-0 z-[18] hidden w-[44%] max-w-[700px] opacity-0 [filter:drop-shadow(0_12px_28px_rgba(4,18,20,0.26))_drop-shadow(0_3px_8px_rgba(4,18,20,0.16))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
+        />
+
+        <div class="relative z-20 mx-auto h-full w-[95%] max-w-[1390px]">
+          <header class="vrs-theme-scope relative z-[90] grid grid-cols-[auto,1fr,auto] items-center gap-6 py-4 opacity-0 animate-fadeUp">
             <div class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
-              <p class="bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent opacity-0 drop-shadow-[0_6px_18px_rgba(11,37,40,0.16)] animate-logoIn lg:text-[34px]">
+              <p class="vrs-brand-wordmark bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent opacity-0 drop-shadow-[0_6px_18px_rgba(11,37,40,0.16)] animate-logoIn lg:text-[34px]">
                 RENT A VEHICLE
               </p>
-              <p class="-mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
-                Luxury Vehicle Service
+              <p class="vrs-brand-tagline -mt-1 text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] lg:text-[11px]">
+                Luxury Vehicle Service   
               </p>
-              <span class="mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-logoGlow"></span>
+              <span class="vrs-brand-underline mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-logoGlow"></span>
             </div>
 
-            <nav class="hidden items-center justify-start gap-10 pl-6 text-[16px] font-medium text-[#2F3336] lg:flex">
-              <a class="text-accent" href="index.html">Home</a>
-              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="vehicles.html">Vehicles</a>
-              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="admin/index.html">Admin</a>
-              <a data-auth-bookings-link data-open-bookings-panel class="hidden bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Your Bookings</a>
-              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Pricing</a>
-              <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Support</a>
+            <nav class="vrs-global-nav hidden items-center justify-start gap-10 pl-6 text-[16px] font-medium text-[#2F3336] lg:flex">
+              <a class="vrs-global-nav-link text-accent" href="index.html">Home</a>
+              <a class="vrs-global-nav-link bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="vehicles.html">Vehicles</a>
+              <a class="vrs-global-nav-link bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="contact.html">Contact</a>
+              <a data-auth-bookings-link data-open-bookings-panel class="vrs-global-nav-link hidden bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="#">Your Bookings</a>
             </nav>
 
-            <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-white opacity-0 translate-y-5 animate-fadeUp lg:flex [animation-delay:90ms]">
+            <div class="flex items-center justify-end gap-4">
+              <button type="button" data-theme-toggle id="publicThemeToggle" class="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme" title="Toggle theme">
+                <span class="material-symbols-outlined">contrast</span>
+              </button>
+
+              <div data-auth-guest class="hidden items-center gap-8 pr-8 text-[16px] text-white opacity-0 translate-y-5 animate-fadeUp lg:flex [animation-delay:90ms]">
               <a class="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat transition-[color,transform,background-size] duration-200 hover:-translate-y-[1px] hover:bg-[length:100%_2px] hover:text-[#183b3f]" href="login.html">Sign In</a>
               <a
                 href="registration.html"
@@ -131,14 +71,14 @@
               >
                 Sign Up
               </a>
-            </div>
+              </div>
 
-            <div data-auth-user class="relative hidden items-center pr-8 text-white lg:flex">
+              <div data-auth-user class="relative hidden items-center pr-8 text-[#143236] lg:flex">
               <button type="button" data-profile-trigger class="inline-flex cursor-pointer items-center gap-[0.65rem] transition duration-200 hover:-translate-y-[1px] hover:brightness-105">
                 <span data-profile-avatar class="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-white/55 bg-[linear-gradient(135deg,#2c766e,#2f5f7b)] text-[0.95rem] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,0.22)]">GU</span>
                 <span class="flex flex-col leading-tight">
-                  <span data-profile-name class="text-[15px] font-semibold">Guest User</span>
-                  <span data-profile-email class="text-[11px] text-white/75">guest@example.com</span>
+                  <span data-profile-name class="text-[15px] font-semibold text-[#0B161C] dark:text-white">Guest User</span>
+                  <span data-profile-email class="text-[11px] text-[#4A5568] dark:text-[#9CA3AF]">guest@example.com</span>
                 </span>
               </button>
 
@@ -165,12 +105,14 @@
                   />
 
                   <label class="block text-[12px] text-white/85" for="profilePhoto">Profile Photo</label>
-                  <input
-                    id="profilePhoto"
-                    type="file"
-                    accept="image/*"
-                    class="w-full text-[12px] text-white file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[12px] file:font-medium file:text-white"
-                  />
+                  <div class="profile-photo-shell rounded-xl border border-white/20 bg-[linear-gradient(145deg,rgba(44,118,110,0.2),rgba(255,255,255,0.08))] p-3 backdrop-blur-[1px] transition duration-200">
+                    <div class="flex items-center gap-2">
+                      <input id="profilePhoto" type="file" accept="image/*" class="hidden" />
+                      <label for="profilePhoto" class="inline-flex cursor-pointer items-center justify-center rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_8px_18px_rgba(229,140,78,0.3)] transition hover:-translate-y-[1px] hover:brightness-105">Choose Photo</label>
+                      <span id="profileFileLabel" class="min-w-0 truncate text-[12px] text-white/88">No file selected</span>
+                    </div>
+                    <p class="mt-2 text-[11px] text-white/72">JPG, PNG, WEBP up to 20 MB.</p>
+                  </div>
 
                   <div id="profileNote" class="rounded-lg border-l-[3px] border-[rgba(229,140,78,0.9)] bg-white/10 px-3 py-2 text-[12px] text-white/90 transition duration-200 hover:-translate-y-[1px]">
                     Changes sync to your account profile.
@@ -187,11 +129,12 @@
                 </div>
               </div>
             </div>
+            </div>
           </header>
 
           <div class="relative mt-4 h-[calc(100vh-112px)] lg:mt-5">
-            <div class="relative z-20 w-full opacity-0 animate-floatIn lg:w-[60%]">
-              <div class="rounded-md bg-[#F5F6F4] p-7 opacity-0 translate-y-5 transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_18px_34px_rgba(12,35,38,0.1)] animate-fadeUp lg:p-8">
+            <div class="home-hero-card relative z-20 w-full opacity-0 animate-floatIn lg:w-[54%]">
+              <div class="home-hero-card-panel rounded-md bg-[#F5F6F4] p-7 opacity-0 translate-y-5 transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_18px_34px_rgba(12,35,38,0.1)] animate-fadeUp lg:p-8">
                 <h1 class="max-w-[760px] text-[48px] font-bold leading-[1.1] tracking-[-0.02em] text-ink lg:text-[66px]">
                   Fast and Easy Way to Rent a Vehicle
                 </h1>
@@ -201,83 +144,227 @@
                 </p>
               </div>
 
-              <form class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 opacity-0 translate-y-5 animate-fadeUp lg:grid-cols-2 lg:gap-x-2 [animation-delay:180ms]">
-                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
+              <form id="homeHeroBookingForm" class="mt-5 grid grid-cols-1 gap-x-2 gap-y-4 opacity-0 translate-y-5 animate-fadeUp lg:grid-cols-2 lg:gap-x-2 [animation-delay:180ms]">
+                <label class="block cursor-pointer rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:bg-white/40 hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Select Your Vehicle Type</span>
-                  <input
-                    type="text"
-                    value="Jeep-Diesel-Model-2021"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
-                  />
+                  <select
+                    id="homeVehicleType"
+                    name="vehicleType"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                  >
+                    <option value="">Choose vehicle type</option>
+                  </select>
                 </label>
 
-                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
-                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Where to Pick-Up</span>
+                <label class="block cursor-pointer rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:bg-white/40 hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
+                  <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Pick Up Location</span>
                   <input
+                    id="homePickupLocation"
+                    name="pickupLocation"
                     type="text"
-                    value="201 S Clinton St #166, Iowa City"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    list="homeNepalPickupSuggestions"
+                    placeholder="Thamel, Kathmandu, Nepal"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none placeholder:text-[#A2A9B0] lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
+                  <datalist id="homeNepalPickupSuggestions">
+                    <option value="Thamel, Kathmandu, Nepal"></option>
+                    <option value="Tribhuvan International Airport, Kathmandu, Nepal"></option>
+                    <option value="Lakeside, Pokhara, Nepal"></option>
+                    <option value="Bharatpur Airport, Chitwan, Nepal"></option>
+                    <option value="Lalitpur, Nepal"></option>
+                  </datalist>
                 </label>
 
-                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
+                <label class="block cursor-pointer rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:bg-white/40 hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Pick Up/Time</span>
                   <input
-                    type="text"
-                    value="11-March-2023, 11:00 AM"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    id="homePickupDateTime"
+                    name="pickupDateTime"
+                    type="datetime-local"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
                 </label>
 
-                <label class="block rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
+                <label class="block cursor-pointer rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:bg-white/40 hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                   <span class="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Drop-off/Time</span>
                   <input
-                    type="text"
-                    value="15-March-2023, 12:00 PM"
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#B7BBC0] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    id="homeDropoffDateTime"
+                    name="dropoffDateTime"
+                    type="datetime-local"
+                    required
+                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
                 </label>
 
-                <a
-                  href="vehicles.html"
+                <p id="homeHeroBookingError" class="hidden w-[80%] rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-[12px] font-semibold text-rose-700 lg:w-[78%]"></p>
+
+                <button
+                  id="homeHeroBookingSubmit"
+                  type="submit"
                   class="mt-2 inline-flex h-[44px] w-[80%] items-center justify-center rounded-full bg-accent text-[18px] font-medium text-white transition duration-200 hover:-translate-y-[2px] hover:brightness-105 hover:shadow-[0_12px_24px_rgba(229,140,78,0.34)] lg:col-span-1 lg:h-[44px] lg:w-[78%] lg:text-[15px]"
                 >
                   Browse Vehicles
-                </a>
+                </button>
               </form>
             </div>
 
-            <img
-              src="assets/images/car-transparent.png"
-              alt="Black jeep vehicle"
-              class="absolute bottom-0 right-[-3%] z-0 hidden w-[50%] max-w-[780px] opacity-0 [filter:contrast(1.08)_saturate(0.98)_drop-shadow(0_20px_40px_rgba(9,24,26,0.24))] transition duration-[380ms] hover:scale-[1.01] lg:block animate-carEntry"
-            />
           </div>
 
           <div class="px-2 pt-6 lg:hidden">
             <div class="mb-4 flex flex-wrap gap-2 text-[12px] font-semibold text-[#1f474a]">
               <a href="index.html" class="rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Home</a>
               <a href="vehicles.html" class="rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Vehicles</a>
-                <a data-auth-bookings-link data-open-bookings-panel href="#" class="hidden rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Your Bookings</a>
-              <a href="#" class="rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Pricing</a>
+              <a href="#" class="rounded-full border border-[#d7dfdb] bg-white px-3 py-1.5">Contact</a>
             </div>
-            <img
-              src="assets/images/car-transparent.png"
-              alt="Black jeep vehicle"
-              class="w-full mix-blend-multiply [filter:contrast(1.08)_saturate(0.98)]"
+            <img loading="lazy" src="assets/images/car-transparent.png"
+              alt="Luxury SUV available for rent"
+              width="1600"
+              height="1221"
+              decoding="async"
+              class="w-full mix-blend-multiply"
             />
           </div>
         </div>
       </section>
+      <!-- How it Works Section -->
+      <section style="background:#EDEEE9;padding:72px 24px 80px">
+        <div style="max-width:1100px;margin:0 auto">
+          <!-- Section Heading -->
+          <div style="text-align:center;margin-bottom:56px">
+            <h2 style="font-family:'Poppins',sans-serif;font-size:42px;font-weight:700;color:#1a2a2f;margin:0;line-height:1.15">How it Works</h2>
+            <p style="font-family:'Poppins',sans-serif;font-size:14px;color:#6C7074;margin-top:16px;line-height:1.7;max-width:520px;margin-left:auto;margin-right:auto">Follow these simple steps to book your perfect rental car. Fast, easy, and hassle-free vehicle booking experience.</p>
+          </div>
+
+          <!-- Steps Row -->
+          <div class="hiw-steps">
+
+            <!-- Step 1: Choose Location -->
+            <div class="hiw-step">
+              <div style="width:88px;height:88px;border-radius:22px;background:#D6DAD4;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;cursor:pointer" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 12px 28px rgba(12,35,38,0.15)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='none'">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="#3D4F4A" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C7.03 2 3 6.03 3 11c0 5.25 9 11 9 11s9-5.75 9-11c0-4.97-4.03-9-9-9zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+              </div>
+              <h3 style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:600;color:#1a2a2f;margin:20px 0 8px">Choose Location</h3>
+              <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Select your pickup location from our available branches nearby</p>
+            </div>
+
+            <!-- Curved dashed arrow 1â†’2 (desktop) -->
+            <div style="flex:0 0 100px;align-items:flex-start;justify-content:center;padding-top:28px" class="hiw-arrow">
+              <svg width="100" height="48" viewBox="0 0 100 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 38 C 25 2, 75 2, 96 38" stroke="#2D3B37" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" fill="none"/>
+              </svg>
+            </div>
+
+            <!-- Mobile connector 1â†’2 -->
+            <div class="hiw-mobile-connector">
+              <svg width="2" height="40" viewBox="0 0 2 40"><line x1="1" y1="0" x2="1" y2="40" stroke="#2D3B37" stroke-width="2" stroke-dasharray="5 4"/></svg>
+            </div>
+
+            <!-- Step 2: Pick-Up Date -->
+            <div class="hiw-step">
+              <div style="width:88px;height:88px;border-radius:22px;background:#d9884f;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(217,136,79,0.3);transition:transform 0.3s,box-shadow 0.3s;cursor:pointer" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 14px 32px rgba(217,136,79,0.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 8px 24px rgba(217,136,79,0.3)'">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <circle cx="8" cy="15" r="1.5" fill="#fff" stroke="none"/>
+                  <circle cx="12" cy="15" r="1.5" fill="#fff" stroke="none"/>
+                  <circle cx="16" cy="15" r="1.5" fill="#fff" stroke="none"/>
+                </svg>
+              </div>
+              <h3 style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:600;color:#1a2a2f;margin:20px 0 8px">Pick-Up Date</h3>
+              <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Select your preferred date and time for vehicle pickup</p>
+            </div>
+
+            <!-- Curved dashed arrow 2â†’3 (desktop) -->
+            <div style="flex:0 0 100px;align-items:flex-start;justify-content:center;padding-top:28px" class="hiw-arrow">
+              <svg width="100" height="48" viewBox="0 0 100 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 38 C 25 2, 75 2, 96 38" stroke="#2D3B37" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" fill="none"/>
+              </svg>
+            </div>
+
+            <!-- Mobile connector 2â†’3 -->
+            <div class="hiw-mobile-connector">
+              <svg width="2" height="40" viewBox="0 0 2 40"><line x1="1" y1="0" x2="1" y2="40" stroke="#2D3B37" stroke-width="2" stroke-dasharray="5 4"/></svg>
+            </div>
+
+            <!-- Step 3: Book Your Car -->
+            <div class="hiw-step">
+              <div style="width:88px;height:88px;border-radius:22px;background:#D6DAD4;display:flex;align-items:center;justify-content:center;transition:transform 0.3s,box-shadow 0.3s;cursor:pointer" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 12px 28px rgba(12,35,38,0.15)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='none'">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="#3D4F4A" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm11 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM5 11l1.5-4.5h11L19 11H5z"/>
+                </svg>
+              </div>
+              <h3 style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:600;color:#1a2a2f;margin:20px 0 8px">Book Your Car</h3>
+              <p style="font-family:'Poppins',sans-serif;font-size:13px;color:#6C7074;line-height:1.65;margin:0;max-width:210px">Complete your booking and get instant confirmation</p>
+            </div>
+          </div>
+        </div>
+
+        <style>
+          .hiw-steps { display: flex; align-items: flex-start; justify-content: center; gap: 0; }
+          .hiw-arrow { display: none; }
+          .hiw-step { flex: 1; max-width: 260px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+          .hiw-mobile-connector { display: none; }
+          @media (min-width: 1024px) {
+            .hiw-arrow { display: flex !important; }
+            .hiw-mobile-connector { display: none !important; }
+          }
+          @media (max-width: 1023px) {
+            .hiw-steps { flex-direction: column; align-items: center; gap: 0; }
+            .hiw-step { max-width: 300px; }
+            .hiw-mobile-connector { display: flex !important; align-items: center; justify-content: center; padding: 12px 0; }
+          }
+        </style>
+      </section>
+
+      <div id="homeTopRatedSection" class="bg-[#F5F6F4]"></div>
     </main>
+    <script src="assets/js/footer.component.js"></script>
+    <script src="assets/js/supabase.config.local.js"></script>
     <script src="assets/js/supabase.config.js"></script>
     <script src="assets/js/supabase.client.js"></script>
     <script src="assets/js/auth.supabase.js"></script>
-    <script src="assets/js/db.bootstrap.js"></script>
+    <script src="assets/js/vehicle-catalog.service.js"></script>
+    <script src="assets/js/home-hero-booking.js"></script>
+    <script src="assets/js/booking.service.js"></script>
+    <script src="assets/js/payment.service.js"></script>
+    <script src="assets/js/notifications.service.js"></script>
+    <script src="assets/js/notifications-bell.js"></script>
+    <script src="assets/js/ai-booking-chat.js"></script>
+    <script src="assets/js/home-upcoming-booking.js"></script>
+    <script src="assets/js/top-rented-redesign.js"></script>
     <script src="../backend/js/auth.js"></script>
+    <script src="assets/js/how-it-works.js"></script>
     <script>
-      window.VehicleAuthUI.init("home");
-      window.DatabaseBootstrap.init();
+      try {
+        if (window.VehicleAuthUI && typeof window.VehicleAuthUI.init === "function") {
+          window.VehicleAuthUI.init("home");
+        }
+      } catch (error) {
+        console.warn("VehicleAuthUI init failed:", error);
+      }
+
+      try {
+        if (window.DatabaseBootstrap && typeof window.DatabaseBootstrap.init === "function") {
+          window.DatabaseBootstrap.init();
+        }
+      } catch (error) {
+        console.warn("DatabaseBootstrap init failed:", error);
+      }
+
+      if (window.HomeHeroBooking && typeof window.HomeHeroBooking.init === "function") {
+        window.HomeHeroBooking.init();
+      }
+
+      if (window.HomeUpcomingBooking && typeof window.HomeUpcomingBooking.init === "function") {
+        window.HomeUpcomingBooking.init();
+      }
     </script>
   </body>
 </html>

@@ -125,7 +125,7 @@ class SearchAPIClient {
 
             return data;
         } catch (error) {
-            console.error(`API Error [${endpoint}]:`, error);
+            // console.error(`API Error [${endpoint}]:`, error);
             throw {
                 message: error.message,
                 endpoint,
@@ -172,7 +172,7 @@ class SearchAPIClient {
             return data;
 
         } catch (error) {
-            console.warn("Supabase failed, using legacy API request:", error);
+            // console.warn("Supabase failed, using legacy API request:", error);
             // Fallback to your original request method if Supabase isn't set up
             return this.request("/vehicles/search", {
                 method: "POST",
