@@ -414,8 +414,19 @@ function resolveSelectedVehicle(rows) {
     return null;
   }
 
-  const selected = (Array.isArray(rows) ? rows : []).find((row) => String(row && row.id ? row.id : '') === selectedId) || null;
+  const rowArray = Array.isArray(rows) ? rows : [];
+
+  // Data not yet loaded — preserve the ID and hash so it resolves once
+  // vehicles hydrate. Without this guard the first empty render clears the
+  // hash and the detail page never restores on reload.
+  if (!rowArray.length) {
+    vehicleUiState.selectedVehicleId = selectedId;
+    return null;
+  }
+
+  const selected = rowArray.find((row) => String(row && row.id ? row.id : '') === selectedId) || null;
   if (!selected) {
+    // Vehicle genuinely not found in the loaded catalog — clear state.
     vehicleUiState.selectedVehicleId = '';
     writeVehicleIdToHash('');
     return null;

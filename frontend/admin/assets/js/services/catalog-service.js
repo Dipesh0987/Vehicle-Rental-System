@@ -33,12 +33,19 @@ export function createCatalogService({ data }) {
     updatedAt: row.updated_at || '',
     image: row.primary_image_url || row.image_url || 'https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=640&q=80',
     imageUrls: (() => {
+      // Images from vehicle_images table (passed as _tableImages by loader)
+      const fromTable = Array.isArray(row._tableImages) ? row._tableImages.filter(Boolean) : [];
+      // Images from image_urls jsonb column
       const raw = row.image_urls;
-      if (Array.isArray(raw)) return raw.filter(Boolean);
-      if (typeof raw === 'string' && raw.trim().startsWith('[')) {
-        try { const p = JSON.parse(raw); return Array.isArray(p) ? p.filter(Boolean) : []; } catch { return []; }
+      let fromColumn = [];
+      if (Array.isArray(raw)) fromColumn = raw.filter(Boolean);
+      else if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+        try { const p = JSON.parse(raw); fromColumn = Array.isArray(p) ? p.filter(Boolean) : []; } catch { /* ignore */ }
       }
-      return [];
+      // Merge: table rows first (most reliable), then column extras, deduped
+      const seen = new Set(fromTable);
+      const merged = [...fromTable, ...fromColumn.filter(u => !seen.has(u))].filter(Boolean);
+      return merged.length ? merged : (row.primary_image_url ? [row.primary_image_url] : []);
     })(),
   });
 
@@ -65,6 +72,43 @@ export function createCatalogService({ data }) {
     vehicleCacheTime = 0;
   }
 
+  async function fetchVehicleImageMap(client, vehicleIds) {
+    if (!vehicleIds || !vehicleIds.length) return {};
+    try {
+      const { data: imageRows } = await client
+        .from('vehicle_images')
+        .select('vehicle_id,url,sort_order,is_primary')
+        .in('vehicle_id', vehicleIds);
+      const map = {};
+      (imageRows || []).forEach((r) => {
+        if (!r.vehicle_id || !r.url) return;
+        if (!map[r.vehicle_id]) map[r.vehicle_id] = [];
+        map[r.vehicle_id].push(r);
+      });
+      Object.keys(map).forEach((vid) => {
+        map[vid].sort((a, b) => {
+          if (Boolean(a.is_primary) !== Boolean(b.is_primary)) return a.is_primary ? -1 : 1;
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+      });
+      return map;
+    } catch {
+      return {};
+    }
+  }
+
+  async function syncVehicleImages(client, vehicleId, imageUrls) {
+    if (!vehicleId || !Array.isArray(imageUrls)) return;
+    try {
+      await client.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
+      if (imageUrls.length) {
+        await client.from('vehicle_images').insert(
+          imageUrls.map((url, i) => ({ vehicle_id: vehicleId, url, sort_order: i, is_primary: i === 0 }))
+        );
+      }
+    } catch { /* non-fatal: image_urls column is the fallback */ }
+  }
+
   async function loadVehiclesFromDatabase() {
     const now = Date.now();
     if (vehicleCache && (now - vehicleCacheTime) < CACHE_TTL_MS) {
@@ -87,10 +131,17 @@ export function createCatalogService({ data }) {
         throw new Error(fallback.error.message || 'Failed to load vehicles from database.');
       }
 
-      return (fallback.data || []).map(toLocalVehicle);
+      const fbRows = fallback.data || [];
+      const fbIds = fbRows.map((r) => r.id).filter(Boolean);
+      const fbImgMap = await fetchVehicleImageMap(client, fbIds);
+      return fbRows.map((r) => toLocalVehicle({ ...r, _tableImages: (fbImgMap[r.id] || []).map((x) => x.url) }));
     }
 
-    const result = (rows || []).map(toLocalVehicle);
+    const vehicleRows = rows || [];
+    const vehicleIds = vehicleRows.map((r) => r.id).filter(Boolean);
+    const imgMap = await fetchVehicleImageMap(client, vehicleIds);
+
+    const result = vehicleRows.map((r) => toLocalVehicle({ ...r, _tableImages: (imgMap[r.id] || []).map((x) => x.url) }));
     vehicleCache = result;
     vehicleCacheTime = Date.now();
     return result;
@@ -209,6 +260,9 @@ export function createCatalogService({ data }) {
           throw new Error(error.message || `Vehicle ${id} update failed.`);
         }
 
+        // Sync vehicle_images table so the public frontend sees the same images
+        await syncVehicleImages(client, id, normalized.image_urls || []);
+
         // Replace vehicle in-place so its row position stays the same.
         // Preserve the original created_at so the date-based sort order is
         // unchanged after the update (normalized has no timestamp fields).
@@ -242,7 +296,11 @@ export function createCatalogService({ data }) {
         throw new Error(error.message || 'Vehicle creation failed.');
       }
 
-      const created = toLocalVehicle(inserted || record);
+      const createdId = (inserted || {}).id || record.id;
+      if (createdId && normalized.image_urls && normalized.image_urls.length) {
+        await syncVehicleImages(client, createdId, normalized.image_urls);
+      }
+      const created = toLocalVehicle({ ...(inserted || record), _tableImages: normalized.image_urls || [] });
       data.vehicles.unshift(created);
       invalidateCache();
       return created;
