@@ -107,6 +107,10 @@ module.exports = {
           "0%, 100%": { transform: "scale(0.9)", opacity: "0.55" },
           "50%": { transform: "scale(1)", opacity: "1" },
         },
+        cpFadeUp: {
+          from: { opacity: "0", transform: "translateY(20px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         fadeUp: "fadeUp 620ms ease forwards",
@@ -129,6 +133,7 @@ module.exports = {
         sectionIn: "sectionIn 700ms cubic-bezier(0.19, 1, 0.22, 1) forwards",
         slideInRight: "slideInRight 300ms ease-out",
         pulseDot: "pulseDot 2.6s ease-in-out infinite",
+        cpFadeUp: "cpFadeUp 0.5s ease both",
       },
     },
   },
