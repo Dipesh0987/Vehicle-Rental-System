@@ -837,7 +837,7 @@ function renderBookingRow(row) {
       <div class="flex flex-wrap gap-2">
         <button data-edit-booking-id="${escapeHtml(bookingId)}" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold dark:border-white/10">Edit</button>
         <button data-delete-booking-id="${escapeHtml(bookingId)}" data-delete-booking-code="${escapeHtml(bookingCode)}" class="rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-600">Delete</button>
-        ${currentStatus === 'Cancelled' ? `<button data-initiate-refund-booking-id="${escapeHtml(bookingId)}" class="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300">Refund</button>` : ''}
+        ${(currentStatus === 'Cancelled' || currentStatus === 'Completed') ? `<button data-initiate-refund-booking-id="${escapeHtml(bookingId)}" class="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300">Refund</button>` : ''}
       </div>
     </td>
   </tr>`;
@@ -948,7 +948,7 @@ function renderBookingDetailPage(row) {
           ${hasPaymentReceipt && row.transactionId ? `<button type="button" data-print-receipt-code="${escapeHtml(row.transactionId)}" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10"><span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>Save as PDF</button>` : ''}
           <button type="button" data-edit-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Booking</button>
           <button type="button" data-delete-booking-id="${escapeHtml(row && row.bookingId ? row.bookingId : '')}" data-delete-booking-code="${escapeHtml(row && row.id ? row.id : '')}" class="rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600">Delete Booking</button>
-          ${status === 'Cancelled' ? `<button type="button" data-initiate-refund-booking-id="${escapeHtml(bookingId)}" class="inline-flex items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300"><span class="material-symbols-outlined text-[16px]">currency_exchange</span>Initiate Refund</button>` : ''}
+          ${(status === 'Cancelled' || status === 'Completed') ? `<button type="button" data-initiate-refund-booking-id="${escapeHtml(bookingId)}" class="inline-flex items-center gap-1 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300"><span class="material-symbols-outlined text-[16px]">currency_exchange</span>Initiate Refund</button>` : ''}
         </div>
 
         <div id="refundStatusSection" data-refund-booking-id="${escapeHtml(bookingId)}" class="mt-4"></div>
