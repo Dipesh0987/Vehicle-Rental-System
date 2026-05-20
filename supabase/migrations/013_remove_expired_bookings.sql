@@ -29,6 +29,7 @@ WHERE booking_id IN (
 DELETE FROM public.vehicle_bookings WHERE status = 'expired';
 
 -- Step 5: Create a reusable function for auto-expiry (can be called by cron)
+DROP FUNCTION IF EXISTS public.expire_unpaid_bookings();
 CREATE OR REPLACE FUNCTION public.expire_unpaid_bookings()
 RETURNS INTEGER
 LANGUAGE plpgsql
