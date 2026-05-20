@@ -162,9 +162,11 @@ export function createCatalogService({ data }) {
         vehicleInput.vehicle_number || vehicleInput.vehicleNumber || vehicleInput.registrationNumber || ''
       ).trim().toUpperCase();
 
+      const rawType = String(vehicleInput.type || vehicleInput.category || 'sedan').trim().toLowerCase();
+
       const normalized = {
         name: String(vehicleInput.name).trim(),
-        type: vehicleInput.type || vehicleInput.category,
+        type: rawType,
         seats: seatsNumber,
         price_per_day: priceNumber,
         fuel_type: rawFuelType,
@@ -223,14 +225,21 @@ export function createCatalogService({ data }) {
       }
 
       const client = await getClient();
-      const { error } = await client
+
+      // Try full soft-delete with status='inactive'; if DB check constraint
+      // rejects 'inactive', fall back to only toggling available/is_active.
+      let { error } = await client
         .from(TABLE_NAME)
-        .update({
-          status: 'inactive',
-          available: false,
-          is_active: false,
-        })
+        .update({ status: 'inactive', available: false, is_active: false })
         .eq('id', id);
+
+      if (error && error.message && error.message.includes('check constraint')) {
+        const fallback = await client
+          .from(TABLE_NAME)
+          .update({ available: false, is_active: false })
+          .eq('id', id);
+        error = fallback.error;
+      }
 
       if (error) {
         throw new Error(error.message || `Vehicle ${id} soft deletion failed.`);
