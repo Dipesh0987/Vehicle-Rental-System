@@ -313,7 +313,17 @@ export function renderMaintenanceModule({ data, query, notify, rerender, reloadM
       openModal({
         title: 'Delete Record',
         content: `<p>Delete maintenance record <strong>${escapeHtml(rid)}</strong> for <strong>${escapeHtml(rec?.vehicle || '')}</strong>?</p><p class="mt-2 text-xs text-slate-500">This action cannot be undone.</p>`,
-        onConfirm: () => {
+        onConfirm: async () => {
+          // Delete from DB first
+          if (rec?.dbId && window.SupabaseClient?.isConfigured()) {
+            try {
+              const client = await window.SupabaseClient.init();
+              const { error } = await client.from('maintenance_records').delete().eq('id', rec.dbId);
+              if (error) throw new Error(error.message);
+            } catch (e) {
+              notify(`Removed locally (DB error: ${e.message})`, 'warn');
+            }
+          }
           data.maintenance = data.maintenance.filter((r) => r.id !== rid);
           notify(`Record ${rid} deleted`, 'success');
           rerender();
@@ -442,7 +452,17 @@ function renderDetailView(host, rec, data, notify, rerender) {
     openModal({
       title: 'Delete Record',
       content: `<p>Delete <strong>${escapeHtml(rec.id)}</strong> for <strong>${escapeHtml(rec.vehicle)}</strong>?</p>`,
-      onConfirm: () => {
+      onConfirm: async () => {
+        // Delete from DB first
+        if (rec.dbId && window.SupabaseClient?.isConfigured()) {
+          try {
+            const client = await window.SupabaseClient.init();
+            const { error } = await client.from('maintenance_records').delete().eq('id', rec.dbId);
+            if (error) throw new Error(error.message);
+          } catch (e) {
+            notify(`Removed locally (DB error: ${e.message})`, 'warn');
+          }
+        }
         data.maintenance = data.maintenance.filter((r) => r.id !== rec.id);
         maintenanceUiState.mode = 'list';
         maintenanceUiState.selectedId = '';
@@ -475,10 +495,14 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
+  // vehicleMap: label → vehicle number (shown in the visible input)
+  // vehicleUUIDMap: label → vehicle UUID (used for the DB FK at submit time)
   const vehicleMap = {};
+  const vehicleUUIDMap = {};
   for (const v of vehicles) {
     const label = v.name || v.vehicleNumber || v.vehicle_number || v.id;
-    vehicleMap[label] = v.id; // store UUID for vehicle_id FK
+    vehicleMap[label] = v.vehicleNumber || v.vehicle_number || '';
+    vehicleUUIDMap[label] = v.id || null;
   }
   const scheduledMinAttr = isEdit ? '' : `min="${todayStr}"`;
   const completedMinAttr = r.schedule ? `min="${r.schedule}"` : '';
@@ -746,10 +770,12 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     try {
       if (window.SupabaseClient?.isConfigured()) {
         const client = await window.SupabaseClient.init();
+        // Look up the vehicle UUID by name for the FK column
+        const vehicleUUID = vehicleUUIDMap[record.vehicle] || null;
         const dbRow = {
           maintenance_id:    record.id,
           vehicle_name:      record.vehicle,
-          vehicle_id:        record.vehicleId || null,
+          vehicle_id:        vehicleUUID,
           schedule_date:     record.schedule  || null,
           service_type:      record.serviceType,
           description:       record.damage,
