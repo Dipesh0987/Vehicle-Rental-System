@@ -298,16 +298,20 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
             throw new Error('Catalog service is unavailable.');
           }
 
-          // Build final image URL array from editImgState slots
-          const finalImageUrls = [];
-          for (const slot of editImgState.slots) {
-            if (slot.file) {
-              const [dataUrl] = await readFilesAsDataUrls([slot.file]);
-              if (dataUrl) finalImageUrls.push(dataUrl);
-            } else if (slot.url) {
-              finalImageUrls.push(slot.url);
-            }
-          }
+          // Build final image URL array — prefer Storage upload, fall back to compressed base64
+          const finalImageUrls = await Promise.all(
+            editImgState.slots.map(async (slot) => {
+              if (slot.file) {
+                if (typeof catalogService.uploadVehicleImages === 'function') {
+                  const storageUrls = await catalogService.uploadVehicleImages(selectedVehicle.id, [slot.file]);
+                  if (storageUrls && storageUrls.length) return storageUrls[0];
+                }
+                const [dataUrl] = await readFilesAsDataUrls([slot.file]);
+                return dataUrl || null;
+              }
+              return slot.url || null;
+            })
+          ).then((arr) => arr.filter(Boolean));
           const resolvedImageUrl = finalImageUrls[0] || selectedVehicle.primary_image_url || selectedVehicle.image || '';
 
           const payload = {
@@ -1187,24 +1191,32 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData, navigat
       if (typeof catalogService.createVehicle === 'function') {
         await catalogService.createVehicle(values);
       } else {
-        const imageUrls = await readFilesAsDataUrls(values.images);
+        // Upload images to storage (preferred) or compress to base64 (fallback)
+        let imageUrls = [];
+        if (values.images && values.images.length) {
+          const tempVehicleId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          if (typeof catalogService.uploadVehicleImages === 'function') {
+            const storageUrls = await catalogService.uploadVehicleImages(tempVehicleId, values.images);
+            imageUrls = storageUrls && storageUrls.length ? storageUrls : await readFilesAsDataUrls(values.images);
+          } else {
+            imageUrls = await readFilesAsDataUrls(values.images);
+          }
+        }
         await catalogService.saveVehicle({
-          brand: values.brand || deriveBrandFromVehicleName(values.name),
           name: values.name,
-          vehicleNumber: values.vehicleNumber,
-          category: values.type,
           type: values.type,
-          status: values.status,
-          transmission: values.transmission,
-          fuelType: values.fuelType,
+          category: values.type,
+          transmission: values.transmission || 'Automatic',
+          fuel_type: values.fuelType,
           seats: values.seats,
-          daily: values.pricePerDay,
-          pricePerDay: values.pricePerDay,
+          price_per_day: values.pricePerDay,
+          status: values.status,
+          location: values.location,
+          features: values.features,
+          rating: Number.isFinite(values.rating) ? values.rating : 4.6,
+          vehicle_number: values.vehicleNumber,
           imageUrls,
           primaryImageUrl: imageUrls[0] || DEFAULT_IMAGE_URL,
-          features: values.features,
-          location: values.location,
-          rating: Number.isFinite(values.rating) ? values.rating : 4.6,
         });
       }
 

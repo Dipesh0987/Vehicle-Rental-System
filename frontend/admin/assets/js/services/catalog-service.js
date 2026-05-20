@@ -306,6 +306,29 @@ export function createCatalogService({ data }) {
       return created;
     },
 
+    async uploadVehicleImages(vehicleId, files) {
+      if (!vehicleId || !files || !files.length) return null;
+      const client = await getClient();
+      const bucket = 'vehicle-images';
+      const urls = [];
+      for (const file of Array.from(files)) {
+        try {
+          const ext = (file.name || '').split('.').pop()?.toLowerCase() || 'jpg';
+          const safeName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const path = `vehicles/${vehicleId}/${safeName}`;
+          const { data, error } = await client.storage
+            .from(bucket)
+            .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true });
+          if (error || !data) return null; // storage unavailable — signal caller to use base64
+          const { data: pub } = client.storage.from(bucket).getPublicUrl(data.path);
+          if (pub?.publicUrl) urls.push(pub.publicUrl);
+        } catch {
+          return null; // storage unavailable
+        }
+      }
+      return urls;
+    },
+
     async deleteVehicle(id) {
       if (!id) {
         throw new Error('Vehicle id is required.');
