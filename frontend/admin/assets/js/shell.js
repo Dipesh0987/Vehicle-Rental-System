@@ -103,10 +103,6 @@ export function renderShell() {
   return `
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0,0" />
     
-    <!-- Floating expand button (visible when sidebar is collapsed) -->
-    <button id="expandSidebarBtn" class="fixed left-4 top-20 z-40 hidden rounded-lg border border-slate-200 bg-white p-2.5 text-slate-700 shadow-lg transition hover:bg-slate-50 hover:shadow-xl lg:block dark:border-white/10 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" aria-label="Expand sidebar">
-      <span class="material-symbols-outlined text-[20px]">right_panel_open</span>
-    </button>
     
     <aside id="sidebar" class="sticky top-0 hidden h-screen w-[300px] flex-col border-r border-black/10 bg-white/75 p-5 backdrop-blur-xl lg:flex dark:border-white/10 dark:bg-black/20">
       <div id="sidebarContent" class="flex h-full flex-col">
@@ -137,18 +133,21 @@ export function renderShell() {
     <div class="min-w-0 flex-1">
       <header class="sticky top-0 z-30 border-b border-black/10 bg-white/70 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-white/10 dark:bg-black/25">
         <div class="flex flex-nowrap items-center gap-2 sm:gap-3">
-          <button id="sidebarToggleBtn" class="flex-shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-900/10 lg:hidden dark:text-slate-100 dark:hover:bg-white/10" aria-label="Open sidebar">
+          <!-- Sidebar toggle — visible on ALL breakpoints -->
+          <button id="sidebarToggleBtn" class="flex-shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-900/10 dark:text-slate-100 dark:hover:bg-white/10" aria-label="Open sidebar">
             <span id="sidebarToggleIcon" class="material-symbols-outlined">menu</span>
           </button>
 
-          <label class="relative min-w-0 flex-1 max-w-xs">
-            <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
-            <input id="globalSearch" placeholder="Search bookings, vehicles…" class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-xs font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
-          </label>
+          <!-- Search + quick actions fill remaining space -->          
+          <div class="flex min-w-0 flex-1 items-center gap-2">
+            <label class="relative min-w-0 flex-1 max-w-xs">
+              <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-slate-500">search</span>
+              <input id="globalSearch" placeholder="Search bookings, vehicles…" class="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-xs font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900" />
+            </label>
+            <div id="quickActions" class="hidden items-center gap-2 flex-shrink-0 lg:flex">${renderQuickActions()}</div>
+          </div>
 
-          <div id="quickActions" class="hidden items-center gap-2 flex-shrink-0 lg:flex">${renderQuickActions()}</div>
-
-          <div class="ml-auto flex flex-shrink-0 items-center gap-2">
+          <div class="flex flex-shrink-0 items-center gap-2">
             <button id="notificationBtn" class="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Notifications">
               <span class="material-symbols-outlined text-[20px]">notifications</span>
               <span id="notificationBadgeCount" class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-peach px-1 text-[10px] font-bold text-white">3</span>
@@ -314,7 +313,7 @@ export function bindShellInteractions(onNavigate, onQuickAction, onSearch, onSea
     });
   });
 
-  const sidebarToggleButtons = document.querySelectorAll('#sidebarToggleBtn, #collapseSidebar, #expandSidebarBtn');
+  const sidebarToggleButtons = document.querySelectorAll('#sidebarToggleBtn, #collapseSidebar');
   sidebarToggleButtons.forEach((button) => {
     button.addEventListener('click', handleSidebarToggle);
   });
@@ -436,7 +435,6 @@ function isDesktopSidebarCollapsed() {
 function applyDesktopSidebarState(collapsed) {
   const sidebar = document.getElementById('sidebar');
   const sidebarContent = document.getElementById('sidebarContent');
-  const expandBtn = document.getElementById('expandSidebarBtn');
 
   if (!sidebar || !sidebarContent) {
     return;
@@ -453,11 +451,6 @@ function applyDesktopSidebarState(collapsed) {
   sidebarContent.classList.toggle('lg:-translate-x-3', shouldCollapse);
   sidebarContent.classList.toggle('lg:opacity-0', shouldCollapse);
   sidebarContent.classList.toggle('lg:pointer-events-none', shouldCollapse);
-
-  // Show/hide the floating expand button
-  if (expandBtn) {
-    expandBtn.classList.toggle('lg:hidden', !shouldCollapse);
-  }
 
   sidebar.setAttribute('aria-hidden', shouldCollapse ? 'true' : 'false');
   writeDesktopSidebarCollapsedState(shouldCollapse);

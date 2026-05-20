@@ -60,5 +60,11 @@ create policy "admin_full_access_maintenance"
   using (true)
   with check (true);
 
--- Allow realtime replication
-alter publication supabase_realtime add table public.maintenance_records;
+-- Allow realtime replication (skip if already a member)
+do $$
+begin
+  alter publication supabase_realtime add table public.maintenance_records;
+exception when others then
+  null;
+end;
+$$;
