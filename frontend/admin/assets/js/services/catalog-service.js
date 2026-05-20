@@ -196,9 +196,18 @@ export function createCatalogService({ data }) {
         }
 
         // Replace vehicle in-place so its row position stays the same.
-        // Also carry the original id forward (toLocalVehicle maps from
-        // 'normalized' which has no id field).
-        const updated = { ...toLocalVehicle({ ...normalized, id }), id };
+        // Preserve the original created_at so the date-based sort order is
+        // unchanged after the update (normalized has no timestamp fields).
+        const original = data.vehicles.find((v) => v.id === id);
+        const updated = {
+          ...toLocalVehicle({
+            ...normalized,
+            id,
+            created_at: original?.createdAt || original?.created_at || original?.addedAt || '',
+            updated_at: new Date().toISOString(),
+          }),
+          id,
+        };
         const index = data.vehicles.findIndex((vehicle) => vehicle.id === id);
         if (index >= 0) {
           data.vehicles.splice(index, 1, updated);

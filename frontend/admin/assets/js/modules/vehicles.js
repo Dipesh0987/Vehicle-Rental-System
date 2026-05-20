@@ -110,13 +110,13 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
                 .map(
                   (vehicle) => `<tr class="border-b border-slate-100 dark:border-white/5">
                     <td class="py-3 pr-3">
-                      <div class="flex items-center gap-3">
+                      <button data-view-id="${escapeHtml(vehicle.id)}" class="flex items-center gap-3 text-left hover:opacity-80 transition-opacity">
                         <img src="${escapeHtml(vehicle.image || DEFAULT_IMAGE_URL)}" alt="${escapeHtml(vehicle.name)}" class="h-10 w-14 rounded-lg object-cover" />
                         <div>
-                          <p class="font-bold">${escapeHtml(formatVehicleTitle(vehicle))}</p>
-                          <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(vehicle.id)}</p>
+                          <p class="font-bold underline-offset-2 hover:underline">${escapeHtml(formatVehicleTitle(vehicle))}</p>
+                          <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(vehicle.vehicleNumber || vehicle.vehicle_number || vehicle.id)}</p>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td class="py-3 pr-3">
                       <span class="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs font-bold tracking-wider text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">${escapeHtml(vehicle.vehicleNumber || vehicle.vehicle_number || '-')}</span>
@@ -328,6 +328,15 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
     });
   });
 
+  host.querySelectorAll('[data-view-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-view-id');
+      vehicleUiState.selectedVehicleId = id;
+      writeVehicleIdToHash(id);
+      rerender?.();
+    });
+  });
+
   host.querySelector('[data-back-to-vehicles-list]')?.addEventListener('click', () => {
     vehicleUiState.selectedVehicleId = '';
     writeVehicleIdToHash('');
@@ -380,57 +389,103 @@ function writeVehicleIdToHash(value) {
 }
 
 function renderVehicleDetailPage(vehicle) {
-  return `<section class="${classMap.panel} animate-fadeUp p-4 sm:p-6">
+  const v = vehicle || {};
+  const imgSrc = escapeHtml(v.primary_image_url || v.image || DEFAULT_IMAGE_URL);
+  const addedStr = v.addedAt || v.createdAt || '';
+  const updatedStr = v.updatedAt || '';
+  return `<section class="space-y-4 animate-fadeUp">
+    <!-- Header -->
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <button type="button" data-back-to-vehicles-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
-        <span class="material-symbols-outlined text-[16px]">west</span>
-        <span>Back to Vehicles</span>
-      </button>
-      <span class="${statusClass(vehicle && vehicle.status ? vehicle.status : 'Available')}">${escapeHtml(vehicle && vehicle.status ? vehicle.status : 'Available')}</span>
+      <div class="flex items-center gap-3">
+        <button type="button" data-back-to-vehicles-list class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+          <span class="material-symbols-outlined text-[16px]">west</span> Back
+        </button>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Operations &rsaquo; Vehicles</p>
+          <h2 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">${escapeHtml(formatVehicleTitle(v))}</h2>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="${statusClass(v.status || 'Available')}">${escapeHtml(v.status || 'Available')}</span>
+        <button data-edit-id="${escapeHtml(v.id || '')}" class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+          <span class="material-symbols-outlined text-[16px]">edit</span> Edit
+        </button>
+        <button data-delete-id="${escapeHtml(v.id || '')}" class="inline-flex items-center gap-1 rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10">
+          <span class="material-symbols-outlined text-[16px]">delete</span> Delete
+        </button>
+      </div>
     </div>
 
-    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5 xl:col-span-2">
-        <div class="flex flex-wrap items-start gap-4">
-          <img src="${escapeHtml(vehicle && vehicle.image ? vehicle.image : DEFAULT_IMAGE_URL)}" alt="${escapeHtml(vehicle && vehicle.name ? vehicle.name : 'Vehicle')}" class="h-40 w-full max-w-[260px] rounded-2xl object-cover" />
-          <div class="min-w-0 flex-1">
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Vehicle Detail Page</p>
-            <h3 class="mt-1 text-2xl font-extrabold tracking-[-0.02em] text-slate-900 dark:text-slate-100">${escapeHtml(formatVehicleTitle(vehicle))}</h3>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')} · <span class="font-mono font-semibold tracking-wider">${escapeHtml(vehicle && (vehicle.vehicleNumber || vehicle.vehicle_number) ? (vehicle.vehicleNumber || vehicle.vehicle_number) : 'No vehicle number')}</span></p>
-            <div class="mt-4 flex flex-wrap gap-2">
-              <button data-edit-id="${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold dark:border-white/10">Edit Vehicle</button>
-              <button data-delete-id="${escapeHtml(vehicle && vehicle.id ? vehicle.id : '')}" class="rounded-xl border border-rose-300 px-3 py-2 text-sm font-semibold text-rose-600">Delete Vehicle</button>
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <!-- Main info -->
+      <div class="space-y-4 xl:col-span-2">
+
+        <!-- Image + key facts -->
+        <article class="${classMap.panel} p-4 sm:p-5">
+          <div class="flex flex-wrap gap-4">
+            <img src="${imgSrc}" alt="${escapeHtml(v.name || 'Vehicle')}" class="h-44 w-full max-w-xs rounded-2xl object-cover ring-1 ring-black/10 dark:ring-white/10" />
+            <div class="min-w-0 flex-1 space-y-3">
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vehicle ID</p>
+                <p class="mt-0.5 break-all font-mono text-xs text-slate-600 dark:text-slate-300">${escapeHtml(v.id || '-')}</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vehicle Number</p>
+                <p class="mt-0.5 font-mono text-sm font-bold tracking-wider text-slate-800 dark:text-slate-100">${escapeHtml(v.vehicleNumber || v.vehicle_number || '-')}</p>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                ${renderVehicleField('Brand', v.brand || '-')}
+                ${renderVehicleField('Category', v.category || '-')}
+                ${renderVehicleField('Transmission', v.transmission || '-')}
+                ${renderVehicleField('Fuel Type', v.fuelType || v.fuel_type || '-')}
+                ${renderVehicleField('Seats', String(v.seats || 5))}
+                ${renderVehicleField('Rating', String(v.rating || 4.6))}
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          ${renderVehicleField('Category', vehicle && vehicle.category ? vehicle.category : '-')}
-          ${renderVehicleField('Brand', vehicle && vehicle.brand ? vehicle.brand : '-')}
-          ${renderVehicleField('Transmission', vehicle && vehicle.transmission ? vehicle.transmission : '-')}
-          ${renderVehicleField('Fuel Type', vehicle && vehicle.fuelType ? vehicle.fuelType : '-')}
-          ${renderVehicleField('Seats', String(vehicle && vehicle.seats ? vehicle.seats : '5'))}
-          ${renderVehicleField('Location', vehicle && vehicle.location ? vehicle.location : '-')}
-          ${renderVehicleField('Daily', formatNpr(vehicle && vehicle.daily ? vehicle.daily : 0))}
-          ${renderVehicleField('Weekly', formatNpr(vehicle && vehicle.weekly ? vehicle.weekly : 0))}
-          ${renderVehicleField('Seasonal', formatNpr(vehicle && vehicle.seasonal ? vehicle.seasonal : 0))}
-          ${renderVehicleField('Rating', String(vehicle && vehicle.rating ? vehicle.rating : '4.6'))}
-        </div>
-      </article>
-
-      <aside class="space-y-3">
-        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
-          <h4 class="text-sm font-extrabold">Vehicle Snapshot</h4>
-          <div class="mt-3 space-y-2 text-xs">
-            ${renderVehicleField('Vehicle ID', vehicle && vehicle.id ? vehicle.id : '-')}
-            ${renderVehicleField('Vehicle Number', vehicle && (vehicle.vehicleNumber || vehicle.vehicle_number) ? (vehicle.vehicleNumber || vehicle.vehicle_number) : '-')}
-            ${renderVehicleField('Status', vehicle && vehicle.status ? vehicle.status : '-')}
           </div>
         </article>
 
-        <article class="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
-          <h4 class="text-sm font-extrabold">Features</h4>
-          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(Array.isArray(vehicle && vehicle.features) && vehicle.features.length ? vehicle.features.join(', ') : 'No features listed.')}</p>
+        <!-- Pricing -->
+        <article class="${classMap.panel} p-4 sm:p-5">
+          <h4 class="mb-3 text-sm font-extrabold">Pricing</h4>
+          <div class="grid grid-cols-3 gap-3">
+            ${renderVehicleField('Daily Rate', formatNpr(v.daily || 0))}
+            ${renderVehicleField('Weekly Rate', formatNpr(v.weekly || 0))}
+            ${renderVehicleField('Seasonal Rate', formatNpr(v.seasonal || 0))}
+          </div>
+        </article>
+
+        <!-- Features -->
+        <article class="${classMap.panel} p-4 sm:p-5">
+          <h4 class="mb-2 text-sm font-extrabold">Features</h4>
+          <p class="text-sm text-slate-600 dark:text-slate-300">${escapeHtml(Array.isArray(v.features) && v.features.length ? v.features.join(', ') : 'No features listed.')}</p>
+        </article>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-4">
+        <article class="${classMap.panel} p-4 sm:p-5">
+          <h4 class="mb-3 text-sm font-extrabold">Status &amp; Availability</h4>
+          <div class="space-y-2">
+            ${renderVehicleField('Status', v.status || '-')}
+            ${renderVehicleField('Available', v.available !== false ? 'Yes' : 'No')}
+            ${renderVehicleField('Active', v.is_active !== false ? 'Yes' : 'No')}
+            ${renderVehicleField('Location', v.location || '-')}
+          </div>
+        </article>
+
+        <article class="${classMap.panel} p-4 sm:p-5">
+          <h4 class="mb-3 text-sm font-extrabold">Timeline</h4>
+          <div class="space-y-2">
+            ${renderVehicleField('Added', addedStr ? formatDateTime(addedStr) : '-')}
+            ${renderVehicleField('Last Updated', updatedStr ? formatDateTime(updatedStr) : '-')}
+          </div>
+        </article>
+
+        <article class="${classMap.panel} p-4 sm:p-5">
+          <h4 class="mb-3 text-sm font-extrabold">Image</h4>
+          <img src="${imgSrc}" alt="vehicle" class="w-full rounded-xl object-cover" />
+          <p class="mt-2 text-[11px] text-slate-400">Use Edit to replace this image.</p>
         </article>
       </aside>
     </div>
