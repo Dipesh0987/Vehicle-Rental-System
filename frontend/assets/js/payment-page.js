@@ -1,24 +1,20 @@
 /**
- * Payment selection page.
- * Reads ?booking=<uuid> from the URL, fetches the booking, lets the user
- * choose 60% advance or 100% upfront, shows a countdown to the 15-minute
- * payment_deadline, then submits a signed eSewa form to the gateway.
+ * Payment page.
+ * Reads ?booking=<uuid> from the URL, fetches the booking, shows the
+ * remaining balance to pay with a 15-minute countdown, then submits a
+ * signed eSewa form to the gateway.
  *
- * eSewa requires a POST submission (not a redirect) so we build a hidden
- * <form> from the signed fields the edge function returned, then call
- * .submit() on it. The browser navigates to eSewa with the form payload
- * intact, the user pays, and eSewa redirects back to PAYMENT_SUCCESS_URL
- * with `?data=<base64-json>` which payment-return-page.js then verifies.
+ * No more 60%/100% selection — user always pays the full remaining balance.
+ * If the 15-minute deadline expires, the booking is marked expired and the
+ * vehicle reservation is released.
  */
 (function () {
   "use strict";
 
-  var DEFAULT_PARTIAL_PERCENT = 0.60;
-
   var state = {
     bookingId: "",
     booking: null,
-    selectedPaymentType: "partial",
+    selectedPaymentType: "full",
     countdownTimer: null,
     submitting: false,
   };
@@ -86,37 +82,15 @@
     banner.textContent = message;
   }
 
-  function applyPaymentTypeSelection(type) {
-    state.selectedPaymentType = type === "full" ? "full" : "partial";
-    var partialBtn = $("paymentOptionPartial");
-    var fullBtn = $("paymentOptionFull");
-    [partialBtn, fullBtn].forEach(function (btn) {
-      if (!btn) return;
-      btn.classList.remove("payment-option--active");
-      btn.setAttribute("aria-pressed", "false");
-    });
-    var active = state.selectedPaymentType === "full" ? fullBtn : partialBtn;
-    if (active) {
-      active.classList.add("payment-option--active");
-      active.setAttribute("aria-pressed", "true");
-    }
-    refreshPayNow();
-  }
-
   function refreshPayNow() {
     if (!state.booking) return;
     var total = Number(state.booking.quote && state.booking.quote.totalAmount || 0);
     var paid = Number(state.booking.paidAmount || 0);
     var remaining = Number(state.booking.remainingAmount || Math.max(0, total - paid));
-    var partialAmount = Math.round(total * DEFAULT_PARTIAL_PERCENT * 100) / 100;
-    var amountNow = state.selectedPaymentType === "full" ? remaining : partialAmount;
 
-    setText("paymentPayNowAmount", formatMoney(amountNow));
-    setText("paymentPayNowSub",
-      state.selectedPaymentType === "full"
-        ? "Pay the full balance and confirm the booking instantly."
-        : "Pay 60% advance to confirm. The remaining " + formatMoney(remaining - partialAmount) + " is collected at pickup.");
-    setText("paymentSummaryAmount", formatMoney(amountNow));
+    setText("paymentPayNowAmount", formatMoney(remaining));
+    setText("paymentPayNowSub", "Pay this amount to confirm your booking instantly.");
+    setText("paymentSummaryAmount", formatMoney(remaining));
   }
 
   function startCountdown(deadlineIso) {
@@ -144,6 +118,7 @@
         if (card) card.classList.add("payment-countdown--expired");
         if (bar) bar.style.width = "0%";
         lockUiForExpiry();
+        expireBookingOnServer();
         if (state.countdownTimer) {
           window.clearInterval(state.countdownTimer);
           state.countdownTimer = null;
@@ -180,7 +155,19 @@
       payBtn.classList.add("payment-button--disabled");
       payBtn.textContent = "Payment window closed";
     }
-    setStatus("Payment window has expired. Please make a new booking to try again.", "error");
+    setStatus("Payment window has expired. Your reservation has been released. Please make a new booking.", "error");
+  }
+
+  async function expireBookingOnServer() {
+    if (!state.bookingId) return;
+    try {
+      if (window.VehicleBookingService && typeof window.VehicleBookingService.updateBookingStatus === "function") {
+        await window.VehicleBookingService.updateBookingStatus(state.bookingId, "expired");
+      } else if (window.SupabaseClient && typeof window.SupabaseClient.init === "function") {
+        var client = await window.SupabaseClient.init();
+        await client.from("vehicle_bookings").update({ status: "expired" }).eq("id", state.bookingId);
+      }
+    } catch (_e) { /* best effort - server cron will also clean these up */ }
   }
 
   function renderBooking(booking) {
@@ -199,45 +186,21 @@
     setText("paymentCustomerName", booking.customerName || "Customer");
     setText("paymentCustomerEmail", booking.customerEmail || "-");
 
-    var partialBtn = $("paymentOptionPartial");
-    var partialAmount = Math.round(total * DEFAULT_PARTIAL_PERCENT * 100) / 100;
-    if (partialBtn) {
-      var partialAmountEl = partialBtn.querySelector("[data-partial-amount]");
-      if (partialAmountEl) partialAmountEl.textContent = formatMoney(partialAmount);
-      // Disable partial if some has been paid already.
-      if (paid > 0) {
-        partialBtn.disabled = true;
-        partialBtn.classList.add("payment-option--disabled");
-        partialBtn.setAttribute("aria-disabled", "true");
-        var partialNote = partialBtn.querySelector("[data-partial-note]");
-        if (partialNote) partialNote.textContent = "Already partially paid - balance only";
-        applyPaymentTypeSelection("full");
-      } else {
-        partialBtn.disabled = false;
-        partialBtn.classList.remove("payment-option--disabled");
-        partialBtn.removeAttribute("aria-disabled");
-      }
-    }
-
-    var fullBtn = $("paymentOptionFull");
-    if (fullBtn) {
-      var fullAmountEl = fullBtn.querySelector("[data-full-amount]");
-      if (fullAmountEl) fullAmountEl.textContent = formatMoney(remaining);
-      var fullNote = fullBtn.querySelector("[data-full-note]");
-      if (fullNote) {
-        fullNote.textContent = paid > 0
-          ? "Pay the remaining balance now."
-          : "Pay everything upfront and skip a second payment later.";
-      }
-    }
-
-    if (booking.payment_status === "paid" || remaining <= 0) {
+    if (booking.paymentStatus === "paid" || booking.payment_status === "paid" || remaining <= 0) {
       hide("paymentChooserSection");
       show("paymentAlreadyPaidPanel");
       return;
     }
 
+    // Check if already expired
     if (booking.paymentDeadline) {
+      var deadlineMs = Date.parse(String(booking.paymentDeadline));
+      if (Number.isFinite(deadlineMs) && deadlineMs <= Date.now()) {
+        hide("paymentChooserSection");
+        lockUiForExpiry();
+        expireBookingOnServer();
+        return;
+      }
       startCountdown(booking.paymentDeadline);
     } else {
       hide("paymentCountdownCard");
@@ -251,8 +214,6 @@
     var btn = $("paymentSubmitBtn");
     if (!btn) return;
     btn.disabled = isSubmitting;
-    // Only swap the label text - mutating btn.textContent would wipe the
-    // inline eSewa logo SVG and the lock chip out of the button.
     var label = btn.querySelector("[data-payment-submit-label]");
     if (label) {
       label.textContent = isSubmitting ? "Connecting to eSewa..." : "Pay with eSewa";
@@ -262,9 +223,6 @@
     btn.classList.toggle("payment-button--loading", isSubmitting);
   }
 
-  // eSewa requires the gateway to be hit via POST with a signed form payload.
-  // We build a hidden <form>, populate it from the edge function response,
-  // then submit it - the browser navigates away with the POST data attached.
   function submitEsewaForm(gatewayUrl, formFields) {
     if (!gatewayUrl || !formFields) {
       throw new Error("eSewa did not return a gateway URL or form fields.");
@@ -333,7 +291,7 @@
     try {
       var result = await window.VehiclePaymentService.initiatePayment({
         bookingId: state.bookingId,
-        paymentType: state.selectedPaymentType,
+        paymentType: "full",
       });
 
       if (!result || !result.gatewayUrl || !result.formFields) {
@@ -347,7 +305,7 @@
             transactionCode: result.transactionCode,
             transactionUuid: result.transactionUuid,
             amount: result.amount,
-            paymentType: result.paymentType,
+            paymentType: "full",
             startedAt: Date.now(),
           }));
         }
@@ -363,19 +321,6 @@
   }
 
   function wireOptions() {
-    var partialBtn = $("paymentOptionPartial");
-    var fullBtn = $("paymentOptionFull");
-    if (partialBtn) {
-      partialBtn.addEventListener("click", function () {
-        if (partialBtn.disabled) return;
-        applyPaymentTypeSelection("partial");
-      });
-    }
-    if (fullBtn) {
-      fullBtn.addEventListener("click", function () {
-        applyPaymentTypeSelection("full");
-      });
-    }
     var submit = $("paymentSubmitBtn");
     if (submit) {
       submit.addEventListener("click", startPayment);
@@ -401,7 +346,6 @@
     state.bookingId = readBookingIdFromUrl();
     var prefill = readSessionPrefill();
     if (prefill && (prefill.bookingId === state.bookingId || !state.bookingId)) {
-      // Optimistic UI even before the DB read completes.
       setText("paymentVehicleName", prefill.vehicleName || "Vehicle");
       setText("paymentBookingCode", prefill.bookingCode || "-");
       setText("paymentBookingDates", formatDate(prefill.startDate) + " \u2192 " + formatDate(prefill.endDate));
@@ -409,7 +353,6 @@
       if (prefill.paymentDeadline) startCountdown(prefill.paymentDeadline);
     }
     wireOptions();
-    applyPaymentTypeSelection("partial");
     void loadBooking();
   }
 

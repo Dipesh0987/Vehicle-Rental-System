@@ -1284,28 +1284,114 @@
       return [];
     }
 
-    if (!window.VehicleBookingService || typeof window.VehicleBookingService.listBookings !== "function") {
-      return [];
+    // Try fast server-side filtered query first
+    var rows = [];
+    var usedFastPath = false;
+
+    if (window.SupabaseClient && typeof window.SupabaseClient.init === "function") {
+      try {
+        var client = window.SupabaseClient.init();
+        var columns = "id,booking_code,customer_user_id,vehicle_id,customer_name,customer_email,customer_phone,notes,start_date,end_date,pickup_time,driver_option,status,currency,base_amount,service_fee,tax_amount,discount_amount,total_amount,paid_amount,remaining_amount,payment_status,payment_deadline,is_paid,created_at,vehicles(id,name,brand,category,type)";
+        var query;
+        if (currentUserId) {
+          query = client.from("vehicle_bookings").select(columns).eq("customer_user_id", currentUserId).order("created_at", { ascending: false }).limit(100);
+        } else {
+          query = client.from("vehicle_bookings").select(columns).ilike("customer_email", currentEmail).order("created_at", { ascending: false }).limit(100);
+        }
+        var result = await query;
+        if (!result.error && Array.isArray(result.data)) {
+          var vehicleMap = {};
+          if (window.VehicleBookingService && window.VehicleBookingService._buildVehicleMap) {
+            vehicleMap = await window.VehicleBookingService._buildVehicleMap();
+          }
+          rows = result.data.map(function (row) {
+            var vehicle = (row.vehicles && row.vehicles[0]) || (row.vehicles) || vehicleMap[row.vehicle_id] || {};
+            return {
+              id: String(row.id || ""),
+              bookingCode: String(row.booking_code || ""),
+              customerUserId: String(row.customer_user_id || ""),
+              vehicleId: String(row.vehicle_id || ""),
+              customerName: String(row.customer_name || ""),
+              customerEmail: String(row.customer_email || ""),
+              customerPhone: String(row.customer_phone || ""),
+              startDate: String(row.start_date || ""),
+              endDate: String(row.end_date || ""),
+              pickupTime: String(row.pickup_time || ""),
+              driverOption: String(row.driver_option || "self_drive"),
+              driverOptionLabel: row.driver_option === "with_driver" ? "With Driver" : "Self Drive",
+              status: String(row.status || "pending"),
+              statusLabel: String(row.status || "pending").charAt(0).toUpperCase() + String(row.status || "pending").slice(1),
+              paymentDone: row.is_paid || String(row.payment_status || "").toLowerCase() === "paid",
+              paymentStatus: String(row.payment_status || "unpaid"),
+              paidAmount: Number(row.paid_amount || 0),
+              remainingAmount: row.remaining_amount != null ? Number(row.remaining_amount) : Math.max(0, Number(row.total_amount || 0) - Number(row.paid_amount || 0)),
+              paymentDeadline: String(row.payment_deadline || ""),
+              vehicleName: String(vehicle.name || vehicle.brand || "Vehicle"),
+              vehicle: String(vehicle.name || vehicle.brand || "Vehicle"),
+              type: String(vehicle.category || vehicle.type || "Vehicle"),
+              quote: {
+                totalAmount: Number(row.total_amount || 0),
+                baseAmount: Number(row.base_amount || 0),
+                serviceFee: Number(row.service_fee || 0),
+                taxAmount: Number(row.tax_amount || 0),
+                discountAmount: Number(row.discount_amount || 0),
+              },
+              createdAt: String(row.created_at || ""),
+              pickupLocation: "",
+              userMessage: "",
+            };
+          });
+          usedFastPath = true;
+        }
+      } catch (_fastErr) { /* fall back to listBookings */ }
     }
 
-    var rows = await window.VehicleBookingService.listBookings();
-    if (!Array.isArray(rows)) {
-      return [];
+    // Fallback: fetch all and filter client-side
+    if (!usedFastPath) {
+      if (!window.VehicleBookingService || typeof window.VehicleBookingService.listBookings !== "function") {
+        return [];
+      }
+      var allRows = await window.VehicleBookingService.listBookings();
+      if (!Array.isArray(allRows)) {
+        return [];
+      }
+      rows = allRows.filter(function (row) {
+        var bookingUserId = String(row && row.customerUserId ? row.customerUserId : "").trim();
+        if (currentUserId && bookingUserId && bookingUserId === currentUserId) {
+          return true;
+        }
+        var bookingEmail = String(row && row.customerEmail ? row.customerEmail : "").trim().toLowerCase();
+        if (currentEmail && bookingEmail && bookingEmail === currentEmail) {
+          return true;
+        }
+        return false;
+      });
     }
 
-    var filtered = rows.filter(function (row) {
-      var bookingUserId = String(row && row.customerUserId ? row.customerUserId : "").trim();
-      if (currentUserId && bookingUserId && bookingUserId === currentUserId) {
-        return true;
+    // Auto-expire unpaid bookings past their 15-min deadline
+    var now = Date.now();
+    rows = rows.filter(function (row) {
+      var status = String(row.status || row.statusLabel || "").toLowerCase();
+      if (status === "expired") return false;
+      var paymentStatus = String(row.paymentStatus || row.payment_status || "").toLowerCase();
+      var deadline = String(row.paymentDeadline || "");
+      if (deadline && (status === "pending" || paymentStatus === "unpaid")) {
+        var deadlineMs = Date.parse(deadline);
+        if (Number.isFinite(deadlineMs) && deadlineMs <= now) {
+          // Mark as expired on server (best effort)
+          try {
+            if (window.SupabaseClient && typeof window.SupabaseClient.init === "function") {
+              var expireClient = window.SupabaseClient.init();
+              expireClient.from("vehicle_bookings").update({ status: "expired" }).eq("id", row.id).then(function () {});
+            }
+          } catch (_e) { /* ignore */ }
+          return false;
+        }
       }
+      return true;
+    });
 
-      var bookingEmail = String(row && row.customerEmail ? row.customerEmail : "").trim().toLowerCase();
-      if (currentEmail && bookingEmail && bookingEmail === currentEmail) {
-        return true;
-      }
-
-      return false;
-    }).map(normalizeBookingHistoryItem);
+    var filtered = rows.map(normalizeBookingHistoryItem);
 
     filtered.sort(function (a, b) {
       var dateA = Date.parse(String(a && a.createdAtRaw ? a.createdAtRaw : ""));

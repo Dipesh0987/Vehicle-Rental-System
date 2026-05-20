@@ -95,34 +95,14 @@
             </div>
 
             <div class="payment-card">
-              <p class="payment-card-label">How much would you like to pay now?</p>
-              <h2 class="payment-card-title">Choose payment amount</h2>
-              <p class="payment-card-sub">Pay 60% advance to confirm and settle the rest at pickup, or pay everything upfront.</p>
+              <p class="payment-card-label">Amount Due</p>
+              <h2 class="payment-card-title">Pay Remaining Balance</h2>
+              <p class="payment-card-sub">Complete your payment to confirm the booking. The full remaining balance will be charged.</p>
 
-              <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                <button id="paymentOptionPartial" type="button" class="payment-option" aria-pressed="false">
-                  <span class="payment-option__radio"></span>
-                  <span class="min-w-0 flex-1">
-                    <span class="payment-option__title">60% Advance</span>
-                    <span class="payment-option__sub" data-partial-note>Confirms booking. Pay balance at pickup.</span>
-                    <span class="payment-option__amount" data-partial-amount>NPR 0.00</span>
-                  </span>
-                </button>
-
-                <button id="paymentOptionFull" type="button" class="payment-option" aria-pressed="false">
-                  <span class="payment-option__radio"></span>
-                  <span class="min-w-0 flex-1">
-                    <span class="payment-option__title">Pay 100%</span>
-                    <span class="payment-option__sub" data-full-note>Pay everything upfront and skip a second payment later.</span>
-                    <span class="payment-option__amount" data-full-amount>NPR 0.00</span>
-                  </span>
-                </button>
-              </div>
-
-              <div class="payment-pay-now">
-                <p class="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#7a4c1f]">Total to pay now</p>
-                <p id="paymentPayNowAmount" class="payment-pay-now-amount">NPR 0.00</p>
-                <p id="paymentPayNowSub" class="payment-pay-now-sub">Pay 60% advance to confirm.</p>
+              <div class="mt-4 rounded-2xl border border-[#c8dcd6] bg-[#f4faf7] p-4 text-center">
+                <p class="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#3d6f5c]">Remaining Amount to Pay</p>
+                <p id="paymentPayNowAmount" class="mt-1 text-[32px] font-extrabold text-[#1a4a3a]">NPR 0.00</p>
+                <p id="paymentPayNowSub" class="mt-1 text-[12.5px] text-[#4f6d5e]">Pay this amount to confirm your booking instantly.</p>
               </div>
 
               <div class="mt-4 grid gap-2">

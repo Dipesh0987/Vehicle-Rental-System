@@ -230,9 +230,33 @@ async function hydrateBookingsFromDatabase({ silent = false } = {}) {
 
   try {
     const rows = await appState.bookingService.listBookings();
-    const normalizedRows = Array.isArray(rows)
-      ? rows.map(mapBookingToAdminRow).filter((r) => String(r.status || '').toLowerCase() !== 'expired')
-      : [];
+    const allRows = Array.isArray(rows) ? rows : [];
+
+    // Auto-expire unpaid bookings past their 15-min payment deadline
+    const now = Date.now();
+    allRows.forEach((row) => {
+      const status = String(row.status || row.statusLabel || '').toLowerCase();
+      const payStatus = String(row.paymentStatus || '').toLowerCase();
+      const deadline = String(row.paymentDeadline || '');
+      if (deadline && (status === 'pending' || payStatus === 'unpaid') && status !== 'expired') {
+        const deadlineMs = Date.parse(deadline);
+        if (Number.isFinite(deadlineMs) && deadlineMs <= now) {
+          row.status = 'expired';
+          row.statusLabel = 'Expired';
+          // Mark on server (best-effort, non-blocking)
+          try {
+            if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+              const c = window.SupabaseClient.init();
+              c.from('vehicle_bookings').update({ status: 'expired' }).eq('id', row.id).then(() => {});
+            }
+          } catch (_e) { /* ignore */ }
+        }
+      }
+    });
+
+    const normalizedRows = allRows
+      .map(mapBookingToAdminRow)
+      .filter((r) => String(r.status || '').toLowerCase() !== 'expired');
 
     appState.data.bookings = normalizedRows;
     updateBookingDrivenMetrics(normalizedRows);
