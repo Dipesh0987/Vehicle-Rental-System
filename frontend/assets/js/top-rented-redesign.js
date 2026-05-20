@@ -618,6 +618,18 @@ html[data-theme="dark"] .trr-brand {
   color: #6B7280;
 }
 
+.dark .trr-price {
+  color: #cbd5e1;
+}
+
+.dark .trr-price strong {
+  color: #f1f5f9;
+}
+
+.dark .trr-price span {
+  color: #94a3b8;
+}
+
 .trr-actions {
   display: flex;
   gap: 0.85rem;

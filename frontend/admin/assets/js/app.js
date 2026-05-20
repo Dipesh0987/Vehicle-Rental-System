@@ -1614,6 +1614,9 @@ function mapCatalogVehicleToAdminRow(vehicle) {
     seasonal: Math.max(0, Math.round(dailyRate * 24)),
     image:
       (vehicle && vehicle.primaryImageUrl) ||
+      (vehicle && vehicle.primary_image_url) ||
+      (vehicle && vehicle.image) ||
+      (vehicle && vehicle.image_url) ||
       (imageUrls.length ? imageUrls[0] : '') ||
       fallbackImage,
     transmission: formatLabel(vehicle && vehicle.transmission ? vehicle.transmission : 'Automatic'),
