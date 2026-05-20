@@ -739,6 +739,7 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
     };
 
     // Persist to Supabase
+    let dbSaveError = null;
     try {
       if (window.SupabaseClient?.isConfigured()) {
         const client = await window.SupabaseClient.init();
@@ -746,7 +747,7 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
           maintenance_id:    record.id,
           vehicle_name:      record.vehicle,
           vehicle_id:        record.vehicleId || null,
-          schedule_date:     record.schedule,
+          schedule_date:     record.schedule  || null,
           service_type:      record.serviceType,
           description:       record.damage,
           status:            record.status,
@@ -762,25 +763,36 @@ function renderMaintenanceForm(host, existing, data, notify, rerender) {
           booking_ref:       record.bookingRef      || null,
         };
         if (isEdit && existing.dbId) {
-          await client.from('maintenance_records').update(dbRow).eq('id', existing.dbId);
+          const { error: updErr } = await client
+            .from('maintenance_records').update(dbRow).eq('id', existing.dbId);
+          if (updErr) throw new Error(updErr.message || 'Update failed');
           record.dbId = existing.dbId;
         } else {
-          const { data: ins } = await client
+          const { data: ins, error: insErr } = await client
             .from('maintenance_records').insert(dbRow).select('id').single();
+          if (insErr) throw new Error(insErr.message || 'Insert failed');
           if (ins?.id) record.dbId = ins.id;
         }
       }
     } catch (dbErr) {
-      // console.warn('[maintenance] Supabase save failed:', dbErr.message);
+      dbSaveError = dbErr.message || 'Database save failed';
     }
 
     if (isEdit) {
       const idx = data.maintenance.findIndex((r) => r.id === existing.id);
       if (idx >= 0) data.maintenance[idx] = record;
-      notify(`Record ${record.id} updated`, 'success');
+      if (dbSaveError) {
+        notify(`Record updated locally (DB error: ${dbSaveError})`, 'warn');
+      } else {
+        notify(`Record ${record.id} updated`, 'success');
+      }
     } else {
       data.maintenance.unshift(record);
-      notify(`Record ${record.id} created`, 'success');
+      if (dbSaveError) {
+        notify(`Record added locally (DB error: ${dbSaveError})`, 'warn');
+      } else {
+        notify(`Record ${record.id} created`, 'success');
+      }
     }
 
     maintenanceUiState.selectedId = record.id;
