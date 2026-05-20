@@ -16,18 +16,18 @@
 
   var REFUND_STEP_KEYS = REFUND_STEPS.map(function (s) { return s.key; });
 
-  function getClient() {
+  async function getClient() {
     if (!window.SupabaseClient || typeof window.SupabaseClient.init !== "function") {
       throw new Error("Supabase client not available");
     }
-    return window.SupabaseClient.init();
+    return await window.SupabaseClient.init();
   }
 
   /**
    * List refunds for the current user (RLS-scoped).
    */
   async function listUserRefunds() {
-    var client = getClient();
+    var client = await getClient();
     var result = await client
       .from("refunds")
       .select("*")
@@ -51,7 +51,7 @@
    */
   async function getRefundByBookingId(bookingId) {
     if (!bookingId) return null;
-    var client = getClient();
+    var client = await getClient();
     var result = await client
       .from("refunds")
       .select("*")
@@ -70,7 +70,7 @@
    */
   async function checkEligibility(bookingId) {
     if (!bookingId) return { eligible: false, reason: "No booking ID" };
-    var client = getClient();
+    var client = await getClient();
     var result = await client.rpc("calculate_refund_eligibility", { p_booking_id: bookingId });
     if (result.error) {
       return { eligible: false, reason: result.error.message || "Eligibility check failed" };
@@ -82,7 +82,7 @@
    * Admin: initiate a refund.
    */
   async function initiateRefund(params) {
-    var client = getClient();
+    var client = await getClient();
 
     var statusEntry = {
       status: "initiated",
@@ -126,7 +126,7 @@
    */
   async function updateRefundStatus(refundId, newStatus, opts) {
     opts = opts || {};
-    var client = getClient();
+    var client = await getClient();
 
     // Get current status_history
     var current = await client.from("refunds").select("status_history").eq("id", refundId).single();
@@ -164,7 +164,7 @@
    * Admin: list all refunds.
    */
   async function listAllRefunds() {
-    var client = getClient();
+    var client = await getClient();
     var result = await client
       .from("refunds")
       .select("*")
