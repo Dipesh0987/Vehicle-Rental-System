@@ -16,7 +16,7 @@ const vehicleUiState = {
   currentPage: 1,
 };
 
-export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, reloadVehiclesData, rerender }) {
+export function renderVehiclesModule({ data, query, notify, catalogService, canWriteCatalog = false, reloadVehiclesData, rerender, navigate }) {
   const host = document.createElement('section');
   host.className = 'space-y-4';
 
@@ -193,6 +193,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
       catalogService,
       notify,
       reloadVehiclesData,
+      navigate,
     });
   });
 
@@ -213,26 +214,81 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
 
       const editForm = document.getElementById('editVehicleForm');
 
-      // Wire up image file picker to show preview and update URL field
-      const editImageFileInput = document.getElementById('editVehicleImageFile');
-      const editImagePreview = document.getElementById('editVehicleImagePreview');
-      const editImageUrlInput = document.getElementById('editVehiclePrimaryImageUrl');
-      let editSelectedFile = null;
+      // ── Multi-image manager ──────────────────────────────────────────────
+      const MAX_EDIT_IMGS = 5;
+      const MAX_IMG_BYTES = 5 * 1024 * 1024;
+      // Seed slots from existing imageUrls (or fall back to primary image)
+      const seedUrls = (selectedVehicle.imageUrls && selectedVehicle.imageUrls.length)
+        ? selectedVehicle.imageUrls
+        : (selectedVehicle.primary_image_url || selectedVehicle.image ? [selectedVehicle.primary_image_url || selectedVehicle.image] : []);
+      const editImgState = { slots: seedUrls.map((url) => ({ url, file: null })) };
 
-      editImageFileInput?.addEventListener('change', () => {
-        const file = editImageFileInput.files?.[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-          notify('Image must be less than 5 MB', 'warn');
-          editImageFileInput.value = '';
-          return;
-        }
-        editSelectedFile = file;
-        const objectUrl = URL.createObjectURL(file);
-        if (editImagePreview) {
-          editImagePreview.innerHTML = `<img src="${objectUrl}" alt="New image" class="h-20 w-28 rounded-xl object-cover border border-brand-400 dark:border-brand-300" /><span class="text-xs font-semibold text-brand-600 dark:text-brand-300">${escapeHtml(file.name)}</span>`;
-        }
-      });
+      const renderEditImgGrid = () => {
+        const grid = document.getElementById('editImgGrid');
+        const cnt = document.getElementById('editImgCount');
+        if (!grid) return;
+        if (cnt) cnt.textContent = `${editImgState.slots.length} / ${MAX_EDIT_IMGS}`;
+
+        const slotHtml = editImgState.slots.map((slot, idx) => {
+          const src = slot.file ? URL.createObjectURL(slot.file) : (slot.url || '');
+          return `<div class="overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
+            ${src
+              ? `<img src="${escapeHtml(src)}" alt="img ${idx + 1}" class="h-24 w-full object-cover" />`
+              : '<div class="flex h-24 items-center justify-center bg-slate-100 dark:bg-white/5 text-xs text-slate-400">No image</div>'
+            }
+            <div class="flex gap-1 p-1">
+              <label class="flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-brand-300 py-1 text-[11px] font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-400 dark:text-brand-300">
+                Replace
+                <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp" class="hidden" data-replace-slot="${idx}" />
+              </label>
+              <button type="button" data-remove-slot="${idx}" class="rounded-lg border border-rose-300 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">&#10005;</button>
+            </div>
+          </div>`;
+        }).join('');
+
+        const addSlot = editImgState.slots.length < MAX_EDIT_IMGS
+          ? `<label class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-brand-300 p-3 text-xs font-semibold text-brand-500 hover:bg-brand-50 dark:border-brand-400/50 dark:text-brand-300 dark:hover:bg-brand-500/10">
+              <span class="material-symbols-outlined text-[22px]">add_photo_alternate</span> Add
+              <input id="editAddImgInput" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="hidden" />
+            </label>`
+          : '';
+
+        grid.innerHTML = slotHtml + addSlot;
+
+        grid.querySelectorAll('[data-remove-slot]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            editImgState.slots.splice(Number(btn.getAttribute('data-remove-slot')), 1);
+            renderEditImgGrid();
+          });
+        });
+
+        grid.querySelectorAll('[data-replace-slot]').forEach((inp) => {
+          inp.addEventListener('change', () => {
+            const file = inp.files?.[0];
+            if (!file) return;
+            if (file.size > MAX_IMG_BYTES) { notify('Image must be < 5 MB', 'warn'); return; }
+            editImgState.slots[Number(inp.getAttribute('data-replace-slot'))] = { url: null, file };
+            renderEditImgGrid();
+          });
+        });
+
+        const addInp = grid.querySelector('#editAddImgInput');
+        addInp?.addEventListener('change', () => {
+          const files = Array.from(addInp.files || []);
+          const remaining = MAX_EDIT_IMGS - editImgState.slots.length;
+          let added = 0;
+          files.forEach((file) => {
+            if (added >= remaining) return;
+            if (file.size > MAX_IMG_BYTES) { notify('Image must be < 5 MB', 'warn'); return; }
+            editImgState.slots.push({ url: null, file });
+            added += 1;
+          });
+          if (files.length > remaining) notify(`Max ${MAX_EDIT_IMGS} images — extras ignored.`, 'warn');
+          renderEditImgGrid();
+        });
+      };
+
+      renderEditImgGrid();
 
       editForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -242,16 +298,17 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
             throw new Error('Catalog service is unavailable.');
           }
 
-          // If a file was selected, read it as data URL for the image
-          let resolvedImageUrl =
-            editImageUrlInput?.value?.trim() ||
-            selectedVehicle.primary_image_url ||
-            selectedVehicle.image;
-
-          if (editSelectedFile) {
-            const dataUrls = await readFilesAsDataUrls([editSelectedFile]);
-            if (dataUrls[0]) resolvedImageUrl = dataUrls[0];
+          // Build final image URL array from editImgState slots
+          const finalImageUrls = [];
+          for (const slot of editImgState.slots) {
+            if (slot.file) {
+              const [dataUrl] = await readFilesAsDataUrls([slot.file]);
+              if (dataUrl) finalImageUrls.push(dataUrl);
+            } else if (slot.url) {
+              finalImageUrls.push(slot.url);
+            }
           }
+          const resolvedImageUrl = finalImageUrls[0] || selectedVehicle.primary_image_url || selectedVehicle.image || '';
 
           const payload = {
             name: document.getElementById('editVehicleName')?.value?.trim() || selectedVehicle.name,
@@ -268,6 +325,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
             is_active: document.getElementById('editVehicleIsActive')?.checked ?? (selectedVehicle.is_active ?? true),
             brand: document.getElementById('editVehicleBrand')?.value?.trim() || selectedVehicle.brand || 'General',
             primary_image_url: resolvedImageUrl,
+            imageUrls: finalImageUrls,
           };
 
           if (!payload.name) {
@@ -483,9 +541,13 @@ function renderVehicleDetailPage(vehicle) {
         </article>
 
         <article class="${classMap.panel} p-4 sm:p-5">
-          <h4 class="mb-3 text-sm font-extrabold">Image</h4>
-          <img src="${imgSrc}" alt="vehicle" class="w-full rounded-xl object-cover" />
-          <p class="mt-2 text-[11px] text-slate-400">Use Edit to replace this image.</p>
+          <h4 class="mb-3 text-sm font-extrabold">Images (${v.imageUrls && v.imageUrls.length ? v.imageUrls.length : 1} / 5)</h4>
+          <div class="grid grid-cols-2 gap-2">
+            ${(v.imageUrls && v.imageUrls.length ? v.imageUrls : [imgSrc]).map((url, i) =>
+              `<img src="${escapeHtml(url)}" alt="img ${i + 1}" class="w-full rounded-xl object-cover h-20 ${i === 0 ? 'col-span-2 h-36' : ''}" />`
+            ).join('')}
+          </div>
+          <p class="mt-2 text-[11px] text-slate-400">Use Edit to add, replace or remove images.</p>
         </article>
       </aside>
     </div>
@@ -546,10 +608,7 @@ function renderVehicleEditDrawer(vehicle) {
         <label class="block space-y-1"><span class="text-xs font-semibold">Rating</span><input id="editVehicleRating" type="number" step="0.01" min="0" max="5" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${Number.isFinite(safeRating) ? safeRating : 4.6}" /></label>
       </div>
 
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label class="block space-y-1"><span class="text-xs font-semibold">Location</span><input id="editVehicleLocation" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeLocation}" /></label>
-        <label class="block space-y-1"><span class="text-xs font-semibold">Primary Image URL</span><input id="editVehiclePrimaryImageUrl" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeImage}" placeholder="https://..." /></label>
-      </div>
+      <label class="block space-y-1"><span class="text-xs font-semibold">Location</span><input id="editVehicleLocation" class="w-full rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10 dark:bg-white/5" value="${safeLocation}" /></label>
 
       <div class="flex flex-wrap items-center gap-4">
         <label class="flex items-center gap-2"><input id="editVehicleAvailable" type="checkbox" class="h-4 w-4" ${vehicle?.available !== false ? 'checked' : ''} /><span class="text-xs font-semibold">Available</span></label>
@@ -557,15 +616,11 @@ function renderVehicleEditDrawer(vehicle) {
       </div>
 
       <div class="space-y-2">
-        <span class="text-xs font-semibold">Current Image</span>
-        <div id="editVehicleImagePreview" class="flex items-center gap-3">
-          ${safeImage ? `<img src="${safeImage}" alt="Current" class="h-20 w-28 rounded-xl object-cover border border-slate-200 dark:border-white/10" />` : '<p class="text-xs text-slate-400">No image set</p>'}
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold">Vehicle Images <span class="text-xs font-normal text-slate-400">(up to 5)</span></span>
+          <span id="editImgCount" class="text-xs font-semibold text-brand-600 dark:text-brand-300">0 / 5</span>
         </div>
-        <label class="block space-y-1">
-          <span class="text-xs font-semibold">Replace Image (upload file)</span>
-          <input id="editVehicleImageFile" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" />
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Selecting a file will replace the current image. Max 5 MB.</p>
-        </label>
+        <div id="editImgGrid" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
       </div>
 
       <button type="submit" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
@@ -807,10 +862,10 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
       </label>
 
       <div class="space-y-2">
-        <label class="block text-xs font-semibold">Vehicle Images <span class="text-rose-500">*</span></label>
+        <label class="block text-xs font-semibold">Vehicle Images <span class="text-xs font-normal text-slate-400">(optional, up to ${limits.maxImages})</span></label>
         <input id="vehicleImageInput" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white" />
         <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <p>Required. Up to ${limits.maxImages} images, max ${(limits.maxImageSizeBytes / (1024 * 1024)).toFixed(0)} MB each.</p>
+          <p>Up to ${limits.maxImages} images, max ${(limits.maxImageSizeBytes / (1024 * 1024)).toFixed(0)} MB each.</p>
           <p id="vehicleImageCount" class="font-semibold text-brand-700 dark:text-brand-200">0 / ${limits.maxImages}</p>
         </div>
         <p data-error-for="images" class="min-h-[1.1rem] text-xs font-semibold text-rose-600"></p>
@@ -833,7 +888,7 @@ function renderVehicleCreateForm({ limits, fuelTypes }) {
   `;
 }
 
-function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
+function openVehicleDrawer({ catalogService, notify, reloadVehiclesData, navigate }) {
   const limits = getCatalogLimits(catalogService);
   const runtimeFuelTypes = Array.isArray(catalogService?.fuelTypes) && catalogService.fuelTypes.length
     ? catalogService.fuelTypes
@@ -1085,9 +1140,7 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       errors.rating = 'Rating must be between 0 and 5.';
     }
 
-    if (!values.images.length) {
-      errors.images = 'At least one image is required.';
-    } else if (values.images.length > limits.maxImages) {
+    if (values.images.length > limits.maxImages) {
       errors.images = `You can upload up to ${limits.maxImages} images.`;
     }
 
@@ -1147,10 +1200,11 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
       lastAddedName = values.name || 'Vehicle';
       notify(`${lastAddedName} added successfully`, 'success');
 
+      const isMaintenance = values.status.toLowerCase() === 'maintenance';
+
       if (addAnotherMode) {
         addAnotherMode = false;
         resetFormForAnother();
-        // Reload data in background so the table updates
         if (typeof reloadVehiclesData === 'function') {
           reloadVehiclesData();
         }
@@ -1158,6 +1212,11 @@ function openVehicleDrawer({ catalogService, notify, reloadVehiclesData }) {
         closeOverlay();
         if (typeof reloadVehiclesData === 'function') {
           await reloadVehiclesData();
+        }
+        // Auto-navigate to maintenance section when vehicle is added with Maintenance status
+        if (isMaintenance && typeof navigate === 'function') {
+          notify(`${lastAddedName} added under Maintenance — opening Maintenance section…`, 'info');
+          navigate('maintenance');
         }
       }
     } catch (error) {

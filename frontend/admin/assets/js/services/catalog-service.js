@@ -32,6 +32,7 @@ export function createCatalogService({ data }) {
     createdAt: row.created_at || '',
     updatedAt: row.updated_at || '',
     image: row.primary_image_url || row.image_url || 'https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=640&q=80',
+    imageUrls: Array.isArray(row.image_urls) ? row.image_urls.filter(Boolean) : [],
   });
 
   async function getClient() {
@@ -66,13 +67,13 @@ export function createCatalogService({ data }) {
     const client = await getClient();
     const { data: rows, error } = await client
       .from(TABLE_NAME)
-      .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number,created_at,updated_at')
+      .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,image_urls,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number,created_at,updated_at')
       .order('created_at', { ascending: false });
 
     if (error) {
       const fallback = await client
         .from(TABLE_NAME)
-        .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number,created_at,updated_at')
+        .select('id,name,type,seats,price_per_day,fuel_type,status,primary_image_url,image_urls,category,transmission,rating,location,available,is_active,brand,image_url,vehicle_number,created_at,updated_at')
         .order('id', { ascending: false });
 
       if (fallback.error) {
@@ -183,6 +184,9 @@ export function createCatalogService({ data }) {
         available: vehicleInput.available !== undefined ? Boolean(vehicleInput.available) : true,
         is_active: vehicleInput.is_active !== undefined ? Boolean(vehicleInput.is_active) : true,
         brand: vehicleInput.brand || 'General',
+        image_urls: Array.isArray(vehicleInput.imageUrls) && vehicleInput.imageUrls.length
+          ? vehicleInput.imageUrls
+          : (rawImage ? [rawImage] : []),
       };
 
       if (id) {
