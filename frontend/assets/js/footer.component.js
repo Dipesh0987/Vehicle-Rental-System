@@ -74,21 +74,19 @@ window.VRSFooter = (function () {
                 <li class="flex items-start gap-3">
                   <span class="material-symbols-outlined mt-0.5 text-[18px] text-slate-400 dark:text-slate-500">location_on</span>
                   <div class="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
-                    <div>867 Yorkshire Circle</div>
-                    <div>Rocky Mount, North Carolina</div>
-                    <div>27801</div>
+                    <div>Thamel, Kathmandu</div>
+                    <div>Nepal</div>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
                   <span class="material-symbols-outlined mt-0.5 text-[18px] text-slate-400 dark:text-slate-500">phone</span>
                   <div class="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
-                    <div>+61-02448-3389</div>
-                    <div>+61-01506-1386</div>
+                    <div><a href="tel:+9779704682795" class="transition-colors hover:text-[#ff6b35]">+977 970-468-2795</a></div>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
                   <span class="material-symbols-outlined mt-0.5 text-[18px] text-slate-400 dark:text-slate-500">mail</span>
-                  <a href="mailto:hello@ac.com" class="text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]">hello@ac.com</a>
+                  <a href="mailto:info@rentavehicle.com" class="text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400 dark:hover:text-[#ff6b35]">info@rentavehicle.com</a>
                 </li>
               </ul>
             </div>
