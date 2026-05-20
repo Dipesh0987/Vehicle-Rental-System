@@ -281,11 +281,10 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
           }
 
           document.getElementById('overlayHost')?.replaceChildren();
-          if (typeof reloadVehiclesData === 'function') {
-            await reloadVehiclesData();
-          } else {
-            rerender?.();
-          }
+          // saveVehicle already updated data.vehicles in-place; just rerender
+          // so the row refreshes immediately without a DB round-trip that would
+          // change list order or return stale cached data.
+          rerender?.();
           notify(`${payload.name || selectedVehicle.name || 'Vehicle'} updated successfully`, 'success');
         } catch (error) {
           notify(`Failed to update ${selectedVehicle.name || 'vehicle'}: ${error.message}`, 'error');

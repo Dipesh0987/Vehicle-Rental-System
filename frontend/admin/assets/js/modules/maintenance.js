@@ -22,11 +22,12 @@ function generateMaintenanceId(existing) {
 const CARD_UPCOMING       = 'upcoming';
 const CARD_IN_WORKSHOP    = 'inWorkshop';
 const CARD_DAMAGE_OPEN    = 'damageOpen';
+const CARD_COMPLETED      = 'completed';
 
 const maintenanceUiState = {
   selectedId: '',
   statusFilter: 'All',
-  workshopCardGroup: '',  // '' | 'upcoming' | 'inWorkshop' | 'damageOpen'
+  workshopCardGroup: '',  // '' | 'upcoming' | 'inWorkshop' | 'damageOpen' | 'completed'
   page: 1,
   mode: 'list', // list | detail | add | edit | billing
 };
@@ -95,6 +96,8 @@ export function renderMaintenanceModule({ data, query, notify, rerender, reloadM
     filtered = filtered.filter((r) => r.status === 'In Progress');
   } else if (maintenanceUiState.workshopCardGroup === CARD_DAMAGE_OPEN) {
     filtered = filtered.filter((r) => r.serviceType === 'Damage' && r.status !== 'Completed' && r.status !== 'Cancelled' && r.status !== 'Billed');
+  } else if (maintenanceUiState.workshopCardGroup === CARD_COMPLETED) {
+    filtered = filtered.filter((r) => r.status === 'Completed');
   }
 
   // Apply status pill filter on top
@@ -119,7 +122,7 @@ export function renderMaintenanceModule({ data, query, notify, rerender, reloadM
     </header>
 
     <!-- Workshop Summary Cards -->
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
       ${workshopCard({
         id: CARD_UPCOMING,
         label: 'Upcoming Services',
@@ -146,6 +149,15 @@ export function renderMaintenanceModule({ data, query, notify, rerender, reloadM
         color: 'rose',
         subtitle: 'Pending resolution',
         active: maintenanceUiState.workshopCardGroup === CARD_DAMAGE_OPEN,
+      })}
+      ${workshopCard({
+        id: CARD_COMPLETED,
+        label: 'Completed',
+        count: completed,
+        icon: 'check_circle',
+        color: 'emerald',
+        subtitle: 'Services finished',
+        active: maintenanceUiState.workshopCardGroup === CARD_COMPLETED,
       })}
     </div>
 
@@ -798,6 +810,12 @@ function workshopCard({ id, label, count, icon, color, subtitle, active }) {
       icon:   'bg-rose-200/60 text-rose-700 dark:bg-rose-500/30 dark:text-rose-300',
       count:  'text-rose-900 dark:text-rose-100',
     },
+    emerald: {
+      base:   'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+      active: 'border-emerald-400 bg-emerald-100 ring-2 ring-emerald-400/40 text-emerald-900 dark:border-emerald-400 dark:bg-emerald-500/20 dark:text-emerald-100',
+      icon:   'bg-emerald-200/60 text-emerald-700 dark:bg-emerald-500/30 dark:text-emerald-300',
+      count:  'text-emerald-900 dark:text-emerald-100',
+    },
   };
   const p = palette[color] || palette.amber;
   const cardCls = active ? p.active : p.base;
@@ -821,6 +839,7 @@ function workshopCardLabel(groupId) {
   if (groupId === CARD_UPCOMING)    return 'Upcoming Services';
   if (groupId === CARD_IN_WORKSHOP) return 'In Workshop';
   if (groupId === CARD_DAMAGE_OPEN) return 'Damage Claims Open';
+  if (groupId === CARD_COMPLETED)   return 'Completed';
   return 'All';
 }
 

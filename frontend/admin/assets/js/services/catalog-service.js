@@ -195,11 +195,17 @@ export function createCatalogService({ data }) {
           throw new Error(error.message || `Vehicle ${id} update failed.`);
         }
 
-        const updated = toLocalVehicle(normalized);
-
+        // Replace vehicle in-place so its row position stays the same.
+        // Also carry the original id forward (toLocalVehicle maps from
+        // 'normalized' which has no id field).
+        const updated = { ...toLocalVehicle({ ...normalized, id }), id };
         const index = data.vehicles.findIndex((vehicle) => vehicle.id === id);
-        if (index >= 0) data.vehicles.splice(index, 1);
-        data.vehicles.unshift(updated);
+        if (index >= 0) {
+          data.vehicles.splice(index, 1, updated);
+        } else {
+          data.vehicles.unshift(updated);
+        }
+        invalidateCache();
 
         return updated;
       }
