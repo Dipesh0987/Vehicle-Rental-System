@@ -160,10 +160,12 @@ async function bootstrap() {
   try {
     const vehicles = await catalogService.loadVehicles();
     if (Array.isArray(vehicles) && vehicles.length) {
-      const mapped = vehicles.map(mapCatalogVehicleToAdminRow);
-      appState.data.vehicles = mapped;
-      appState.data.metrics.totalVehicles = mapped.length;
-      rebuildFleetCategoryFromVehicles(mapped);
+      // Admin catalog service already returns fully-mapped vehicles (with imageUrls).
+      // Only merge in fields that hydrateVehiclesFromCatalog may have set so we
+      // don't lose public-catalog extras, but always prefer the admin rows.
+      appState.data.vehicles = vehicles;
+      appState.data.metrics.totalVehicles = vehicles.length;
+      rebuildFleetCategoryFromVehicles(vehicles);
       rebuildUtilizationFromData();
     }
   } catch (error) {
@@ -1600,6 +1602,13 @@ function mapCatalogVehicleToAdminRow(vehicle) {
   const imageUrls = Array.isArray(vehicle && vehicle.imageUrls) ? vehicle.imageUrls : [];
   const fallbackImage =
     'https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=640&q=80';
+  const primaryImage =
+    (vehicle && vehicle.primaryImageUrl) ||
+    (vehicle && vehicle.primary_image_url) ||
+    (vehicle && vehicle.image) ||
+    (vehicle && vehicle.image_url) ||
+    (imageUrls.length ? imageUrls[0] : '') ||
+    fallbackImage;
 
   return {
     id: String(vehicle && vehicle.id ? vehicle.id : ''),
@@ -1608,23 +1617,25 @@ function mapCatalogVehicleToAdminRow(vehicle) {
     brand: formatLabel(vehicle && vehicle.brand ? vehicle.brand : ''),
     vehicleNumber: String(vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : '').trim().toUpperCase(),
     category: formatLabel(vehicle && (vehicle.category || vehicle.type) ? (vehicle.category || vehicle.type) : 'Vehicle'),
+    type: String(vehicle && (vehicle.type || vehicle.category) ? (vehicle.type || vehicle.category) : 'sedan'),
     status: normalizeStatus(vehicle),
     daily: dailyRate,
     weekly: Math.max(0, Math.round(dailyRate * 6.2)),
     seasonal: Math.max(0, Math.round(dailyRate * 24)),
-    image:
-      (vehicle && vehicle.primaryImageUrl) ||
-      (vehicle && vehicle.primary_image_url) ||
-      (vehicle && vehicle.image) ||
-      (vehicle && vehicle.image_url) ||
-      (imageUrls.length ? imageUrls[0] : '') ||
-      fallbackImage,
+    price_per_day: dailyRate,
+    image: primaryImage,
+    primary_image_url: primaryImage,
+    imageUrls: imageUrls.length ? imageUrls : [primaryImage],
     transmission: formatLabel(vehicle && vehicle.transmission ? vehicle.transmission : 'Automatic'),
     fuelType: formatLabel(vehicle && vehicle.fuelType ? vehicle.fuelType : 'Petrol'),
+    fuel_type: String(vehicle && (vehicle.fuelType || vehicle.fuel_type) ? (vehicle.fuelType || vehicle.fuel_type) : 'Petrol'),
     seats: Number.isFinite(Number(vehicle && vehicle.seats)) ? Number(vehicle.seats) : 5,
     features: Array.isArray(vehicle && vehicle.features) ? vehicle.features.slice() : [],
     location: formatLabel(vehicle && vehicle.location ? vehicle.location : ''),
     rating: Number.isFinite(Number(vehicle && vehicle.rating)) ? Number(vehicle.rating) : 4.6,
+    available: vehicle && vehicle.available !== undefined ? vehicle.available : true,
+    is_active: vehicle && vehicle.is_active !== undefined ? vehicle.is_active : true,
+    vehicle_number: String(vehicle && vehicle.vehicleNumber ? vehicle.vehicleNumber : '').trim().toUpperCase(),
   };
 }
 

@@ -395,6 +395,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
       const id = btn.getAttribute('data-view-id');
       vehicleUiState.selectedVehicleId = id;
       writeVehicleIdToHash(id);
+      try { localStorage.setItem('admin-selected-vehicle', id); } catch { /* ignore */ }
       rerender?.();
     });
   });
@@ -402,6 +403,7 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
   host.querySelector('[data-back-to-vehicles-list]')?.addEventListener('click', () => {
     vehicleUiState.selectedVehicleId = '';
     writeVehicleIdToHash('');
+    try { localStorage.removeItem('admin-selected-vehicle'); } catch { /* ignore */ }
     rerender?.();
   });
 
@@ -412,8 +414,14 @@ export function renderVehiclesModule({ data, query, notify, catalogService, canW
   return host;
 }
 
+function readSelectedVehicleFromStorage() {
+  try { return localStorage.getItem('admin-selected-vehicle') || ''; } catch { return ''; }
+}
+
 function resolveSelectedVehicle(rows) {
-  const selectedId = String(vehicleUiState.selectedVehicleId || readVehicleIdFromHash() || '').trim();
+  const selectedId = String(
+    vehicleUiState.selectedVehicleId || readVehicleIdFromHash() || readSelectedVehicleFromStorage() || ''
+  ).trim();
   if (!selectedId) {
     return null;
   }

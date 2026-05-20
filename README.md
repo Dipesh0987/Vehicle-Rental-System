@@ -1,16 +1,18 @@
-# 🚗 Vehicle Rental System
+# Vehicle Rental System
 
-A full-stack, premium vehicle rental web application built with vanilla JavaScript, Tailwind CSS, and Supabase as the backend. It supports customer booking flows, payment processing via eSewa, an AI booking chat assistant, a complete admin panel, real-time payment status synchronization, and automated booking expiry.
+A full-stack vehicle rental web application built with **vanilla JavaScript**, **Tailwind CSS**, and **Supabase**. Supports customer booking, eSewa payments, AI chat, a complete admin panel, real-time sync, and automated booking expiry.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- [Database Setup — Required SQL Migrations](#database-setup--required-sql-migrations)
+- [Supabase Storage Setup](#supabase-storage-setup)
 - [Getting Started](#getting-started)
-- [Supabase Edge Functions](#supabase-edge-functions)
+- [Edge Functions](#edge-functions)
 - [Admin Panel](#admin-panel)
 - [Payment Integration](#payment-integration)
 - [Booking Expiry System](#booking-expiry-system)
@@ -170,6 +172,58 @@ Vehicle-Rental-System/
 
 ---
 
+## Database Setup — Required SQL Migrations
+
+Run the following SQL files in order in **Supabase Dashboard → SQL Editor**. All files are in `supabase/migrations/`.
+
+| # | File | What it does |
+|---|---|---|
+| 001–008 | Core schema | Users, vehicles, bookings, payments, notifications, chat, KYC |
+| `009_maintenance_records.sql` | Maintenance records table with RLS |
+| `010_maintenance_add_missing_columns.sql` | Adds booking_ref, notes, cost columns |
+| `011_vehicles_image_urls_fix.sql` | **Converts `vehicles.image_urls` to `jsonb`** — required for multi-image storage |
+| `012_vehicle_images_url_text.sql` | **Ensures `vehicle_images.url` is `TEXT`** (unlimited length) + RLS policies — required for image persistence |
+
+> **If you skip 011 and 012, vehicle images uploaded in the admin will not persist after reload.**
+
+---
+
+## Supabase Storage Setup
+
+The system uses Supabase Storage for vehicle images, profile avatars, and KYC documents.
+
+### Create Buckets
+
+In **Supabase Dashboard → Storage → Buckets**, create:
+
+| Bucket name | Public | Purpose |
+|---|---|---|
+| `vehicle-images` | ✅ Public | Vehicle photos uploaded from admin panel |
+| `avatars` | ✅ Public | Admin and customer profile pictures |
+| `kyc-documents` | ❌ Private | Customer KYC identity documents |
+
+### Bucket Policies (vehicle-images)
+
+In **Supabase Dashboard → Storage → vehicle-images → Policies**, add:
+
+```sql
+-- Allow public read
+CREATE POLICY "Public read vehicle images"
+ON storage.objects FOR SELECT USING (bucket_id = 'vehicle-images');
+
+-- Allow authenticated upload
+CREATE POLICY "Auth upload vehicle images"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'vehicle-images');
+
+-- Allow authenticated delete
+CREATE POLICY "Auth delete vehicle images"
+ON storage.objects FOR DELETE TO authenticated
+USING (bucket_id = 'vehicle-images');
+```
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -196,19 +250,14 @@ window.SUPABASE_ANON_KEY = 'your-anon-public-key';
 
 ### 3. Set Up Database
 
-Run the database setup SQL in **Supabase Dashboard → SQL Editor**. The schema includes:
-- User profiles with avatar support
-- Vehicle catalog with images and pricing
-- Booking system with payment ledger (paid_amount, remaining_amount, payment_deadline)
-- Payments table with RLS for customer read access
-- Notifications system
-- Contact messages
-- Discount codes
-- Live fleet tracking
-- Drivers table
-- Maintenance records with damage billing
-- Chat conversations and analytics
-- pg_cron job for auto-expiring unpaid bookings every minute
+Run all SQL files from `supabase/migrations/` **in order** in **Supabase Dashboard → SQL Editor**.  
+See the [Database Setup — Required SQL Migrations](#database-setup--required-sql-migrations) section for the full list.  
+**011 and 012 are critical for multi-image vehicle support.**
+
+### 3b. Set Up Supabase Storage
+
+Create buckets `vehicle-images` (public), `avatars` (public), `kyc-documents` (private) and apply policies.  
+See the [Supabase Storage Setup](#supabase-storage-setup) section.
 
 ### 4. Deploy Edge Functions
 
@@ -240,7 +289,7 @@ Start a local server (e.g. VS Code Live Server) and open:
 
 ---
 
-## ⚡ Supabase Edge Functions
+## Edge Functions
 
 | Function | Path | Purpose |
 |---|---|---|
