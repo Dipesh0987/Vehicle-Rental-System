@@ -4,7 +4,9 @@
 -- Run this in Supabase SQL Editor
 -- ============================================================
 
--- Step 1: Delete all existing vehicles and their images
+-- Step 1: Delete all existing data that references vehicles
+DELETE FROM payments WHERE booking_id IN (SELECT id FROM vehicle_bookings);
+DELETE FROM vehicle_bookings;
 DELETE FROM vehicle_images;
 DELETE FROM vehicles;
 
