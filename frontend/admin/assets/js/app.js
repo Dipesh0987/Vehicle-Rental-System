@@ -93,7 +93,7 @@ function escapeHtml(value) {
 
 function readActiveModuleFromStorage() {
   try {
-    return window.sessionStorage.getItem('admin-active-module') || null;
+    return window.localStorage.getItem('admin-active-module') || null;
   } catch (e) {
     return null;
   }
@@ -101,7 +101,7 @@ function readActiveModuleFromStorage() {
 
 function saveActiveModuleToStorage(moduleName) {
   try {
-    window.sessionStorage.setItem('admin-active-module', moduleName);
+    window.localStorage.setItem('admin-active-module', moduleName);
   } catch (e) {
     // Ignore storage errors
   }
