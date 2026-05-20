@@ -1300,12 +1300,8 @@
         }
         var result = await query;
         if (!result.error && Array.isArray(result.data)) {
-          var vehicleMap = {};
-          if (window.VehicleBookingService && window.VehicleBookingService._buildVehicleMap) {
-            vehicleMap = await window.VehicleBookingService._buildVehicleMap();
-          }
           rows = result.data.map(function (row) {
-            var vehicle = (row.vehicles && row.vehicles[0]) || (row.vehicles) || vehicleMap[row.vehicle_id] || {};
+            var vehicle = (row.vehicles && row.vehicles[0]) || (row.vehicles) || {};
             return {
               id: String(row.id || ""),
               bookingCode: String(row.booking_code || ""),
@@ -1827,7 +1823,12 @@
     var preferredBookingId = String(modalRoot.getAttribute("data-bookings-preferred-id") || "").trim();
 
     try {
-      bookings = await loadCurrentUserBookings();
+      var parallelResults = await Promise.all([
+        loadCurrentUserBookings(),
+        loadLatestCompletedPaymentsByBooking(),
+      ]);
+      bookings = parallelResults[0];
+      setBookingsPaymentLookup(parallelResults[1]);
     } catch (error) {
       var errorMessage =
         window.VehicleBookingService && typeof window.VehicleBookingService.toPublicError === "function"
@@ -1837,10 +1838,6 @@
       renderBookingsWorkspaceMessage(detail, "Please try again in a moment.");
       return;
     }
-
-    // Hydrate the booking_id -> latest completed payment lookup so the
-    // detail view can render the View Receipt button.
-    setBookingsPaymentLookup(await loadLatestCompletedPaymentsByBooking());
 
     if (total) {
       total.textContent = String(bookings.length);

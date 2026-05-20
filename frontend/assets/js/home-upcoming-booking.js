@@ -148,7 +148,7 @@
 
   async function init() {
     // Wait a moment for auth to settle
-    await new Promise(function (r) { setTimeout(r, 1200); });
+    await new Promise(function (r) { setTimeout(r, 300); });
 
     var authService = window.VehicleAuthService;
     var bookingService = window.VehicleBookingService;
