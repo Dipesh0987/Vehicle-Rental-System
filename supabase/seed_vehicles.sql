@@ -18,7 +18,7 @@ INSERT INTO vehicles (
   name, brand, type, category, transmission, fuel_type, seats, price_per_day,
   rating, location, status, available, is_active, features,
   primary_image_url, image_url, image_urls, vehicle_number,
-  insurance_options, driver_options, mileage_policy, created_at, updated_at
+  created_at, updated_at
 ) VALUES
 (
   'Camry', 'Toyota', 'sedan', 'Sedan', 'Automatic', 'Petrol', 5, 6500,
@@ -28,9 +28,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 2201',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -41,9 +38,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1619682817481-e994891cd1f5?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1619682817481-e994891cd1f5?auto=format&fit=crop&w=800&q=80'],
   'BA 2 PA 3315',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -54,9 +48,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 4420',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -67,9 +58,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=800&q=80'],
   'BA 3 PA 5512',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -80,9 +68,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 6601',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 
@@ -96,9 +81,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 7710',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -109,9 +91,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1609521263047-f8f205293f24?auto=format&fit=crop&w=800&q=80'],
   'GA 1 PA 8823',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -122,9 +101,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&w=800&q=80'],
   'NA 3 PA 1102',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -135,9 +111,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1556189250-72ba954cfc2b?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1556189250-72ba954cfc2b?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 9934',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -148,9 +121,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 1045',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 
@@ -164,9 +134,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1549317661-bd32c8ce0afe?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1549317661-bd32c8ce0afe?auto=format&fit=crop&w=800&q=80'],
   'BA 2 PA 2211',
-  ARRAY['Basic Coverage'],
-  ARRAY['Self-Drive'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -177,9 +144,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 3322',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -190,9 +154,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&w=800&q=80'],
   'BA 3 PA 4433',
-  ARRAY['Basic Coverage'],
-  ARRAY['Self-Drive'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -203,9 +164,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80'],
   'GA 2 PA 5544',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -216,9 +174,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=800&q=80'],
   'NA 1 PA 6655',
-  ARRAY['Basic Coverage'],
-  ARRAY['Self-Drive'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 
@@ -232,9 +187,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 7766',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -245,9 +197,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 8877',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -258,9 +207,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 9988',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -271,9 +217,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 1199',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -284,9 +227,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b0?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b0?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 2200',
-  ARRAY['Premium Coverage', 'Comprehensive'],
-  ARRAY['With Driver'],
-  ARRAY['Limited'],
   NOW(), NOW()
 ),
 
@@ -300,9 +240,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1559416523-140ddc3d238c?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1559416523-140ddc3d238c?auto=format&fit=crop&w=800&q=80'],
   'BA 2 PA 3311',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -313,9 +250,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1532581140115-3e355d1ed1de?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1532581140115-3e355d1ed1de?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 4422',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -326,9 +260,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80'],
   'GA 1 PA 5533',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -339,9 +270,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?auto=format&fit=crop&w=800&q=80'],
   'NA 2 PA 6644',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 (
@@ -352,9 +280,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1543465077-db45d34b88a5?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1543465077-db45d34b88a5?auto=format&fit=crop&w=800&q=80'],
   'KO 1 PA 7755',
-  ARRAY['Basic Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Unlimited'],
   NOW(), NOW()
 ),
 
@@ -368,9 +293,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 8866',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive'],
-  ARRAY['Limited'],
   NOW(), NOW()
 ),
 (
@@ -381,9 +303,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 9977',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive'],
-  ARRAY['Limited'],
   NOW(), NOW()
 ),
 (
@@ -394,9 +313,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1616422285623-13ff0162193c?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1616422285623-13ff0162193c?auto=format&fit=crop&w=800&q=80'],
   'BA 3 PA 1188',
-  ARRAY['Basic Coverage', 'Premium Coverage', 'Comprehensive'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Limited'],
   NOW(), NOW()
 ),
 (
@@ -407,9 +323,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80'],
   'BA 2 PA 2299',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive', 'With Driver'],
-  ARRAY['Limited'],
   NOW(), NOW()
 ),
 (
@@ -420,9 +333,6 @@ INSERT INTO vehicles (
   'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&w=800&q=80',
   ARRAY['https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&w=800&q=80'],
   'BA 1 PA 3300',
-  ARRAY['Basic Coverage', 'Premium Coverage'],
-  ARRAY['Self-Drive'],
-  ARRAY['Limited'],
   NOW(), NOW()
 );
 
