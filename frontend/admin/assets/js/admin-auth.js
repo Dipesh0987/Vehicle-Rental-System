@@ -435,7 +435,7 @@
               // Best effort sign-out.
             }
           }
-          throw new Error("This account does not have admin access. In Supabase Dashboard \u2192 Auth \u2192 Users, set app_metadata to {\"role\":\"admin\"}.");
+          throw new Error("Access denied. This account is not authorised to access the admin panel. Please contact your system administrator.");
         }
       }
     }
