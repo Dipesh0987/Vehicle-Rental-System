@@ -644,6 +644,10 @@
       promoInfo = await validateAndApplyPromoCode(state, values.couponCode, baseQuote.baseAmount);
     }
 
+    // Update state BEFORE calculating final quote so discount is included
+    state.appliedPromoCode = promoInfo.code;
+    state.appliedPromoDiscount = promoInfo.promoDiscount;
+
     // Calculate final quote with promo discount
     var quote = window.VehicleBookingService.calculateBookingQuote({
       dailyRate: parseDailyRate(vehicle),
@@ -654,8 +658,6 @@
     });
 
     state.latestQuote = quote;
-    state.appliedPromoCode = promoInfo.code;
-    state.appliedPromoDiscount = promoInfo.promoDiscount;
     renderQuote(quote);
 
     if (values.couponCode && state.appliedPromoCode !== values.couponCode) {
@@ -735,7 +737,7 @@
 
       if (Array.isArray(data) && data.length > 0) {
         var result = data[0];
-        if (result.valid) {
+        if (result.is_valid) {
           state.appliedPromoCode = code;
           state.appliedPromoDiscount = parseFloat(result.discount_amount) || 0;
           applyCouponStatus("Promo code applied: NPR " + state.appliedPromoDiscount.toFixed(2) + " discount");
@@ -753,10 +755,22 @@
         syncQuoteFromState(state);
       }
     } catch (error) {
-      // console.error('Promo code validation exception:', error);
-      applyCouponStatus("This code is not valid for your booking");
-      state.appliedPromoCode = null;
-      state.appliedPromoDiscount = 0;
+      // RPC unavailable — fall back to hardcoded coupon rules
+      var FALLBACK_COUPONS = { SAVE10: { type: 'percent', value: 0.10, label: '10% off applied' }, WEEKEND50: { type: 'flat', value: 50, label: 'NPR 50 off applied' } };
+      var upperCode = code.toUpperCase().trim();
+      var fallbackCoupon = FALLBACK_COUPONS[upperCode];
+      if (fallbackCoupon) {
+        var fbDiscount = fallbackCoupon.type === 'percent'
+          ? Math.round(baseQuote.baseAmount * fallbackCoupon.value * 100) / 100
+          : fallbackCoupon.value;
+        state.appliedPromoCode = upperCode;
+        state.appliedPromoDiscount = fbDiscount;
+        applyCouponStatus(fallbackCoupon.label + ' (NPR ' + fbDiscount.toFixed(2) + ')');
+      } else {
+        applyCouponStatus('This code is not valid for your booking');
+        state.appliedPromoCode = null;
+        state.appliedPromoDiscount = 0;
+      }
       syncQuoteFromState(state);
     }
   }

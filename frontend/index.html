@@ -18,8 +18,8 @@
   </head>
   <body class="vrs-page min-h-screen bg-white font-poppins">
     <main id="app" class="vrs-theme-scope min-h-screen">
-      <section class="home-hero-shell relative h-screen overflow-hidden bg-[#F2F3F1]">
-        <div class="pointer-events-none absolute bottom-[-200px] left-[-80px] z-[1] select-none text-[580px] font-extrabold leading-[0.8] tracking-[0.04em] text-[rgba(11,22,28,0.03)]" aria-hidden="true">WAS</div>
+      <section class="home-hero-shell relative min-h-screen overflow-x-hidden bg-[#F2F3F1] lg:h-screen lg:overflow-hidden">
+        <div class="pointer-events-none absolute bottom-[-200px] left-[-80px] z-[1] hidden select-none text-[580px] font-extrabold leading-[0.8] tracking-[0.04em] text-[rgba(11,22,28,0.03)] lg:block" aria-hidden="true">WAS</div>
 
          <div class="home-side-panel absolute inset-y-0 right-0 w-[42%] overflow-hidden bg-panel animate-panelReveal">
           <!-- Light triangle: upper-left corner only â€” teal fills lower-right where car sits -->
@@ -40,7 +40,7 @@
         />
 
         <div class="relative z-20 mx-auto h-full w-[95%] max-w-[1390px]">
-          <header class="vrs-theme-scope relative z-[90] grid grid-cols-[auto,1fr,auto] items-center gap-6 py-4 opacity-0 animate-fadeUp">
+          <header class="vrs-theme-scope relative z-[90] flex flex-wrap items-center justify-between gap-4 py-4 opacity-0 animate-fadeUp lg:grid lg:grid-cols-[auto,1fr,auto] lg:items-center lg:gap-6">
             <div class="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
               <p class="vrs-brand-wordmark bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-[24px] font-extrabold leading-none tracking-tight text-transparent opacity-0 drop-shadow-[0_6px_18px_rgba(11,37,40,0.16)] animate-logoIn lg:text-[34px]">
                 RENT A VEHICLE
@@ -132,13 +132,13 @@
             </div>
           </header>
 
-          <div class="relative mt-4 h-[calc(100vh-112px)] lg:mt-5">
+          <div class="relative mt-4 h-auto pb-8 lg:mt-5 lg:h-[calc(100vh-112px)] lg:pb-0">
             <div class="home-hero-card relative z-20 w-full opacity-0 animate-floatIn lg:w-[54%]">
-              <div class="home-hero-card-panel rounded-md bg-[#F5F6F4] p-7 opacity-0 translate-y-5 transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_18px_34px_rgba(12,35,38,0.1)] animate-fadeUp lg:p-8">
-                <h1 class="max-w-[760px] text-[48px] font-bold leading-[1.1] tracking-[-0.02em] text-ink lg:text-[66px]">
+              <div class="home-hero-card-panel rounded-md bg-[#F5F6F4] p-5 opacity-0 translate-y-5 transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_18px_34px_rgba(12,35,38,0.1)] animate-fadeUp sm:p-6 lg:p-8">
+                <h1 class="max-w-[760px] text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink sm:text-[40px] lg:text-[66px]">
                   Fast and Easy Way to Rent a Vehicle
                 </h1>
-                <p class="mt-4 max-w-[790px] text-[15px] leading-[1.55] text-[#3E4448] opacity-0 translate-y-5 animate-fadeUp lg:text-[16px] [animation-delay:90ms]">
+                <p class="mt-4 max-w-[790px] text-[14px] leading-[1.55] text-[#3E4448] opacity-0 translate-y-5 animate-fadeUp sm:text-[15px] lg:text-[16px] [animation-delay:90ms]">
                   Choose from a trusted vehicle collection, compare prices instantly, and book in minutes.
                   Get transparent rates, flexible pickup options, and dependable support for every trip.
                 </p>
@@ -151,7 +151,7 @@
                     id="homeVehicleType"
                     name="vehicleType"
                     required
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    class="mt-2 h-[42px] w-full rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none sm:w-[80%] lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   >
                     <option value="">Choose vehicle type</option>
                   </select>
@@ -166,7 +166,7 @@
                     list="homeNepalPickupSuggestions"
                     placeholder="Thamel, Kathmandu, Nepal"
                     required
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none placeholder:text-[#A2A9B0] lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    class="mt-2 h-[42px] w-full rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none placeholder:text-[#A2A9B0] sm:w-[80%] lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
                   <datalist id="homeNepalPickupSuggestions">
                     <option value="Thamel, Kathmandu, Nepal"></option>
@@ -184,7 +184,7 @@
                     name="pickupDateTime"
                     type="datetime-local"
                     required
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    class="mt-2 h-[42px] w-full rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none sm:w-[80%] lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
                 </label>
 
@@ -195,16 +195,16 @@
                     name="dropoffDateTime"
                     type="datetime-local"
                     required
-                    class="mt-2 h-[42px] w-[80%] rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none lg:h-[42px] lg:w-[78%] lg:text-[14px]"
+                    class="mt-2 h-[42px] w-full rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none sm:w-[80%] lg:h-[42px] lg:w-[78%] lg:text-[14px]"
                   />
                 </label>
 
-                <p id="homeHeroBookingError" class="hidden w-[80%] rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-[12px] font-semibold text-rose-700 lg:w-[78%]"></p>
+                <p id="homeHeroBookingError" class="hidden w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-[12px] font-semibold text-rose-700 sm:w-[80%] lg:w-[78%]"></p>
 
                 <button
                   id="homeHeroBookingSubmit"
                   type="submit"
-                  class="mt-2 inline-flex h-[44px] w-[80%] items-center justify-center rounded-full bg-accent text-[18px] font-medium text-white transition duration-200 hover:-translate-y-[2px] hover:brightness-105 hover:shadow-[0_12px_24px_rgba(229,140,78,0.34)] lg:col-span-1 lg:h-[44px] lg:w-[78%] lg:text-[15px]"
+                  class="mt-2 inline-flex h-[44px] w-full items-center justify-center rounded-full bg-accent text-[18px] font-medium text-white transition duration-200 hover:-translate-y-[2px] hover:brightness-105 hover:shadow-[0_12px_24px_rgba(229,140,78,0.34)] sm:w-[80%] lg:col-span-1 lg:h-[44px] lg:w-[78%] lg:text-[15px]"
                 >
                   Browse Vehicles
                 </button>

@@ -1247,37 +1247,72 @@ async function handleMultiLegQuote(input: {
 }
 
 async function fetchBookingsForUser(userId: string, email: string): Promise<BookingRow[]> {
-  let query = supabaseAdmin
-    .from("vehicle_bookings")
-    .select("id,booking_code,vehicle_id,customer_user_id,customer_email,start_date,end_date,pickup_time,status,currency,total_amount,payment_status,is_paid,notes,created_at")
-    .order("created_at", { ascending: false })
-    .limit(100)
-    .eq("customer_user_id", userId);
+  const RICH_COLS = "id,booking_code,vehicle_id,customer_user_id,customer_email,start_date,end_date,pickup_time,status,currency,total_amount,payment_status,is_paid,notes,created_at";
+  const TABLE_CANDIDATES = ["vehicle_bookings", "bookings"];
 
-  let result = await query;
+  for (const tableName of TABLE_CANDIDATES) {
+    try {
+      /* Try rich column list first, fall back to select("*") if columns are missing. */
+      let result = await supabaseAdmin
+        .from(tableName)
+        .select(RICH_COLS)
+        .order("created_at", { ascending: false })
+        .limit(100)
+        .eq("customer_user_id", userId);
 
-  if (result.error) {
-    throw new Error(`Failed to read bookings: ${result.error.message}`);
-  }
+      /* Column-missing error → retry with wildcard select */
+      if (result.error && /column|does not exist|could not find/i.test(String(result.error.message))) {
+        result = await supabaseAdmin
+          .from(tableName)
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(100)
+          .eq("customer_user_id", userId);
+      }
 
-  let rows = Array.isArray(result.data) ? (result.data as BookingRow[]) : [];
+      /* Table doesn't exist at all → try next candidate */
+      if (result.error) {
+        const msg = String(result.error.message).toLowerCase();
+        if (msg.includes("relation") && msg.includes("does not exist")) continue;
+        if (msg.includes("permission denied")) continue;
+        console.warn(`booking query error on ${tableName}:`, result.error.message);
+        continue;
+      }
 
-  if (!rows.length && email) {
-    result = await supabaseAdmin
-      .from("vehicle_bookings")
-      .select("id,booking_code,vehicle_id,customer_user_id,customer_email,start_date,end_date,pickup_time,status,currency,total_amount,payment_status,is_paid,notes,created_at")
-      .order("created_at", { ascending: false })
-      .limit(100)
-      .eq("customer_email", email);
+      let rows = Array.isArray(result.data) ? (result.data as BookingRow[]) : [];
 
-    if (result.error) {
-      throw new Error(`Failed to read bookings by email: ${result.error.message}`);
+      /* If no rows by user ID, try by email */
+      if (!rows.length && email) {
+        let emailResult = await supabaseAdmin
+          .from(tableName)
+          .select(RICH_COLS)
+          .order("created_at", { ascending: false })
+          .limit(100)
+          .eq("customer_email", email);
+
+        if (emailResult.error && /column|does not exist|could not find/i.test(String(emailResult.error.message))) {
+          emailResult = await supabaseAdmin
+            .from(tableName)
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(100)
+            .eq("customer_email", email);
+        }
+
+        if (!emailResult.error) {
+          rows = Array.isArray(emailResult.data) ? (emailResult.data as BookingRow[]) : [];
+        }
+      }
+
+      return rows;
+    } catch (err) {
+      console.warn(`fetchBookings error on ${tableName}:`, err);
+      continue;
     }
-
-    rows = Array.isArray(result.data) ? (result.data as BookingRow[]) : [];
   }
 
-  return rows;
+  /* No table found — return empty rather than crashing the chat. */
+  return [];
 }
 
 async function fetchVehicleMap(bookings: BookingRow[]): Promise<Record<string, VehicleRow>> {

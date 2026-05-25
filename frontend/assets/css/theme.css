@@ -412,9 +412,15 @@ body.vrs-page .vrs-bookings-close:hover {
 }
 
 @media (max-width: 1023px) {
+  .home-side-panel {
+      display: none;
+    }
   .home-hero-car {
     display: none;
   }
+.home-hero-card {
+  max-width: none;
+}
 }
 body.vrs-page .vrs-bookings-summary {
   color: #2f5659;
