@@ -5,10 +5,21 @@
 -- ============================================================
 
 -- Step 1: Delete all existing data that references vehicles
-DELETE FROM payments WHERE booking_id IN (SELECT id FROM vehicle_bookings);
-DELETE FROM vehicle_bookings;
-DELETE FROM vehicle_images;
-DELETE FROM vehicles;
+-- Use DO block to handle either table name (vehicle_bookings or bookings)
+DO $$
+BEGIN
+  -- Try deleting from payments referencing vehicle_bookings
+  BEGIN
+    DELETE FROM payments WHERE booking_id IN (SELECT id FROM vehicle_bookings);
+    DELETE FROM vehicle_bookings;
+  EXCEPTION WHEN undefined_table THEN
+    -- vehicle_bookings doesn't exist, skip
+    NULL;
+  END;
+END $$;
+
+DELETE FROM vehicle_images WHERE TRUE;
+DELETE FROM vehicles WHERE TRUE;
 
 -- Step 2: Insert 30 real vehicles with proper images, features, and filter values
 
