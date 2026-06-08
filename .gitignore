@@ -1,51 +1,39 @@
-# ─────────────────────────────────────────────
-# Supabase config (contains live credentials)
-# ─────────────────────────────────────────────
-frontend/assets/js/supabase.config.js
-frontend/assets/js/supabase.config.local.js
-frontend/admin/assets/js/supabase.config.local.js
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-# ─────────────────────────────────────────────
-# Supabase CLI temp files
-# ─────────────────────────────────────────────
-supabase/.temp/
+# testing
+/coverage
 
-# ─────────────────────────────────────────────
-# Dependencies
-# ─────────────────────────────────────────────
-node_modules/
+# next.js
+/.next/
+/out/
 
-# ─────────────────────────────────────────────
-# Environment & secrets
-# ─────────────────────────────────────────────
-.env
-.env.local
-.env.production
-SECRETS_QUICK_REFERENCE.txt
+# production
+/build
 
-# ─────────────────────────────────────────────
-# OS & IDE artifacts
-# ─────────────────────────────────────────────
+# misc
 .DS_Store
+*.pem
 Thumbs.db
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
 .vscode/
-
-# ─────────────────────────────────────────────
-# Session/temporary docs (keep only README.md)
-# ─────────────────────────────────────────────
-*.md
-!README.md
-
-# ─────────────────────────────────────────────
-# Dev scripts & local server
-# ─────────────────────────────────────────────
-scripts/
-server/
-*.bat
-*.ps1
-
-# ─────────────────────────────────────────────
-# Build artifacts
-# ─────────────────────────────────────────────
-*.log
-package-lock.json
+.idea/
