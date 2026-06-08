@@ -38,7 +38,7 @@ export default function AdminRoles() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     full_name: '',
-    email: '',
+    username: '',
     phone: '',
     role: 'staff'
   });
@@ -190,14 +190,15 @@ export default function AdminRoles() {
     
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('admin_change_user_password', {
-        user_id: selectedUser.id,
-        new_password: passwordForm.new_password
+      const { error } = await supabase.rpc('admin_update_user_credentials', {
+        target_user_id: selectedUser.id,
+        new_email: null,
+        new_password: passwordForm.new_password,
       });
       
       if (error) {
-        if (error.message?.includes('function') || error.message?.includes('not found')) {
-          toast.warning('Please set up the admin_change_user_password function in Supabase. See SQL setup file for instructions.');
+        if (error.message?.includes('function') || error.message?.includes('does not exist') || error.message?.includes('not found')) {
+          toast.warning('Run supabase/admin_user_management.sql in Supabase to enable password changes.');
         } else {
           throw error;
         }
@@ -259,9 +260,10 @@ export default function AdminRoles() {
 
   const openEditModal = (user: any) => {
     setSelectedUser(user);
+    const email = user.email || '';
     setEditForm({
       full_name: user.full_name || '',
-      email: user.email || '',
+      username: email.includes('@') ? email.split('@')[0] : email,
       phone: user.phone || '',
       role: user.role || 'staff'
     });
@@ -276,17 +278,42 @@ export default function AdminRoles() {
       toast.warning('Only one Super Admin is allowed!');
       return;
     }
+
+    const cleanUsername = (editForm.username || '').toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    if (!cleanUsername) {
+      toast.warning('Username is required');
+      return;
+    }
+    const newEmail = cleanUsername.includes('@') ? cleanUsername : `${cleanUsername}@selfcarrental.com`;
+    const usernameChanged = newEmail !== (selectedUser.email || '').toLowerCase();
     
     setSaving(true);
     try {
-      const { error } = await supabase.from('user_profiles').update({
+      // 1) Update profile details (name, phone, role)
+      const { error: profileErr } = await supabase.from('user_profiles').update({
         full_name: editForm.full_name,
-        email: editForm.email,
         phone: editForm.phone || null,
         role: editForm.role
       }).eq('id', selectedUser.id);
-      
-      if (error) throw error;
+      if (profileErr) throw profileErr;
+
+      // 2) If the username (login email) changed, update the real auth record via RPC
+      if (usernameChanged) {
+        const { error: credErr } = await supabase.rpc('admin_update_user_credentials', {
+          target_user_id: selectedUser.id,
+          new_email: newEmail,
+          new_password: null,
+        });
+        if (credErr) {
+          if (credErr.message?.includes('function') || credErr.message?.includes('does not exist')) {
+            toast.warning('Run supabase/admin_user_management.sql in Supabase to enable username changes.');
+          } else {
+            throw credErr;
+          }
+        } else {
+          toast.success('Username updated. New login: ' + newEmail);
+        }
+      }
       
       toast.success('User updated successfully!');
       setShowEditModal(false);
@@ -348,7 +375,10 @@ export default function AdminRoles() {
                 {admins.map((a: any) => (
                   <tr key={a.id} className="border-b border-slate-100 dark:border-white/5">
                     <td className="py-3 pr-3">
-                      <p className="font-bold text-slate-900 dark:text-white">{a.full_name || 'Admin'}</p>
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        {a.full_name || 'Admin'}
+                        {a.id === currentUser?.id && <span className="ml-2 rounded-full bg-[#1f7668]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1f7668]">You</span>}
+                      </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{a.phone || 'No phone'}</p>
                     </td>
                     <td className="py-3 pr-3">
@@ -567,14 +597,18 @@ export default function AdminRoles() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Email</label>
+                <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Username (login)</label>
                 <input
-                  type="email"
+                  type="text"
                   className={inp}
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  value={editForm.username}
+                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value.toLowerCase().replace(/[^a-z0-9._@-]/g, '') })}
+                  placeholder="e.g. rsrentalservices"
                   required
                 />
+                <p className="mt-1 text-xs text-slate-500">
+                  Login email: {editForm.username.includes('@') ? editForm.username : `${editForm.username || 'username'}@selfcarrental.com`}
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">Phone</label>
