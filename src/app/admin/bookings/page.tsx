@@ -877,7 +877,38 @@ export default function AdminBookings() {
                 <h2 className="text-lg font-bold">Invoice Preview</h2>
                 <button onClick={closeBillModal} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Close</button>
               </div>
-              <Invoice booking={billModalState.booking} />
+              <Invoice booking={billModalState.booking} onSave={async (updatedInvoice) => {
+                // Save invoice changes to database
+                try {
+                  const paidAmount = updatedInvoice.payment?.paid || 0;
+                  const totalAmount = updatedInvoice.lineItems?.reduce((sum, item) => {
+                    const days = parseFloat(item.qty) || 0;
+                    return sum + (days * (item.rate || 0));
+                  }, 0) - (updatedInvoice.payment?.discount || 0);
+                  
+                  await supabase.from('bookings').update({
+                    paid_amount: paidAmount,
+                    total_amount: totalAmount,
+                    remaining_amount: Math.max(0, totalAmount - paidAmount),
+                    is_paid: paidAmount >= totalAmount,
+                    payment_status: paidAmount >= totalAmount ? 'completed' : (paidAmount > 0 ? 'partial' : 'pending'),
+                  }).eq('id', detail?.id);
+                  
+                  // Update billModalState with new data
+                  setBillModalState({ ...billModalState, booking: updatedInvoice });
+                  await fetch_();
+                  if (detail) {
+                    const { data: updatedBooking } = await supabase
+                      .from('bookings')
+                      .select('*, vehicles:vehicle_id(name, brand, category, vehicle_number, primary_image_url)')
+                      .eq('id', detail.id)
+                      .single();
+                    if (updatedBooking) setDetail(updatedBooking);
+                  }
+                } catch (err) {
+                  console.error('Failed to save invoice changes:', err);
+                }
+              }} />
             </div>
           </div>
         )}

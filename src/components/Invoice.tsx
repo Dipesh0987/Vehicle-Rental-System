@@ -120,9 +120,10 @@ interface InvoiceData {
 
 interface InvoiceProps {
   booking: InvoiceData;
+  onSave?: (updatedBooking: InvoiceData) => void;
 }
 
-export default function Invoice({ booking: initialBooking }: InvoiceProps) {
+export default function Invoice({ booking: initialBooking, onSave }: InvoiceProps) {
   const [editMode, setEditMode] = useState(false);
   const [booking, setBooking] = useState<InvoiceData>(initialBooking);
   const printRef = useRef<HTMLDivElement>(null);
@@ -131,6 +132,13 @@ export default function Invoice({ booking: initialBooking }: InvoiceProps) {
     contentRef: printRef,
     documentTitle: `Invoice-${booking.invoiceNumber}`,
   } as any);
+  
+  const handleDoneEditing = () => {
+    setEditMode(false);
+    if (onSave) {
+      onSave(booking);
+    }
+  };
 
   const updateBooking = (path: string, value: any) => {
     setBooking((prev) => {
@@ -179,7 +187,7 @@ export default function Invoice({ booking: initialBooking }: InvoiceProps) {
     <div className="min-h-screen bg-gray-100 p-4 font-sans">
       <div className="max-w-[794px] mx-auto mb-4 flex gap-2 print:hidden">
         <button
-          onClick={() => setEditMode(!editMode)}
+          onClick={() => editMode ? handleDoneEditing() : setEditMode(true)}
           className={`flex items-center gap-2 px-4 py-2 font-bold text-sm rounded-none ${
             editMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800 border border-gray-300'
           }`}
