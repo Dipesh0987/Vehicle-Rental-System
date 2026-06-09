@@ -7,7 +7,6 @@ import { checkAvailability } from '@/services/booking.service';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-const VEHICLE_TYPES = ['sedan', 'suv', 'hatchback', 'luxury', 'van', 'electric'];
 const TRANSMISSIONS = ['Automatic', 'Manual'];
 const FUEL_TYPES = ['Petrol', 'Diesel', 'Electric', 'Hybrid'];
 
@@ -36,6 +35,21 @@ function VehiclesContent() {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Dynamic vehicle types and brands — derived from actual data, no hardcoding
+  const VEHICLE_TYPES = useMemo(() => {
+    const types = vehicles
+      .map((v) => (v.category || v.type || '').toLowerCase().trim())
+      .filter(Boolean);
+    return [...new Set(types)].sort();
+  }, [vehicles]);
+
+  const VEHICLE_BRANDS = useMemo(() => {
+    const brands = vehicles
+      .map((v) => (v.brand || '').trim())
+      .filter(Boolean);
+    return [...new Set(brands)].sort();
+  }, [vehicles]);
+
   const [pickupLocation, setPickupLocation] = useState(searchParams.get('location') || '');
   const [pickupDateTime, setPickupDateTime] = useState(searchParams.get('start') || '');
   const [dropoffLocation, setDropoffLocation] = useState('');
@@ -45,9 +59,7 @@ function VehiclesContent() {
 
   // Read type from URL params and pre-select the vehicle type filter
   const urlType = searchParams.get('type')?.toLowerCase() || '';
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(
-    urlType && VEHICLE_TYPES.includes(urlType) ? [urlType] : []
-  );
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(urlType ? [urlType] : []);
   const [selectedTransmissions, setSelectedTransmissions] = useState<string[]>([]);
   const [selectedFuels, setSelectedFuels] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -65,9 +77,8 @@ function VehiclesContent() {
   // Sync URL type parameter with selectedTypes when URL changes
   useEffect(() => {
     const typeFromUrl = searchParams.get('type')?.toLowerCase() || '';
-    if (typeFromUrl && VEHICLE_TYPES.includes(typeFromUrl)) {
+    if (typeFromUrl) {
       setSelectedTypes(prev => {
-        // Only update if different to avoid infinite loops
         if (prev.length !== 1 || prev[0] !== typeFromUrl) {
           return [typeFromUrl];
         }
@@ -105,8 +116,6 @@ function VehiclesContent() {
     
     checkAllAvailability();
   }, [pickupDateTime, dropoffDateTime, vehicles]);
-
-  const brands = useMemo(() => [...new Set(vehicles.map(v => v.brand).filter(Boolean))].sort(), [vehicles]);
 
   const toggleArr = (arr: string[], setArr: React.Dispatch<React.SetStateAction<string[]>>, val: string) => {
     setArr((prev: string[]) => prev.includes(val) ? prev.filter((x: string) => x !== val) : [...prev, val]);
@@ -172,7 +181,7 @@ function VehiclesContent() {
       </FilterSection>
 
       <FilterSection icon="fa-industry" label="Brand">
-        {brands.map(b => (
+        {VEHICLE_BRANDS.map(b => (
           <FilterCheck key={b} checked={selectedBrands.includes(b)} onChange={() => toggleArr(selectedBrands, setSelectedBrands, b)} label={b} />
         ))}
       </FilterSection>

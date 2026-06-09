@@ -91,11 +91,9 @@ function HomeContent() {
                     <select value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} required
                       className="mt-2 h-[42px] w-full rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none sm:w-[80%] lg:h-[42px] lg:w-[78%] lg:text-[14px]">
                       <option value="">Choose vehicle type</option>
-                      <option value="sedan">Sedan</option>
-                      <option value="suv">SUV</option>
-                      <option value="hatchback">Hatchback</option>
-                      <option value="luxury">Luxury</option>
-                      <option value="van">Van</option>
+                      {[...new Set(vehicles.map(v => (v.category || v.type || '').toLowerCase().trim()).filter(Boolean))].sort().map(t => (
+                        <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                      ))}
                     </select>
                   </label>
 

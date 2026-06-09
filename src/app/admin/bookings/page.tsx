@@ -89,6 +89,7 @@ export default function AdminBookings() {
   const [showCreate, setShowCreate] = useState(false);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
   const [billModalState, setBillModalState] = useState<{ show: boolean, booking: any }>({ show: false, booking: null });
+  const [savedInvoices, setSavedInvoices] = useState<Record<string, any>>({});
   const [createForm, setCreateForm] = useState({
     vehicle_id: '',
     customer_name: '',
@@ -489,6 +490,12 @@ export default function AdminBookings() {
   };
 
   const openBillModal = (b: any) => {
+    // If we previously saved edits for this booking, reuse them
+    if (savedInvoices[b.id]) {
+      setBillModalState({ show: true, booking: savedInvoices[b.id] });
+      return;
+    }
+
     const days = b.start_date && b.end_date 
       ? Math.max(1, Math.ceil((Number(new Date(b.end_date)) - Number(new Date(b.start_date))) / 86400000)) 
       : 1;
@@ -499,6 +506,7 @@ export default function AdminBookings() {
     const dropoffLoc = b.notes?.match(/Dropoff:\s*([^|]+)/)?.[1]?.trim() || pickupLoc;
     
     const invoiceData = {
+      _bookingId: b.id,
       invoiceNumber: `INV-${Date.now().toString(36).toUpperCase().slice(-6)}`,
       bookingRef: b.booking_code || b.id?.slice(0, 12),
       issueDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
@@ -878,24 +886,31 @@ export default function AdminBookings() {
                 <button onClick={closeBillModal} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Close</button>
               </div>
               <Invoice booking={billModalState.booking} onSave={async (updatedInvoice) => {
-                // Save invoice changes to database
+                // Save invoice changes to database and persist locally
                 try {
                   const paidAmount = updatedInvoice.payment?.paid || 0;
-                  const totalAmount = updatedInvoice.lineItems?.reduce((sum, item) => {
+                  const totalAmount = updatedInvoice.lineItems?.reduce((sum: number, item: any) => {
                     const days = parseFloat(item.qty) || 0;
                     return sum + (days * (item.rate || 0));
                   }, 0) - (updatedInvoice.payment?.discount || 0);
                   
-                  await supabase.from('bookings').update({
-                    paid_amount: paidAmount,
-                    total_amount: totalAmount,
-                    remaining_amount: Math.max(0, totalAmount - paidAmount),
-                    is_paid: paidAmount >= totalAmount,
-                    payment_status: paidAmount >= totalAmount ? 'completed' : (paidAmount > 0 ? 'partial' : 'pending'),
-                  }).eq('id', detail?.id);
+                  const bookingId = detail?.id || (updatedInvoice as any)._bookingId;
                   
-                  // Update billModalState with new data
+                  if (bookingId) {
+                    await supabase.from('bookings').update({
+                      paid_amount: paidAmount,
+                      total_amount: totalAmount > 0 ? totalAmount : undefined,
+                      remaining_amount: Math.max(0, totalAmount - paidAmount),
+                      is_paid: paidAmount >= totalAmount,
+                      payment_status: paidAmount >= totalAmount ? 'completed' : (paidAmount > 0 ? 'partial' : 'pending'),
+                    }).eq('id', bookingId);
+                    
+                    // Persist invoice edits so re-opening shows saved values
+                    setSavedInvoices(prev => ({ ...prev, [bookingId]: updatedInvoice }));
+                  }
+                  
                   setBillModalState({ ...billModalState, booking: updatedInvoice });
+                  toast.success('Invoice saved!');
                   await fetch_();
                   if (detail) {
                     const { data: updatedBooking } = await supabase
@@ -907,6 +922,7 @@ export default function AdminBookings() {
                   }
                 } catch (err) {
                   console.error('Failed to save invoice changes:', err);
+                  toast.error('Failed to save invoice changes.');
                 }
               }} />
             </div>
