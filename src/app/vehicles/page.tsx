@@ -375,6 +375,9 @@ function VehiclesContent() {
                   <div key={v.id}>
                   <div
                     onClick={() => router.push(`/vehicles/${toSlug(v.brand, v.name)}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/vehicles/${toSlug(v.brand, v.name)}`); }}
                     className="group cursor-pointer overflow-hidden rounded-[24px] border border-[#d4ddd7] bg-[linear-gradient(165deg,#ffffff,#f8f3ea)] shadow-[0_14px_30px_rgba(10,31,34,0.1)] transition-[box-shadow,border-color] duration-300 hover:shadow-[0_24px_42px_rgba(10,31,34,0.16)]">
                     <div className="relative h-52 overflow-hidden bg-gradient-to-br from-[#2a5c5f] to-[#1f5659]">
                       <img src={v.imageUrl || '/assets/images/car-transparent.png'} alt={v.name} loading="lazy"

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { jsPDF } from 'jspdf';
 
 const TERMS_CONTENT = `TERMS & CONDITIONS
 ASSelf - Vehicle Rental Agreement
@@ -56,130 +57,83 @@ export default function TermsFloatingButton() {
   }
 
   const downloadPDF = () => {
-    // Create a printable HTML document
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow popups to download the PDF');
-      return;
-    }
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Terms & Conditions - ASSelf</title>
-          <style>
-            @media print {
-              @page { margin: 1in; }
-            }
-            body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              line-height: 1.8;
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 40px 20px;
-              color: #1a1a1a;
-            }
-            h1 {
-              color: #145f59;
-              font-size: 28px;
-              text-align: center;
-              margin-bottom: 10px;
-              border-bottom: 3px solid #145f59;
-              padding-bottom: 15px;
-            }
-            .brand-as { color: #E58C4E; }
-            h2 {
-              color: #145f59;
-              font-size: 16px;
-              text-align: center;
-              margin-bottom: 30px;
-              font-weight: normal;
-            }
-            .term {
-              margin-bottom: 15px;
-              padding-left: 30px;
-              position: relative;
-            }
-            .term::before {
-              content: counter(term) ".";
-              counter-increment: term;
-              position: absolute;
-              left: 0;
-              color: #145f59;
-              font-weight: bold;
-            }
-            ol {
-              counter-reset: term;
-              list-style: none;
-              padding: 0;
-            }
-            .footer {
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 1px solid #ddd;
-              text-align: center;
-              font-size: 14px;
-              color: #666;
-            }
-            .contact {
-              margin-top: 20px;
-              background: #f5f5f5;
-              padding: 15px;
-              border-radius: 8px;
-            }
-          </style>
-        </head>
-        <body>
-          <h1>TERMS & CONDITIONS</h1>
-          <h2><span class="brand-as">AS</span>Self - Vehicle Rental Agreement</h2>
-          <ol>
-            <li class="term">Valid driving license required for self-drive rentals.</li>
-            <li class="term">Vehicle is for personal use only. Commercial, public or rental use prohibited.</li>
-            <li class="term">No illegal activities, off-road driving, or racing allowed.</li>
-            <li class="term">Renter is liable for all traffic fines and violations.</li>
-            <li class="term">Renter responsible for damages due to negligence or reckless driving.</li>
-            <li class="term">In case of breakdown or accident, inform company immediately.</li>
-            <li class="term">Damages not covered by insurance must be paid by renter.</li>
-            <li class="term">In case of damage or accident, rental charges apply for repair.</li>
-            <li class="term">If renter fails to pay dues, company may recover via security cheque.</li>
-            <li class="term">If renter is unreachable after accident, company may use security cheque.</li>
-            <li class="term">Extension/cancellation must be informed 24 hrs prior. Late penalty: NPR 500/hour.</li>
-            <li class="term">NPR 1,000 cleaning fee applies for excessively dirty vehicle.</li>
-            <li class="term">Advance payment confirms booking. Cancellation charges apply.</li>
-            <li class="term">Vehicle must be returned with same fuel level; otherwise charges apply.</li>
-            <li class="term">Vehicle must be returned by 7:00 PM. Late fee: NPR 800/hour.</li>
-            <li class="term">Next day processing at 7:00 AM.</li>
-          </ol>
-          <div class="footer">
-            <p><strong>By renting a vehicle from <span class="brand-as">AS</span>Self, you agree to abide by these terms and conditions.</strong></p>
-            <div class="contact">
-              <p><strong>Contact:</strong> +977 970-452-0781</p>
-              <p><strong>Email:</strong> info@asselfdrive.com</p>
-              <p><strong>Location:</strong> Banasthali, Kathmandu, Nepal</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    
-    // Trigger print dialog for PDF save
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(20, 95, 89);
+    doc.text('TERMS & CONDITIONS', pageWidth / 2, y, { align: 'center' });
+    y += 10;
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text('ASSelf - Vehicle Rental Agreement', pageWidth / 2, y, { align: 'center' });
+    y += 5;
+    doc.setDrawColor(20, 95, 89);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 12;
+
+    // Terms
+    const terms = [
+      'Valid driving license required for self-drive rentals.',
+      'Vehicle is for personal use only. Commercial, public or rental use prohibited.',
+      'No illegal activities, off-road driving, or racing allowed.',
+      'Renter is liable for all traffic fines and violations.',
+      'Renter responsible for damages due to negligence or reckless driving.',
+      'In case of breakdown or accident, inform company immediately.',
+      'Damages not covered by insurance must be paid by renter.',
+      'In case of damage or accident, rental charges apply for repair.',
+      'If renter fails to pay dues, company may recover via security cheque.',
+      'If renter is unreachable after accident, company may use security cheque.',
+      'Extension/cancellation must be informed 24 hrs prior. Late penalty: NPR 500/hour.',
+      'NPR 1,000 cleaning fee applies for excessively dirty vehicle.',
+      'Advance payment confirms booking. Cancellation charges apply.',
+      'Vehicle must be returned with same fuel level; otherwise charges apply.',
+      'Vehicle must be returned by 7:00 PM. Late fee: NPR 800/hour.',
+      'Next day processing at 7:00 AM.',
+    ];
+
+    doc.setFontSize(11);
+    doc.setTextColor(30, 30, 30);
+    terms.forEach((term, i) => {
+      const lines = doc.splitTextToSize(`${i + 1}. ${term}`, maxWidth);
+      if (y + lines.length * 6 > 270) { doc.addPage(); y = 20; }
+      doc.text(lines, margin, y);
+      y += lines.length * 6 + 4;
+    });
+
+    // Footer
+    y += 10;
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('By renting a vehicle from ASSelf, you agree to abide by these terms.', pageWidth / 2, y, { align: 'center' });
+    y += 8;
+    doc.text('Contact: +977 970-452-0781 | Email: info@asselfdrive.com', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.text('Location: Banasthali, Kathmandu, Nepal', pageWidth / 2, y, { align: 'center' });
+
+    doc.save('ASSelf-Terms-and-Conditions.pdf');
   };
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - positioned to not obstruct mobile content */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed left-0 top-1/2 -translate-y-1/2 z-40 flex items-center gap-2 rounded-r-xl bg-[#145f59] px-3 py-3 text-white shadow-lg transition-all hover:pl-4 hover:shadow-xl group"
+        className="fixed left-0 bottom-24 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-40 flex items-center gap-1.5 rounded-r-xl bg-[#145f59] px-2.5 py-2.5 sm:px-3 sm:py-3 text-white shadow-lg transition-all hover:pl-4 hover:shadow-xl group"
         title="Terms & Conditions"
+        aria-label="View Terms and Conditions"
       >
-        <span className="material-symbols-outlined text-[20px]">gavel</span>
-        <span className="text-sm font-semibold whitespace-nowrap overflow-hidden max-w-0 group-hover:max-w-[150px] transition-all duration-300">
+        <span className="material-symbols-outlined text-[18px] sm:text-[20px]">gavel</span>
+        <span className="hidden sm:inline text-sm font-semibold whitespace-nowrap overflow-hidden max-w-0 group-hover:max-w-[150px] transition-all duration-300">
           Terms & Conditions
         </span>
       </button>

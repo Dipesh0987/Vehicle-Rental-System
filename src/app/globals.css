@@ -721,3 +721,99 @@ html[data-theme="dark"] ::-webkit-scrollbar-track {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(24, 34, 39, 0.24); border-radius: 999px; }
 * { scrollbar-width: thin; }
+
+/* ========================================================================
+   MOBILE RESPONSIVENESS — Ensures all pages, inputs, buttons, and content
+   work properly on phones, tablets, and all devices.
+   ======================================================================== */
+
+/* Fix touch targets — min 44px for all interactive elements on mobile */
+@media (max-width: 768px) {
+  /* Ensure buttons and links have proper touch targets */
+  button:not(input), 
+  a:not(.inline-flex), 
+  [role="button"] {
+    min-height: 40px;
+  }
+  
+  /* Fix vehicle cards — ensure "View Details" and "Book Now" are clickable */
+  .vehicle-result-card {
+    position: relative;
+    z-index: 1;
+  }
+  .vehicle-result-card a,
+  .vehicle-result-card button {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Fix forms on mobile — full width inputs, proper spacing */
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* Ensure modals don't overflow on mobile */
+  .fixed.inset-0 > div {
+    max-height: 95vh;
+    max-width: 95vw;
+    overflow-y: auto;
+  }
+
+  /* Fix booking form sections that might overflow */
+  section[class*="rounded-"] {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Fix grid layouts on small screens */
+  .grid.lg\:grid-cols-\[1\.35fr\,0\.95fr\] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Ensure the WhatsApp float doesn't overlap bottom content */
+  .fixed.bottom-5.right-5,
+  .fixed.bottom-4.right-4 {
+    bottom: 16px !important;
+    right: 16px !important;
+    z-index: 35 !important;
+  }
+}
+
+/* Tablet-specific fixes */
+@media (min-width: 769px) and (max-width: 1024px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Ensure no horizontal scroll on any device */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Fix: Ensure all pages respect safe area (notched phones) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .fixed.bottom-0,
+  .sticky.bottom-0 {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Ensure vehicle detail page booking sidebar stacks on mobile */
+@media (max-width: 1280px) {
+  .xl\:grid-cols-\[1\.52fr\,0\.9fr\] {
+    grid-template-columns: 1fr !important;
+  }
+  .xl\:sticky {
+    position: relative !important;
+    top: auto !important;
+  }
+}
+
+/* Admin panel — ensure sidebar doesn't break on small tablets */
+@media (max-width: 1024px) {
+  .lg\:flex.sticky.h-screen {
+    display: none !important;
+  }
+}

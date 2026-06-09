@@ -225,6 +225,8 @@ function HomeContent() {
                 {vehicles.map((v, idx) => (
                   <div key={v.id}>
                   <div onClick={() => router.push(`/vehicles/${toSlug(v.brand, v.name)}`)}
+                    role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/vehicles/${toSlug(v.brand, v.name)}`); }}
                     className="rounded-2xl border border-[#d6dfd8] bg-white/86 p-0 shadow-[0_10px_20px_rgba(11,34,37,0.09)] overflow-hidden cursor-pointer transition hover:-translate-y-1 hover:shadow-lg">
                     <div className="h-44 overflow-hidden">
                       <img src={v.imageUrl || '/assets/images/car-transparent.png'} alt={v.name} className="w-full h-full object-cover"/>
