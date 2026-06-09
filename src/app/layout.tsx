@@ -57,10 +57,6 @@ export const metadata: Metadata = {
     google: 'YOUR_GOOGLE_VERIFICATION_CODE',
   },
   category: 'Car Rental',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
   other: {
     'geo.region': 'NP-3',
     'geo.placename': 'Kathmandu, Banasthali',

@@ -19,7 +19,23 @@ function HomeContent() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    listVehicles().then((data) => setVehicles(data.slice(0, 6))).catch(() => {});
+    // Fetch top rented vehicles (admin-marked), fallback to first 6 available
+    import('@/lib/supabase').then(({ supabase }) => {
+      supabase.from('vehicles').select('*').eq('is_top_rented', true).eq('status', 'available').limit(6)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setVehicles(data.map((v: any) => ({
+              id: v.id, name: v.name || '', brand: v.brand || '', model: v.model || '',
+              pricePerDay: v.price_per_day || 0, imageUrl: v.image_url || v.primary_image_url || '',
+              type: v.type || v.category || '', transmission: v.transmission || '', fuelType: v.fuel_type || '',
+              seats: v.seats || 0, rating: v.rating || 0,
+            })));
+          } else {
+            // Fallback: show first 6 available vehicles
+            listVehicles().then((d) => setVehicles(d.slice(0, 6))).catch(() => {});
+          }
+        });
+    });
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -219,7 +235,7 @@ function HomeContent() {
 
         <div id="homeTopRatedSection" className="bg-[#F5F6F4] dark:bg-[#151d22]" style={{padding:'60px 24px 80px'}}>
           <div style={{maxWidth:'1100px',margin:'0 auto',textAlign:'center'}}>
-            <h2 className="text-[#1a2a2f] dark:text-slate-100" style={{fontFamily:"'Poppins',sans-serif",fontSize:'36px',fontWeight:700,margin:'0 0 40px'}}>Top Rated Vehicles</h2>
+            <h2 className="text-[#1a2a2f] dark:text-slate-100" style={{fontFamily:"'Poppins',sans-serif",fontSize:'36px',fontWeight:700,margin:'0 0 40px'}}>Top Rented Vehicles</h2>
             {vehicles.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" style={{maxWidth:'1100px',margin:'0 auto'}}>
                 {vehicles.map((v, idx) => (
@@ -227,15 +243,15 @@ function HomeContent() {
                   <div onClick={() => router.push(`/vehicles/${toSlug(v.brand, v.name)}`)}
                     role="button" tabIndex={0}
                     onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/vehicles/${toSlug(v.brand, v.name)}`); }}
-                    className="rounded-2xl border border-[#d6dfd8] bg-white/86 p-0 shadow-[0_10px_20px_rgba(11,34,37,0.09)] overflow-hidden cursor-pointer transition hover:-translate-y-1 hover:shadow-lg">
+                    className="rounded-2xl border border-[#d6dfd8] dark:border-white/10 bg-white/86 dark:bg-[#1e2a2f] p-0 shadow-[0_10px_20px_rgba(11,34,37,0.09)] overflow-hidden cursor-pointer transition hover:-translate-y-1 hover:shadow-lg">
                     <div className="h-44 overflow-hidden">
                       <img src={v.imageUrl || '/assets/images/car-transparent.png'} alt={v.name} className="w-full h-full object-cover"/>
                     </div>
                     <div className="p-4">
-                      <h3 className="text-[16px] font-bold text-[#1d4144]">{v.name}</h3>
-                      <p className="text-[12px] text-[#567073] mt-1">{v.brand} {v.model}</p>
+                      <h3 className="text-[16px] font-bold text-[#1d4144] dark:text-white">{v.name}</h3>
+                      <p className="text-[12px] text-[#567073] dark:text-slate-400 mt-1">{v.brand} {v.model}</p>
                       <div className="mt-3 flex items-center justify-between">
-                        <span className="text-[18px] font-extrabold text-[#1f5b57]">NPR {(v.pricePerDay||0).toLocaleString()}<span className="text-[12px] font-normal text-[#567073]">/day</span></span>
+                        <span className="text-[18px] font-extrabold text-[#1f5b57] dark:text-emerald-400">NPR {(v.pricePerDay||0).toLocaleString()}<span className="text-[12px] font-normal text-[#567073] dark:text-slate-400">/day</span></span>
                         <button onClick={(e) => { e.stopPropagation(); router.push(`/booking?vehicle=${v.id}`); }}
                           className="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition hover:-translate-y-[1px] hover:brightness-105">Book</button>
                       </div>

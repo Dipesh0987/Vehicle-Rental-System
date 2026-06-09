@@ -30,7 +30,7 @@ const Field = ({ label, value }: { label: string, value: string }) => (
   </article>
 );
 
-const EMPTY_FORM = { name: '', brand: '', type: '', category: '', status: 'available', price_per_day: '', fuel_type: 'Petrol', transmission: 'Automatic', seats: 5, vehicle_number: '', location: '', is_active: true, features: ['AC', 'Bluetooth', 'USB Charging'], what_is_included: ['Insurance Coverage', 'Roadside Assistance', 'GPS Navigation', 'Free Cancellation (24h)'] };
+const EMPTY_FORM = { name: '', brand: '', type: '', category: '', status: 'available', price_per_day: '', fuel_type: 'Petrol', transmission: 'Automatic', seats: 5, vehicle_number: '', location: '', is_active: true, is_top_rented: false, features: ['AC', 'Bluetooth', 'USB Charging'], what_is_included: ['Insurance Coverage', 'Roadside Assistance', 'GPS Navigation', 'Free Cancellation (24h)'] };
 
 export default function AdminVehicles() {
   const toast = useToast();
@@ -255,6 +255,7 @@ export default function AdminVehicles() {
         vehicle_number: form.vehicle_number,
         location: form.location,
         is_active: form.is_active,
+        is_top_rented: form.is_top_rented,
         features: form.features,
         what_is_included: form.what_is_included
       };
@@ -306,6 +307,7 @@ export default function AdminVehicles() {
       location: v.location || '',
       available: undefined,
       is_active: v.is_active !== false,
+      is_top_rented: v.is_top_rented || false,
       features: v.features || ['AC', 'Bluetooth', 'USB Charging'],
       what_is_included: v.what_is_included || ['Insurance Coverage', 'Roadside Assistance', 'GPS Navigation', 'Free Cancellation (24h)']
     });
@@ -526,6 +528,7 @@ export default function AdminVehicles() {
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /><span className="text-xs font-semibold">Is Active (currently on a trip)</span></label>
+              <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-[#1f7668]" checked={form.is_top_rented} onChange={(e) => setForm({ ...form, is_top_rented: e.target.checked })} /><span className="text-xs font-semibold">⭐ Top Rented (show on homepage)</span></label>
             </div>
 
             {/* Features Section */}

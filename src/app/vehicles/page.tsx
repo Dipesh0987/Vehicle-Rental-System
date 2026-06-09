@@ -355,7 +355,6 @@ function VehiclesContent() {
                 <option value="relevance">Sort by: Relevance</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
                 <option value="newest">Newest</option>
               </select>
               {hasActiveFilters && (
@@ -425,11 +424,6 @@ function VehiclesContent() {
                         <div className="rounded-xl border border-[#d7dfda] bg-white px-2.5 py-2"><i className="fas fa-gas-pump mr-1 text-[#5a7477]" />{v.fuelType || 'Petrol'}</div>
                         <div className="rounded-xl border border-[#d7dfda] bg-white px-2.5 py-2"><i className="fas fa-person mr-1 text-[#5a7477]" />{v.seats || 5} Seats</div>
                         <div className="rounded-xl border border-[#d7dfda] bg-white px-2.5 py-2"><i className="fas fa-list-check mr-1 text-[#5a7477]" />{feats.length} Features</div>
-                      </div>
-
-                      <div className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-[#dde5df] bg-white px-3 py-2">
-                        <div className="flex gap-1">{renderStars(v.rating || 0)}</div>
-                        <span className="text-[12px] font-semibold text-[#2d4e52]">{(v.rating || 0).toFixed(1)} rating · {reviewCount} reviews</span>
                       </div>
 
                       {feats.length > 0 && (
