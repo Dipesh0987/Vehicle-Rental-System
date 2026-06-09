@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -7,12 +7,16 @@ import TermsFloatingButton from "@/components/ui/TermsFloatingButton";
 import WhatsAppFloat from "@/components/ui/WhatsAppFloat";
 
 export const metadata: Metadata = {
-  title: "ASSelf | #1 Self Drive Car Rental in Kathmandu Nepal | Vehicle Hire",
-  description: "ASSelf - Nepal's best self-drive car rental service. Rent cars, SUVs, luxury vehicles in Kathmandu, Pokhara, Chitwan without driver. Affordable rates, well-maintained vehicles. Book now at Banasthali, Kathmandu!",
-  keywords: "ASSelf, car rental Kathmandu, self drive car rental Nepal, vehicle rental Kathmandu, rent a car Nepal, self drive Kathmandu, car hire Nepal, SUV rental Kathmandu, luxury car rental Nepal, vehicle hire Kathmandu, Banasthali car rental, Pokhara car rental, Chitwan car rental, car rental without driver Nepal, monthly car rental Kathmandu, daily car rental Nepal, wedding car rental Kathmandu, airport pickup Nepal, tourist vehicle Nepal, cheap car rental Kathmandu, best car rental Nepal, self drive vehicles Nepal, rent car Kathmandu, vehicle on rent Nepal, car booking Kathmandu, self driving car Nepal, car rental near me Kathmandu, car rental service Nepal, rental cars Nepal, hire car Kathmandu, self drive rental Nepal, car rental company Kathmandu, vehicle rental service Nepal, car on hire Kathmandu, rent vehicle Nepal, car rental rates Kathmandu, affordable car rental Nepal, premium car rental Kathmandu, budget car rental Nepal, self drive SUV Kathmandu",
-  authors: [{ name: "ASSelf - Self Drive Car Rental Nepal" }],
-  creator: "ASSelf",
-  publisher: "ASSelf Nepal",
+  metadataBase: new URL('https://asselfdrive.com'),
+  title: {
+    default: 'ASSelf Drive | Self Drive Car Rental Kathmandu Nepal',
+    template: '%s | ASSelf Drive Kathmandu',
+  },
+  description: 'ASSelf Drive - Affordable self drive car rental in Banasthali Ring Road, Kathmandu, Nepal. Rent cars, SUVs & vehicles without driver. Book online now!',
+  keywords: ['self drive car rental kathmandu', 'vehicle rental kathmandu', 'self drive vehicle rental nepal', 'car rental banasthali', 'rental vehicle kathmandu', 'self drive cars nepal', 'car hire kathmandu', 'rent car without driver nepal', 'ASSelf Drive'],
+  authors: [{ name: 'ASSelf Drive', url: 'https://asselfdrive.com' }],
+  creator: 'ASSelf Drive',
+  publisher: 'ASSelf Drive',
   robots: {
     index: true,
     follow: true,
@@ -25,56 +29,50 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://asselfdrive.com",
-    languages: {
-      'en-US': 'https://asselfdrive.com',
-      'ne-NP': 'https://asselfdrive.com/np',
-    },
+    canonical: 'https://asselfdrive.com',
   },
   openGraph: {
-    type: "website",
-    url: "https://asselfdrive.com",
-    title: "ASSelf | Best Self Drive Car Rental Kathmandu Nepal",
-    description: "Nepal's #1 self-drive car rental. Rent cars, SUVs, luxury vehicles in Kathmandu without driver. Affordable rates. Book now!",
-    siteName: "ASSelf - Self Drive Car Rental Nepal",
-    locale: "en_US",
+    type: 'website',
+    url: 'https://asselfdrive.com',
+    title: 'ASSelf Drive | Self Drive Car Rental Kathmandu',
+    description: 'Affordable self drive car rental in Banasthali, Kathmandu. Rent cars & SUVs without driver. Well-maintained vehicles at best rates.',
+    siteName: 'ASSelf Drive',
+    locale: 'en_US',
     images: [
       {
-        url: "https://asselfdrive.com/og-image.jpg",
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: "ASSelf - Self Drive Car Rental Kathmandu Nepal",
+        alt: 'ASSelf Drive - Self Drive Car Rental Kathmandu Nepal',
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    site: "@asselfdrive",
-    creator: "@asselfdrive",
-    title: "ASSelf | Self Drive Car Rental Kathmandu Nepal",
-    description: "Nepal's best self-drive car rental. Rent cars, SUVs in Kathmandu, Pokhara. Drive yourself! Best prices.",
-    images: ["https://asselfdrive.com/og-image.jpg"],
+    card: 'summary_large_image',
+    title: 'ASSelf Drive | Self Drive Car Rental Kathmandu',
+    description: 'Affordable self drive car & vehicle rental in Kathmandu, Nepal. Drive yourself at the best rates!',
+    images: ['/og-image.jpg'],
   },
   verification: {
-    google: "your-google-verification-code",
+    google: 'YOUR_GOOGLE_VERIFICATION_CODE',
   },
-  category: "Car Rental",
+  category: 'Car Rental',
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>",
-    apple: "/apple-touch-icon.png",
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   other: {
-    'geo.region': 'NP-BA',
-    'geo.placename': 'Kathmandu',
-    'geo.position': '27.7172;85.3240',
-    'ICBM': '27.7172, 85.3240',
+    'geo.region': 'NP-3',
+    'geo.placename': 'Kathmandu, Banasthali',
+    'geo.position': '27.6915;85.3420',
+    'ICBM': '27.6915, 85.3420',
   },
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
-  themeColor: "#1f7668",
+  themeColor: '#1f7668',
 };
 
 export default function RootLayout({
@@ -97,6 +95,85 @@ export default function RootLayout({
         />
       </head>
       <body className="vrs-page min-h-screen font-poppins">
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "LocalBusiness",
+                  "@id": "https://asselfdrive.com/#business",
+                  "name": "ASSelf Drive",
+                  "alternateName": "ASSelf Drive Car Rental",
+                  "description": "Self drive car and vehicle rental service in Banasthali Ring Road, Kathmandu, Nepal. Affordable rates for cars, SUVs and vehicles without driver.",
+                  "url": "https://asselfdrive.com",
+                  "telephone": "+977-9704520781",
+                  "email": "info@asselfdrive.com",
+                  "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": "Banasthali Ring Road",
+                    "addressLocality": "Kathmandu",
+                    "addressRegion": "Bagmati",
+                    "postalCode": "44600",
+                    "addressCountry": "NP"
+                  },
+                  "geo": {
+                    "@type": "GeoCoordinates",
+                    "latitude": "27.6915",
+                    "longitude": "85.3420"
+                  },
+                  "openingHoursSpecification": [
+                    {
+                      "@type": "OpeningHoursSpecification",
+                      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+                      "opens": "07:00",
+                      "closes": "20:00"
+                    }
+                  ],
+                  "priceRange": "NPR $$",
+                  "image": "https://asselfdrive.com/og-image.jpg",
+                  "sameAs": [],
+                  "areaServed": {
+                    "@type": "City",
+                    "name": "Kathmandu"
+                  },
+                  "serviceType": "Self Drive Vehicle Rental"
+                },
+                {
+                  "@type": "Organization",
+                  "@id": "https://asselfdrive.com/#organization",
+                  "name": "ASSelf Drive",
+                  "url": "https://asselfdrive.com",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://asselfdrive.com/logo.png"
+                  },
+                  "contactPoint": {
+                    "@type": "ContactPoint",
+                    "telephone": "+977-9704520781",
+                    "contactType": "customer service",
+                    "areaServed": "NP",
+                    "availableLanguage": ["English", "Nepali"]
+                  }
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://asselfdrive.com/#website",
+                  "url": "https://asselfdrive.com",
+                  "name": "ASSelf Drive",
+                  "publisher": { "@id": "https://asselfdrive.com/#organization" },
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://asselfdrive.com/vehicles?search={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                  }
+                }
+              ]
+            })
+          }}
+        />
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>

@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 
 const panel = 'rounded-2xl border border-[rgba(24,34,39,0.12)] bg-white/85 shadow-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none';
 const heading = 'text-[20px] font-extrabold tracking-[-0.02em]';
 const STATUS_OPTIONS = ['available', 'maintenance', 'inactive'];
-const CATEGORY_OPTIONS = ['SUV', 'Sedan', 'Bike', 'Electric', 'Luxury', 'Hatchback', 'Van'];
+const CATEGORY_OPTIONS: string[] = []; // Dynamic — derived from existing vehicles
 const FUEL_OPTIONS = ['Petrol', 'Diesel', 'Electric'];
 const fmtNpr = (v: number) => `NPR ${Number(v || 0).toLocaleString()}`;
 const fmtDt = (v: string) => v ? new Date(v).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
@@ -29,10 +30,11 @@ const Field = ({ label, value }: { label: string, value: string }) => (
   </article>
 );
 
-const EMPTY_FORM = { name: '', brand: '', type: '', category: 'SUV', status: 'available', price_per_day: '', fuel_type: 'Petrol', transmission: 'Automatic', seats: 5, vehicle_number: '', location: '', available: true, is_active: true, features: ['AC', 'Bluetooth', 'USB Charging'], what_is_included: ['Insurance Coverage', 'Roadside Assistance', 'GPS Navigation', 'Free Cancellation (24h)'] };
+const EMPTY_FORM = { name: '', brand: '', type: '', category: '', status: 'available', price_per_day: '', fuel_type: 'Petrol', transmission: 'Automatic', seats: 5, vehicle_number: '', location: '', is_active: true, features: ['AC', 'Bluetooth', 'USB Charging'], what_is_included: ['Insurance Coverage', 'Roadside Assistance', 'GPS Navigation', 'Free Cancellation (24h)'] };
 
 export default function AdminVehicles() {
   const toast = useToast();
+  const searchParams = useSearchParams();
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -60,6 +62,15 @@ export default function AdminVehicles() {
     setLoading(false);
   };
   useEffect(() => { fetchVehicles(); }, []);
+
+  // Auto-open vehicle detail when ?detail=id is present (from global search)
+  useEffect(() => {
+    const detailId = searchParams?.get('detail');
+    if (detailId && vehicles.length > 0) {
+      const found = vehicles.find((v: any) => v.id === detailId);
+      if (found) setDetailVehicle(found);
+    }
+  }, [searchParams, vehicles]);
 
   const fetchVehicleImages = async (vehicleId: string) => {
     const { data } = await supabase.from('vehicle_images').select('*').eq('vehicle_id', vehicleId).order('sort_order');
@@ -231,7 +242,7 @@ export default function AdminVehicles() {
     e.preventDefault();
     setSaving(true);
     try {
-      const vehicleData = {
+      const vehicleData: any = {
         name: form.name,
         brand: form.brand,
         type: form.type,
@@ -243,7 +254,6 @@ export default function AdminVehicles() {
         seats: Number(form.seats) || 5,
         vehicle_number: form.vehicle_number,
         location: form.location,
-        available: form.available,
         is_active: form.is_active,
         features: form.features,
         what_is_included: form.what_is_included
@@ -252,11 +262,17 @@ export default function AdminVehicles() {
       let vehicleId: string;
       if (editVehicle?.id) {
         const { data, error } = await supabase.from('vehicles').update(vehicleData).eq('id', editVehicle.id).select().single();
-        if (error) throw error;
+        if (error) {
+          console.error('Vehicle update error:', error);
+          throw error;
+        }
         vehicleId = data.id;
       } else {
         const { data, error } = await supabase.from('vehicles').insert(vehicleData).select().single();
-        if (error) throw error;
+        if (error) {
+          console.error('Vehicle insert error:', error);
+          throw error;
+        }
         vehicleId = data.id;
         await uploadPendingImages(vehicleId);
       }
@@ -280,7 +296,7 @@ export default function AdminVehicles() {
       name: v.name || '',
       brand: v.brand || '',
       type: v.type || '',
-      category: v.category || 'SUV',
+      category: v.category || '',
       status: v.status || 'available',
       price_per_day: v.price_per_day || '',
       fuel_type: v.fuel_type || 'Petrol',
@@ -288,7 +304,7 @@ export default function AdminVehicles() {
       seats: v.seats || 5,
       vehicle_number: v.vehicle_number || '',
       location: v.location || '',
-      available: v.available !== false,
+      available: undefined,
       is_active: v.is_active !== false,
       features: v.features || ['AC', 'Bluetooth', 'USB Charging'],
       what_is_included: v.what_is_included || ['Insurance Coverage', 'Roadside Assistance', 'GPS Navigation', 'Free Cancellation (24h)']
@@ -485,7 +501,10 @@ export default function AdminVehicles() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="block space-y-1"><span className="text-xs font-semibold">Type</span><input value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className={inp} placeholder="sedan" /></label>
               <label className="block space-y-1"><span className="text-xs font-semibold">Category</span>
-                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inp}>{CATEGORY_OPTIONS.map((c) => <option key={c}>{c}</option>)}</select>
+                <input list="category-options" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inp} placeholder="e.g. SUV, Sedan, Van..." />
+                <datalist id="category-options">
+                  {[...new Set(vehicles.map((v: any) => v.category).filter(Boolean))].sort().map((c) => <option key={c} value={c} />)}
+                </datalist>
               </label>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -506,8 +525,7 @@ export default function AdminVehicles() {
               <label className="block space-y-1"><span className="text-xs font-semibold">Current Location</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inp} placeholder="e.g., Banasthali, Kathmandu" /></label>
             </div>
             <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4" checked={form.available} onChange={(e) => setForm({ ...form, available: e.target.checked })} /><span className="text-xs font-semibold">Available</span></label>
-              <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /><span className="text-xs font-semibold">Is Active</span></label>
+              <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /><span className="text-xs font-semibold">Is Active (currently on a trip)</span></label>
             </div>
 
             {/* Features Section */}
@@ -684,7 +702,23 @@ export default function AdminVehicles() {
                     <td className="py-3 pr-3 text-xs font-mono text-slate-600 dark:text-slate-300">{v.vehicle_number || <span className="text-slate-400 italic">Not set</span>}</td>
                     <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">{v.category}</td>
                     <td className="py-3 pr-3 text-xs text-slate-500 dark:text-slate-400">{v.fuel_type} · {v.transmission} · {v.seats} seats</td>
-                    <td className="py-3 pr-3"><span className={statusCls(v.status)}>{v.status}</span></td>
+                    <td className="py-3 pr-3" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={v.status || 'available'}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          await supabase.from('vehicles').update({ status: newStatus }).eq('id', v.id);
+                          toast.success(`Status changed to ${newStatus}`);
+                          fetchVehicles();
+                        }}
+                        className={`${statusCls(v.status)} border-0 outline-none cursor-pointer appearance-none pr-5 bg-[length:16px] bg-[right_4px_center] bg-no-repeat`}
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")` }}
+                      >
+                        <option value="available">available</option>
+                        <option value="maintenance">maintenance</option>
+                        <option value="inactive">inactive</option>
+                      </select>
+                    </td>
                     <td className="py-3 pr-3 font-semibold">{fmtNpr(v.price_per_day)}</td>
                     <td className="py-3 pr-3 text-right whitespace-nowrap">
                       <button onClick={() => setDetailVehicle(v)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200" title="View">

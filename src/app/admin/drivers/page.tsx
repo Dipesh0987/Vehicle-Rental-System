@@ -84,19 +84,39 @@ export default function AdminDrivers() {
     try {
       // Convert empty strings to null — date columns reject '' with a 400 error
       const payload: any = {
-        ...form,
+        full_name: form.full_name,
+        phone: form.phone,
+        license_number: form.license_number,
+        licence_status: form.licence_status,
+        availability: form.availability,
         experience_years: form.experience_years ? parseInt(form.experience_years) : null,
         date_of_birth: form.date_of_birth || null,
         license_expiry: form.license_expiry || null,
         email: form.email || null,
+        vehicle_assigned: form.vehicle_assigned || null,
+        current_assignment: form.current_assignment || null,
+        notes: form.notes || null,
       };
       let saveErr = null;
       if (mode === 'edit' && detail) {
         const { error } = await supabase.from('drivers').update(payload).eq('id', detail.id);
         saveErr = error;
+        // If a column doesn't exist, retry without that field
+        if (error?.message?.includes('column')) {
+          const retryPayload = { ...payload };
+          delete retryPayload.address;
+          const { error: e2 } = await supabase.from('drivers').update(retryPayload).eq('id', detail.id);
+          saveErr = e2;
+        }
       } else {
         const { error } = await supabase.from('drivers').insert(payload);
         saveErr = error;
+        if (error?.message?.includes('column')) {
+          const retryPayload = { ...payload };
+          delete retryPayload.address;
+          const { error: e2 } = await supabase.from('drivers').insert(retryPayload);
+          saveErr = e2;
+        }
       }
       if (saveErr) throw saveErr;
       await fetch_();

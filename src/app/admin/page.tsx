@@ -23,26 +23,26 @@ export default function Overview() {
 
   const fetchWorkshopCounts = useCallback(async () => {
     try {
-      const { data: maint } = await supabase.from('maintenance_records').select('status, service_type');
+      // Get scheduled/in_progress expenses for maintenance/repair
+      const { data: expenses } = await supabase
+        .from('expenses')
+        .select('status, category')
+        .in('category', ['maintenance', 'repair']);
       
       const ws = { upcoming: 0, inWorkshop: 0, damage: 0 };
-      (maint || []).forEach((m: any) => {
-        if (m.status === 'Scheduled') ws.upcoming++;
-        if (m.status === 'In Progress') ws.inWorkshop++;
+      (expenses || []).forEach((e: any) => {
+        if (e.status === 'scheduled') ws.upcoming++;
+        if (e.status === 'in_progress') ws.inWorkshop++;
       });
       
-      // Try to fetch damage claims if table exists
-      const { data: claims, error: claimsError } = await supabase
-        .from('damage_claims')
-        .select('status')
-        .in('status', ['pending', 'reviewed', 'sent_to_customer', 'disputed']);
+      // Get damage from inspections (unresolved after-trip inspections with damage)
+      const { data: inspections } = await supabase
+        .from('vehicle_inspections')
+        .select('overall_condition, inspection_type')
+        .eq('inspection_type', 'after_trip')
+        .not('overall_condition', 'in', '(resolved,good)');
       
-      // If table doesn't exist (404) or any error, set to 0
-      if (claimsError) {
-        ws.damage = 0;
-      } else {
-        ws.damage = (claims || []).length;
-      }
+      ws.damage = (inspections || []).length;
       
       setWorkshop(ws);
     } catch (err) {
@@ -57,11 +57,12 @@ export default function Overview() {
         const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
         const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
         
-        const [{ count: totalVehicles }, { count: availableVehicles }, { count: totalBookings }, { count: driverCount }] = await Promise.all([
+        const [{ count: totalVehicles }, { count: availableVehicles }, { count: totalBookings }, { count: driverCount }, { count: availableDriverCount }] = await Promise.all([
           supabase.from('vehicles').select('*', { count: 'exact', head: true }),
           supabase.from('vehicles').select('*', { count: 'exact', head: true }).eq('status', 'available'),
           supabase.from('bookings').select('*', { count: 'exact', head: true }),
           supabase.from('drivers').select('*', { count: 'exact', head: true }),
+          supabase.from('drivers').select('*', { count: 'exact', head: true }).eq('availability', 'Available'),
         ]);
 
         const { count: activeRentalsCount } = await supabase
@@ -86,6 +87,7 @@ export default function Overview() {
 
         const { data: recentBookings } = await supabase.from('bookings').select('id, status, created_at, vehicles(name), customer_name').order('created_at', { ascending: false }).limit(5);
         const acts = (recentBookings || []).map((b: any) => ({
+          id: b.id,
           type: `Booking ${b.status}`,
           detail: `${b.vehicles?.name || 'Vehicle'} - ${b.customer_name || 'Customer'}`,
           time: new Date(b.created_at).toLocaleString(),
@@ -99,7 +101,7 @@ export default function Overview() {
           dailyBookings: dailyBookings || 0, 
           revenue,
           drivers: driverCount || 0, 
-          availableDrivers: 0 
+          availableDrivers: availableDriverCount || 0 
         });
         setActivities(acts);
 
@@ -156,24 +158,14 @@ export default function Overview() {
   }, [fetchWorkshopCounts]);
 
   useEffect(() => {
-    console.log('Setting up realtime subscription for maintenance_records...');
-    const subscription = supabase
-      .channel('maintenance_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'maintenance_records' },
-        (payload) => {
-          console.log('Real-time update received:', payload);
-          fetchWorkshopCounts();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+    const channel = supabase
+      .channel('dashboard_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => fetchWorkshopCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicle_inspections' }, () => fetchWorkshopCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => fetchWorkshopCounts())
+      .subscribe();
 
-    return () => {
-      console.log('Unsubscribing from maintenance_changes...');
-      subscription.unsubscribe();
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchWorkshopCounts]);
 
   const formatNpr = (v: number) => `NPR ${Number(v || 0).toLocaleString()}`;
@@ -224,12 +216,12 @@ export default function Overview() {
       <section className={`${panel} p-4 sm:p-5`}>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-base font-extrabold">Workshop Priorities</h3>
-          <button onClick={() => router.push('/admin/maintenance')} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">View all</button>
+          <button onClick={() => router.push('/admin/expenses')} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">View all</button>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <WorkshopMini icon="schedule" label="Upcoming Services" count={workshop.upcoming} color="amber" onClick={() => router.push('/admin/maintenance')} />
-          <WorkshopMini icon="build" label="In Workshop" count={workshop.inWorkshop} color="blue" onClick={() => router.push('/admin/maintenance')} />
-          <WorkshopMini icon="warning" label="Damage Claims Open" count={workshop.damage} color="rose" onClick={() => router.push('/admin/damage-claims')} />
+          <WorkshopMini icon="schedule" label="Scheduled" count={workshop.upcoming} color="amber" onClick={() => router.push('/admin/expenses')} />
+          <WorkshopMini icon="build" label="In Progress" count={workshop.inWorkshop} color="blue" onClick={() => router.push('/admin/expenses')} />
+          <WorkshopMini icon="warning" label="Damage (Unresolved)" count={workshop.damage} color="rose" onClick={() => router.push('/admin/inspections')} />
         </div>
       </section>
 
@@ -281,13 +273,13 @@ export default function Overview() {
           <ul className="space-y-2">
             {activities.length === 0 && <li className="text-sm text-slate-400 py-4 text-center">No recent activity</li>}
             {activities.map((a, i) => (
-              <li key={i} className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+              <li key={i} onClick={() => router.push(`/admin/bookings?detail=${a.id}`)} className="cursor-pointer rounded-xl border border-slate-200 bg-white/70 p-3 transition hover:bg-slate-50 hover:border-[#1f7668]/30 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-bold">{a.type}</p>
                     <p className="text-sm text-slate-600 dark:text-slate-300">{a.detail}</p>
                   </div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{a.time}</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">{a.time}</span>
                 </div>
               </li>
             ))}

@@ -1,0 +1,17 @@
+﻿# RS Self Drive - Self Drive Car Rental Kathmandu Nepal
+# https://asselfdrive.com
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /booking/
+Disallow: /payment/
+Disallow: /_next/
+Disallow: /auth/
+
+# Sitemap
+Sitemap: https://asselfdrive.com/sitemap.xml
+
+# Crawl-delay (optional, for polite crawling)
+Crawl-delay: 1

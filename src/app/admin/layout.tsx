@@ -44,8 +44,7 @@ const getNavItems = (userRole: string): NavItem[] => {
       children: [
         { id: 'contacts', label: 'Contact Messages', icon: 'mail', path: '/admin/contacts' },
         { id: 'vendor-enquiries', label: 'Vendor Enquiries', icon: 'storefront', path: '/admin/vendor-enquiries' },
-        { id: 'damage-claims', label: 'Damage Claims', icon: 'warning', path: '/admin/damage-claims' },
-        { id: 'maintenance', label: 'Maintenance', icon: 'build', path: '/admin/maintenance' },
+        { id: 'inspections', label: 'Inspections & Damage', icon: 'checklist', path: '/admin/inspections' },
         { id: 'notifications', label: 'Notifications', icon: 'notifications', path: '/admin/notifications' },
       ],
     },
@@ -149,9 +148,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   const flatResults = searchResults.flatMap((g) => g.items.map((it: any) => ({ ...it, type: g.type })));
 
-  const handleSearchSelect = (type: string) => {
+  const handleSearchSelect = (type: string, itemId?: string) => {
     setSearchQuery(''); setSearchOpen(false); setSearchResults([]);
-    router.push(searchTypeRoutes[type] || '/admin');
+    // Navigate to the specific section with the item ID as a query param for detail view
+    const baseRoute = searchTypeRoutes[type] || '/admin';
+    if (itemId) {
+      router.push(`${baseRoute}?detail=${itemId}`);
+    } else {
+      router.push(baseRoute);
+    }
   };
 
   const initials = (() => {
@@ -184,7 +189,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   const handleQuickAction = (actionId: string) => {
-    const routes: Record<string, string> = { newBooking: '/admin/bookings', addVehicle: '/admin/vehicles', addDriver: '/admin/drivers', markMaintenance: '/admin/maintenance' };
+    const routes: Record<string, string> = { newBooking: '/admin/bookings', addVehicle: '/admin/vehicles', addDriver: '/admin/drivers', markMaintenance: '/admin/inspections' };
     if (routes[actionId]) router.push(routes[actionId]);
   };
 
@@ -279,7 +284,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         <div key={group.type} className="border-b border-slate-100 last:border-b-0 dark:border-white/5">
                           <p className="px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{searchTypeLabels[group.type]}</p>
                           {group.items.map((item: any) => (
-                            <button key={item.id} onClick={() => handleSearchSelect(group.type)}
+                            <button key={item.id} onClick={() => handleSearchSelect(group.type, item.id)}
                               className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left transition hover:bg-slate-50 dark:hover:bg-white/5">
                               <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                               <span className="min-w-0 flex-1">

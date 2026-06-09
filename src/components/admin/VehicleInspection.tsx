@@ -199,6 +199,48 @@ export default function VehicleInspection({ booking, inspectionType, onComplete,
     setPartConditions(updated);
   };
 
+  // Add custom part to the checklist
+  const [showAddPart, setShowAddPart] = useState(false);
+  const [newPart, setNewPart] = useState({ part_name: '', part_category: 'exterior', default_cost: '' });
+
+  const handleAddPart = async () => {
+    if (!newPart.part_name.trim()) { toast.warning('Part name is required'); return; }
+    const partId = `custom-${Date.now()}`;
+    const part: Part = {
+      id: partId,
+      part_name: newPart.part_name.trim(),
+      part_category: newPart.part_category,
+      default_cost: Number(newPart.default_cost) || 0,
+    };
+
+    // Save to database
+    try {
+      await supabase.from('vehicle_parts').insert({
+        id: partId,
+        part_name: part.part_name,
+        part_category: part.part_category,
+        default_cost: part.default_cost,
+        sort_order: parts.length + 1,
+        is_active: true,
+      });
+    } catch {}
+
+    setParts(prev => [...prev, part]);
+    setPartConditions(prev => ({ ...prev, [partId]: { condition: 'good', damage_description: '', repair_cost: part.default_cost } }));
+    setNewPart({ part_name: '', part_category: 'exterior', default_cost: '' });
+    setShowAddPart(false);
+    toast.success(`"${part.part_name}" added to checklist`);
+  };
+
+  const handleDeletePart = async (partId: string) => {
+    if (!confirm('Remove this part from the checklist?')) return;
+    try {
+      await supabase.from('vehicle_parts').update({ is_active: false }).eq('id', partId);
+    } catch {}
+    setParts(prev => prev.filter(p => p.id !== partId));
+    toast.success('Part removed');
+  };
+
   const handleSubmit = async () => {
     setSaving(true);
     try {
@@ -241,6 +283,15 @@ export default function VehicleInspection({ booking, inspectionType, onComplete,
 
       if (inspectionType === 'after_trip' && beforeInspection) {
         await checkAndCreateDamageClaim(inspection.id);
+      }
+
+      // Auto-set vehicle to 'maintenance' if damage found in after-trip inspection
+      if (inspectionType === 'after_trip') {
+        const hasDamage = parts.some(p => (partConditions[p.id]?.condition || 'good') !== 'good');
+        if (hasDamage && booking.vehicle_id) {
+          await supabase.from('vehicles').update({ status: 'maintenance' }).eq('id', booking.vehicle_id);
+          toast.warning('Vehicle marked as unavailable (under maintenance) due to damage found.');
+        }
       }
 
       toast.success(`${inspectionType === 'before_trip' ? 'Before Trip' : 'After Trip'} inspection saved successfully!`);
@@ -436,7 +487,37 @@ export default function VehicleInspection({ booking, inspectionType, onComplete,
             {cat.charAt(0).toUpperCase() + cat.slice(1)} ({partsByCategory[cat]?.length || 0})
           </button>
         ))}
+        <button onClick={() => setShowAddPart(true)} className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-[#1f7668] dark:border-white/20 dark:text-slate-400 dark:hover:bg-white/5 transition">
+          + Add Part
+        </button>
       </div>
+
+      {/* Add Part Modal */}
+      {showAddPart && (
+        <div className={`${panel} p-4 mb-3 border-2 border-dashed border-[#1f7668]/30`}>
+          <h4 className="text-sm font-bold mb-3 dark:text-white">Add Custom Part to Checklist</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Part Name *</label>
+              <input value={newPart.part_name} onChange={(e) => setNewPart({ ...newPart, part_name: e.target.value })} className={inp} placeholder="e.g. Roof Rack" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Category</label>
+              <select value={newPart.part_category} onChange={(e) => setNewPart({ ...newPart, part_category: e.target.value })} className={inp}>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Default Cost (NPR)</label>
+              <input type="number" value={newPart.default_cost} onChange={(e) => setNewPart({ ...newPart, default_cost: e.target.value })} className={inp} placeholder="5000" />
+            </div>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button onClick={handleAddPart} className="rounded-xl bg-[#1f7668] px-4 py-2 text-sm font-semibold text-white hover:bg-[#185f54]">Add Part</button>
+            <button onClick={() => setShowAddPart(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300">Cancel</button>
+          </div>
+        </div>
+      )}
 
       <div className={`${panel} overflow-hidden`}>
         <div className="max-h-[400px] overflow-y-auto">
@@ -450,6 +531,7 @@ export default function VehicleInspection({ booking, inspectionType, onComplete,
                 )}
                 <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Notes</th>
                 <th className="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">Cost (NPR)</th>
+                <th className="px-2 py-3 w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
@@ -507,6 +589,11 @@ export default function VehicleInspection({ booking, inspectionType, onComplete,
                       ) : (
                         <span className="text-slate-400">-</span>
                       )}
+                    </td>
+                    <td className="px-2 py-3">
+                      <button onClick={(e) => { e.stopPropagation(); handleDeletePart(part.id); }} className="rounded p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition" title="Remove part">
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
                     </td>
                   </tr>
                 );

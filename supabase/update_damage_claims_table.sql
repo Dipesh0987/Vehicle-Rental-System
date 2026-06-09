@@ -62,13 +62,18 @@ BEGIN
 END $$;
 
 -- Update old status values to new ones (if any exist with old naming)
-UPDATE damage_claims SET status = 'Pending' WHERE status = 'pending';
-UPDATE damage_claims SET status = 'Under Review' WHERE status = 'reviewed';
-UPDATE damage_claims SET status = 'Sent to Customer' WHERE status = 'sent_to_customer';
-UPDATE damage_claims SET status = 'Paid' WHERE status = 'paid';
-UPDATE damage_claims SET status = 'Disputed' WHERE status = 'disputed';
-UPDATE damage_claims SET status = 'Waived' WHERE status = 'waived';
-UPDATE damage_claims SET status = 'Closed' WHERE status = 'closed';
+UPDATE damage_claims SET status = 'pending' WHERE status = 'Pending';
+UPDATE damage_claims SET status = 'under_review' WHERE status = 'Under Review' OR status = 'reviewed';
+UPDATE damage_claims SET status = 'sent_to_customer' WHERE status = 'Sent to Customer';
+UPDATE damage_claims SET status = 'paid' WHERE status = 'Paid';
+UPDATE damage_claims SET status = 'disputed' WHERE status = 'Disputed';
+UPDATE damage_claims SET status = 'waived' WHERE status = 'Waived';
+UPDATE damage_claims SET status = 'closed' WHERE status = 'Closed';
+
+-- Drop old constraint and recreate with lowercase values
+ALTER TABLE damage_claims DROP CONSTRAINT IF EXISTS damage_claims_status_check;
+ALTER TABLE damage_claims ADD CONSTRAINT damage_claims_status_check 
+  CHECK (status IN ('pending', 'under_review', 'sent_to_customer', 'paid', 'disputed', 'waived', 'closed'));
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_damage_claims_vehicle ON damage_claims(vehicle_id);

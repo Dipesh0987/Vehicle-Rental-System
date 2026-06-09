@@ -1,12 +1,20 @@
+'use client';
+
 import Link from 'next/link';
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
+  const openTerms = () => {
+    // Trigger the Terms floating button's modal via a custom event
+    const termsBtn = document.querySelector('[aria-label="View Terms and Conditions"]') as HTMLButtonElement;
+    if (termsBtn) termsBtn.click();
+  };
+
   return (
     <footer className="vrs-footer vrs-theme-scope relative mt-20 bg-[#e8e6df] dark:bg-slate-900">
       <div className="relative z-10 mx-auto w-full max-w-[1200px] px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_1.5fr] lg:gap-16">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_1.5fr] lg:gap-16">
           <div className="max-w-[280px]">
             <div className="mb-4">
               <h2 className="text-[28px] font-black leading-none tracking-tight">
@@ -16,7 +24,7 @@ export default function Footer() {
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Self Drive Car Rental Nepal</p>
             </div>
             <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
-              Your trusted partner for premium vehicle rentals in Nepal. We offer a wide selection of well-maintained cars, transparent pricing, and exceptional customer service. Whether it&apos;s a business trip or family vacation, ASSelf makes your journey comfortable and hassle-free.
+              Your trusted partner for premium vehicle rentals in Nepal. We offer a wide selection of well-maintained cars, transparent pricing, and exceptional customer service.
             </p>
           </div>
 
@@ -33,20 +41,19 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined mt-0.5 text-[18px] text-slate-400 dark:text-slate-500">mail</span>
-                <a href="mailto:info@rentavehicle.com" className="text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400">info@rentavehicle.com</a>
+                <a href="mailto:info@asselfdrive.com" className="text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400">info@asselfdrive.com</a>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="mb-5 text-[15px] font-bold text-slate-800 dark:text-slate-100">Information Links</h3>
+            <h3 className="mb-5 text-[15px] font-bold text-slate-800 dark:text-slate-100">Quick Links</h3>
             <ul className="space-y-3">
               <li><Link href="/booking" className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Book Now</Link></li>
               <li><Link href="/vehicles" className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Our Vehicles</Link></li>
               <li><Link href="/vendor-enquiry" className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Become a Vendor</Link></li>
-              <li><a href="#" className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Terms &amp; Conditions</a></li>
-              <li><a href="#" className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Cancellation Policy</a></li>
-              <li><a href="#" className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Privacy Policy</a></li>
+              <li><Link href="/contact" className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Contact Us</Link></li>
+              <li><button onClick={openTerms} className="inline-flex items-center text-[13px] text-slate-600 transition-colors hover:text-[#ff6b35] dark:text-slate-400"><span className="mr-2 text-slate-400">›</span>Terms &amp; Conditions</button></li>
             </ul>
           </div>
 

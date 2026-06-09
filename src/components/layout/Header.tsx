@@ -15,6 +15,7 @@ export default function Header() {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [bookingsOpen, setBookingsOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => pathname === path;
@@ -47,10 +48,10 @@ export default function Header() {
         {/* Brand */}
         <Link href="/" className="group relative text-ink transition duration-200 hover:-translate-y-[1px] hover:text-[#164144]">
           <span className="vrs-brand-wordmark block text-[24px] font-extrabold leading-none tracking-tight lg:text-[34px]">
-            <span className="bg-[linear-gradient(120deg,#E58C4E,#ff9f5a_42%,#ffb87a)] bg-clip-text text-transparent">AS</span>
-            <span className="bg-[linear-gradient(120deg,#0e2528,#123f43_42%,#1f6660)] bg-clip-text text-transparent dark:bg-[linear-gradient(120deg,#5bbfb5,#7dd3c8_42%,#a8e6df)] dark:text-transparent">Self</span>
+            <span className="text-[#E58C4E]">AS</span>
+            <span className="text-slate-800 dark:text-white">Self</span>
           </span>
-          <span className="vrs-brand-tagline -mt-1 block text-[7px] font-semibold uppercase tracking-[0.16em] text-[#1B2E2F] dark:text-slate-300 lg:text-[11px]">Self Drive Car Rental</span>
+          <span className="vrs-brand-tagline -mt-1 block text-[7px] font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300 lg:text-[11px]">Self Drive Car Rental</span>
           <span className="vrs-brand-underline mt-1 block h-[2px] w-20 rounded-full bg-[linear-gradient(90deg,#E58C4E,#2C766E)] opacity-75 animate-glowPulse"></span>
         </Link>
 
@@ -65,9 +66,14 @@ export default function Header() {
         </nav>
 
         {/* Right section */}
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-2 pr-1 sm:gap-3 sm:pr-0">
           <button type="button" onClick={toggleTheme} className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Toggle theme" title="Toggle theme">
             <span className="material-symbols-outlined">contrast</span>
+          </button>
+
+          {/* Hamburger button - mobile only, AFTER theme toggle */}
+          <button type="button" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden rounded-xl border border-slate-200 bg-white p-2.5 text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100" aria-label="Menu">
+            <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
           </button>
 
           {showAsLoggedIn ? (
@@ -136,17 +142,49 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile nav pills */}
-      <div className="vrs-theme-scope relative z-20 mx-auto flex w-[95%] max-w-[1390px] flex-wrap gap-2 pb-2 lg:hidden">
-        <Link href="/" className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold ${isActive('/') ? 'border-[#f1c8aa] bg-[#fff4eb] text-[#9f5825]' : 'border-[#d4ded9] bg-white/95 text-[#264447]'}`}>Home</Link>
-        <Link href="/vehicles" className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold ${isActive('/vehicles') || isActive('/booking') ? 'border-[#f1c8aa] bg-[#fff4eb] text-[#9f5825]' : 'border-[#d4ded9] bg-white/95 text-[#264447]'}`}>Vehicles</Link>
-        <Link href="/contact" className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold ${isActive('/contact') ? 'border-[#f1c8aa] bg-[#fff4eb] text-[#9f5825]' : 'border-[#d4ded9] bg-white/95 text-[#264447]'}`}>Contact</Link>
-        <Link href="/vendor-enquiry" className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold ${isActive('/vendor-enquiry') ? 'border-[#f1c8aa] bg-[#fff4eb] text-[#9f5825]' : 'border-[#d4ded9] bg-white/95 text-[#264447]'}`}>Vendor</Link>
-        <button type="button" onClick={() => setBookingsOpen(true)} className="rounded-full border border-[#d4ded9] bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[#264447]">Bookings</button>
-        {showAsLoggedIn && (
-          <Link href="/profile-verification" className={`rounded-full border px-3 py-1.5 text-[12px] font-semibold ${isActive('/profile-verification') ? 'border-[#f1c8aa] bg-[#fff4eb] text-[#9f5825]' : 'border-[#d4ded9] bg-white/95 text-[#264447]'}`}>Verify</Link>
-        )}
-      </div>
+      {/* Mobile Slide-Out Menu */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <nav className="absolute right-0 top-0 h-full w-[280px] bg-white dark:bg-[#1a2228] shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/10">
+              <span className="text-lg font-bold text-slate-800 dark:text-white">Menu</span>
+              <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10">
+                <span className="material-symbols-outlined text-slate-600 dark:text-white">close</span>
+              </button>
+            </div>
+            <div className="p-4 space-y-1">
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive('/') ? 'bg-[#145f59]/10 text-[#145f59]' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'}`}>
+                <span className="material-symbols-outlined text-[20px]">home</span> Home
+              </Link>
+              <Link href="/vehicles" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive('/vehicles') ? 'bg-[#145f59]/10 text-[#145f59]' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'}`}>
+                <span className="material-symbols-outlined text-[20px]">directions_car</span> Vehicles
+              </Link>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); setBookingsOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                <span className="material-symbols-outlined text-[20px]">event_note</span> Your Bookings
+              </button>
+              <Link href="/vendor-enquiry" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive('/vendor-enquiry') ? 'bg-[#145f59]/10 text-[#145f59]' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'}`}>
+                <span className="material-symbols-outlined text-[20px]">storefront</span> Become a Vendor
+              </Link>
+              <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive('/contact') ? 'bg-[#145f59]/10 text-[#145f59]' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'}`}>
+                <span className="material-symbols-outlined text-[20px]">mail</span> Contact
+              </Link>
+              {showAsLoggedIn && (
+                <>
+                  <div className="my-3 h-px bg-slate-200 dark:bg-white/10" />
+                  <Link href="/profile-verification" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                    <span className="material-symbols-outlined text-[20px]">verified_user</span> Profile
+                  </Link>
+                  <button type="button" onClick={async () => { await signOut(); setMobileMenuOpen(false); router.push('/'); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10 transition">
+                    <span className="material-symbols-outlined text-[20px]">logout</span> Sign Out
+                  </button>
+                </>
+              )}
+            </div>
+          </nav>
+        </div>
+      )}
+
       {/* Bookings Modal - Available to all users */}
       <BookingsModal open={bookingsOpen} onClose={() => setBookingsOpen(false)} />
     </>

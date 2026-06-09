@@ -164,8 +164,7 @@ html[data-theme="dark"] .premium-chip {
 }
 
 html[data-theme="dark"] .vrs-theme-scope .vrs-brand-wordmark {
-  background-image: linear-gradient(120deg, #f6fbfd, #cce7ec 45%, #95dacb) !important;
-  filter: drop-shadow(0 8px 22px rgba(8, 21, 24, 0.35));
+  filter: none;
 }
 
 html[data-theme="dark"] .vrs-theme-scope .vrs-brand-tagline { color: #bfd2da !important; }
@@ -815,5 +814,17 @@ html, body {
 @media (max-width: 1024px) {
   .lg\:flex.sticky.h-screen {
     display: none !important;
+  }
+}
+
+/* My Bookings page — ensure detail card doesn't overflow on mobile */
+@media (max-width: 640px) {
+  .grid.grid-cols-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  /* Booking cards stack image on top */
+  .flex-col.sm\:flex-row {
+    flex-direction: column;
   }
 }

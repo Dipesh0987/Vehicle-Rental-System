@@ -7,8 +7,8 @@ import { checkAvailability } from '@/services/booking.service';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-const TRANSMISSIONS = ['Automatic', 'Manual'];
-const FUEL_TYPES = ['Petrol', 'Diesel', 'Electric', 'Hybrid'];
+const TRANSMISSIONS_FALLBACK = ['Automatic', 'Manual'];
+const FUEL_TYPES_FALLBACK = ['Petrol', 'Diesel', 'Electric', 'Hybrid'];
 
 function formatNpr(n: number) { return `NPR ${Number(n || 0).toLocaleString()}`; }
 
@@ -48,6 +48,19 @@ function VehiclesContent() {
       .map((v) => (v.brand || '').trim())
       .filter(Boolean);
     return [...new Set(brands)].sort();
+  }, [vehicles]);
+
+  // Dynamic transmission and fuel type lists from actual vehicle data
+  const TRANSMISSIONS = useMemo(() => {
+    const t = vehicles.map((v) => (v.transmission || '').trim()).filter(Boolean);
+    const unique = [...new Set(t)].sort();
+    return unique.length > 0 ? unique : TRANSMISSIONS_FALLBACK;
+  }, [vehicles]);
+
+  const FUEL_TYPES = useMemo(() => {
+    const f = vehicles.map((v) => (v.fuelType || v.fuel_type || '').trim()).filter(Boolean);
+    const unique = [...new Set(f)].sort();
+    return unique.length > 0 ? unique : FUEL_TYPES_FALLBACK;
   }, [vehicles]);
 
   const [pickupLocation, setPickupLocation] = useState(searchParams.get('location') || '');
@@ -260,13 +273,6 @@ function VehiclesContent() {
             </article>
           </div>
         </div>
-        <div className="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
-          <button type="button" className="rounded-full border border-[#f1c8aa] bg-[#fff4eb] px-3 py-1.5 text-[#9f5825]">Featured</button>
-          <button type="button" onClick={() => setSortBy('rating')} className="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Top Rated</button>
-          <button type="button" onClick={() => setSortBy('price-low')} className="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Budget Friendly</button>
-          <button type="button" onClick={() => { setSelectedTypes(['luxury']); }} className="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Luxury Class</button>
-          <button type="button" onClick={() => { setSelectedFuels(['Electric', 'Hybrid']); }} className="rounded-full border border-[#d4ded9] bg-white px-3 py-1.5 text-[#2f5053]">Fuel Efficient</button>
-        </div>
       </section>
 
       <div className="elite-stage elite-search-shell premium-surface relative z-20 mb-8 rounded-[32px] p-5 [animation-delay:90ms] sm:p-6 lg:p-8">
@@ -320,17 +326,18 @@ function VehiclesContent() {
           </div>
         </aside>
 
-        <button onClick={() => setMobileFilterOpen(true)} className="fixed bottom-8 right-8 z-20 rounded-full bg-accent p-4 text-white shadow-[0_16px_30px_rgba(229,140,78,0.45)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 lg:hidden" title="Open Filters">
-          <i className="fas fa-sliders-h text-xl"></i>
+        <button onClick={() => setMobileFilterOpen(true)} className="fixed bottom-20 right-4 z-40 flex items-center gap-2 rounded-full bg-accent px-4 py-3 text-white shadow-[0_16px_30px_rgba(229,140,78,0.45)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 lg:hidden" title="Open Filters">
+          <span className="material-symbols-outlined text-[20px]">tune</span>
+          <span className="text-sm font-semibold">Filters</span>
         </button>
 
         {mobileFilterOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFilterOpen(false)} />
-            <div className="absolute right-0 top-0 h-full w-[340px] max-w-[90vw] overflow-y-auto bg-white p-5 shadow-2xl">
+            <div className="absolute right-0 top-0 h-full w-[340px] max-w-[90vw] overflow-y-auto bg-white dark:bg-[#1a2228] p-5 shadow-2xl">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-[#1f4246]">Filters</h3>
-                <button onClick={() => setMobileFilterOpen(false)} className="rounded-lg p-2 hover:bg-slate-100"><i className="fas fa-times" /></button>
+                <button onClick={() => setMobileFilterOpen(false)} className="rounded-lg p-2 hover:bg-slate-100"><span className="material-symbols-outlined">close</span></button>
               </div>
               {filterSidebar}
             </div>

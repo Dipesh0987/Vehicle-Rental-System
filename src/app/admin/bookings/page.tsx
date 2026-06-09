@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { validateNepalPhone, validateEmail, validateName, validateLocation, validateNotPastDate, validateDateRange } from '@/lib/validations';
 import { useToast } from '@/components/Toast';
 import Invoice from '@/components/Invoice';
+import VehicleInspection from '@/components/admin/VehicleInspection';
 
 const panel = 'rounded-2xl border border-[rgba(24,34,39,0.12)] bg-white/85 shadow-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none';
 const heading = 'text-[20px] font-extrabold tracking-[-0.02em]';
-const STATUS_OPTIONS = ['pending', 'confirmed', 'active', 'completed', 'cancelled'];
-const TYPE_OPTIONS = ['', 'Sedan', 'SUV', 'Hatchback', 'Luxury', 'Van', 'Electric'];
+const STATUS_OPTIONS = ['pending', 'confirmed', 'active', 'completed'];
+const TYPE_OPTIONS = [''];
 const PAID_OPTIONS = ['', 'Yes', 'No'];
 const fmtNpr = (v: number) => `NPR ${Number(v || 0).toLocaleString()}`;
 const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
@@ -72,6 +74,7 @@ function buildOccupancy(bookings: any[]) {
 
 export default function AdminBookings() {
   const toast = useToast();
+  const searchParams = useSearchParams();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -87,9 +90,20 @@ export default function AdminBookings() {
   const [editForm, setEditForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
   const [billModalState, setBillModalState] = useState<{ show: boolean, booking: any }>({ show: false, booking: null });
   const [savedInvoices, setSavedInvoices] = useState<Record<string, any>>({});
+
+  // Restore detail view after reload or from global search (?detail=id)
+  useEffect(() => {
+    if (typeof window === 'undefined' || bookings.length === 0 || detail) return;
+    const detailId = searchParams?.get('detail') || sessionStorage.getItem('adminBookingDetailId');
+    if (detailId) {
+      const found = bookings.find((b: any) => b.id === detailId);
+      if (found) openDetail(found);
+    }
+  }, [bookings, searchParams]);
   const [createForm, setCreateForm] = useState({
     vehicle_id: '',
     customer_name: '',
@@ -190,6 +204,19 @@ export default function AdminBookings() {
     }
   };
   useEffect(() => { fetch_(); }, []);
+
+  // Open detail view from URL param (from global search)
+  useEffect(() => {
+    if (typeof window === 'undefined' || bookings.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const detailId = params.get('detail');
+    if (detailId && !detail) {
+      const found = bookings.find((b: any) => b.id === detailId);
+      if (found) openDetail(found);
+      // Clean URL without reload
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [bookings]);
   useEffect(() => { if (showCreate) fetchVehicles(); }, [showCreate]);
 
   const handleCreateBooking = async (e: React.FormEvent) => {
@@ -330,9 +357,11 @@ export default function AdminBookings() {
   };
 
   const activeBookings = useMemo(() => bookings.filter((b: any) => b.status !== 'cancelled'), [bookings]);
+  const cancelledBookings = useMemo(() => bookings.filter((b: any) => b.status === 'cancelled'), [bookings]);
   
   const filtered = useMemo(() => {
-    return activeBookings.filter((b: any) => {
+    const source = showCancelled ? cancelledBookings : activeBookings;
+    return source.filter((b: any) => {
       const q = search.toLowerCase();
       const matchQ = !q || [b.id, b.booking_code, b.status, b.vehicles?.name, b.customer_name, b.customer_email].some((f) => String(f || '').toLowerCase().includes(q));
       const matchDate = !dateFilter || b.start_date === dateFilter || b.end_date === dateFilter;
@@ -341,7 +370,7 @@ export default function AdminBookings() {
       const matchPaid = !paidFilter || (paidFilter === 'Yes' ? b.is_paid : !b.is_paid);
       return matchQ && matchDate && matchStatus && matchType && matchPaid;
     });
-  }, [activeBookings, search, dateFilter, statusFilter, typeFilter, paidFilter]);
+  }, [activeBookings, cancelledBookings, showCancelled, search, dateFilter, statusFilter, typeFilter, paidFilter]);
 
   const filteredVehicles = useMemo(() => {
     if (!vehicleSearch) return vehicles;
@@ -489,12 +518,26 @@ export default function AdminBookings() {
     }
   };
 
-  const openBillModal = (b: any) => {
-    // If we previously saved edits for this booking, reuse them
+  const openBillModal = async (b: any) => {
+    // Priority: 1) In-memory saved edits, 2) Database booking_invoices table, 3) Generate fresh
     if (savedInvoices[b.id]) {
       setBillModalState({ show: true, booking: savedInvoices[b.id] });
       return;
     }
+    
+    // Try loading from database
+    try {
+      const { data: invoiceRow } = await supabase
+        .from('booking_invoices')
+        .select('invoice_data')
+        .eq('booking_id', b.id)
+        .maybeSingle();
+      if (invoiceRow?.invoice_data) {
+        setSavedInvoices(prev => ({ ...prev, [b.id]: invoiceRow.invoice_data }));
+        setBillModalState({ show: true, booking: invoiceRow.invoice_data });
+        return;
+      }
+    } catch {}
 
     const days = b.start_date && b.end_date 
       ? Math.max(1, Math.ceil((Number(new Date(b.end_date)) - Number(new Date(b.start_date))) / 86400000)) 
@@ -551,6 +594,7 @@ export default function AdminBookings() {
 
   const openDetail = async (b: any) => {
     setDetail(b);
+    if (typeof window !== 'undefined') sessionStorage.setItem('adminBookingDetailId', b.id);
     setReceiptUrl(null);
     setPaymentDetail(null);
     
@@ -640,7 +684,7 @@ export default function AdminBookings() {
         <div className={`${panel} p-4 sm:p-6`}>
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button onClick={() => setDetail(null)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
+            <button onClick={() => { setDetail(null); if (typeof window !== 'undefined') sessionStorage.removeItem('adminBookingDetailId'); }} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10">
               <span className="material-symbols-outlined text-[16px]">west</span> Back to Bookings
             </button>
             <div className="flex items-center gap-2">
@@ -801,6 +845,9 @@ export default function AdminBookings() {
                 <button onClick={() => openBillModal(b)} className="inline-flex items-center gap-1 rounded-xl bg-[#1f7668] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#185f54]">
                   <span className="material-symbols-outlined text-[16px]">receipt_long</span> Generate Bill
                 </button>
+                <button onClick={() => { setInspectionBooking(b); setShowInspection(true); }} className="inline-flex items-center gap-1 rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
+                  <span className="material-symbols-outlined text-[16px]">checklist</span> Inspection
+                </button>
                 <button onClick={() => openEditModal(b)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold transition hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/10">
                   <span className="material-symbols-outlined text-[16px]">edit</span> Edit Booking
                 </button>
@@ -905,7 +952,13 @@ export default function AdminBookings() {
                       payment_status: paidAmount >= totalAmount ? 'completed' : (paidAmount > 0 ? 'partial' : 'pending'),
                     }).eq('id', bookingId);
                     
-                    // Persist invoice edits so re-opening shows saved values
+                    // Persist invoice data to separate table
+                    await supabase.from('booking_invoices').upsert({
+                      booking_id: bookingId,
+                      invoice_data: updatedInvoice,
+                      updated_at: new Date().toISOString(),
+                    }, { onConflict: 'booking_id' });
+                    
                     setSavedInvoices(prev => ({ ...prev, [bookingId]: updatedInvoice }));
                   }
                   
@@ -928,7 +981,50 @@ export default function AdminBookings() {
             </div>
           </div>
         )}
-      </div>
+
+      {/* Inspection Modal - inside detail view */}
+      {showInspection && inspectionBooking && (
+        <div className="fixed inset-0 z-[9999] overflow-auto bg-slate-100 dark:bg-slate-900">
+          <div className="sticky top-0 z-50 bg-white dark:bg-[#1a2228] border-b dark:border-white/10 px-4 py-3 flex items-center justify-between shadow-sm">
+            <div>
+              <h2 className="text-lg font-bold dark:text-white">Vehicle Inspection</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{inspectionBooking.vehicles?.name || 'Vehicle'} — {inspectionBooking.customer_name}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+                <button onClick={() => setInspectionType('before_trip')} className={`px-4 py-2 text-sm font-semibold transition ${inspectionType === 'before_trip' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-50'}`}>
+                  Before Trip
+                </button>
+                <button onClick={() => setInspectionType('after_trip')} className={`px-4 py-2 text-sm font-semibold transition ${inspectionType === 'after_trip' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-50'}`}>
+                  After Trip
+                </button>
+              </div>
+              <button onClick={() => { setShowInspection(false); setInspectionBooking(null); }} className="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 rounded-lg font-semibold text-sm dark:text-white">
+                ✕ Close
+              </button>
+            </div>
+          </div>
+          <div className="min-h-screen p-4 sm:p-6">
+            <VehicleInspection
+              booking={inspectionBooking}
+              inspectionType={inspectionType}
+              onComplete={async () => {
+                setShowInspection(false);
+                setInspectionBooking(null);
+                const fresh = await fetch_();
+                if (detail?.id === inspectionBooking.id) {
+                  setDetail(fresh.find((b: any) => b.id === inspectionBooking.id) || null);
+                }
+              }}
+              onCancel={() => {
+                setShowInspection(false);
+                setInspectionBooking(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
     );
   }
 
@@ -944,6 +1040,16 @@ export default function AdminBookings() {
         </button>
       </header>
 
+      {/* Active / Cancelled Tabs */}
+      <div className="flex gap-2">
+        <button onClick={() => setShowCancelled(false)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${!showCancelled ? 'bg-[#1f7668] text-white shadow' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200'}`}>
+          Active Bookings ({activeBookings.length})
+        </button>
+        <button onClick={() => setShowCancelled(true)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${showCancelled ? 'bg-rose-600 text-white shadow' : 'bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300'}`}>
+          Cancelled ({cancelledBookings.length})
+        </button>
+      </div>
+
       <div className={`${panel} p-4 sm:p-5`}>
         <div className="mb-4 flex flex-wrap gap-3">
           <input placeholder="Search bookings..." value={search} onChange={(e) => setSearch(e.target.value)} className={inp + ' w-48'} />
@@ -954,7 +1060,7 @@ export default function AdminBookings() {
           </select>
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={inp + ' w-32'}>
             <option value="">All Types</option>
-            {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            {[...new Set(bookings.map((b: any) => b.vehicles?.category).filter(Boolean))].sort().map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <select value={paidFilter} onChange={(e) => setPaidFilter(e.target.value)} className={inp + ' w-28'}>
             <option value="">Payment</option>
@@ -1277,12 +1383,27 @@ export default function AdminBookings() {
 
       {showInspection && inspectionBooking && (
         <div className="fixed inset-0 z-[9999] overflow-auto bg-slate-100 dark:bg-slate-900">
-          <div className="sticky top-0 z-50 bg-white border-b px-4 py-2 flex justify-between items-center shadow">
-            <h2 className="text-lg font-bold">Vehicle Inspection</h2>
-            <button onClick={() => { setShowInspection(false); setInspectionBooking(null); }} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded font-semibold">✕ Close</button>
+          <div className="sticky top-0 z-50 bg-white dark:bg-[#1a2228] border-b dark:border-white/10 px-4 py-3 flex items-center justify-between shadow-sm">
+            <div>
+              <h2 className="text-lg font-bold dark:text-white">Vehicle Inspection</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{inspectionBooking.vehicles?.name || 'Vehicle'} — {inspectionBooking.customer_name}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+                <button onClick={() => setInspectionType('before_trip')} className={`px-4 py-2 text-sm font-semibold transition ${inspectionType === 'before_trip' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-50'}`}>
+                  Before Trip
+                </button>
+                <button onClick={() => setInspectionType('after_trip')} className={`px-4 py-2 text-sm font-semibold transition ${inspectionType === 'after_trip' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-50'}`}>
+                  After Trip
+                </button>
+              </div>
+              <button onClick={() => { setShowInspection(false); setInspectionBooking(null); }} className="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 rounded-lg font-semibold text-sm dark:text-white">
+                ✕ Close
+              </button>
+            </div>
           </div>
           <div className="min-h-screen p-4 sm:p-6">
-            {/* <VehicleInspection
+            <VehicleInspection
               booking={inspectionBooking}
               inspectionType={inspectionType}
               onComplete={async () => {
@@ -1297,8 +1418,7 @@ export default function AdminBookings() {
                 setShowInspection(false);
                 setInspectionBooking(null);
               }}
-            /> */}
-            <div className="text-center">VehicleInspection component needs to be converted</div>
+            />
           </div>
         </div>
       )}

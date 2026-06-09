@@ -53,7 +53,7 @@ export default function VendorEnquiry() {
     setImages(newImages);
     const newPreviews = newImages.map(f => URL.createObjectURL(f));
     setPreviews(newPreviews);
-    if (newImages.length >= 3) setErrors({ ...errors, images: '' });
+    if (newImages.length >= 1) setErrors({ ...errors, images: '' });
   };
 
   const removeImage = (index: number) => {
@@ -61,8 +61,8 @@ export default function VendorEnquiry() {
     const newPreviews = previews.filter((_, i) => i !== index);
     setImages(newImages);
     setPreviews(newPreviews);
-    if (newImages.length < 3) {
-      setErrors({ ...errors, images: 'Minimum 3 images required' });
+    if (newImages.length < 1) {
+      setErrors({ ...errors, images: 'At least 1 image is required' });
     }
   };
 
@@ -88,8 +88,8 @@ export default function VendorEnquiry() {
     if (!form.service_type) newErrors.service_type = 'Service type is required';
     if (!form.price_min || parseFloat(form.price_min) < 0) newErrors.price_min = 'Minimum price is required';
     if (!form.price_max || parseFloat(form.price_max) < 0) newErrors.price_max = 'Maximum price is required';
-    if (parseFloat(form.price_min) > parseFloat(form.price_max)) newErrors.price_max = 'Max price must be greater than min';
-    if (images.length < 3) newErrors.images = 'Minimum 3 images required';
+    if (form.price_min && form.price_max && parseFloat(form.price_max) < parseFloat(form.price_min)) newErrors.price_max = 'Max price must be greater than min price';
+    if (images.length < 1) newErrors.images = 'At least 1 image is required';
     if (images.length > 5) newErrors.images = 'Maximum 5 images allowed';
     if (!form.terms_accepted) newErrors.terms_accepted = 'You must accept the terms and conditions';
     setErrors(newErrors);
@@ -312,7 +312,7 @@ export default function VendorEnquiry() {
                     <div className="mb-6" id="venfield-images">
                       <label className="block font-poppins text-[13px] font-semibold text-ink dark:text-[#cbd5e1] mb-1.5">
                         Upload Car Images <span className="text-accent">*</span>
-                        <span className="font-normal text-muted ml-1">(3-5 images)</span>
+                        <span className="font-normal text-muted ml-1">(1-5 images)</span>
                       </label>
                       <div className="border-2 border-dashed border-[#dfe3dc] dark:border-white/10 rounded-xl p-6 text-center hover:border-[#145f59] dark:hover:border-[#2c766e] transition-colors">
                         <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
@@ -376,22 +376,22 @@ export default function VendorEnquiry() {
                 Terms & Conditions
               </h2>
               <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                <p>• Valid driving license required for self-drive rentals.</p>
-                <p>• Vehicle is for personal use only. Commercial, public or rental use prohibited.</p>
-                <p>• No illegal activities, off-road driving, or racing allowed.</p>
-                <p>• Renter is liable for all traffic fines and violations.</p>
-                <p>• Renter responsible for damages due to negligence or reckless driving.</p>
-                <p>• In case of breakdown or accident, inform company immediately.</p>
-                <p>• Damages not covered by insurance must be paid by renter.</p>
-                <p>• In case of damage or accident, rental charges apply for repair.</p>
-                <p>• If renter fails to pay dues, company may recover via security cheque.</p>
-                <p>• If renter is unreachable after accident, company may use security cheque.</p>
-                <p>• Extension/cancellation must be informed 24 hrs prior. Late penalty: NPR 500/hour.</p>
-                <p>• NPR 1,000 cleaning fee applies for excessively dirty vehicle.</p>
-                <p>• Advance payment confirms booking. Cancellation charges apply.</p>
-                <p>• Vehicle must be returned with same fuel level; otherwise charges apply.</p>
-                <p>• Vehicle must be returned by 7:00 PM. Late fee: NPR 800/hour.</p>
-                <p>• Next day processing at 7:00 AM.</p>
+                <p>â€¢ Valid driving license required for self-drive rentals.</p>
+                <p>â€¢ Vehicle is for personal use only. Commercial, public or rental use prohibited.</p>
+                <p>â€¢ No illegal activities, off-road driving, or racing allowed.</p>
+                <p>â€¢ Renter is liable for all traffic fines and violations.</p>
+                <p>â€¢ Renter responsible for damages due to negligence or reckless driving.</p>
+                <p>â€¢ In case of breakdown or accident, inform company immediately.</p>
+                <p>â€¢ Damages not covered by insurance must be paid by renter.</p>
+                <p>â€¢ In case of damage or accident, rental charges apply for repair.</p>
+                <p>â€¢ If renter fails to pay dues, company may recover via security cheque.</p>
+                <p>â€¢ If renter is unreachable after accident, company may use security cheque.</p>
+                <p>â€¢ Extension/cancellation must be informed 24 hrs prior. Late penalty: NPR 500/hour.</p>
+                <p>â€¢ NPR 1,000 cleaning fee applies for excessively dirty vehicle.</p>
+                <p>â€¢ Advance payment confirms booking. Cancellation charges apply.</p>
+                <p>â€¢ Vehicle must be returned with same fuel level; otherwise charges apply.</p>
+                <p>â€¢ Vehicle must be returned by 7:00 PM. Late fee: NPR 800/hour.</p>
+                <p>â€¢ Next day processing at 7:00 AM.</p>
               </div>
             </div>
           </div>

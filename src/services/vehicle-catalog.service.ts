@@ -75,6 +75,7 @@ export async function listVehicles({ forceRefresh = false }: { forceRefresh?: bo
   const { data, error } = await supabase
     .from('vehicles')
     .select('*')
+    .in('status', ['available'])
     .order('created_at', { ascending: false });
 
   if (error) throw error;

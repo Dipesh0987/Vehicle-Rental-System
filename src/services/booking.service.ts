@@ -223,10 +223,23 @@ export async function updateBookingStatus(bookingId: string, status: string, met
 }
 
 export async function requestBookingCancellation(bookingId: string, reason: string) {
+  // Try the RPC first; if it doesn't exist, fall back to direct update
   const { data, error } = await supabase.rpc('request_booking_cancellation', {
     p_booking_id: bookingId,
     p_reason: reason,
   });
-  if (error) throw error;
+  
+  if (error) {
+    // Fallback: if the RPC function doesn't exist, update directly
+    if (error.message?.includes('function') || error.message?.includes('does not exist') || error.message?.includes('not found') || error.code === '42883') {
+      const { error: updateErr } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled', notes: reason })
+        .eq('id', bookingId);
+      if (updateErr) throw updateErr;
+      return { success: true };
+    }
+    throw error;
+  }
   return data;
 }

@@ -10,24 +10,24 @@ const heading = 'text-[20px] font-extrabold tracking-[-0.02em]';
 const inp = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#1f7668] focus:ring-2 focus:ring-[#1f7668]/20 dark:border-white/10 dark:bg-white/5 dark:text-white';
 
 // Clear status flow for damage claims
-const STATUS_OPTIONS = ['Pending', 'Under Review', 'Sent to Customer', 'Paid', 'Disputed', 'Waived', 'Closed'];
+const STATUS_OPTIONS = ['pending', 'under_review', 'sent_to_customer', 'paid', 'disputed', 'waived', 'closed'];
 const STATUS_LABELS: Record<string, string> = {
-  'Pending': 'Pending Review',
-  'Under Review': 'Under Review',
-  'Sent to Customer': 'Sent to Customer',
-  'Paid': 'Paid',
-  'Disputed': 'Disputed',
-  'Waived': 'Waived',
-  'Closed': 'Closed'
+  'pending': 'Pending',
+  'under_review': 'Under Review',
+  'sent_to_customer': 'Sent to Customer',
+  'paid': 'Paid',
+  'disputed': 'Disputed',
+  'waived': 'Waived',
+  'closed': 'Closed'
 };
 const STATUS_COLORS: Record<string, string> = {
-  'Pending': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
-  'Under Review': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
-  'Sent to Customer': 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
-  'Paid': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
-  'Disputed': 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
-  'Waived': 'bg-slate-100 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400',
-  'Closed': 'bg-slate-200 text-slate-500 dark:bg-slate-600/20 dark:text-slate-500'
+  'pending': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
+  'under_review': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
+  'sent_to_customer': 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
+  'paid': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+  'disputed': 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
+  'waived': 'bg-slate-100 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400',
+  'closed': 'bg-slate-200 text-slate-500 dark:bg-slate-600/20 dark:text-slate-500'
 };
 
 const emptyForm = {
@@ -48,6 +48,7 @@ export default function DamageClaims() {
   const [form, setForm] = useState(emptyForm);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [bookingSearch, setBookingSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
   const fetchClaims = async () => {
@@ -77,7 +78,7 @@ export default function DamageClaims() {
     const [{ data: v }, { data: b }] = await Promise.all([
       supabase.from('vehicles').select('id, name, vehicle_number').order('name'),
       supabase.from('bookings').select('id, booking_code, vehicle_id, customer_name, customer_email, customer_phone, start_date, end_date, status, vehicles(name, vehicle_number)')
-        .eq('status', 'completed').order('end_date', { ascending: false }).limit(50)
+        .in('status', ['completed', 'active']).order('end_date', { ascending: false }).limit(50)
     ]);
     setVehicles(v || []);
     setRecentBookings(b || []);
@@ -130,22 +131,38 @@ export default function DamageClaims() {
       // Generate claim number
       const claimNumber = `DC-${Date.now().toString(36).toUpperCase()}`;
       
-      const payload = {
+      // Build payload â€” only include customer_email/phone if those columns exist
+      // (they may not exist until the migration is run)
+      const payload: any = {
         claim_number: claimNumber,
         vehicle_id: form.vehicle_id,
         booking_id: form.booking_id || null,
-        customer_name: form.customer_name || null,
-        customer_email: form.customer_email || null,
-        customer_phone: form.customer_phone || null,
         damage_description: form.damage_description,
         damage_location: form.damage_location || null,
         total_damage_cost: parseFloat(form.total_damage_cost),
         damage_date: form.damage_date || null,
         admin_notes: form.admin_notes || null,
-        status: 'Pending'
+        status: 'pending'
       };
+      // Try including customer fields â€” if columns don't exist, we'll retry without them
+      if (form.customer_name) payload.customer_name = form.customer_name;
+      if (form.customer_email) payload.customer_email = form.customer_email;
+      if (form.customer_phone) payload.customer_phone = form.customer_phone;
       
-      const { error } = await supabase.from('damage_claims').insert(payload);
+      let { error } = await supabase.from('damage_claims').insert(payload);
+      
+      // If customer columns don't exist, retry without them
+      if (error?.message?.includes('customer_email') || error?.message?.includes('customer_phone') || error?.message?.includes('customer_name')) {
+        delete payload.customer_email;
+        delete payload.customer_phone;
+        delete payload.customer_name;
+        const retry = await supabase.from('damage_claims').insert(payload);
+        error = retry.error;
+        if (!error) {
+          toast.info('Note: Run supabase/update_damage_claims_table.sql to enable customer info on claims.');
+        }
+      }
+      
       if (error) throw error;
       
       await fetchClaims();
@@ -162,7 +179,7 @@ export default function DamageClaims() {
     setSaving(true);
     try {
       const updates: any = { status: newStatus };
-      if (['Paid', 'Waived', 'Closed'].includes(newStatus)) {
+      if (['paid', 'waived', 'closed'].includes(newStatus)) {
         updates.resolved_at = new Date().toISOString();
       }
       
@@ -201,7 +218,7 @@ Best regards,
 ASSelf Car Rental`;
     
     window.open(`mailto:${claim.customer_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-    await updateClaimStatus(claim.id, 'Sent to Customer');
+    await updateClaimStatus(claim.id, 'sent_to_customer');
   };
 
   // Create maintenance record from this damage claim (for repairs)
@@ -280,11 +297,17 @@ ASSelf Car Rental`;
               }}
               className={inp}
             >
-              <option value="">— Select a recent completed booking —</option>
+              <option value="">â€” Select a recent completed booking â€”</option>
               {recentBookings.length === 0 && <option value="" disabled>No completed bookings found</option>}
-              {recentBookings.map((b) => (
+              {recentBookings
+                .filter((b) => {
+                  if (!bookingSearch) return true;
+                  const q = bookingSearch.toLowerCase();
+                  return (b.customer_name || '').toLowerCase().includes(q) || (b.vehicles?.name || '').toLowerCase().includes(q) || (b.booking_code || '').toLowerCase().includes(q);
+                })
+                .map((b) => (
                 <option key={b.id} value={b.id}>
-                  {(b.booking_code || b.id?.slice(0, 8))} — {b.customer_name} — {b.vehicles?.name} ({b.end_date})
+                  {(b.booking_code || b.id?.slice(0, 8))} â€” {b.customer_name} â€” {b.vehicles?.name} ({b.end_date})
                 </option>
               ))}
             </select>
@@ -383,7 +406,7 @@ ASSelf Car Rental`;
   // DETAIL VIEW
   if (mode === 'detail' && selectedClaim) {
     const claim = selectedClaim;
-    const isResolved = ['Paid', 'Waived', 'Closed'].includes(claim.status);
+    const isResolved = ['paid', 'waived', 'closed'].includes(claim.status);
     
     return (
       <div className="space-y-4">
@@ -425,9 +448,9 @@ ASSelf Car Rental`;
           <div className={`${panel} p-4`}>
             <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">Customer</h3>
             <div className="space-y-2 text-sm">
-              <p><span className="text-slate-500">Name:</span> <strong>{claim.customer_name || '—'}</strong></p>
-              <p><span className="text-slate-500">Email:</span> <strong>{claim.customer_email || '—'}</strong></p>
-              <p><span className="text-slate-500">Phone:</span> <strong>{claim.customer_phone || '—'}</strong></p>
+              <p><span className="text-slate-500">Name:</span> <strong>{claim.customer_name || 'â€”'}</strong></p>
+              <p><span className="text-slate-500">Email:</span> <strong>{claim.customer_email || 'â€”'}</strong></p>
+              <p><span className="text-slate-500">Phone:</span> <strong>{claim.customer_phone || 'â€”'}</strong></p>
             </div>
           </div>
 
@@ -477,14 +500,14 @@ ASSelf Car Rental`;
           <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">Actions</h3>
           <div className="flex flex-wrap gap-2">
             {/* Status update buttons based on current status */}
-            {claim.status === 'Pending' && (
-              <button onClick={() => updateClaimStatus(claim.id, 'Under Review')} disabled={saving}
+            {claim.status === 'pending' && (
+              <button onClick={() => updateClaimStatus(claim.id, 'under_review')} disabled={saving}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50">
                 <span className="material-symbols-outlined text-[16px]">visibility</span> Start Review
               </button>
             )}
             
-            {['Pending', 'Under Review'].includes(claim.status) && claim.customer_email && (
+            {['pending', 'under_review'].includes(claim.status) && claim.customer_email && (
               <button onClick={() => sendClaimToCustomer(claim)} disabled={saving}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:opacity-50">
                 <span className="material-symbols-outlined text-[16px]">mail</span> Send to Customer
@@ -493,17 +516,17 @@ ASSelf Car Rental`;
             
             {!isResolved && (
               <>
-                <button onClick={() => updateClaimStatus(claim.id, 'Paid')} disabled={saving}
+                <button onClick={() => updateClaimStatus(claim.id, 'paid')} disabled={saving}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50">
                   <span className="material-symbols-outlined text-[16px]">payments</span> Mark as Paid
                 </button>
                 
-                <button onClick={() => updateClaimStatus(claim.id, 'Disputed')} disabled={saving}
+                <button onClick={() => updateClaimStatus(claim.id, 'disputed')} disabled={saving}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-50">
                   <span className="material-symbols-outlined text-[16px]">gavel</span> Disputed
                 </button>
                 
-                <button onClick={() => updateClaimStatus(claim.id, 'Waived')} disabled={saving}
+                <button onClick={() => updateClaimStatus(claim.id, 'waived')} disabled={saving}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:text-slate-300">
                   <span className="material-symbols-outlined text-[16px]">do_not_disturb</span> Waive
                 </button>
@@ -511,7 +534,7 @@ ASSelf Car Rental`;
             )}
             
             {claim.status !== 'Closed' && (
-              <button onClick={() => updateClaimStatus(claim.id, 'Closed')} disabled={saving}
+              <button onClick={() => updateClaimStatus(claim.id, 'closed')} disabled={saving}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:text-slate-300">
                 <span className="material-symbols-outlined text-[16px]">close</span> Close Claim
               </button>
@@ -537,22 +560,22 @@ ASSelf Car Rental`;
         {/* Resolution Status */}
         {isResolved && (
           <div className={`rounded-2xl border p-4 ${
-            claim.status === 'Paid' ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10' :
-            claim.status === 'Waived' ? 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10' :
+            claim.status === 'paid' ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10' :
+            claim.status === 'waived' ? 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10' :
             'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5'
           }`}>
             <div className="flex items-center gap-2">
               <span className={`material-symbols-outlined text-[20px] ${
-                claim.status === 'Paid' ? 'text-emerald-600' : claim.status === 'Waived' ? 'text-amber-600' : 'text-slate-500'
+                claim.status === 'paid' ? 'text-emerald-600' : claim.status === 'waived' ? 'text-amber-600' : 'text-slate-500'
               }`}>
-                {claim.status === 'Paid' ? 'check_circle' : claim.status === 'Waived' ? 'do_not_disturb' : 'lock'}
+                {claim.status === 'paid' ? 'check_circle' : claim.status === 'waived' ? 'do_not_disturb' : 'lock'}
               </span>
               <div>
                 <p className={`text-sm font-bold ${
-                  claim.status === 'Paid' ? 'text-emerald-800 dark:text-emerald-200' : 
-                  claim.status === 'Waived' ? 'text-amber-800 dark:text-amber-200' : 'text-slate-700 dark:text-slate-300'
+                  claim.status === 'paid' ? 'text-emerald-800 dark:text-emerald-200' : 
+                  claim.status === 'waived' ? 'text-amber-800 dark:text-amber-200' : 'text-slate-700 dark:text-slate-300'
                 }`}>
-                  Claim {claim.status === 'Paid' ? 'Paid' : claim.status === 'Waived' ? 'Waived' : 'Closed'}
+                  Claim {claim.status === 'paid' ? 'Paid' : claim.status === 'waived' ? 'Waived' : 'Closed'}
                 </p>
                 {claim.resolved_at && <p className="text-xs text-slate-500">Resolved on {new Date(claim.resolved_at).toLocaleDateString()}</p>}
               </div>
@@ -678,14 +701,14 @@ ASSelf Car Rental`;
                           <img src={claim.vehicles.primary_image_url} alt="" className="h-8 w-12 rounded object-cover" />
                         )}
                         <div>
-                          <p className="font-medium">{claim.vehicles?.name || '—'}</p>
+                          <p className="font-medium">{claim.vehicles?.name || 'â€”'}</p>
                           <p className="text-xs text-slate-500">{claim.vehicles?.vehicle_number}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium">{claim.customer_name || '—'}</p>
-                      <p className="text-xs text-slate-500">{claim.customer_email || '—'}</p>
+                      <p className="font-medium">{claim.customer_name || 'â€”'}</p>
+                      <p className="text-xs text-slate-500">{claim.customer_email || 'â€”'}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-1 text-xs font-semibold ${STATUS_COLORS[claim.status]}`}>
