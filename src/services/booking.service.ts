@@ -1,7 +1,5 @@
 import supabase from '@/lib/supabase';
 
-const SERVICE_FEE_RATE = 0.05;
-
 export interface QuoteResult {
   base: number;
   serviceFee: number;
@@ -25,8 +23,8 @@ export function calculateQuote({
   discountType?: string;
 }): QuoteResult {
   const base = pricePerDay * days;
-  const serviceFee = Math.round(base * SERVICE_FEE_RATE);
-  const subtotal = base + serviceFee;
+  const serviceFee = 0; // No service fee
+  const subtotal = base;
   
   let finalDiscountAmount = 0;
   if (discountType === 'npr_amount' && discountAmount > 0) {

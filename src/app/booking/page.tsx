@@ -169,7 +169,7 @@ function BookingContent() {
         vehicle_id: vehicleId, start_date: startDate, end_date: endDate, pickup_time: pickupTime,
         driver_option: driverOption, customer_name: customerName, customer_email: customerEmail, customer_phone: customerPhone,
         pickup_location: pickupLocation, dropoff_location: dropoffLocation, notes, coupon_code: couponCode || null, discount_percent: discountPercent, discount_amount: quote?.discountAmount || 0,
-        base_amount: quote?.base || 0, service_fee: quote?.serviceFee || 0, total_amount: quote?.total || 0,
+        base_amount: quote?.base || 0, service_fee: 0, total_amount: quote?.total || 0,
       });
       router.push(`/payment?booking=${result.id}`);
     } catch (err: any) { setError(err.message); setReviewOpen(false); } finally { setSubmitting(false); }
@@ -331,7 +331,6 @@ function BookingContent() {
                 <div className="mt-3 space-y-2 text-[13px] text-[#3d5f61]">
                   <div className="flex items-center justify-between"><span>Duration</span><span className="font-semibold text-[#24484b]">{days} days</span></div>
                   <div className="flex items-center justify-between"><span>Base</span><span className="font-semibold text-[#24484b]">NPR {(quote?.base || 0).toLocaleString()}</span></div>
-                  <div className="flex items-center justify-between"><span>Service Fee</span><span className="font-semibold text-[#24484b]">NPR {(quote?.serviceFee || 0).toLocaleString()}</span></div>
                   <div className="flex items-center justify-between"><span>Discount</span><span className="font-semibold text-[#16a34a]">-NPR {(quote?.discountAmount || 0).toLocaleString()}</span></div>
                 </div>
                 <div className="booking-total-pill mt-4 rounded-2xl border border-[#f2d3bb] bg-[#fff6ef] px-3 py-2.5">
@@ -374,7 +373,6 @@ function BookingContent() {
               <div className="space-y-1 text-[12px] text-slate-600">
                 <div className="flex items-center justify-between"><span>Duration</span><span className="font-semibold">{days} day{days > 1 ? 's' : ''}</span></div>
                 <div className="flex items-center justify-between"><span>Base</span><span className="font-semibold">NPR {(quote.base || 0).toLocaleString()}</span></div>
-                <div className="flex items-center justify-between"><span>Service Fee</span><span className="font-semibold">NPR {(quote.serviceFee || 0).toLocaleString()}</span></div>
                 {Number(quote.discountAmount) > 0 && <div className="flex items-center justify-between text-[#16a34a]"><span>Discount</span><span className="font-semibold">-NPR {(quote.discountAmount || 0).toLocaleString()}</span></div>}
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2">
