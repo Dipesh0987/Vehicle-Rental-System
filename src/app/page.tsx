@@ -121,15 +121,15 @@ function HomeContent() {
 
                   <label className="block cursor-pointer rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:bg-white/40 hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                     <span className="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Pick Up/Time</span>
-                    <input type="datetime-local" value={pickupDateTime} onChange={(e) => { setPickupDateTime(e.target.value); setError(''); }} required
-                      min={new Date().toISOString().slice(0, 16)}
+                    <input type="datetime-local" value={pickupDateTime} onChange={(e) => { setPickupDateTime(e.target.value); if (dropoffDateTime && e.target.value > dropoffDateTime) setDropoffDateTime(''); setError(''); }} required
+                      min={(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; })()}
                       className="mt-2 h-[42px] w-full rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none sm:w-[80%] lg:h-[42px] lg:w-[78%] lg:text-[14px]" />
                   </label>
 
                   <label className="block cursor-pointer rounded-2xl p-1 transition duration-200 hover:-translate-y-[1px] hover:bg-white/40 hover:shadow-[0_8px_16px_rgba(12,35,38,0.08)]">
                     <span className="text-[18px] font-medium text-[#2D3337] lg:text-[16px]">Date of Drop-off/Time</span>
                     <input type="datetime-local" value={dropoffDateTime} onChange={(e) => { setDropoffDateTime(e.target.value); setError(''); }} required
-                      min={pickupDateTime || new Date().toISOString().slice(0, 16)}
+                      min={pickupDateTime || (() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; })()}
                       className="mt-2 h-[42px] w-full rounded-full border-0 bg-white px-5 text-[14px] text-[#4a545b] outline-none sm:w-[80%] lg:h-[42px] lg:w-[78%] lg:text-[14px]" />
                   </label>
 
