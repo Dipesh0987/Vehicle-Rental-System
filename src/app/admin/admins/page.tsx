@@ -28,7 +28,7 @@ const roleColor = (r: string) => {
 };
 
 export default function AdminRoles() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, profile } = useAuth();
   const toast = useToast();
   const [admins, setAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,13 +55,18 @@ export default function AdminRoles() {
   });
   const [saving, setSaving] = useState(false);
 
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   const fetch_ = async () => {
     setLoading(true);
-    const { data } = await supabase.from('user_profiles').select('*').in('role', ['admin', 'super_admin', 'employee', 'staff', 'manager']).order('created_at', { ascending: false });
+    const roles = isSuperAdmin 
+      ? ['admin', 'super_admin', 'employee', 'staff', 'manager']
+      : ['admin', 'employee', 'staff', 'manager']; // Non-super_admin cannot see super_admin
+    const { data } = await supabase.from('user_profiles').select('*').in('role', roles).order('created_at', { ascending: false });
     setAdmins(data || []);
     setLoading(false);
   };
-  useEffect(() => { fetch_(); }, []);
+  useEffect(() => { fetch_(); }, [isSuperAdmin]);
 
   const existingSuperAdmin = admins.find((a: any) => a.role === 'super_admin' && a.id !== currentUser?.id);
 
